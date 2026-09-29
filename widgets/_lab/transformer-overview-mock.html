@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 an overview beside L3 — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 115ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 16px; max-width: 550px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .drive { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); }
+  .drive button { font: inherit; padding: 4px 14px; margin-right: 6px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  .drive button.on { background: var(--surface-3); font-weight: 600; }
+  .drive .gap { display: inline-block; width: 18px; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 115ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 &middot; an overview beside L3 &middot; mock</h1>
+  <p class="note">L3 reads in the block's order but loses the picture of the whole. Two ways to put the whole back, each on the Decoder and on the
+    Encoder&ndash;decoder page. In both, <b>every box that has a section carries a number</b>, and the section below carries the same number: that is
+    the link, with no leader lines. Every canvas is 550 wide (the narrowest the harness draws); the content height is printed under each, and the
+    harness frame fits a canvas of about 690.</p>
+
+  <h2>1 &middot; Two overviews, two pages (training, a row part-way)</h2>
+  <p class="note"><b>O1 strip</b>: the block drawn left to right across the top, one lane per stack; the encoder lane's output drops into
+    Cross-attention. <b>O2 map</b>: your figure itself, bottom to top as in the lesson, small, in the top-right corner; the sections take the
+    width beside it and below it. Your feed-back arrow from the output to the decoder's input is drawn in Generation only (&sect; 2), since training
+    feeds nothing back.</p>
+  <div class="row">
+    <div class="cand"><div class="sub" id="hDs">Decoder · O1 strip</div><canvas id="Ds" width="550" height="720"></canvas></div>
+    <div class="cand"><div class="sub" id="hDm">Decoder · O2 map</div><canvas id="Dm" width="550" height="720"></canvas></div>
+  </div>
+  <div class="row">
+    <div class="cand"><div class="sub" id="hXs">Encoder–decoder · O1 strip</div><canvas id="Xs" width="550" height="720"></canvas></div>
+    <div class="cand"><div class="sub" id="hXm">Encoder–decoder · O2 map</div><canvas id="Xm" width="550" height="720"></canvas></div>
+  </div>
+
+  <h2>2 &middot; Working: the lit box follows the press</h2>
+  <p class="note">A press carries one row through the block, a box at a time: the box lights on the overview, its number lights on the section, and
+    that section's part of the row appears as the press reaches it (the attention row at the attention box, the probabilities at Linear + softmax).
+    In Generation the chosen token then travels the feed-back arrow into the input. On the Encoder&ndash;decoder page the first press runs the
+    encoder (1, 2) and every later press starts at the decoder (3): the gene is encoded once.</p>
+  <div class="drive">
+    <button id="pD" class="on">Decoder</button><button id="pX">Encoder–decoder</button><span class="gap"></span>
+    <button id="oS">O1 strip</button><button id="oM" class="on">O2 map</button><span class="gap"></span>
+    <button id="mT" class="on">Training</button><button id="mG">Generation</button><span class="gap"></span>
+    <button id="step">Next token</button><button id="play">Play</button><button id="reset">Reset</button>
+    <span id="where" style="color:var(--ink-3)"></span></div>
+  <div class="row"><div class="cand"><div class="sub" id="hL">live</div><canvas id="live" width="550" height="720"></canvas></div></div>
+
+  <h2>3 &middot; To answer with the mock open</h2>
+  <p class="q"><b>1 · The overview.</b> O2 your figure as a map in the corner (recommended: it is the lesson's own picture, so the page is recognisably
+    that figure taken apart, and it costs width rather than height) &middot; O1 a strip across the top.</p>
+  <p class="q"><b>2 · The lit box follows the press</b> (&sect; 2), yes or no: without it the numbers are a key; with it the overview shows where the
+    press is in the block.</p>
+  <p class="q"><b>3 · Hover</b>: pointing at a section lights its box on the overview, and pointing at a box lights its section (not drawn here).</p>
+</main>
+
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  enc: css("--c-group-a"), dec: css("--c-group-b"), mag: css("--c-magnitude"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const mixP = (t, col) => { const a = rgb(C.s3), b = rgb(col); return a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))); };
+const cssP = (p) => `rgb(${p.join(",")})`;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  if (!cv.dataset.w) { cv.dataset.w = w; cv.dataset.h = h; cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, +cv.dataset.w, +cv.dataset.h); return { g, w: +cv.dataset.w, h: +cv.dataset.h }; }
+function text(g, s, x, y, { size = 10.5, color = C.ink2, align = "left", mono = false, bold = false } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function tw(g, s, { size = 10.5, mono = false, bold = false } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; return g.measureText(s).width; }
+function poly(g, pts, col, lw = 1.5, dash = null) { g.save(); if (dash) g.setLineDash(dash); g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.restore(); }
+function tip(g, x, y, ang, size, col) { g.fillStyle = col; g.beginPath(); g.moveTo(x, y); g.lineTo(x - size * Math.cos(ang - 0.45), y - size * Math.sin(ang - 0.45)); g.lineTo(x - size * Math.cos(ang + 0.45), y - size * Math.sin(ang + 0.45)); g.fill(); }
+/* an arrow along a polyline, its head at the last point */
+function arrowP(g, pts, col = C.ink3, lw = 1.2) { const n = pts.length, [x1, y1] = pts[n - 2], [x2, y2] = pts[n - 1], a = Math.atan2(y2 - y1, x2 - x1);
+  poly(g, [...pts.slice(0, -1), [x2 - 4 * Math.cos(a), y2 - 4 * Math.sin(a)]], col, lw); tip(g, x2, y2, a, 6, col); }
+
+/* the number that ties a box on the overview to its section: the box's hue, ringed in ink when that box is the one the press is at */
+function badge(g, x, y, k, col, lit) {
+  g.beginPath(); g.arc(x, y, 7, 0, 2 * Math.PI); g.fillStyle = C.s1; g.fill();
+  g.beginPath(); g.arc(x, y, 5.6, 0, 2 * Math.PI); g.fillStyle = col; g.fill();
+  if (lit) { g.beginPath(); g.arc(x, y, 7.2, 0, 2 * Math.PI); g.strokeStyle = C.ink1; g.lineWidth = 2; g.stroke(); g.lineWidth = 1; }
+  text(g, String(k), x, y + 0.5, { size: 8.5, bold: true, align: "center", color: inkOn(rgb(col)) });
+}
+function mbox(g, x, y, w, h, lines, col, { k = 0, lit = false, size = 9 } = {}) {
+  g.fillStyle = col; g.fillRect(x, y, w, h);
+  if (lit) { g.strokeStyle = C.ink1; g.lineWidth = 2; g.strokeRect(x - 1.5, y - 1.5, w + 3, h + 3); g.lineWidth = 1; }
+  [].concat(lines).forEach((l, i, a) => text(g, l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * (size + 2), { size, align: "center", color: inkOn(rgb(col)) }));
+  if (k) badge(g, x, y, k, col, lit);
+  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2 };
+}
+/* a section's head: its number, its box's name, a note, which drops to the next line if it would run into the overview */
+function sectionHead(g, x, y, k, name, col, note, lit, right) {
+  badge(g, x + 7, y, k, col, lit); text(g, name, x + 19, y, { bold: true, color: C.ink1 });
+  if (!note) return y + 16;
+  const nx = x + 19 + tw(g, name, { bold: true }) + 8;
+  if (nx + tw(g, note, { size: 9.5 }) <= right) { text(g, note, nx, y, { size: 9.5, color: C.ink3 }); return y + 16; }
+  text(g, note, x + 19, y + 14, { size: 9.5, color: C.ink3 }); return y + 30;
+}
+
+/* ------------------------------------------------------------------ the overviews */
+const LOOP_W = 16, MAP_DEC_W = 14 + 96 + LOOP_W + 8, MAP_XD_W = 12 + 80 + 26 + 80 + LOOP_W + 8;
+/* O2, the decoder: his stack, input at the bottom */
+function mapDec(g, x, y, lit, gen) {
+  const bw = 96, cx = x + 14 + bw / 2, bx = x + 14; let yy = y;
+  text(g, "Next token", cx, yy + 5, { size: 9, align: "center", color: lit.has("back") ? C.ink1 : C.ink2, bold: lit.has("back") }); arrowP(g, [[cx, yy + 26], [cx, yy + 12]]);
+  const out = mbox(g, bx, yy + 26, bw, 20, "Linear + softmax", C.dec, { k: 4, lit: lit.has(4) });
+  arrowP(g, [[cx, yy + 62], [cx, yy + 50]]);
+  const bT = yy + 62; mbox(g, bx, bT + 8, bw, 20, "Feed forward", C.dec, { k: 3, lit: lit.has(3) });
+  arrowP(g, [[cx, bT + 42], [cx, bT + 32]]);
+  mbox(g, bx, bT + 42, bw, 28, ["Masked self-", "attention"], C.dec, { k: 2, lit: lit.has(2) });
+  poly(g, [[bx - 10, bT], [bx + bw + 6, bT], [bx + bw + 6, bT + 78], [bx - 10, bT + 78], [bx - 10, bT]], C.ref, 1.2, [4, 3]);
+  text(g, "× 2", bx + bw + 4, bT - 6, { size: 9, align: "right", color: C.ref });
+  arrowP(g, [[cx, bT + 102], [cx, bT + 82]]);
+  mbox(g, bx, bT + 102, bw, 20, "Embedding", C.dec, { k: 1, lit: lit.has(1) });
+  arrowP(g, [[cx, bT + 146], [cx, bT + 126]]);
+  text(g, "Tokens so far", cx, bT + 154, { size: 9, align: "center" });
+  if (gen) { const lx = bx + bw + 14, c = lit.has("back") ? C.ink1 : C.ink3, lw = lit.has("back") ? 2 : 1.2;
+    poly(g, [[cx + 34, yy + 5], [lx, yy + 5], [lx, bT + 154]], c, lw); arrowP(g, [[lx, bT + 154], [cx + 40, bT + 154]], c, lw); }
+  return { w: 14 + bw + LOOP_W + 8, bottom: bT + 162 };
+}
+/* O2, the encoder-decoder: his figure, two stacks, the representation into cross-attention */
+function mapXD(g, x, y, lit, gen) {
+  const bw = 80, ex = x + 12, dx = x + 12 + bw + 26, ecx = ex + bw / 2, dcx = dx + bw / 2;
+  /* decoder, top down */
+  text(g, "Output", dcx, y + 5, { size: 9, align: "center", color: lit.has("back") ? C.ink1 : C.ink2, bold: lit.has("back") }); arrowP(g, [[dcx, y + 24], [dcx, y + 12]]);
+  mbox(g, dx, y + 24, bw, 18, "Linear + softmax", C.dec, { k: 7, lit: lit.has(7), size: 8.5 });
+  arrowP(g, [[dcx, y + 56], [dcx, y + 46]]);
+  const bT = y + 56;
+  mbox(g, dx, bT + 7, bw, 18, "Feed forward", C.dec, { k: 6, lit: lit.has(6), size: 8.5 });
+  const cr = mbox(g, dx, bT + 33, bw, 18, "Cross-attention", C.dec, { k: 5, lit: lit.has(5), size: 8.5 });
+  mbox(g, dx, bT + 59, bw, 26, ["Masked self-", "attention"], C.dec, { k: 4, lit: lit.has(4), size: 8.5 });
+  poly(g, [[dx - 11, bT], [dx + bw + 5, bT], [dx + bw + 5, bT + 92], [dx - 11, bT + 92], [dx - 11, bT]], C.ref, 1.2, [4, 3]);
+  arrowP(g, [[dcx, bT + 112], [dcx, bT + 96]]);
+  mbox(g, dx, bT + 112, bw, 18, "Embedding", C.dec, { k: 3, lit: lit.has(3), size: 8.5 });
+  arrowP(g, [[dcx, bT + 158], [dcx, bT + 134]]);
+  text(g, "Protein so far", dcx, bT + 165, { size: 8.5, align: "center" });
+  /* encoder, lower, as in the figure */
+  const eT = bT + 54;
+  mbox(g, ex, eT + 5, bw, 18, "Feed forward", C.enc, { size: 8.5 });
+  mbox(g, ex, eT + 27, bw, 18, "Self-attention", C.enc, { k: 2, lit: lit.has(2), size: 8.5 });
+  poly(g, [[ex - 11, eT], [ex + bw + 5, eT], [ex + bw + 5, eT + 50], [ex - 11, eT + 50], [ex - 11, eT]], C.ref, 1.2, [4, 3]);
+  text(g, "× 2", ex + bw + 3, eT - 6, { size: 8.5, align: "right", color: C.ref });
+  arrowP(g, [[ecx, eT + 66], [ecx, eT + 54]]);
+  mbox(g, ex, eT + 66, bw, 18, "Embedding", C.enc, { k: 1, lit: lit.has(1), size: 8.5 });
+  arrowP(g, [[ecx, bT + 158], [ecx, eT + 88]]);
+  text(g, "Gene", ecx, bT + 165, { size: 8.5, align: "center" });
+  /* the representation, once, into cross-attention */
+  const rc = lit.has(5) ? C.ink1 : C.enc, rl = lit.has(5) ? 2 : 1.5;
+  arrowP(g, [[ecx, eT - 1], [ecx, cr.cy], [dx - 13, cr.cy]], rc, rl);
+  text(g, "× 2", dx + bw + 3, bT - 6, { size: 8.5, align: "right", color: C.ref });
+  if (gen) { const lx = dx + bw + 14, c = lit.has("back") ? C.ink1 : C.ink3, lw = lit.has("back") ? 2 : 1.2;
+    poly(g, [[dcx + 22, y + 5], [lx, y + 5], [lx, bT + 165]], c, lw); arrowP(g, [[lx, bT + 165], [dcx + 38, bT + 165]], c, lw); }
+  return { w: 12 + bw + 26 + bw + LOOP_W + 8, bottom: bT + 173 };
+}
+/* O1, a lane left to right; returns the boxes */
+function lane(g, x, y, items, col, lit, h = 26) {
+  let xx = x; const out = {};
+  items.forEach((it, i) => {
+    if (it.label) { text(g, it.label, xx, y + h / 2, { size: 9, color: it.hot && lit.has(it.hot) ? C.ink1 : C.ink2, bold: !!(it.hot && lit.has(it.hot)) }); xx += tw(g, it.label, { size: 9 }) + 4; }
+    else { const b = mbox(g, xx, y + (h - it.h) / 2, it.w, it.h, it.t, it.col || col, { k: it.k, lit: lit.has(it.k), size: 8.5 }); out[it.id || it.k] = b; xx += it.w; }
+    if (i < items.length - 1) { arrowP(g, [[xx + 1, y + h / 2], [xx + 13, y + h / 2]]); xx += 15; }
+  });
+  return { boxes: out, end: xx };
+}
+function stripDec(g, x, y, W, lit, gen) {
+  const L = lane(g, x, y + 12, [{ label: "Tokens" }, { k: 1, w: 74, h: 20, t: "Embedding" }, { k: 2, w: 92, h: 28, t: ["Masked self-", "attention"] },
+    { k: 3, w: 74, h: 20, t: "Feed forward" }, { k: 4, w: 92, h: 20, t: "Linear + softmax" }, { label: "Next token", hot: "back" }], C.dec, lit, 28);
+  const b2 = L.boxes[2], b3 = L.boxes[3];
+  poly(g, [[b2.x - 9, y + 3], [b3.x + b3.w + 5, y + 3], [b3.x + b3.w + 5, y + 49], [b2.x - 9, y + 49], [b2.x - 9, y + 3]], C.ref, 1.2, [4, 3]);
+  text(g, "× 2", b3.x + b3.w + 5, y + 57, { size: 9, align: "right", color: C.ref });
+  if (gen) { const c = lit.has("back") ? C.ink1 : C.ink3, lw = lit.has("back") ? 2 : 1.2, ye = y + 66;
+    poly(g, [[L.end - 24, y + 34], [L.end - 24, ye], [x + 16, ye]], c, lw); arrowP(g, [[x + 16, ye], [x + 16, y + 34]], c, lw); }
+  return y + (gen ? 72 : 62);
+}
+function stripXD(g, x, y, W, lit, gen) {
+  /* encoder lane on top, its output dropping into cross-attention on the decoder lane */
+  const E = lane(g, x, y + 8, [{ label: "Gene" }, { k: 1, w: 66, h: 20, t: "Embedding" }, { k: 2, w: 74, h: 20, t: "Self-attention" }, { id: "ef", w: 68, h: 20, t: "Feed forward" }], C.enc, lit, 24);
+  const yD = y + 55;
+  const D = lane(g, x, yD, [{ label: "Protein" }, { k: 3, w: 66, h: 20, t: "Embedding" }, { k: 4, w: 72, h: 26, t: ["Masked self-", "attention"] },
+    { k: 5, w: 78, h: 20, t: "Cross-attention" }, { k: 6, w: 68, h: 20, t: "Feed forward" }, { k: 7, w: 84, h: 20, t: "Linear + softmax" }, { label: "Next", hot: "back" }], C.dec, lit, 28);
+  const e2 = E.boxes[2], ef = E.boxes.ef, d4 = D.boxes[4], d6 = D.boxes[6], d5 = D.boxes[5];
+  poly(g, [[e2.x - 9, y + 2], [ef.x + ef.w + 5, y + 2], [ef.x + ef.w + 5, y + 38], [e2.x - 9, y + 38], [e2.x - 9, y + 2]], C.ref, 1.2, [4, 3]);
+  text(g, "× 2", ef.x + ef.w + 16, y + 20, { size: 9, color: C.ref });
+  poly(g, [[d4.x - 9, yD - 4], [d6.x + d6.w + 5, yD - 4], [d6.x + d6.w + 5, yD + 32], [d4.x - 9, yD + 32], [d4.x - 9, yD - 4]], C.ref, 1.2, [4, 3]);
+  text(g, "× 2", d6.x + d6.w + 5, yD - 10, { size: 9, align: "right", color: C.ref });
+  const rc = lit.has(5) ? C.ink1 : C.enc, rl = lit.has(5) ? 2 : 1.5, rx = Math.min(ef.x + ef.w + 20, d5.cx);
+  const ry = y + 43; arrowP(g, [[ef.cx, ef.y + ef.h + 1], [ef.cx, ry], [d5.cx, ry], [d5.cx, d5.y - 1]], rc, rl);
+  if (gen) { const c = lit.has("back") ? C.ink1 : C.ink3, lw = lit.has("back") ? 2 : 1.2, ye = yD + 40;
+    poly(g, [[D.end - 12, yD + 20], [D.end - 12, ye], [x + 16, ye]], c, lw); arrowP(g, [[x + 16, ye], [x + 16, yD + 20]], c, lw); }
+  return yD + (gen ? 44 : 42);
+}
+
+/* ------------------------------------------------------------------ the sections */
+function sentence(g, toks, shown, x0, slot, y, arcRow, Aw) {
+  const xs = toks.map((_, j) => x0 + j * slot + slot / 2);
+  if (arcRow >= 0) Aw[arcRow].forEach((wt, j) => {
+    if (j > arcRow || wt < 0.02) return;
+    const col = cssP(mixP(Math.sqrt(0.35 + 0.65 * wt), C.mag)), lw = 1 + 2.5 * wt, size = 5 + lw;
+    g.strokeStyle = col; g.lineWidth = lw; g.beginPath();
+    if (j === arcRow) { const cy = y - 24, r = 9, t1 = Math.PI * 0.35 + 2 * Math.PI; g.arc(xs[j], cy, r, Math.PI * 0.65, t1 - 0.25); g.stroke(); tip(g, xs[j] + r * Math.cos(t1), cy + r * Math.sin(t1), t1 + Math.PI / 2, size, col); }
+    else { const d = arcRow - j, hgt = Math.min(46, 12 + 7 * d), a = xs[arcRow] - 4, b = xs[j] + 4; g.moveTo(a, y + 8); g.bezierCurveTo(a, y + 8 + hgt, b, y + 8 + hgt, b, y + 8 + size * 0.7); g.stroke(); tip(g, b, y + 8, -Math.PI / 2, size, col); }
+    g.lineWidth = 1;
+  });
+  for (let j = 0; j < shown; j++) text(g, toks[j], xs[j], y, { mono: true, size: 9.5, align: "center", color: j === arcRow ? C.ink1 : C.dec, bold: j === arcRow });
+  return xs;
+}
+function matrix(g, rowL, colL, cell, x0, y0, cs, { rowCol = C.dec, colCol = C.dec, cur = -1, colLabels = true, rowOn = () => true, colOn = () => true } = {}) {
+  const R = rowL.length, K = colL.length;
+  if (colLabels) colL.forEach((t, j) => { if (!colOn(j)) return; g.save(); g.translate(x0 + j * cs + cs / 2, y0 - 5); g.rotate(-Math.PI / 2); text(g, t, 0, 0, { mono: true, size: 9, color: colCol }); g.restore(); });
+  for (let i = 0; i < R; i++) {
+    if (rowOn(i)) text(g, rowL[i], x0 - 5, y0 + i * cs + cs / 2, { mono: true, size: 9, align: "right", color: rowCol });
+    for (let j = 0; j < K; j++) { const v = cell(i, j), p = v === null ? null : mixP(Math.sqrt(v), C.mag);
+      g.fillStyle = p ? cssP(p) : C.s2; g.fillRect(x0 + j * cs, y0 + i * cs, cs - (cs > 7 ? 1 : 0.5), cs - (cs > 7 ? 1 : 0.5));
+      if (p && cs >= 22) text(g, v.toFixed(2).replace(/^0/, ""), x0 + j * cs + cs / 2, y0 + i * cs + cs / 2, { mono: true, size: 9, align: "center", color: inkOn(p) }); }
+  }
+  g.strokeStyle = C.ink2; g.lineWidth = 1; g.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, R * cs);
+  if (cur >= 0) poly(g, [[x0 - 2.5, y0 + cur * cs - 2], [x0 + K * cs + 1.5, y0 + cur * cs - 2], [x0 + K * cs + 1.5, y0 + cur * cs + cs + 1], [x0 - 2.5, y0 + cur * cs + cs + 1], [x0 - 2.5, y0 + cur * cs - 2]], C.ink1, 1.5, [3, 3]);
+  return { x0, y0, w: K * cs, h: R * cs };
+}
+function outputPanel(g, probs, vocab, mark, x, y, w, title) {
+  text(g, title, x, y, { size: 9.5, color: C.ink3 });
+  const order = probs.map((p, i) => [p, vocab[i]]).sort((a, b) => b[0] - a[0]).slice(0, 6), lw = Math.max(...order.map(([, t]) => tw(g, t, { mono: true, size: 9.5, bold: true }))), lx = x + lw + 8, bmax = Math.min(300, w - lw - 8 - 46);
+  order.forEach(([p, t], k) => { const yy = y + 12 + k * 15, on = t === mark;
+    text(g, t, lx - 6, yy + 6, { mono: true, size: 9.5, align: "right", color: on ? C.ink1 : C.ink2, bold: on });
+    g.fillStyle = on ? C.dec : C.s3; g.fillRect(lx, yy, Math.max(1, p * bmax), 12); text(g, p.toFixed(3), lx + Math.max(1, p * bmax) + 4, yy + 6, { mono: true, size: 9 }); });
+  return y + 12 + 6 * 15;
+}
+
+/* ------------------------------------------------------------------ the data */
+const TOK = M.tokensOf(M.SENTENCE), N = TOK.length, FT = M.forward("causal", TOK), AT = M.meanHeads(FT.alpha[0]);
+const GEN = M.generate("treated with aspirin for"), GT = GEN.tokens, K0 = GEN.steps[0].context.length, FG = M.forward("causal", GT), AG = M.meanHeads(FG.alpha[0]);
+const XT = M.translate(M.GENES[0]), NT = XT.dna.split(""), PROT = ["[BOS]", ...XT.protein], ROWS = 6;
+const XE = M.meanHeads(XT.enc[1]), XS = M.meanHeads(XT.self[1]), XX = M.crossMean(XT);
+const AA_N = M.TGT.filter((t) => !t.startsWith("[")).length;
+
+const BEATS = { dec: [1, 2, 3, 4], xdFirst: [1, 2, 3, 4, 5, 6, 7], xd: [3, 4, 5, 6, 7] };
+/* where a press stands: n presses begun, the current one at beat b (an index into its beats), or done */
+function beatsOf(page, gen, n) { const b = page === "dec" ? BEATS.dec : n === 1 ? BEATS.xdFirst : BEATS.xd; return gen ? [...b, "back"] : b; }
+const reached = (st, k) => !st.beats || st.bi >= st.beats.indexOf(k);
+
+/* ------------------------------------------------------------------ the pages */
+function decoderPage(id, ov, st) {
+  const { g, w } = setup(id), X = 12, gen = st.gen, lit = new Set(st.beats && st.bi < st.beats.length ? [st.beats[st.bi]] : []);
+  let y = 10, right = w - 12, mapBottom = 0;
+  if (ov === "strip") y = stripDec(g, X, y, w - 24, lit, gen) + 14;
+  else { const mx = w - 12 - MAP_DEC_W, m = mapDec(g, mx, 8, lit, gen); right = mx - 12; mapBottom = m.bottom; }
+  const toks = gen ? GT : TOK, A = gen ? AG : AT, F = gen ? FG : FT, n = st.n, row = n - 1;
+  const rowIn = row >= 0 && reached(st, 2), outIn = row >= 0 && reached(st, 4);
+  const shown = gen ? Math.min(GT.length, Math.max(K0, row >= K0 - 1 && reached(st, "back") ? n + 1 : n)) : N;
+  /* 1 */
+  y = sectionHead(g, X, y + 7, 1, "Embedding", C.dec, gen ? (n < K0 ? "the prompt, a token at a time" : "the prompt and the tokens fed back") : "the whole sentence (training)", lit.has(1), right);
+  const slot = (right - X) / toks.length, sy = y + 30;
+  sentence(g, toks, shown, X, slot, sy, rowIn ? row : -1, A);
+  y = sy + 58;
+  /* 2 */
+  y = sectionHead(g, X, y, 2, "Masked self-attention", C.dec, "each row: weights over the tokens up to it", lit.has(2), right);
+  const cs = 24, x0 = X + 58, mTop = y + 46, rowsIn = rowIn ? n : Math.max(0, n - 1);
+  const mm = matrix(g, toks, toks, (i, j) => (i < rowsIn && j <= i ? A[i][j] : null), x0, mTop, cs, { cur: rowIn ? row : -1, rowOn: (i) => i < shown, colOn: (j) => j < shown });
+  text(g, "block 1,", x0 + mm.w + 10, mTop + 8, { size: 9.5, color: C.ink3 }); text(g, "mean of 4 heads", x0 + mm.w + 10, mTop + 21, { size: 9.5, color: C.ink3 });
+  y = mTop + mm.h + 18;
+  if (y < mapBottom) right = right; else right = w - 12;
+  /* 3 */
+  y = sectionHead(g, X, y, 3, "Feed forward", C.dec, "the same small network on each row alone", lit.has(3), right) + 4;
+  /* 4 */
+  y = sectionHead(g, X, y, 4, "Linear + softmax", C.dec, outIn ? `the row of ${toks[row]}: a probability for each of the ${M.VOCAB.length} tokens` : `a probability for each of the ${M.VOCAB.length} tokens`, lit.has(4), w - 12);
+  let end = y;
+  if (outIn) {
+    const probs = M.nextTokens("causal", F.h[row]), top = M.VOCAB[probs.indexOf(Math.max(...probs))];
+    const mark = gen && row >= K0 - 1 ? top : toks[row + 1];
+    const title = !gen ? `the six largest; the true next token (${mark}) in ink` : row < K0 - 1 ? `the six largest; the prompt's next token (${mark}) in ink` : `the six largest; ${mark}, the largest, is fed back`;
+    end = outputPanel(g, probs, M.VOCAB, mark, X, y + 4, w - 24, title);
+  } else end = y + 4 + 12 + 6 * 16;
+  const cap = n === 0 ? "Next token computes the first row." : !gen ? "One pass computes every row together; a press shows one." : row < K0 - 1 ? "Reading the prompt: its next token is given." : "Generating: the largest is fed back as the next token.";
+  text(g, cap, X, end + 16, { color: C.ink2 });
+  return Math.round(end + 24);
+}
+
+function encdecPage(id, ov, st) {
+  const { g, w } = setup(id), X = 12, gen = st.gen, lit = new Set(st.beats && st.bi < st.beats.length ? [st.beats[st.bi]] : []);
+  const n = st.n, r = n - 1;
+  const encIn = n >= 2 || (n === 1 && reached(st, 2));
+  const selfIn = r >= 0 && reached(st, 4), crossIn = r >= 0 && reached(st, 5), outIn = r >= 0 && reached(st, 7);
+  const inShown = gen ? Math.min(ROWS, Math.max(1, r >= 0 && reached(st, "back") ? n + 1 : n)) : ROWS;
+  let y = 10, colE, colD, top, mapB = 0;
+  if (ov === "strip") { y = stripXD(g, X, y, w - 24, lit, gen) + 4; colE = { x: X, w: 250, pitch: 13 }; colD = { x: 284, w: w - 12 - 284 }; top = y; }
+  else { const mx = w - 8 - MAP_XD_W, m = mapXD(g, mx, 8, lit, gen);
+    colE = { x: X, w: 180, pitch: 10 }; colD = { x: 202, w: mx - 202 - 4 }; top = y; mapB = m.bottom; }
+  /* 1, 2: the encoder column */
+  let ye = sectionHead(g, colE.x, top + 7, 1, "Embedding", C.enc, "the gene", lit.has(1), colE.x + colE.w);
+  const gx = (j) => colE.x + 4 + j * colE.pitch + colE.pitch / 2;
+  NT.forEach((c, j) => text(g, c, gx(j), ye + 8, { mono: true, size: 9, align: "center", color: C.enc }));
+  for (let k = 0; k < 6; k++) poly(g, [[gx(3 * k) - colE.pitch / 2 + 1.5, ye + 16], [gx(3 * k + 2) + colE.pitch / 2 - 1.5, ye + 16]], C.ink3, 1);
+  ye += 27;
+  ye = sectionHead(g, colE.x, ye, 2, "Self-attention", C.enc, ov === "strip" ? "every nucleotide reads every other" : "", lit.has(2), colE.x + colE.w);
+  const em = matrix(g, NT, NT, (i, j) => (encIn ? XE[i][j] : null), colE.x + 4, ye + 2, 6, { colLabels: false, rowOn: () => false });
+  if (ov !== "strip") { text(g, "18 × 18,", em.x0 + em.w + 8, em.y0 + 8, { size: 9.5, color: C.ink3 }); text(g, "every", em.x0 + em.w + 8, em.y0 + 21, { size: 9.5, color: C.ink3 }); text(g, "nucleotide", em.x0 + em.w + 8, em.y0 + 34, { size: 9.5, color: C.ink3 }); text(g, "reads every", em.x0 + em.w + 8, em.y0 + 47, { size: 9.5, color: C.ink3 }); text(g, "other", em.x0 + em.w + 8, em.y0 + 60, { size: 9.5, color: C.ink3 }); }
+  ye = em.y0 + em.h;
+  /* 3, 4: the decoder column */
+  let yd = sectionHead(g, colD.x, top + 7, 3, "Embedding", C.dec, ov === "strip" ? (gen ? "the protein so far" : "the true protein, given") : "", lit.has(3), colD.x + colD.w);
+  let tx = colD.x + 4;
+  PROT.slice(0, ROWS).forEach((t, i) => { if (i < inShown) text(g, t, tx, yd + 8, { mono: true, size: 9.5, color: C.dec, bold: i === r && selfIn }); tx += tw(g, t, { mono: true, size: 9.5 }) + 7; });
+  yd += 27;
+  yd = sectionHead(g, colD.x, yd, 4, ov === "strip" ? "Masked self-attention" : "Masked self-attn.", C.dec, "", lit.has(4), colD.x + colD.w);
+  const rowsS = selfIn ? n : Math.max(0, n - 1);
+  const dm = matrix(g, PROT.slice(0, ROWS), PROT.slice(0, ROWS), (i, j) => (i < rowsS && j <= i ? XS[i][j] : null), colD.x + 36, yd + 2, 13, { colLabels: false, rowOn: (i) => i < inShown, cur: selfIn ? r : -1 });
+  yd = dm.y0 + dm.h;
+  let y5 = Math.max(ye + 16, yd + 16, mapB + 12);
+  /* 5: cross-attention, full width */
+  y5 = sectionHead(g, X, y5, 5, "Cross-attention", C.dec, "each protein row reads the gene", lit.has(5), w - 12);
+  const cc = 20, cx = X + 44, yQ = y5 + 4, yN = yQ + 48, colX = (j) => cx + j * cc + cc / 2, qX = (q) => cx + (3 * q + 1.5) * cc;
+  for (let q = 0; q < ROWS; q++) if (q < inShown) text(g, PROT[q], qX(q), yQ, { mono: true, size: 9.5, align: "center", color: C.dec, bold: q === r && crossIn });
+  if (crossIn) for (let j = 0; j < 18; j++) { const v = XX[r][j]; if (v < 0.01) continue;
+    g.save(); g.strokeStyle = cssP(mixP(Math.sqrt(0.35 + 0.65 * v), C.mag)); g.lineWidth = 1 + 2.5 * v; g.beginPath(); g.moveTo(qX(r), yQ + 9); g.lineTo(colX(j), yN - 16); g.stroke(); g.restore(); }
+  for (let k = 0; k < 6; k++) poly(g, [[cx + 3 * k * cc + 2, yN - 10.5], [cx + 3 * k * cc + 3 * cc - 3, yN - 10.5]], C.ink3, 1);
+  NT.forEach((c, j) => text(g, c, colX(j), yN, { mono: true, size: 9.5, align: "center", color: C.enc }));
+  const rowsC = crossIn ? n : Math.max(0, n - 1);
+  const xm = matrix(g, PROT.slice(0, ROWS), NT, (i, j) => (i < rowsC ? XX[i][j] : null), cx, yN + 12, cc, { colLabels: false, rowOn: (i) => i < inShown, cur: crossIn ? r : -1 });
+  [["block 2,", C.ink3], ["mean of 4 heads", C.ink3], ["rows: protein", C.dec], ["columns: gene", C.enc]].forEach(([s, c], i) => text(g, s, xm.x0 + xm.w + 8, xm.y0 + 8 + i * 13, { size: 9.5, color: c }));
+  let y6 = xm.y0 + xm.h + 13;
+  /* 6, 7 */
+  y6 = sectionHead(g, X, y6, 6, "Feed forward", C.dec, "the same small network on each row alone", lit.has(6), w - 12);
+  const y7 = sectionHead(g, X, y6, 7, "Linear + softmax", C.dec, outIn ? `the row of ${PROT[r]}: a probability for each of the ${AA_N} amino acids` : `a probability for each of the ${AA_N} amino acids`, lit.has(7), w - 12);
+  let end = y7 + 4 + 12 + 6 * 16;
+  if (outIn) { const mark = PROT[r + 1];
+    end = outputPanel(g, XT.probs[r], M.TGT, mark, X, y7 + 4, w - 24, gen ? `the six largest; ${mark}, the largest, is fed back` : `the six largest; the true next amino acid (${mark}) in ink`); }
+  const cap = n === 0 ? "Next amino acid encodes the gene, then computes the first row." : !gen ? "The gene is encoded once; one pass computes every protein row; a press shows one." : "Generating: the largest is fed back as the next amino acid.";
+  text(g, cap, X, end + 16, { color: C.ink2 });
+  return Math.round(end + 24);
+}
+
+/* ------------------------------------------------------------------ 1: the four statics */
+const stat = { n: 5, bi: 99, beats: null, gen: false };
+const put = (hid, v) => { document.getElementById(hid).textContent += ` · content to y = ${v}${v > 690 ? "  OVER the frame" : ""}`; };
+put("hDs", decoderPage("Ds", "strip", stat)); put("hDm", decoderPage("Dm", "map", stat));
+put("hXs", encdecPage("Xs", "strip", { ...stat, n: 3 })); put("hXm", encdecPage("Xm", "map", { ...stat, n: 3 }));
+
+/* ------------------------------------------------------------------ 2: working */
+let page = "dec", ov = "map", gen = false, n = 0, bi = 99, beats = null, playing = false, timer = null;
+const maxN = () => (page === "dec" ? (gen ? GT.length - 1 : N - 1) : ROWS);
+function live() {
+  const st = { n, bi, beats, gen }, end = page === "dec" ? decoderPage("live", ov, st) : encdecPage("live", ov, st);
+  document.getElementById("hL").textContent = `${page === "dec" ? "Decoder" : "Encoder–decoder"} · ${ov === "map" ? "O2 map" : "O1 strip"} · ${gen ? "Generation" : "Training"} · content to y = ${end}`;
+  document.getElementById("where").textContent = `${n} of ${maxN()} rows${beats && bi < beats.length ? ` · at ${beats[bi] === "back" ? "the feed-back" : "box " + beats[bi]}` : ""}`;
+}
+function press() {
+  if (n >= maxN()) { playing = false; return; }
+  n += 1; beats = beatsOf(page, gen, n); bi = 0; live(); clearTimeout(timer);
+  const next = () => { bi += 1; live(); if (bi < beats.length) timer = setTimeout(next, 380); else if (playing) timer = setTimeout(press, 300); };
+  timer = setTimeout(next, 380);
+}
+const reset = () => { clearTimeout(timer); playing = false; n = 0; bi = 99; beats = null; live(); };
+document.getElementById("step").onclick = () => { playing = false; if (!beats || bi >= beats.length) press(); };
+document.getElementById("play").onclick = () => { playing = true; if (!beats || bi >= beats.length) press(); };
+document.getElementById("reset").onclick = reset;
+const group = (ids, set) => ids.forEach(([id, v]) => document.getElementById(id).onclick = () => { set(v); ids.forEach(([j, w]) => document.getElementById(j).classList.toggle("on", w === v)); reset(); });
+group([["pD", "dec"], ["pX", "xd"]], (v) => (page = v));
+group([["oS", "strip"], ["oM", "map"]], (v) => (ov = v));
+group([["mT", false], ["mG", true]], (v) => (gen = v));
+live();
+</script>
+</body>
+</html>
