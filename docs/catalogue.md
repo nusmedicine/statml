@@ -22891,6 +22891,18 @@ held to torch (1,764 checks). Height 644, inside the frame with the Task row in 
 rail; sweep clean on 29 states at 440 and 900 and on every frame of a Sentence run;
 switch probe 0 flagged from Sentence.
 
+**[EOS] ON PAGE 3, 2026-09-30.** His questions on the encoder–decoder (when the
+encoder runs; whether cross-attention is synced to the gene) were answered from
+the model: the encoder runs once over the whole gene, and each decoder row's query
+attends over all 18 nucleotides in one softmax, its weight on its own codon learned
+(block 2, 0.95 of the mean of heads; nothing ties output k to codon k). Then he
+asked for the stop the page did not show: the decoder's inputs are now [BOS] K L V
+H A R and its outputs K L V H A R [EOS], seven rows in BOTH phases (training scores
+[EOS] as the last target), Generation's seventh press writing [EOS] 1.000 and
+feeding nothing back. The [EOS] row reads no codon of its own: 0.48 of its weight
+on nucleotide 15, the rest mostly on codons' third letters. Height 688, inside the
+frame (body 1,162 of 1,200, canvas 547, three columns kept).
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
