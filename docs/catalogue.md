@@ -22841,6 +22841,33 @@ fall back to two below 546 and the map goes on top below 430). Heights 632 / 614
 22 states at 440 and 900 and on every beat of every press; switch probe 0 flagged
 from the Encoder and from page 3's Generation.
 
+**TWEENS AND THE ENCODER'S PREDICTION, 2026-09-30 (c2aef94).** His *"try to
+tween where appropriate"* and *"for encoder, we dont have generation, but can we
+have prediction? so toggle training and prediction?"*. Tweens, movement only and
+each in its own lane: the ring travels along the map's arrow between boxes an
+arrow joins (page 3's encoder-to-decoder step jumps); the row's arcs and page 3's
+lines draw out from the query; the output bars grow; in Generation the chosen
+token rides his feed-back arrow, then enters the input. No `globalAlpha` anywhere.
+A press is 380 ms a box, the ride two boxes' worth. **Prediction**: asked what it
+should show (fill the blank, or a task from the vectors), he took **a task from
+the vectors**, then **a tag on every token** on **the lesson's sentence unmasked**
+(both the recommendation). Measured (`_lab/transformer-task-measure.py`) on the
+shipped encoder, frozen, a Linear head on 3,000 tagged notes, 1,000 held out:
+other · drug · finding · negated finding at 94.9% from the token + position
+vector (finding 77.7%, negated 71.7%, "discharge" 50.8%, chance) and 99.7% after
+block 1 — the tag of a denied symptom comes from the context. The note-level class
+(08-2's outcome) was not taken: the mean of the plain token vectors already scores
+100%. On the lesson's sentence: aspirin drug 0.997, chest finding 0.999, pain
+finding 0.995. The head was trained on word rows only, so [CLS] and [SEP] get no
+tag (it calls [SEP] "negated" 0.987 after "no chest pain on exam"). The phase
+control's options follow the page (Training · Prediction on the Encoder, Training ·
+Generation elsewhere; a page switch returns it to Training). The head ships in
+`weights.js` (the three models byte-identical) and the verify holds it to torch
+(1,760 checks). Heights 632 / 648 (Prediction) / 614 / 668, all inside the frame;
+text sweep clean on 26 states at 440 and 900 and on every frame of every press on
+all six pages and phases; switch probe 0 flagged from the Encoder's Prediction and
+the Decoder's Generation.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
