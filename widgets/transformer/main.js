@@ -72,8 +72,8 @@ const S = {
   geneIn: "The gene (DNA)", protIn: "The protein so far", protOut: "Next amino acid",
 
   /* pages 1–2 */
-  arcsCap: { encoder: ["Arcs: each token's weights, a loop to itself;", "above to later tokens, below to earlier ones"],
-             decoder: ["Arcs: each token's weights, a loop to itself;", "below to earlier tokens"] },
+  arcsCap: { encoder: ["Arcs: one token's weights, a loop to itself;", "above to later tokens, below to earlier ones"],
+             decoder: ["Arcs: one token's weights, a loop to itself;", "below to earlier tokens"] },
   sources: (who) => `queries (rows) and keys (columns): the ${who}'s tokens`,
   moved: ["moved", "this press"],
   rule: { encoder: "Every query attends to every key, so every row is computed again.",
@@ -226,13 +226,19 @@ function rowOutline(ctx, colors, m, ch, n, t) {
 /* ================================================= pages 1–2: Encoder and Decoder */
 
 /* A PRESS IS A TOKEN ENTERING (his ask: "show how tokens enter then the scores get
-   updated"). Two beats: the token glides in from the right along the sentence (the
-   only thing that moves, in the empty lane past the last token), then the weights:
-   in the encoder an outline steps down every row, each switching to its new weights
-   and gaining its bar as the outline reaches it; in the decoder the outline goes to
-   the new row alone, and the earlier rows' bars read 0 at once. */
-const GLIDE = 0.35;
-const SELF_MS = { step: 1400, run: 800 }, ENCDEC_MS = { step: 520, run: 300 };
+   updated"). The token glides in from the right along the sentence (the only thing
+   moving then, in the empty lane past the last token); then the rows are computed:
+   every row in turn in the encoder, the new row alone in the decoder.
+   ONE ROW'S ARCS AT A TIME, TIED TO ITS CELLS (his round of 2026-09-29: "only the
+   current token being processed … ensure arrows not too thick … couldn't see the
+   self-loop … tween where appropriate so can see which cell refers to the arrow being
+   highlighted"). While a row is computed a cell outline glides key by key along it;
+   each cell's weight appears as the outline reaches it, with its arc, and the arc of
+   the cell under the outline is drawn in ink. A re-computed earlier row sweeps at
+   40 ms a cell, the new token's row at 120. At rest the newest token's arcs show;
+   hover on a token shows its arcs, on a cell the arc that cell is. */
+const SW = { glide: 450, fast: 40, slow: 120 };
+const ENCDEC_MS = { step: 520, run: 300 };
 const PG = { top: 16, sy: 112, below: 70, labH: 66, stackW: 108 };
 const pgGeom = (w) => {
   const sx = PAD_L + 24, sw = Math.min(PG.stackW, Math.round(w * 0.22)), r0 = sx + sw + 44, slot = (w - PAD_R - r0) / N;
@@ -246,15 +252,25 @@ function slotsOf(ctx, colors, g) {
   const crowded = TOKENS.some((t) => textW(ctx, mono(colors), t) + 6 > g.slot);
   return TOKENS.map((_, j) => ({ x: g.r0 + j * g.slot + g.slot / 2, y: PG.sy - (crowded && j % 2 ? 13 : 0) }));
 }
-/** a press's beats: the glide `e`, and how many rows show their new weights */
+/** a press's schedule: the rows computed and each one's time */
+function selfSchedule(n, enc) {
+  const rows = enc ? Array.from({ length: n }, (_, i) => i) : [n - 1];
+  const dur = rows.map((i) => n * (i === n - 1 ? SW.slow : SW.fast));
+  return { rows, dur, total: SW.glide + dur.reduce((a, b) => a + b, 0) };
+}
+const selfMs = (n, enc, mode) => Math.max(1, selfSchedule(Math.max(1, n), enc).total) * (mode === "run" ? 0.5 : 1);
+/** where a press is: the glide `e`; the row being computed, the key its outline has reached `j`
+    and the outline's eased position `jPos`; `done`, the rows before it (their new weights shown) */
 function selfPhase(pg, enc) {
   const n = pg.n;
-  if (n === 0 || pg.t >= 1) return { n, e: 1, gliding: false, done: n, cursor: -1 };
-  if (pg.t < GLIDE) return { n, e: ease(pg.t / GLIDE), gliding: true, done: enc ? 0 : n - 1, cursor: -1 };
-  const u = (pg.t - GLIDE) / (1 - GLIDE);
-  if (!enc) return { n, e: 1, gliding: false, done: n - 1, cursor: n - 1 };
-  const cursor = Math.min(n - 1, Math.floor(u * n));
-  return { n, e: 1, gliding: false, done: cursor, cursor };
+  if (n === 0 || pg.t >= 1) return { n, e: 1, gliding: false, done: n, row: -1, j: -1, jPos: -1 };
+  const sc = selfSchedule(n, enc), tau = pg.t * sc.total;
+  if (tau < SW.glide) return { n, e: ease(tau / SW.glide), gliding: true, done: enc ? 0 : n - 1, row: -1, j: -1, jPos: -1 };
+  let r = tau - SW.glide, k = 0;
+  while (k < sc.rows.length - 1 && r >= sc.dur[k]) { r -= sc.dur[k]; k += 1; }
+  const row = sc.rows[k], pos = Math.min(1, r / sc.dur[k]) * n, j = Math.min(n - 1, Math.floor(pos));
+  const jPos = j === 0 ? 0 : lerp(j - 1, j, ease(Math.min(1, (pos - j) / 0.5)));
+  return { n, e: 1, gliding: false, done: row, row, j, jPos };
 }
 
 function drawSelf(ctx, colors, w, params, state, pg, pointer) {
@@ -265,66 +281,72 @@ function drawSelf(ctx, colors, w, params, state, pg, pointer) {
     title: enc ? S.enc : S.dec, hot: [attKey], input: enc ? S.encIn : S.decIn, output: enc ? S.encOut : S.decOut,
     blocks: [["ffn", S.ffn], [attKey, enc ? S.selfAtt : S.masked]],
   });
-  /* the rows as they stand at this beat: row i shows the new run once the outline has passed it */
-  const runOf = (i) => (i < ph.done || (!enc && i < n - 1) ? n : n - 1);
+  /* the weights as they stand at this beat: rows before the one being computed show the new
+     run, the row being computed its keys up to the outline, the rows after it the old run */
+  const valid = (i, j, k) => i < k && j < k && (enc || j <= i);
   const cellOf = (i, j) => {
     if (i >= n) return null;
-    const k = runOf(i);
-    if (i >= k || j >= k || (!enc && j > i)) return null;
-    return E.runs[k].alpha[i][j];
+    if (i === ph.row) return j <= ph.j && valid(i, j, n) ? E.runs[n].alpha[i][j] : null;
+    const k = i < ph.done || !enc ? n : n - 1;
+    return valid(i, j, k) ? E.runs[k].alpha[i][j] : null;
   };
-  /* EVERY TOKEN'S ARCS (his sketch, 2026-09-29: "can you do it for each token rather than
-     just highlight one?"), his output figure's glyph: a loop above the token for its own
-     weight, an arc ABOVE the sentence to each later token and BELOW it to each earlier one,
-     arrowheads at the key, thickness by weight. The encoder draws both sides; the decoder,
-     whose later keys are masked, draws only below. Weights under 0.05 are not drawn. A row's
-     arcs switch with the row, so they update as the outline passes in the encoder and
-     appear for the new token alone in the decoder. */
+  /* which row's arcs, and which of its cells is lit: the press's own, else the hovered, else the newest */
   const slots = slotsOf(ctx, colors, g);
+  let hovRow = -1, hovCol = -1;
+  if (pointer && pg.t >= 1 && n > 0) {
+    if (Math.abs(pointer.y - PG.sy) < 16) { const j = Math.floor((pointer.x - g.r0) / g.slot); if (j >= 0 && j < n) hovRow = j; }
+    const ci = Math.floor((pointer.y - g.mTop) / g.cs), cj = Math.floor((pointer.x - g.x0) / g.cs);
+    if (ci >= 0 && ci < n && cj >= 0 && cj < n && cellOf(ci, cj) !== null) { hovRow = ci; hovCol = cj; }
+  }
+  const arcRow = ph.row >= 0 ? ph.row : hovRow >= 0 ? hovRow : ph.gliding ? -1 : n - 1;
+  /* the ink arc is the cell the outline is on: it follows the outline's eased position, not the key it is heading for */
+  const upTo = ph.row >= 0 ? ph.j : n - 1, lit = ph.row >= 0 ? Math.round(ph.jPos) : hovCol;
   S.arcsCap[params.page].forEach((l, i) => txt(ctx, l, g.r0 - 20, PG.top - 6 + i * 13, { font: small(colors), fill: colors.ink3 }));
-  let hov = -1;
-  if (pointer && pg.t >= 1 && Math.abs(pointer.y - PG.sy) < 16) { const j = Math.floor((pointer.x - g.r0) / g.slot); if (j >= 0 && j < n) hov = j; }
   const head = (x, y, ang, size, col) => {
     ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, y);
-    ctx.lineTo(x - size * Math.cos(ang - 0.5), y - size * Math.sin(ang - 0.5)); ctx.lineTo(x - size * Math.cos(ang + 0.5), y - size * Math.sin(ang + 0.5)); ctx.fill(); ctx.restore();
+    ctx.lineTo(x - size * Math.cos(ang - 0.45), y - size * Math.sin(ang - 0.45)); ctx.lineTo(x - size * Math.cos(ang + 0.45), y - size * Math.sin(ang + 0.45)); ctx.fill(); ctx.restore();
   };
-  const arcsOf = (i) => {
-    const k = runOf(i);
-    if (i >= n || i >= k) return;
-    const row = E.runs[k].alpha[i], a = slots[i];
-    row.forEach((wt, j) => {
-      if (j >= k || (!enc && j > i) || wt < 0.05) return;
-      let p = weightRgb(colors, 0.3 + 0.7 * wt);
-      if (hov >= 0 && hov !== i) p = mixRgb(p, rgb(colors.surface), 0.75);
-      const col = css(p), lw = 0.6 + 6 * wt, size = 4 + 2 * lw;
-      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
-      if (j === i) { ctx.arc(a.x, a.y - 17, 5, 0, 2 * Math.PI); ctx.stroke(); ctx.restore(); return; }
-      const bb = slots[j], d = Math.abs(j - i);
-      if (j > i) {
-        const hgt = Math.min(PG.sy - PG.top - 30, 12 + 9 * d), y0 = a.y - 9, y1 = bb.y - 9, x0 = a.x + 6, x1 = bb.x - 6;
-        ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 - hgt, x1, y1 - hgt, x1, y1 - size * 0.6); ctx.stroke(); ctx.restore();
-        head(x1, y1, Math.PI / 2, size, col);
-      } else {
-        const hgt = Math.min(PG.below - 12, 10 + 8 * d), y0 = a.y + 8, y1 = bb.y + 8, x0 = a.x - 6, x1 = bb.x + 6;
-        ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 + hgt, x1, y1 + hgt, x1, y1 + size * 0.6); ctx.stroke(); ctx.restore();
-        head(x1, y1, -Math.PI / 2, size, col);
-      }
-    });
+  /* his glyph: a loop above the token for its own weight (with its own arrowhead), an arc above
+     the sentence to each later token and below it to each earlier one; 1–3.5 px by weight */
+  const arc = (i, j, wt, on) => {
+    const col = on ? colors.ink1 : css(weightRgb(colors, 0.35 + 0.65 * wt)), lw = on ? Math.max(1.8, 1 + 2.5 * wt) : 1 + 2.5 * wt, size = 5 + lw;
+    const a = slots[i];
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+    if (j === i) {
+      const cy = a.y - 26, r = 10, t1 = Math.PI * 0.35 + 2 * Math.PI;
+      ctx.arc(a.x, cy, r, Math.PI * 0.65, t1 - 0.25); ctx.stroke(); ctx.restore();
+      head(a.x + r * Math.cos(t1), cy + r * Math.sin(t1), t1 + Math.PI / 2, size, col);
+      return;
+    }
+    const b = slots[j], d = Math.abs(j - i);
+    if (j > i) {
+      const hgt = Math.min(PG.sy - PG.top - 30, 30 + 7 * d), y0 = a.y - 9, y1 = b.y - 9, x0 = a.x + 12, x1 = b.x - 4;
+      ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 - hgt, x1, y1 - hgt, x1, y1 - size * 0.7); ctx.stroke(); ctx.restore();
+      head(x1, y1, Math.PI / 2, size, col);
+    } else {
+      const hgt = Math.min(PG.below - 12, 12 + 8 * d), y0 = a.y + 8, y1 = b.y + 8, x0 = a.x - 4, x1 = b.x + 4;
+      ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 + hgt, x1, y1 + hgt, x1, y1 + size * 0.7); ctx.stroke(); ctx.restore();
+      head(x1, y1, -Math.PI / 2, size, col);
+    }
   };
-  for (let i = 0; i < n; i++) if (i !== hov) arcsOf(i);
-  if (hov >= 0) arcsOf(hov);
+  if (arcRow >= 0 && arcRow < n) {
+    for (let j = 0; j <= upTo; j++) { const v = cellOf(arcRow, j); if (v !== null && v >= 0.02 && j !== lit) arc(arcRow, j, v, false); }
+    if (lit >= 0 && cellOf(arcRow, lit) !== null) arc(arcRow, lit, cellOf(arcRow, lit), true);
+  }
   /* the sentence on top of its arcs, the newest token gliding in along the line */
   for (let j = 0; j < n; j++) {
-    const s = slots[j], x = ph.gliding && j === n - 1 ? lerp(w - PAD_R, s.x, ph.e) : s.x;
-    txt(ctx, TOKENS[j], x, s.y, { font: j === hov ? `600 ${colors.fsXs} ${colors.mono}` : mono(colors), fill: j === hov ? colors.ink1 : hue, align: "center" });
+    const s = slots[j], x = ph.gliding && j === n - 1 ? lerp(w - PAD_R, s.x, ph.e) : s.x, on = j === arcRow;
+    txt(ctx, TOKENS[j], x, s.y, { font: on ? `600 ${colors.fsXs} ${colors.mono}` : mono(colors), fill: on ? colors.ink1 : hue, align: "center" });
   }
   if (n === 0) txt(ctx, S.firstWait, g.r0, PG.sy, { font: small(colors), fill: colors.ink3 });
-  /* the matrix, joined to the attention box */
+  /* the matrix, joined to the attention box; the arcs' row outlined, the lit cell in ink */
   const m = matrix(ctx, colors, cellOf, N, N, TOKENS, TOKENS, g.x0, g.mTop, g.cs, { rowHue: hue, colHue: hue, rowOn: (i) => i < n, colOn: (j) => j < n });
   const b = st[attKey], bx = g.x0 - 60, lx = g.x0 - 66;
   poly(ctx, [[b.x + b.w + 3, b.y + b.h / 2], [lx, b.y + b.h / 2], [lx, g.mTop + m.h / 2], [bx, g.mTop + m.h / 2]], colors.ink1, 1.5);
   poly(ctx, [[bx, g.mTop], [bx, g.mTop + m.h]], colors.ink1, 1.5);
-  if (ph.cursor >= 0) rect(ctx, g.x0 - 2.5, g.mTop + ph.cursor * g.cs - 2, m.w + 4, g.cs + 3, colors.ink1, 1.5, [3, 3]);
+  if (arcRow >= 0 && arcRow < n) rect(ctx, g.x0 - 2.5, g.mTop + arcRow * g.cs - 2, m.w + 4, g.cs + 3, colors.ink1, 1.2, [3, 3]);
+  const cx = ph.row >= 0 ? ph.jPos : hovCol;
+  if (arcRow >= 0 && cx >= 0) rect(ctx, g.x0 + cx * g.cs - 1, g.mTop + arcRow * g.cs - 1, g.cs + 1, g.cs + 1, colors.ink1, 2);
   /* how far each earlier token's final vector moved on this press */
   S.moved.forEach((s, i) => txt(ctx, s, g.bx, g.mTop - 22 + i * 12, { font: small(colors), fill: colors.ink3 }));
   const room = w - PAD_R - g.bx - 26;
@@ -410,7 +432,7 @@ function drawEncDec(ctx, colors, w, params, state, pg) {
 /* ============================================================ the widget */
 
 const maxOf = (page) => (page === "encoder-decoder" ? 6 : N);
-const msOf = (page, mode) => (page === "encoder-decoder" ? ENCDEC_MS : SELF_MS)[mode === "run" ? "run" : "step"];
+const msOf = (page, mode, n) => (page === "encoder-decoder" ? ENCDEC_MS[mode === "run" ? "run" : "step"] : selfMs(n, page === "encoder", mode));
 const pageOf = (anim, params) => anim.p[params.page];
 function settle(anim, params) {
   anim.page = params.page;
@@ -457,7 +479,7 @@ defineWidget({
     advance: (anim, { dt, params }) => {
       /* the loop a page switch left running for the other page's press ends here */
       if (anim.halt) { anim.halt = false; anim.moving = false; settle(anim, params); return false; }
-      const pg = anim.p[params.page], max = maxOf(params.page), ms = msOf(params.page, anim.mode);
+      const pg = anim.p[params.page], max = maxOf(params.page), ms = msOf(params.page, anim.mode, pg.n);
       let more;
       if (pg.t < 1) { pg.t = Math.min(1, pg.t + dt / ms); more = pg.t < 1 || (anim.mode === "run" && pg.n < max); }
       else if (pg.n < max) { pg.n += 1; pg.t = 0; more = true; }

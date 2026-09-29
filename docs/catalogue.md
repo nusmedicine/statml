@@ -22748,6 +22748,19 @@ are gone; hover on a token draws its arcs at full strength and lightens the
 rest. Sweep clean on 16 states at 440 (the caption split to two lines); switch
 probe 0 flagged.
 
+**One row's arcs at a time, tied to its cells, 2026-09-29** (*"only the current
+token being processed. ensure arrows not too thick..i also couldn't see the
+self-loop … tween where appropriate so can see which cell refers to the arrow
+being highlighted"*): the arcs are the row being computed — every row in turn in
+the encoder, the new row alone in the decoder, the newest token at rest; while a
+row is computed a cell outline glides key by key along it, each cell's weight and
+arc appearing as it arrives and the arc of the cell under the outline drawn in
+ink (the ink arc follows the outline's eased position). Earlier rows sweep at 40
+ms a cell, the new row at 120 (the last encoder press about 3.6 s, a decoder press
+1.4 s). Arcs 1–3.5 px by weight; the self-loop radius 10 with its own arrowhead.
+Hover: a token shows its arcs, a cell lights its arc. Sweep clean, switch probe 0
+flagged, test 36 of 36.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
