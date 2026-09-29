@@ -91,8 +91,13 @@ const S = {
   /* page 3 */
   encRows: "rows and columns: the gene", decRows: "rows and columns: the protein so far",
   crossCols: "keys and values (columns): the encoder's output", crossRows: "queries (rows): the decoder",
-  written: "the protein written so far, each amino acid over its codon",
-  xWait: "Next amino acid adds the first row",
+  xWait: "Next amino acid computes the encoder once, then the first row",
+  xEnc: "The encoder's attention over the whole gene, computed once",
+  xSelf: (q, k) => `${q}: its weights over the protein so far (${k} ${k === 1 ? "key" : "keys"})`,
+  xCross: (q) => `${q}: its weights over the gene's 18 nucleotides`,
+  xOut: (o) => `${o}, the output, fed back as the next query`,
+  xRest: "Each amino acid adds a row to both decoder matrices.",
+  weightOf: (q, k, v) => `${q}'s weight on ${k}: ${v.toFixed(2)}`,
 
   tileTokens: "Tokens", tileTokensNote: "entered so far",
   tileMoved: "Earlier tokens moved", tileMovedNote: "on the last press, of those already there",
@@ -221,13 +226,6 @@ function matrix(ctx, colors, cell, R, K, rt, ct, x0, y0, cs, { rowHue, colHue, r
   rect(ctx, x0 - 0.5, y0 - 0.5, K * cs, R * cs, colors.ink2);
   return { x0, y0, w: K * cs, h: R * cs };
 }
-/* the newest row outlined, gliding down from the last one */
-function rowOutline(ctx, colors, m, ch, n, t) {
-  if (n < 1) return;
-  const y = n >= 2 ? lerp(n - 2, n - 1, ease(t)) : n - 1;
-  rect(ctx, m.x0 - 2.5, m.y0 + y * ch - 2, m.w + 4, ch + 3, colors.ink1, 1.5, [3, 3]);
-}
-
 /* ================================================= pages 1–2: Encoder and Decoder */
 
 /* A PRESS IS A TOKEN ENTERING (his ask: "show how tokens enter then the scores get
@@ -243,7 +241,6 @@ function rowOutline(ctx, colors, m, ch, n, t) {
    40 ms a cell, the new token's row at 120. At rest the newest token's arcs show;
    hover on a token shows its arcs, on a cell the arc that cell is. */
 const SW = { glide: 450, fast: 40, slow: 120 };
-const ENCDEC_MS = { step: 520, run: 300 };
 const PG = { top: 16, sy: 112, below: 70, labH: 66, stackW: 108 };
 const pgGeom = (w) => {
   const sx = PAD_L + 24, sw = Math.min(PG.stackW, Math.round(w * 0.22)), r0 = sx + sw + 44, slot = (w - PAD_R - r0) / N;
@@ -380,10 +377,18 @@ function drawSelf(ctx, colors, w, params, state, pg, pointer) {
 /* HIS TWO-STACK FIGURE ON TOP, three leaders down: the encoder's self-attention to
    the gene × gene matrix, the decoder's masked self-attention to the protein's
    triangle, and cross-attention to the cross matrix, whose columns are the encoder's
-   output (blue) and rows the decoder's queries (amber). A press writes the next
-   amino acid over its codon, lines from it down to the nucleotides it reads, and
-   both decoder matrices gain a row. One gene (his pick of one example). */
-const XD = { ce: 7, cd: 14, cross: 20 };
+   output (blue) and rows the decoder's queries (amber). One gene.
+   A PRESS IN THE DECODER BLOCK'S ORDER (his picks, 2026-09-29, the same idiom as pages
+   1–2): the first press computes the encoder once, its rows swept quickly; then the new
+   query's row of the masked self-attention, cell by cell; then its cross-attention row,
+   nucleotide by nucleotide, a line from the query down to each nucleotide as the outline
+   reaches it and the line of the cell under the outline in ink; then the output glides up
+   the lane right of the matrix and along the query line into the next slot — fed back,
+   his figure's loop. The query line holds the decoder's INPUTS, each over the codon it
+   reads (row "L → V": L reads GTA and outputs V). A line under the figure names the beat;
+   at rest, hover on a cell names its weight and inks its line. */
+const XD = { ce: 6, cd: 13, cross: 20 };
+const XT = { enc: 60, self: 130, cross: 55, out: 550 };
 const xdGeom = (w) => {
   const top = 22, encX = PAD_L + 58, encW = Math.min(112, Math.round(w * 0.2)), decW = Math.min(124, Math.round(w * 0.23));
   const decX = Math.round(Math.min(w * 0.6, w - PAD_R - 70 - decW));
@@ -391,14 +396,38 @@ const xdGeom = (w) => {
   const encTop = top + (stackHeight(2, 1) - stackHeight(2, 0));
   const mTop = top + stackHeight(2, 1) + 12;
   const cc = Math.max(12, Math.min(XD.cross, Math.floor((w - PAD_R - 40 - 96) / 18)));
-  const cy = mTop + 36 + 7 * XD.cd + 118;
-  return { top, encTop, encX, encW, decX, decW, mTop, cc, cy, eg: cy + 6 * cc + 36 };
+  const cy = mTop + 36 + 7 * XD.cd + 106;
+  return { top, encTop, encX, encW, decX, decW, mTop, cc, cy, why: cy + 6 * cc + 34, eg: cy + 6 * cc + 54 };
 };
 const heightEncDec = (w) => xdGeom(w).eg + 14;
+/** a press's beats and their times: the encoder (the first press only), the self row, the cross row, the output */
+function xdSchedule(n) {
+  const r = Math.max(0, n - 1);
+  const beats = [["enc", n === 1 ? 18 * XT.enc : 0], ["self", (r + 1) * XT.self], ["cross", 18 * XT.cross], ["out", XT.out]];
+  return { beats, total: beats.reduce((a, [, d]) => a + d, 0) };
+}
+const xdMs = (n, mode) => xdSchedule(Math.max(1, n)).total * (mode === "run" ? 0.5 : 1);
+function xdPhase(pg) {
+  const n = pg.n;
+  if (n === 0 || pg.t >= 1) return { n, beat: "rest", u: 1 };
+  const sc = xdSchedule(n);
+  let tau = pg.t * sc.total;
+  for (const [beat, d] of sc.beats) {
+    if (d === 0) continue;
+    if (tau < d || beat === "out") return { n, beat, u: Math.min(1, tau / d) };
+    tau -= d;
+  }
+  return { n, beat: "rest", u: 1 };
+}
+/** a sweep over `count` cells at progress u: the key reached and the outline's eased position */
+function sweepAt(u, count) {
+  const pos = u * count, j = Math.min(count - 1, Math.floor(pos));
+  return { j, jPos: j === 0 ? 0 : lerp(j - 1, j, ease(Math.min(1, (pos - j) / 0.5))) };
+}
 
-function drawEncDec(ctx, colors, w, params, state, pg) {
-  const g = xdGeom(w), T = state.dna, nt = T.dna.split(""), prot = ["[BOS]", ...T.protein], R = pg.n;
-  const blue = colors.groupA, amber = colors.groupB;
+function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
+  const g = xdGeom(w), T = state.dna, nt = T.dna.split(""), prot = ["[BOS]", ...T.protein], ph = xdPhase(pg), n = ph.n, r = n - 1;
+  const blue = colors.groupA, amber = colors.groupB, order = ["enc", "self", "cross", "out", "rest"], past = (b) => order.indexOf(ph.beat) > order.indexOf(b);
   const Se = stack(ctx, colors, g.encX, g.encTop, g.encW, blue, {
     title: S.enc, hot: ["self"], input: S.geneIn, output: S.encOut, blocks: [["ffn", S.ffn], ["self", S.selfAtt]] });
   const Sd = stack(ctx, colors, g.decX, g.top, g.decW, amber, {
@@ -407,45 +436,105 @@ function drawEncDec(ctx, colors, w, params, state, pg) {
   const cr = Sd.cross, ox = g.encX + g.encW / 2, midX = Math.round((g.encX + g.encW + g.decX) / 2 + 6);
   poly(ctx, [[ox, g.encTop - 8], [ox, g.top - 14], [midX, g.top - 14], [midX, cr.y + cr.h / 2]], blue, 1.5);
   arrow(ctx, midX, cr.y + cr.h / 2, cr.x - 22, cr.y + cr.h / 2, blue, 1.5);
-  /* the encoder's attention over the gene */
-  const E = M.meanHeads(T.enc[1]);
-  const me = matrix(ctx, colors, (i, j) => E[i][j], 18, 18, nt, nt, 30, g.mTop + 16, XD.ce, { rowHue: blue, colHue: blue, colLabels: false, rowLabels: false, digits: false });
+
+  /* the encoder's attention over the gene: blank until the first press sweeps it, then kept */
+  const E = M.meanHeads(T.enc[1]), encRows = n === 0 ? 0 : n === 1 && ph.beat === "enc" ? Math.floor(ph.u * 18) + 1 : 18;
+  const me = matrix(ctx, colors, (i, j) => (i < encRows ? E[i][j] : null), 18, 18, nt, nt, 30, g.mTop + 16, XD.ce, { rowHue: blue, colHue: blue, colLabels: false, rowLabels: false, digits: false });
+  if (n === 1 && ph.beat === "enc") rect(ctx, me.x0 - 2, me.y0 + (encRows - 1) * XD.ce - 1.5, me.w + 3, XD.ce + 2, colors.ink1, 1.2, [3, 3]);
   txt(ctx, S.encRows, 24, g.mTop, { font: small(colors), fill: blue });
   const se = Se.self;
   poly(ctx, [[se.x - 3, se.y + se.h / 2], [PAD_L + 4, se.y + se.h / 2], [PAD_L + 4, me.y0 + me.h / 2], [me.x0 - 4, me.y0 + me.h / 2]], colors.ink1, 1.5);
+
+  /* the rows done: every row before the press's, and the press's own once its beat is past */
+  const Ds = M.meanHeads(T.self[1]), X = M.crossMean(T);
+  const selfSw = ph.beat === "self" ? sweepAt(ph.u, r + 1) : null, crossSw = ph.beat === "cross" ? sweepAt(ph.u, 18) : null;
+  const selfCell = (i, j) => {
+    if (j > i || i > r) return null;
+    if (i < r || past("self")) return Ds[i][j];
+    return selfSw && j <= selfSw.j ? Ds[i][j] : null;
+  };
+  const crossCell = (i, j) => {
+    if (i > r) return null;
+    if (i < r || past("cross")) return X[i][j];
+    return crossSw && j <= crossSw.j ? X[i][j] : null;
+  };
+  /* hover, at rest: a cell of either decoder matrix */
+  const cc = g.cc, cx = PAD_L + 84, cy = g.cy, dx = Math.round(g.decX - 20), dTop = g.mTop + 40;
+  let hov = null;
+  if (pointer && ph.beat === "rest" && n > 0) {
+    const ci = Math.floor((pointer.y - cy) / cc), cj = Math.floor((pointer.x - cx) / cc);
+    if (ci >= 0 && ci < 6 && cj >= 0 && cj < 18 && crossCell(ci, cj) !== null) hov = { m: "cross", i: ci, j: cj };
+    const si = Math.floor((pointer.y - dTop) / XD.cd), sj = Math.floor((pointer.x - dx) / XD.cd);
+    if (si >= 0 && si < 7 && sj >= 0 && sj < 7 && selfCell(si, sj) !== null) hov = { m: "self", i: si, j: sj };
+  }
+
   /* the decoder's masked attention over the protein so far */
-  const Ds = M.meanHeads(T.self[1]), dx = Math.round(g.decX - 20);
-  const md = matrix(ctx, colors, (i, j) => (i < R && j <= i ? Ds[i][j] : null), 7, 7, prot, prot, dx, g.mTop + 40, XD.cd,
-    { rowHue: amber, colHue: amber, rowOn: (i) => i < R, colOn: (j) => j < R, digits: false });
+  const md = matrix(ctx, colors, selfCell, 7, 7, prot, prot, dx, dTop, XD.cd, { rowHue: amber, colHue: amber, rowOn: (i) => i <= r, colOn: (j) => j <= r, digits: false });
   txt(ctx, S.decRows, dx - 50, g.mTop, { font: small(colors), fill: amber });
-  rowOutline(ctx, colors, md, XD.cd, R, pg.t);
+  if (ph.beat === "self") {
+    rect(ctx, md.x0 - 2.5, md.y0 + r * XD.cd - 2, md.w + 4, XD.cd + 3, colors.ink1, 1.2, [3, 3]);
+    rect(ctx, md.x0 + selfSw.jPos * XD.cd - 1, md.y0 + r * XD.cd - 1, XD.cd + 1, XD.cd + 1, colors.ink1, 2);
+  }
+  if (hov?.m === "self") rect(ctx, md.x0 + hov.j * XD.cd - 1, md.y0 + hov.i * XD.cd - 1, XD.cd + 1, XD.cd + 1, colors.ink1, 2);
   const ms = Sd.masked, rx1 = w - PAD_R - 22, rx2 = w - PAD_R - 6;
   poly(ctx, [[ms.x + ms.w + 3, ms.y + ms.h / 2], [rx1, ms.y + ms.h / 2], [rx1, md.y0 + md.h / 2], [md.x0 + md.w + 4, md.y0 + md.h / 2]], colors.ink1, 1.5);
-  /* the protein written over its codons, lines from the newest down to the nucleotides it reads */
-  const cc = g.cc, cx = PAD_L + 84, cy = g.cy, X = M.crossMean(T), yP = cy - 78, yN = cy - 10;
-  const colX = (j) => cx + j * cc + cc / 2, aaX = (r) => cx + (3 * r + 1.5) * cc;
-  txt(ctx, S.crossCols, cx, cy - 100, { font: small(colors), fill: blue });
-  for (let r = 0; r < R; r++) txt(ctx, T.protein[r], aaX(r), yP, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: amber, align: "center" });
-  if (R > 0) X[R - 1].forEach((wt, j) => {
-    if (wt < 0.01) return;
-    ctx.save(); ctx.strokeStyle = css(weightRgb(colors, 0.3 + 0.7 * wt)); ctx.lineWidth = 0.8 + 8 * wt;
-    ctx.beginPath(); ctx.moveTo(aaX(R - 1), yP + 9); ctx.lineTo(colX(j), yN - 18); ctx.stroke(); ctx.restore();
-  });
+
+  /* the queries over the codons they read, the lines from one query down to the gene */
+  const yP = cy - 78, yN = cy - 10, colX = (j) => cx + j * cc + cc / 2, qX = (q) => cx + (3 * q + 1.5) * cc;
+  txt(ctx, S.crossCols, cx, cy - 94, { font: small(colors), fill: blue });
+  const outGliding = ph.beat === "out" && ph.u < 1;
+  const shownQ = ph.beat === "rest" ? n : r;           // slots 0 … shownQ hold a query
+  for (let q = 0; q <= Math.min(shownQ, 6); q++) txt(ctx, prot[q], qX(q), yP, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: amber, align: "center" });
+  const lineRow = hov?.m === "cross" ? hov.i : n > 0 && (past("self")) ? r : -1;
+  const litJ = hov?.m === "cross" ? hov.j : crossSw ? Math.round(crossSw.jPos) : -1;
+  if (lineRow >= 0) {
+    const drawLine = (j, on) => {
+      const v = crossCell(lineRow, j);
+      if (v === null || (!on && v < 0.01)) return;
+      ctx.save(); ctx.strokeStyle = on ? colors.ink1 : css(weightRgb(colors, 0.35 + 0.65 * v)); ctx.lineWidth = on ? Math.max(1.8, 1 + 2.5 * v) : 1 + 2.5 * v;
+      ctx.beginPath(); ctx.moveTo(qX(lineRow), yP + 9); ctx.lineTo(colX(j), yN - 18); ctx.stroke(); ctx.restore();
+    };
+    for (let j = 0; j < 18; j++) if (j !== litJ) drawLine(j, false);
+    if (litJ >= 0) drawLine(litJ, true);
+  }
   T.codons.forEach((_, k) => poly(ctx, [[cx + 3 * k * cc + 2, yN - 12.5], [cx + 3 * k * cc + 3 * cc - 3, yN - 12.5]], colors.ink3, 1));
   nt.forEach((c, j) => txt(ctx, c, colX(j), yN, { font: mono(colors), fill: blue, align: "center" }));
-  const rows = prot.slice(0, 6).map((p, r) => `${p} → ${r < R ? prot[r + 1] : "?"}`);
-  const mx = matrix(ctx, colors, (i, j) => (i < R ? X[i][j] : null), 6, 18, rows, nt, cx, cy, cc, { rowHue: amber, colHue: blue, rowOn: (i) => i < R, colLabels: false, digits: false });
-  rowOutline(ctx, colors, mx, cc, R, pg.t);
+
+  /* cross-attention: the protein's rows over the gene's columns */
+  const rows = prot.slice(0, 6).map((q, i) => `${q} → ${i < r || (i === r && past("cross")) ? prot[i + 1] : "?"}`);
+  const mx = matrix(ctx, colors, crossCell, 6, 18, rows, nt, cx, cy, cc, { rowHue: amber, colHue: blue, rowOn: (i) => i <= r, colLabels: false, digits: false });
+  if (crossSw) {
+    rect(ctx, mx.x0 - 2.5, mx.y0 + r * cc - 2, mx.w + 4, cc + 3, colors.ink1, 1.2, [3, 3]);
+    rect(ctx, mx.x0 + crossSw.jPos * cc - 1, mx.y0 + r * cc - 1, cc + 1, cc + 1, colors.ink1, 2);
+  }
+  if (hov?.m === "cross") rect(ctx, mx.x0 + hov.j * cc - 1, mx.y0 + hov.i * cc - 1, cc + 1, cc + 1, colors.ink1, 2);
   txt(ctx, S.crossRows, PAD_L, mx.y0 + mx.h + 14, { font: small(colors), fill: amber });
-  poly(ctx, [[cr.x + cr.w + 3, cr.y + cr.h / 2], [rx2, cr.y + cr.h / 2], [rx2, mx.y0 + mx.h / 2], [mx.x0 + mx.w + 4, mx.y0 + mx.h / 2]], colors.ink1, 1.5);
-  if (R === 0) txt(ctx, S.xWait, cx + 8, cy + 3 * cc, { font: small(colors), fill: colors.ink3 });
+  /* the cross-attention leader enters at the matrix's lower right, clear of the output's lane */
+  const ly = mx.y0 + mx.h - 5;
+  poly(ctx, [[cr.x + cr.w + 3, cr.y + cr.h / 2], [rx2, cr.y + cr.h / 2], [rx2, ly], [mx.x0 + mx.w + 4, ly]], colors.ink1, 1.5);
+  /* the output, fed back: from the end of its row, up the lane right of the matrix, along the query line */
+  if (outGliding) {
+    const laneX = mx.x0 + mx.w + 14, y0 = mx.y0 + r * cc + cc / 2, x1 = qX(r + 1);
+    const legs = [y0 - yP, Math.abs(x1 - laneX)], d = ease(ph.u) * (legs[0] + legs[1]);
+    const gx = d <= legs[0] ? laneX : lerp(laneX, x1, (d - legs[0]) / legs[1]), gy = d <= legs[0] ? y0 - d : yP;
+    txt(ctx, prot[r + 1], gx, gy, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: amber, align: "center" });
+  }
+  /* what the press is doing, or the hovered weight */
+  const q = prot[Math.max(0, r)];
+  const why = hov ? S.weightOf(prot[hov.i], hov.m === "cross" ? `${nt[hov.j]} (nucleotide ${hov.j + 1})` : prot[hov.j], (hov.m === "cross" ? X : Ds)[hov.i][hov.j])
+    : n === 0 ? S.xWait
+      : ph.beat === "enc" ? S.xEnc
+        : ph.beat === "self" ? S.xSelf(q, r + 1)
+          : ph.beat === "cross" ? S.xCross(q)
+            : ph.beat === "out" ? S.xOut(prot[r + 1]) : S.xRest;
+  txt(ctx, why, PAD_L, g.why, { font: small(colors), fill: ph.beat === "rest" && !hov ? colors.ink2 : colors.ink1 });
   txt(ctx, S.eg[params.page], PAD_L, g.eg, { font: small(colors), fill: colors.ink3 });
 }
 
 /* ============================================================ the widget */
 
 const maxOf = (page) => (page === "encoder-decoder" ? 6 : N);
-const msOf = (page, mode, n) => (page === "encoder-decoder" ? ENCDEC_MS[mode === "run" ? "run" : "step"] : selfMs(n, page === "encoder", mode));
+const msOf = (page, mode, n) => (page === "encoder-decoder" ? xdMs(n, mode) : selfMs(n, page === "encoder", mode));
 const pageOf = (anim, params) => anim.p[params.page];
 function settle(anim, params) {
   anim.page = params.page;
@@ -515,14 +604,14 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
     renderCard(params);
-    if (params.page === "encoder-decoder") drawEncDec(ctx, colors, w, params, state, pageOf(anim, params));
+    if (params.page === "encoder-decoder") drawEncDec(ctx, colors, w, params, state, pageOf(anim, params), pointer);
     else drawSelf(ctx, colors, w, params, state, pageOf(anim, params), pointer);
   },
 
   readout({ params, state, anim }) {
     const pg = pageOf(anim, params), k = pg.t >= 1 ? pg.n : pg.n - 1;
     if (params.page === "encoder-decoder") {
-      const A = M.crossMean(state.dna), r = pg.n - 1;
+      const A = M.crossMean(state.dna), r = k - 1;   // the last row finished, not the one being computed
       return [
         { label: S.tileAmino, value: `${Math.max(0, k)} of 6`, note: S.tileAminoNote },
         { label: S.tileProt, value: k > 0 ? state.dna.protein.slice(0, k).join("") : S.wait, note: S.tileProtNote },

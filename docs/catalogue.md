@@ -22775,6 +22775,20 @@ what the row being computed is doing (*treated gains the key pain: its weights a
 recomputed over 7 keys*; *pain, the new row: its weights over all 7 keys*; on the
 decoder *pain, the new row; the earlier rows keep their weights*).
 
+**Page 3 in the same idiom, 2026-09-29, his four picks (every recommendation):**
+the line above the gene holds the decoder's QUERIES (*[BOS] K L V …*), each over
+the codon it reads, and the lines to the nucleotides leave the query (row
+*L → V*: L reads GTA, outputs V), no longer the output; a press runs the
+decoder block's order — the first press computes the encoder once (its 18 rows
+swept quickly, the matrix blank before), then the new row of the masked
+self-attention cell by cell, then the cross row nucleotide by nucleotide with a
+line from the query as the outline reaches each one and the current one in ink,
+then the output glides up the lane right of the matrix and along the query line
+into the next slot, fed back (the cross leader now enters the matrix at its lower
+right, clear of that lane); a line under the figure names the beat; at rest,
+hover on a cell of either decoder matrix names its weight and inks its line.
+Fits the frame (687); sweep clean at 440; switch probe 0 flagged.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
