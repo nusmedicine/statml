@@ -22789,6 +22789,33 @@ right, clear of that lane); a line under the figure names the beat; at rest,
 hover on a cell of either decoder matrix names its weight and inks its line.
 Fits the frame (687); sweep clean at 440; switch probe 0 flagged.
 
+**TRAINING AND INFERENCE, 2026-09-29.** His question: *"for encoder decoder, in
+practice, everything is in parallel? … should we split into training and
+inference? research and mockup"*. Researched (08-1 cells 0 and 4, 05-3 cell 20,
+08-3 cell 1: attention in parallel is what makes pretraining feasible; 10-3 cell
+45: training sees the full sequence, generation is sequential; teacher forcing and
+the KV cache named nowhere) and measured (`_lab/transformer-phases-measure.mjs`):
+one pass over the whole sequence gives every row and every next-token distribution
+EXACTLY what building it a token at a time gives, in the decoder and the
+encoder–decoder (0.0) — the mask is why training runs in parallel; the encoder's
+training (masked tokens) and inference are the same pass; in one decoder pass the
+true next token gets 1.00 where the left context settles it and 0.08–0.26 where it
+does not (*with → aspirin*, *[CLS] → treated*, *pain → [SEP]*). Mocked
+(`_lab/transformer-phases-mock.html`, 465fbb0). **Picked:** split **A**, a *Phase*
+control Training · Generation on the Decoder and Encoder–decoder pages; the
+**Encoder page one pass** (the lesson's [MASK] at *aspirin*, the row's prediction
+*aspirin* 0.61; training and inference named as that pass; tokens entering and the
+every-row-moves bars gone); **rows at once** (a row is one product; only the
+fed-back token moves). Built without his answer to the fourth call, the training
+view's column: each row's true next token and its probability (decoder), each
+row's target and probability (encoder–decoder), as the mock drew — his to strike.
+Decoder generation reads the lesson's prompt in one pass on its first press
+(5 rows), then feeds a token back per press (the prediction glides from beside its
+row up the lane and along the sentence), stopping at the first ".". Page 3's
+decoder matrices now six rows each. The verify (1,741 checks) holds both
+equivalences. Fits the frame (688); sweep clean on 15 states at 440; switch probe
+0 flagged across the phase control.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes

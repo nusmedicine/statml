@@ -197,8 +197,9 @@ export function translate(dna, upto = Infinity) {
     y = y.map((r) => layerNorm(add(r, ffn(T, b, r)), T[`${b}.n3`], T[`${b}.n3b`]));
     self.push(s.alpha); cross.push(c.alpha);
   }
-  const top = y.map((r) => { const p = linear(r, T.out, T.outb); return TGT[p.indexOf(Math.max(...p))]; });
-  return { dna, codons: codons(dna), protein: protein(dna), enc, self, cross, top };
+  const probs = y.map((r) => softmax(linear(r, T.out, T.outb)));
+  const top = probs.map((p) => TGT[p.indexOf(Math.max(...p))]);
+  return { dna, codons: codons(dna), protein: protein(dna), enc, self, cross, top, probs };
 }
 /** decoder block 2's cross-attention, the mean of its four heads (what the page draws) */
 export const crossMean = (t) => t.cross[1][0].map((row, i) => row.map((_, j) => t.cross[1].reduce((s, hd) => s + hd[i][j], 0) / H));

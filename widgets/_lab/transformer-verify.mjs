@@ -67,6 +67,26 @@ for (const which of ["base", "causal"]) {
     });
   }
 }
+/* training against generation (the Phase control, 2026-09-29): one pass over the whole sequence
+   gives what building it a token at a time gives, exactly — the mask is why training runs in parallel */
+{
+  const toks = M.tokensOf(M.SENTENCE), full = M.forward("causal", toks);
+  let worst = 0;
+  for (let k = 1; k <= toks.length; k++) {
+    const pre = M.forward("causal", toks.slice(0, k)), a = M.nextTokens("causal", pre.h[k - 1]), b = M.nextTokens("causal", full.h[k - 1]);
+    a.forEach((v, i) => { worst = Math.max(worst, Math.abs(v - b[i])); });
+  }
+  ok(worst === 0, `decoder: one pass's next-token distributions are the prefixes' own (${worst})`);
+  for (const dna of M.GENES) {
+    const T = M.translate(dna);
+    let w2 = 0;
+    for (let k = 1; k <= 7; k++) {
+      const P = M.translate(dna, k);
+      for (let b = 0; b < 2; b++) for (let h = 0; h < M.H; h++) P.cross[b][h].forEach((row, i) => row.forEach((v, j) => { w2 = Math.max(w2, Math.abs(v - T.cross[b][h][i][j])); }));
+    }
+    ok(w2 === 0, `${dna}: the whole protein at once gives a prefix's cross-attention rows (${w2})`);
+  }
+}
 const lesson = M.generate("treated with aspirin for");
 ok(lesson.tokens.slice(5).join(" ") === "chest pain .", `the lesson's prompt: ${lesson.tokens.join(" ")}`);
 ok(lesson.steps[0].probs[M.VOCAB.indexOf("chest")] > 0.99, "chest after the lesson's prompt, above 0.99");

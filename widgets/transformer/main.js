@@ -1,54 +1,56 @@
 /* ============================================================================
-   Widget 84 · Language: Transformer (`transformer`) — PHM5005 08-1 cells 2–3,
-   Transformer Architecture and Transformer Tasks. DRAFT, rebuilt 2026-09-27
-   to the replan and simplified the same day (catalogue § Slot 84).
+   Widget 84 · Language: Transformer (`transformer`) — PHM5005 08-1 cells 2–4,
+   Transformer Architecture, Transformer Tasks and Pre-training. DRAFT, rebuilt
+   2026-09-29 to split training from inference (catalogue § Slot 84).
 
-   Three pages BY ARCHITECTURE, his framing, 08-1 cell 3's three families:
+   Three pages BY ARCHITECTURE (his framing), and on the two with a decoder a
+   PHASE, Training · Generation (his pick A, 2026-09-29,
+   `_lab/transformer-phases-mock.html`):
 
-     ENCODER          the masked-token model on the lesson's sentence. A press
-                      enters the next token: it glides in, then an outline steps
-                      down EVERY row, whose weights are computed again, and a bar
-                      beside each earlier row is how far that token's final vector
-                      moved. The chosen word's arcs, drawn on the sentence as his
-                      output figure draws them (a loop for itself, an arc to each
-                      other token, thickness by weight), reach forward and back.
-     DECODER          the next-token model, the same figure in the same place:
-                      each key after its query masked, so a press computes only the
-                      new row, the earlier rows' weights stay the same numbers and
-                      their bars read 0; the chosen word keeps its loop and its
-                      arcs back.
-     ENCODER–DECODER  the DNA -> protein model, his two-stack figure on top and a
-                      leader from each attention box to its matrix. A press writes
-                      the next amino acid: both decoder matrices gain a row, and
-                      lines from the new amino acid run down to the nucleotides it
-                      reads, thickness by weight.
+     ENCODER          one pass over the whole sentence, every row at once, every
+                      key: training and inference are that same pass. The lesson's
+                      own masked token (08-1 cell 4, "treated with [MASK] for chest
+                      pain") and the [MASK] row's prediction.
+     DECODER          Training: the whole sentence, one pass, the triangle filled
+                      at once, beside each row the token after it and the
+                      probability the model gives it — seven predictions from one
+                      pass, which the mask makes valid. Generation: the lesson's
+                      prompt read in one pass, then a token a press, the prediction
+                      fed back and only its row computed.
+     ENCODER–DECODER  the DNA -> protein model. Training: the encoder's pass and
+                      the decoder's pass over the whole true protein, every row at
+                      once, each row's target amino acid and its probability.
+                      Generation: the encoder once, then an amino acid a press in
+                      the decoder block's order — its masked self-attention row,
+                      its cross-attention row, its output fed back as the next query.
 
-   HIS SIMPLIFICATION (2026-09-27, `_lab/transformer-steps-mock.html`): one
-   example, no toggles ("toggling gets confusing what i'm looking at"); tokens
-   entering a press at a time with the scores updated after; his arcs; no
-   next-token softmax (the diagram's loop says the output is fed back). The
-   diagram is joined to its matrix by a leader line, the stacks filled in his
-   figures' blue (--c-group-a, encoder) and orange (--c-group-b, decoder), and
-   every token label in the hue of the stack it came from.
+   WHY THE SPLIT (his question, "in practice, everything is in parallel?"; measured,
+   `_lab/transformer-phases-measure.mjs`): one pass over the whole sequence gives
+   every row and every next-token distribution EXACTLY what building it a token at a
+   time gives, in the decoder and the encoder-decoder — the mask is why training runs
+   in parallel; generation is sequential because each output is the next input
+   (10-3 cell 45). A row is one matrix product, so every row appears at once (his
+   pick); only the fed-back token moves.
 
-   THE BARS MEASURE THE FINAL VECTOR, not block 1's weights: a row's block-1
-   weights can barely move (aspirin 0.001 when [SEP] enters), which would read as
-   the decoder's zero; its final vector moves 1.53–14.92 on every press.
+   His figures are drawn on every page and joined by a leader to their matrix;
+   encoder --c-group-a, decoder --c-group-b, every token label in its stack's hue.
+   Arcs (his output figure's glyph: a loop for itself, arcs above to later tokens
+   and below to earlier ones) are drawn for one row, chosen by hover on a token or a
+   cell, which also inks that cell's arc.
 
    THE MODELS ARE TRAINED AND ONLY READ (model.js, weights generated by
    `_lab/transformer-weights.py`, held to torch by `_lab/transformer-verify.mjs`).
-
-   EACH PAGE KEEPS ITS OWN PLACE: `anim.p[page]` counts its presses, since a
-   page is a display parameter (invariant 3). A press belongs to the page it
-   started on: a switch mid-press finishes it and `halt` ends the loop
-   (widget 70's rule, 2026-09-19).
+   EACH PAGE AND PHASE KEEPS ITS OWN PLACE (`anim.p[key]`); a switch mid-press
+   finishes the press and `halt` ends the loop (widget 70's rule).
    ========================================================================= */
 
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
 const PAGES = [{ value: "encoder", label: "Encoder" }, { value: "decoder", label: "Decoder" }, { value: "encoder-decoder", label: "Encoder–decoder" }];
-const TOKENS = M.tokensOf(M.SENTENCE), N = TOKENS.length;
+const ON_DECODER = { any: [{ param: "page", equals: "decoder" }, { param: "page", equals: "encoder-decoder" }] };
+const TOKENS = M.tokensOf(M.SENTENCE), N = TOKENS.length, MASK_AT = 3;
+const PROMPT = "treated with aspirin for";
 
 /* ================================================================== copy */
 
@@ -59,9 +61,13 @@ const S = {
     + "only to the tokens before it, which lets the output be generated one token at a time. An encoder–decoder adds cross-attention: "
     + "queries from the output so far, keys and values from the encoded input.",
   pageLabel: "Step",
-  step: { encoder: "Next token", decoder: "Next token", "encoder-decoder": "Next amino acid" },
-  stepTitle: { encoder: "Add the sentence's next token and compute the weights", decoder: "Add the sentence's next token and compute the weights",
-    "encoder-decoder": "Compute the next amino acid from the gene and the protein so far" },
+  phaseLabel: "Phase", phaseDetail: "Training reads the whole sequence in one pass; generation adds one token a step, each output fed back.",
+  phaseOpts: [{ value: "training", label: "Training" }, { value: "generation", label: "Generation" }],
+  step: { encoder: "One pass", decoder: { param: "phase", labels: { training: "One pass", generation: "Next token" } },
+    "encoder-decoder": { param: "phase", labels: { training: "One pass", generation: "Next amino acid" } } },
+  stepTitle: { encoder: "Compute every row of the sentence at once",
+    decoder: { param: "phase", labels: { training: "Compute every row of the sentence at once", generation: "Compute the next token and feed it back" } },
+    "encoder-decoder": { param: "phase", labels: { training: "Compute every row at once, the whole protein given", generation: "Compute the next amino acid and feed it back" } } },
   runLabel: "Play", runTitle: "Run the rest",
   wait: "—",
 
@@ -74,16 +80,15 @@ const S = {
   /* pages 1–2 */
   arcsCap: { encoder: ["Arcs: one token's weights, a loop to itself;", "above to later tokens, below to earlier ones"],
              decoder: ["Arcs: one token's weights, a loop to itself;", "below to earlier tokens"] },
+  hoverCap: "hover a token or a cell for its arcs",
   sources: (who) => `queries (rows) and keys (columns): the ${who}'s tokens`,
-  moved: ["moved", "this press"],
-  /* what the row being computed is doing, in place of the rule while a press runs (his question,
-     2026-09-29: "why can it start scanning from the top each time i have a new token?") */
-  gains: (a, b, k) => `${a} gains the key ${b}: its weights are recomputed over ${k} keys`,
-  newRowEnc: (b, k) => `${b}, the new row: its weights over all ${k} keys`,
-  newRowDec: (b) => `${b}, the new row; the earlier rows keep their weights`,
-  rule: { encoder: "Every query attends to every key, so every row is computed again.",
-          decoder: "The keys after each query are masked, so only the new token's row is computed." },
-  firstWait: "Next token adds the first token",
+  colHead: { encoder: ["predicted", "token"], training: ["next token,", "its probability"], generation: ["next token,", "its probability"] },
+  rule: { encoder: "One pass: every row at once, every key; training and inference are this pass.",
+          training: "One pass: every row at once; the mask keeps each row to the tokens before it.",
+          generation: "One token a step: only the new token's row is computed, the earlier rows kept." },
+  fedBack: (t) => `${t}, the prediction, fed back as the next token`,
+  prompt: "the prompt, read in one pass",
+  firstWait: { encoder: "One pass computes every row", training: "One pass computes every row", generation: "Next token reads the prompt in one pass" },
   eg: { encoder: "e.g. BERT · understanding: classification, named entity recognition, de-identification",
         decoder: "e.g. GPT · generation: language modelling, text generation, dialogue",
         "encoder-decoder": "e.g. T5, BART · sequence to sequence: translation, summarisation, image → text" },
@@ -91,19 +96,26 @@ const S = {
   /* page 3 */
   encRows: "rows and columns: the gene", decRows: "rows and columns: the protein so far",
   crossCols: "keys and values (columns): the encoder's output", crossRows: "queries (rows): the decoder",
-  xWait: "Next amino acid computes the encoder once, then the first row",
-  xEnc: "The encoder's attention over the whole gene, computed once",
+  targetHead: ["target,", "its probability"],
+  xWait: { training: "One pass computes every row, the whole protein given", generation: "Next amino acid computes the encoder once, then the first row" },
+  xTrain: "One pass: the true protein is the decoder's input; every row at once.",
+  xEnc: "The encoder's pass over the whole gene, computed once",
   xSelf: (q, k) => `${q}: its weights over the protein so far (${k} ${k === 1 ? "key" : "keys"})`,
   xCross: (q) => `${q}: its weights over the gene's 18 nucleotides`,
   xOut: (o) => `${o}, the output, fed back as the next query`,
   xRest: "Each amino acid adds a row to both decoder matrices.",
   weightOf: (q, k, v) => `${q}'s weight on ${k}: ${v.toFixed(2)}`,
 
-  tileTokens: "Tokens", tileTokensNote: "entered so far",
-  tileMoved: "Earlier tokens moved", tileMovedNote: "on the last press, of those already there",
-  tileMax: "Largest move", tileMaxNote: "how far an earlier token's final vector moved",
+  tileRows: "Rows", tileRowsNote: (k) => (k === 1 ? "computed on the last press" : "computed at once, one pass"),
+  tileMask: "[MASK]", tileMaskNote: "the masked row's most likely token",
+  tileKeys: "Keys per row", tileKeysNote: "every token of the sentence",
+  tilePreds: "Predictions", tilePredsNote: "one per row, from one pass",
+  tileLow: "Lowest", tileLowNote: "the true next token's smallest probability",
+  tileGen: "Tokens", tileGenNote: "the prompt and those fed back",
+  tileNext: "Next token", tileNextNote: "the most likely, fed back on the next press",
   tileAmino: "Amino acids", tileAminoNote: "written so far",
   tileProt: "Protein", tileProtNote: "the amino acids written",
+  tileTargets: "Targets", tileTargetsNote: "rows whose most likely amino acid is the true one",
   tileCodon: "On its own codon", tileCodonNote: "the newest row's weight on its three nucleotides",
   sum: (page, n, max) => `${page}: ${n} of ${max} computed.`,
 };
@@ -151,6 +163,7 @@ const inkOn = (colors, p) => (Math.abs(lum(p) - lum(rgb(colors.ink1))) > Math.ab
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 const mono = (colors) => `${colors.fsXs} ${colors.mono}`;
+const monoBold = (colors) => `600 ${colors.fsXs} ${colors.mono}`;
 const cap = (colors) => `600 ${colors.fsSm} ${colors.font}`;
 const small = (colors) => `${colors.fsXs} ${colors.font}`;
 
@@ -172,13 +185,16 @@ function rect(ctx, x, y, w, h, stroke, lw = 1, dash = null) {
 }
 const textW = (ctx, font, s) => { ctx.save(); ctx.font = font; const w = ctx.measureText(s).width; ctx.restore(); return w; };
 function rotated(ctx, s, x, y, opts) { ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI / 2); txt(ctx, s, 0, 0, opts); ctx.restore(); }
+function head(ctx, x, y, ang, size, col) {
+  ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, y);
+  ctx.lineTo(x - size * Math.cos(ang - 0.45), y - size * Math.sin(ang - 0.45)); ctx.lineTo(x - size * Math.cos(ang + 0.45), y - size * Math.sin(ang + 0.45)); ctx.fill(); ctx.restore();
+}
 
 /* ----------------------------------------------------------- the stacks */
 
 /* ONE STACK, AS HIS FIGURES DRAW IT: the output at the top, the block's boxes in a
    dashed frame marked × 2, the embedding, the input at the bottom; every box filled
-   in the stack's hue, the one joined to a matrix outlined in ink. Returns each box's
-   rectangle by key, and the stack's bottom. */
+   in the stack's hue, the one joined to a matrix outlined in ink. */
 const SK = { bh: 26, bh2: 34, gap: 14 };
 /** a stack's height with `n1` one-line and `n2` two-line boxes in its frame */
 const stackHeight = (n1, n2) => 8 + 20 + n1 * SK.bh + n2 * SK.bh2 + (n1 + n2 - 1) * SK.gap + 14 + 20 + SK.bh + 26 + 4;
@@ -226,90 +242,73 @@ function matrix(ctx, colors, cell, R, K, rt, ct, x0, y0, cs, { rowHue, colHue, r
   rect(ctx, x0 - 0.5, y0 - 0.5, K * cs, R * cs, colors.ink2);
   return { x0, y0, w: K * cs, h: R * cs };
 }
+
 /* ================================================= pages 1–2: Encoder and Decoder */
 
-/* A PRESS IS A TOKEN ENTERING (his ask: "show how tokens enter then the scores get
-   updated"). The token glides in from the right along the sentence (the only thing
-   moving then, in the empty lane past the last token); then the rows are computed:
-   every row in turn in the encoder, the new row alone in the decoder.
-   ONE ROW'S ARCS AT A TIME, TIED TO ITS CELLS (his round of 2026-09-29: "only the
-   current token being processed … ensure arrows not too thick … couldn't see the
-   self-loop … tween where appropriate so can see which cell refers to the arrow being
-   highlighted"). While a row is computed a cell outline glides key by key along it;
-   each cell's weight appears as the outline reaches it, with its arc, and the arc of
-   the cell under the outline is drawn in ink. A re-computed earlier row sweeps at
-   40 ms a cell, the new token's row at 120. At rest the newest token's arcs show;
-   hover on a token shows its arcs, on a cell the arc that cell is. */
-const SW = { glide: 450, fast: 40, slow: 120 };
-const PG = { top: 16, sy: 112, below: 70, labH: 66, stackW: 108 };
+/* THE SAME FIGURE ON BOTH PAGES, IN THE SAME PLACE: his block at the left joined to
+   the matrix, the sentence above it with one row's arcs, and beside the matrix what
+   each row predicts. A training press (and the encoder's) fills every row at once.
+   A generation press moves one thing: the predicted token glides from beside its row
+   up the lane right of the matrix and along the sentence into the next slot, and then
+   its row appears at once. */
+const PG = { top: 16, sy: 112, below: 70, labH: 66, stackW: 108, col: 76 };
 const pgGeom = (w) => {
   const sx = PAD_L + 24, sw = Math.min(PG.stackW, Math.round(w * 0.22)), r0 = sx + sw + 44, slot = (w - PAD_R - r0) / N;
-  const x0 = r0 + 62, cs = Math.max(14, Math.min(26, Math.floor((w - PAD_R - 58 - x0) / N)));
+  const x0 = r0 + 62, cs = Math.max(14, Math.min(26, Math.floor((w - PAD_R - PG.col - x0) / N)));
   const mTop = PG.sy + PG.below + 10 + PG.labH, mBot = mTop + N * cs;
-  return { sx, sw, r0, slot, x0, cs, mTop, mBot, bx: x0 + N * cs + 6 };
+  return { sx, sw, r0, slot, x0, cs, mTop, mBot, bx: x0 + N * cs + 8 };
 };
 const heightSelf = (w) => pgGeom(w).mBot + 16 + 20 + 20 + 14;
 /** where the tokens stand: centred in their slots, every other one lifted a line where the slots are narrower than the words */
-function slotsOf(ctx, colors, g) {
-  const crowded = TOKENS.some((t) => textW(ctx, mono(colors), t) + 6 > g.slot);
-  return TOKENS.map((_, j) => ({ x: g.r0 + j * g.slot + g.slot / 2, y: PG.sy - (crowded && j % 2 ? 13 : 0) }));
+function slotsOf(ctx, colors, g, toks) {
+  const crowded = toks.some((t) => textW(ctx, mono(colors), t) + 6 > g.slot);
+  return toks.map((_, j) => ({ x: g.r0 + j * g.slot + g.slot / 2, y: PG.sy - (crowded && j % 2 ? 13 : 0) }));
 }
-/** a press's schedule: the rows computed and each one's time */
-function selfSchedule(n, enc) {
-  const rows = enc ? Array.from({ length: n }, (_, i) => i) : [n - 1];
-  const dur = rows.map((i) => n * (i === n - 1 ? SW.slow : SW.fast));
-  return { rows, dur, total: SW.glide + dur.reduce((a, b) => a + b, 0) };
-}
-const selfMs = (n, enc, mode) => Math.max(1, selfSchedule(Math.max(1, n), enc).total) * (mode === "run" ? 0.5 : 1);
-/** where a press is: the glide `e`; the row being computed, the key its outline has reached `j`
-    and the outline's eased position `jPos`; `done`, the rows before it (their new weights shown) */
-function selfPhase(pg, enc) {
-  const n = pg.n;
-  if (n === 0 || pg.t >= 1) return { n, e: 1, gliding: false, done: n, row: -1, j: -1, jPos: -1 };
-  const sc = selfSchedule(n, enc), tau = pg.t * sc.total;
-  if (tau < SW.glide) return { n, e: ease(tau / SW.glide), gliding: true, done: enc ? 0 : n - 1, row: -1, j: -1, jPos: -1 };
-  let r = tau - SW.glide, k = 0;
-  while (k < sc.rows.length - 1 && r >= sc.dur[k]) { r -= sc.dur[k]; k += 1; }
-  const row = sc.rows[k], pos = Math.min(1, r / sc.dur[k]) * n, j = Math.min(n - 1, Math.floor(pos));
-  const jPos = j === 0 ? 0 : lerp(j - 1, j, ease(Math.min(1, (pos - j) / 0.5)));
-  return { n, e: 1, gliding: false, done: row, row, j, jPos };
+const GEN = { prefill: 350, glide: 700 };
+
+/** what a self-attention page shows: its tokens, the rows computed, each cell, each row's prediction label */
+function selfView(state, params, pg) {
+  const page = params.page, phase = page === "encoder" ? "encoder" : params.phase;
+  if (phase === "encoder") {
+    const E = state.enc, done = pg.n >= 1 && pg.t >= 1;
+    return { phase, toks: E.tokens, rows: done ? N : 0, cell: (i, j) => E.A[i][j], label: (i) => (i === MASK_AT ? `${E.top[0][0]} ${E.top[0][1].toFixed(2)}` : null), glide: null, defRow: MASK_AT };
+  }
+  if (phase === "training") {
+    const D = state.decT, done = pg.n >= 1 && pg.t >= 1;
+    return { phase, toks: D.tokens, rows: done ? N : 0, cell: (i, j) => (j <= i ? D.A[i][j] : null),
+      label: (i) => (i < N - 1 ? `${D.tokens[i + 1]} ${D.next[i].toFixed(2)}` : null), glide: null, defRow: MASK_AT };
+  }
+  /* generation: press 1 reads the prompt in one pass; each press after it feeds one token back */
+  const G = state.decG, k0 = G.promptLen, n = pg.n === 0 ? 0 : k0 + pg.n - 1;   // tokens whose rows are on the page once the press lands
+  const gliding = pg.n >= 2 && pg.t < 1, rows = pg.n === 0 ? 0 : gliding ? n - 1 : n;
+  const run = rows > 0 ? G.runs[rows] : null;
+  return { phase, toks: G.tokens, rows, cell: (i, j) => (run && i < rows && j <= i ? run.A[i][j] : null),
+    label: (i) => (run && i === rows - 1 && run.next ? `${run.next} ${run.p.toFixed(2)}` : null),
+    glide: gliding ? { j: n - 1, e: ease(pg.t), tok: G.tokens[n - 1] } : null, defRow: rows - 1, entered: gliding ? n : rows };
 }
 
 function drawSelf(ctx, colors, w, params, state, pg, pointer) {
   const enc = params.page === "encoder", hue = enc ? colors.groupA : colors.groupB, who = enc ? "encoder" : "decoder";
-  const E = enc ? state.enc : state.dec, g = pgGeom(w), ph = selfPhase(pg, enc), { n } = ph;
+  const v = selfView(state, params, pg), g = pgGeom(w), toks = v.toks, rows = v.rows;
+  const entered = v.entered ?? (v.phase === "generation" ? 0 : N);   // tokens on the sentence line
   const attKey = enc ? "self" : "masked";
   const st = stack(ctx, colors, g.sx, PG.top, g.sw, hue, {
     title: enc ? S.enc : S.dec, hot: [attKey], input: enc ? S.encIn : S.decIn, output: enc ? S.encOut : S.decOut,
     blocks: [["ffn", S.ffn], [attKey, enc ? S.selfAtt : S.masked]],
   });
-  /* the weights as they stand at this beat: rows before the one being computed show the new
-     run, the row being computed its keys up to the outline, the rows after it the old run */
-  const valid = (i, j, k) => i < k && j < k && (enc || j <= i);
-  const cellOf = (i, j) => {
-    if (i >= n) return null;
-    if (i === ph.row) return j <= ph.j && valid(i, j, n) ? E.runs[n].alpha[i][j] : null;
-    const k = i < ph.done || !enc ? n : n - 1;
-    return valid(i, j, k) ? E.runs[k].alpha[i][j] : null;
-  };
-  /* which row's arcs, and which of its cells is lit: the press's own, else the hovered, else the newest */
-  const slots = slotsOf(ctx, colors, g);
+  const cellOf = (i, j) => (i < rows ? v.cell(i, j) : null);
+  /* hover, once still: a token shows its row's arcs, a cell inks its own */
+  const slots = slotsOf(ctx, colors, g, toks);
   let hovRow = -1, hovCol = -1;
-  if (pointer && pg.t >= 1 && n > 0) {
-    if (Math.abs(pointer.y - PG.sy) < 16) { const j = Math.floor((pointer.x - g.r0) / g.slot); if (j >= 0 && j < n) hovRow = j; }
+  if (pointer && pg.t >= 1 && rows > 0) {
+    if (Math.abs(pointer.y - PG.sy) < 16) { const j = Math.floor((pointer.x - g.r0) / g.slot); if (j >= 0 && j < rows) hovRow = j; }
     const ci = Math.floor((pointer.y - g.mTop) / g.cs), cj = Math.floor((pointer.x - g.x0) / g.cs);
-    if (ci >= 0 && ci < n && cj >= 0 && cj < n && cellOf(ci, cj) !== null) { hovRow = ci; hovCol = cj; }
+    if (ci >= 0 && ci < rows && cj >= 0 && cj < N && cellOf(ci, cj) !== null) { hovRow = ci; hovCol = cj; }
   }
-  const arcRow = ph.row >= 0 ? ph.row : hovRow >= 0 ? hovRow : ph.gliding ? -1 : n - 1;
-  /* the ink arc is the cell the outline is on: it follows the outline's eased position, not the key it is heading for */
-  const upTo = ph.row >= 0 ? ph.j : n - 1, lit = ph.row >= 0 ? Math.round(ph.jPos) : hovCol;
-  S.arcsCap[params.page].forEach((l, i) => txt(ctx, l, g.r0 - 20, PG.top - 6 + i * 13, { font: small(colors), fill: colors.ink3 }));
-  const head = (x, y, ang, size, col) => {
-    ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, y);
-    ctx.lineTo(x - size * Math.cos(ang - 0.45), y - size * Math.sin(ang - 0.45)); ctx.lineTo(x - size * Math.cos(ang + 0.45), y - size * Math.sin(ang + 0.45)); ctx.fill(); ctx.restore();
-  };
-  /* his glyph: a loop above the token for its own weight (with its own arrowhead), an arc above
-     the sentence to each later token and below it to each earlier one; 1–3.5 px by weight */
+  const arcRow = v.glide ? -1 : hovRow >= 0 ? hovRow : rows > 0 ? Math.min(v.defRow, rows - 1) : -1;
+  (enc ? S.arcsCap.encoder : S.arcsCap.decoder).forEach((l, i) => txt(ctx, l, g.r0 - 20, PG.top - 6 + i * 13, { font: small(colors), fill: colors.ink3 }));
+  /* his glyph: a loop above the token for its own weight, an arc above the sentence to each later
+     token and below it to each earlier one; 1–3.5 px by weight, the hovered cell's arc in ink */
   const arc = (i, j, wt, on) => {
     const col = on ? colors.ink1 : css(weightRgb(colors, 0.35 + 0.65 * wt)), lw = on ? Math.max(1.8, 1 + 2.5 * wt) : 1 + 2.5 * wt, size = 5 + lw;
     const a = slots[i];
@@ -317,99 +316,93 @@ function drawSelf(ctx, colors, w, params, state, pg, pointer) {
     if (j === i) {
       const cy = a.y - 26, r = 10, t1 = Math.PI * 0.35 + 2 * Math.PI;
       ctx.arc(a.x, cy, r, Math.PI * 0.65, t1 - 0.25); ctx.stroke(); ctx.restore();
-      head(a.x + r * Math.cos(t1), cy + r * Math.sin(t1), t1 + Math.PI / 2, size, col);
+      head(ctx, a.x + r * Math.cos(t1), cy + r * Math.sin(t1), t1 + Math.PI / 2, size, col);
       return;
     }
     const b = slots[j], d = Math.abs(j - i);
     if (j > i) {
       const hgt = Math.min(PG.sy - PG.top - 30, 30 + 7 * d), y0 = a.y - 9, y1 = b.y - 9, x0 = a.x + 12, x1 = b.x - 4;
       ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 - hgt, x1, y1 - hgt, x1, y1 - size * 0.7); ctx.stroke(); ctx.restore();
-      head(x1, y1, Math.PI / 2, size, col);
+      head(ctx, x1, y1, Math.PI / 2, size, col);
     } else {
       const hgt = Math.min(PG.below - 12, 12 + 8 * d), y0 = a.y + 8, y1 = b.y + 8, x0 = a.x - 4, x1 = b.x + 4;
       ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 + hgt, x1, y1 + hgt, x1, y1 + size * 0.7); ctx.stroke(); ctx.restore();
-      head(x1, y1, -Math.PI / 2, size, col);
+      head(ctx, x1, y1, -Math.PI / 2, size, col);
     }
   };
-  if (arcRow >= 0 && arcRow < n) {
-    for (let j = 0; j <= upTo; j++) { const v = cellOf(arcRow, j); if (v !== null && v >= 0.02 && j !== lit) arc(arcRow, j, v, false); }
-    if (lit >= 0 && cellOf(arcRow, lit) !== null) arc(arcRow, lit, cellOf(arcRow, lit), true);
+  if (arcRow >= 0) {
+    for (let j = 0; j < N; j++) { const wv = cellOf(arcRow, j); if (wv !== null && wv >= 0.02 && j !== hovCol) arc(arcRow, j, wv, false); }
+    if (hovCol >= 0) arc(arcRow, hovCol, cellOf(arcRow, hovCol), true);
   }
-  /* the sentence on top of its arcs, the newest token gliding in along the line */
-  for (let j = 0; j < n; j++) {
-    const s = slots[j], x = ph.gliding && j === n - 1 ? lerp(w - PAD_R, s.x, ph.e) : s.x, on = j === arcRow;
-    txt(ctx, TOKENS[j], x, s.y, { font: on ? `600 ${colors.fsXs} ${colors.mono}` : mono(colors), fill: on ? colors.ink1 : hue, align: "center" });
+  /* the sentence: the prompt and the tokens fed back in generation, the whole sentence otherwise */
+  for (let j = 0; j < Math.min(entered, toks.length); j++) {
+    if (v.glide && j === v.glide.j) continue;
+    const s = slots[j], on = j === arcRow;
+    txt(ctx, toks[j], s.x, s.y, { font: on ? monoBold(colors) : mono(colors), fill: on ? colors.ink1 : hue, align: "center" });
   }
-  if (n === 0) txt(ctx, S.firstWait, g.r0, PG.sy, { font: small(colors), fill: colors.ink3 });
-  /* the matrix, joined to the attention box; the arcs' row outlined, the lit cell in ink */
-  const m = matrix(ctx, colors, cellOf, N, N, TOKENS, TOKENS, g.x0, g.mTop, g.cs, { rowHue: hue, colHue: hue, rowOn: (i) => i < n, colOn: (j) => j < n });
+  if (rows === 0 && entered === 0 && v.phase !== "generation") for (let j = 0; j < N; j++) txt(ctx, toks[j], slots[j].x, slots[j].y, { font: mono(colors), fill: hue, align: "center" });
+  if (v.phase === "generation" && pg.n === 0) for (let j = 0; j < state.decG.promptLen; j++) txt(ctx, toks[j], slots[j].x, slots[j].y, { font: mono(colors), fill: hue, align: "center" });
+  /* the matrix, joined to the attention box; the arcs' row outlined, the hovered cell in ink */
+  const m = matrix(ctx, colors, cellOf, N, N, toks, toks, g.x0, g.mTop, g.cs, { rowHue: hue, colHue: hue, rowOn: (i) => i < Math.max(rows, entered), colOn: (j) => j < Math.max(rows, entered, v.phase === "generation" ? 0 : N) });
   const b = st[attKey], bx = g.x0 - 60, lx = g.x0 - 66;
   poly(ctx, [[b.x + b.w + 3, b.y + b.h / 2], [lx, b.y + b.h / 2], [lx, g.mTop + m.h / 2], [bx, g.mTop + m.h / 2]], colors.ink1, 1.5);
   poly(ctx, [[bx, g.mTop], [bx, g.mTop + m.h]], colors.ink1, 1.5);
-  if (arcRow >= 0 && arcRow < n) rect(ctx, g.x0 - 2.5, g.mTop + arcRow * g.cs - 2, m.w + 4, g.cs + 3, colors.ink1, 1.2, [3, 3]);
-  const cx = ph.row >= 0 ? ph.jPos : hovCol;
-  if (arcRow >= 0 && cx >= 0) rect(ctx, g.x0 + cx * g.cs - 1, g.mTop + arcRow * g.cs - 1, g.cs + 1, g.cs + 1, colors.ink1, 2);
-  /* how far each earlier token's final vector moved on this press */
-  S.moved.forEach((s, i) => txt(ctx, s, g.bx, g.mTop - 22 + i * 12, { font: small(colors), fill: colors.ink3 }));
-  const room = w - PAD_R - g.bx - 26;
-  if (n >= 2) for (let i = 0; i < n - 1; i++) {
-    if (enc && i >= ph.done && pg.t < 1) continue;
-    if (!enc && ph.gliding) continue;
-    const v = E.move[n][i], len = Math.min(room, v * (room / 15)), y = g.mTop + i * g.cs;
-    ctx.fillStyle = hue; ctx.fillRect(g.bx, y + 6, len, g.cs - 12);
-    txt(ctx, v.toFixed(1), g.bx + len + 3, y + g.cs / 2, { font: mono(colors), fill: colors.ink1 });
+  if (arcRow >= 0) rect(ctx, g.x0 - 2.5, g.mTop + arcRow * g.cs - 2, m.w + 4, g.cs + 3, colors.ink1, 1.2, [3, 3]);
+  if (hovCol >= 0) rect(ctx, g.x0 + hovCol * g.cs - 1, g.mTop + arcRow * g.cs - 1, g.cs + 1, g.cs + 1, colors.ink1, 2);
+  /* beside each row, what it predicts */
+  S.colHead[v.phase].forEach((s, i) => txt(ctx, s, g.bx, g.mTop - 22 + i * 12, { font: small(colors), fill: colors.ink3 }));
+  for (let i = 0; i < rows; i++) {
+    const lab = v.label(i);
+    if (lab) txt(ctx, lab, g.bx, g.mTop + i * g.cs + g.cs / 2, { font: mono(colors), fill: colors.ink1 });
+  }
+  /* generation: the prediction glides from beside its row up the lane right of the matrix, then along the sentence */
+  if (v.glide) {
+    const r = v.glide.j - 1, x1 = slots[v.glide.j].x, y1 = slots[v.glide.j].y, laneX = w - PAD_R - 20, fx = g.bx + 10, fy = g.mTop + r * g.cs + g.cs / 2;
+    const legs = [Math.abs(laneX - fx), fy - y1, Math.abs(laneX - x1)], d = v.glide.e * (legs[0] + legs[1] + legs[2]);
+    let gx, gy;
+    if (d <= legs[0]) { gx = lerp(fx, laneX, d / legs[0]); gy = fy; }
+    else if (d <= legs[0] + legs[1]) { gx = laneX; gy = fy - (d - legs[0]); }
+    else { gx = lerp(laneX, x1, (d - legs[0] - legs[1]) / legs[2]); gy = y1; }
+    txt(ctx, v.glide.tok, gx, gy, { font: monoBold(colors), fill: hue, align: "center" });
   }
   txt(ctx, S.sources(who), PAD_L, g.mBot + 16, { font: small(colors), fill: hue });
-  /* THE REASON FOR THE RESCAN, while a press runs (his pick, 2026-09-29): the new token's column
-     outlined in every row — in the encoder each row gains it, in the decoder only the new row
-     does — and the line says what the row being computed is doing */
-  const sweeping = ph.row >= 0;
-  if (sweeping) rect(ctx, g.x0 + (n - 1) * g.cs - 2, g.mTop - 2, g.cs + 3, n * g.cs + 3, colors.ink2, 1.2, [2, 2]);
-  const why = !sweeping ? S.rule[params.page]
-    : !enc ? S.newRowDec(TOKENS[n - 1])
-      : ph.row < n - 1 ? S.gains(TOKENS[ph.row], TOKENS[n - 1], n) : S.newRowEnc(TOKENS[n - 1], n);
-  txt(ctx, why, PAD_L, g.mBot + 36, { font: small(colors), fill: sweeping ? colors.ink1 : colors.ink2 });
+  const line = rows === 0 && !v.glide ? S.firstWait[v.phase] : v.glide ? S.fedBack(v.glide.tok) : S.rule[v.phase];
+  txt(ctx, line, PAD_L, g.mBot + 36, { font: small(colors), fill: v.glide ? colors.ink1 : colors.ink2 });
   txt(ctx, S.eg[params.page], PAD_L, g.mBot + 56, { font: small(colors), fill: colors.ink3 });
 }
 
 /* ===================================================== page 3: Encoder–decoder */
 
-/* HIS TWO-STACK FIGURE ON TOP, three leaders down: the encoder's self-attention to
-   the gene × gene matrix, the decoder's masked self-attention to the protein's
-   triangle, and cross-attention to the cross matrix, whose columns are the encoder's
-   output (blue) and rows the decoder's queries (amber). One gene.
-   A PRESS IN THE DECODER BLOCK'S ORDER (his picks, 2026-09-29, the same idiom as pages
-   1–2): the first press computes the encoder once, its rows swept quickly; then the new
-   query's row of the masked self-attention, cell by cell; then its cross-attention row,
-   nucleotide by nucleotide, a line from the query down to each nucleotide as the outline
-   reaches it and the line of the cell under the outline in ink; then the output glides up
-   the lane right of the matrix and along the query line into the next slot — fed back,
-   his figure's loop. The query line holds the decoder's INPUTS, each over the codon it
-   reads (row "L → V": L reads GTA and outputs V). A line under the figure names the beat;
-   at rest, hover on a cell names its weight and inks its line. */
-const XD = { ce: 6, cd: 13, cross: 20 };
-const XT = { enc: 60, self: 130, cross: 55, out: 550 };
+/* HIS TWO-STACK FIGURE ON TOP, three leaders down to the encoder's attention over the
+   gene, the decoder's masked attention over the protein, and cross-attention. The query
+   line holds the decoder's INPUTS, each over the codon it reads (row "L → V": L's weights
+   fall on GTA, the output is V). Training fills every row at once, the true protein as
+   the decoder's input, with each row's target and its probability. Generation runs the
+   decoder block's order a press at a time — the encoder once (the first press), the new
+   row of masked self-attention, then its cross-attention row with its lines to the
+   nucleotides, then the output glides up the lane right of the matrix and along the
+   query line into the next slot. Every row appears at once; only the output moves. */
+const XD = { ce: 6, cd: 13, cross: 20, col: 64, rows: 6 };
+const XT = { enc: 380, self: 380, cross: 480, out: 620 };
 const xdGeom = (w) => {
   const top = 22, encX = PAD_L + 58, encW = Math.min(112, Math.round(w * 0.2)), decW = Math.min(124, Math.round(w * 0.23));
   const decX = Math.round(Math.min(w * 0.6, w - PAD_R - 70 - decW));
   /* the encoder's stack sits lower by the decoder's extra box, so both embeddings line up */
   const encTop = top + (stackHeight(2, 1) - stackHeight(2, 0));
   const mTop = top + stackHeight(2, 1) + 12;
-  const cc = Math.max(12, Math.min(XD.cross, Math.floor((w - PAD_R - 40 - 96) / 18)));
-  const cy = mTop + 36 + 7 * XD.cd + 106;
-  return { top, encTop, encX, encW, decX, decW, mTop, cc, cy, why: cy + 6 * cc + 34, eg: cy + 6 * cc + 54 };
+  const cc = Math.max(12, Math.min(XD.cross, Math.floor((w - PAD_R - XD.col - 96) / 18)));
+  const cy = mTop + 36 + XD.rows * XD.cd + 120;
+  return { top, encTop, encX, encW, decX, decW, mTop, cc, cy, why: cy + XD.rows * cc + 34, eg: cy + XD.rows * cc + 54 };
 };
 const heightEncDec = (w) => xdGeom(w).eg + 14;
-/** a press's beats and their times: the encoder (the first press only), the self row, the cross row, the output */
 function xdSchedule(n) {
-  const r = Math.max(0, n - 1);
-  const beats = [["enc", n === 1 ? 18 * XT.enc : 0], ["self", (r + 1) * XT.self], ["cross", 18 * XT.cross], ["out", XT.out]];
+  const beats = [["enc", n === 1 ? XT.enc : 0], ["self", XT.self], ["cross", XT.cross], ["out", XT.out]];
   return { beats, total: beats.reduce((a, [, d]) => a + d, 0) };
 }
-const xdMs = (n, mode) => xdSchedule(Math.max(1, n)).total * (mode === "run" ? 0.5 : 1);
-function xdPhase(pg) {
+const xdMs = (n, phase, mode) => (phase === "training" ? 450 : xdSchedule(Math.max(1, n)).total) * (mode === "run" ? 0.5 : 1);
+function xdPhase(pg, phase) {
   const n = pg.n;
-  if (n === 0 || pg.t >= 1) return { n, beat: "rest", u: 1 };
+  if (n === 0 || pg.t >= 1 || phase === "training") return { n, beat: "rest", u: 1 };
   const sc = xdSchedule(n);
   let tau = pg.t * sc.total;
   for (const [beat, d] of sc.beats) {
@@ -419,62 +412,45 @@ function xdPhase(pg) {
   }
   return { n, beat: "rest", u: 1 };
 }
-/** a sweep over `count` cells at progress u: the key reached and the outline's eased position */
-function sweepAt(u, count) {
-  const pos = u * count, j = Math.min(count - 1, Math.floor(pos));
-  return { j, jPos: j === 0 ? 0 : lerp(j - 1, j, ease(Math.min(1, (pos - j) / 0.5))) };
-}
 
 function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
-  const g = xdGeom(w), T = state.dna, nt = T.dna.split(""), prot = ["[BOS]", ...T.protein], ph = xdPhase(pg), n = ph.n, r = n - 1;
-  const blue = colors.groupA, amber = colors.groupB, order = ["enc", "self", "cross", "out", "rest"], past = (b) => order.indexOf(ph.beat) > order.indexOf(b);
+  const training = params.phase === "training", g = xdGeom(w), T = state.dna, nt = T.dna.split(""), prot = ["[BOS]", ...T.protein];
+  const ph = xdPhase(pg, params.phase), order = ["enc", "self", "cross", "out", "rest"], past = (b) => order.indexOf(ph.beat) > order.indexOf(b);
+  /* the rows done: training fills all six at once; generation one a press, the press's own once its beat is past */
+  const R = training ? (pg.n >= 1 && pg.t >= 1 ? XD.rows : 0) : pg.n, r = R - 1;
+  const blue = colors.groupA, amber = colors.groupB;
   const Se = stack(ctx, colors, g.encX, g.encTop, g.encW, blue, {
     title: S.enc, hot: ["self"], input: S.geneIn, output: S.encOut, blocks: [["ffn", S.ffn], ["self", S.selfAtt]] });
   const Sd = stack(ctx, colors, g.decX, g.top, g.decW, amber, {
     title: S.dec, hot: ["masked", "cross"], input: S.protIn, output: S.protOut, blocks: [["ffn", S.ffn], ["cross", S.cross], ["masked", S.masked]] });
-  /* the encoder's output into the decoder's cross-attention, as his figure */
   const cr = Sd.cross, ox = g.encX + g.encW / 2, midX = Math.round((g.encX + g.encW + g.decX) / 2 + 6);
   poly(ctx, [[ox, g.encTop - 8], [ox, g.top - 14], [midX, g.top - 14], [midX, cr.y + cr.h / 2]], blue, 1.5);
   arrow(ctx, midX, cr.y + cr.h / 2, cr.x - 22, cr.y + cr.h / 2, blue, 1.5);
 
-  /* the encoder's attention over the gene: blank until the first press sweeps it, then kept */
-  const E = M.meanHeads(T.enc[1]), encRows = n === 0 ? 0 : n === 1 && ph.beat === "enc" ? Math.floor(ph.u * 18) + 1 : 18;
-  const me = matrix(ctx, colors, (i, j) => (i < encRows ? E[i][j] : null), 18, 18, nt, nt, 30, g.mTop + 16, XD.ce, { rowHue: blue, colHue: blue, colLabels: false, rowLabels: false, digits: false });
-  if (n === 1 && ph.beat === "enc") rect(ctx, me.x0 - 2, me.y0 + (encRows - 1) * XD.ce - 1.5, me.w + 3, XD.ce + 2, colors.ink1, 1.2, [3, 3]);
+  /* the encoder's attention over the gene: its one pass, on the first press */
+  const E = M.meanHeads(T.enc[1]), encOn = pg.n >= 1 && (!training || pg.t >= 1);   // the pass appears at once
+  const me = matrix(ctx, colors, (i, j) => (encOn ? E[i][j] : null), 18, 18, nt, nt, 30, g.mTop + 16, XD.ce, { rowHue: blue, colHue: blue, colLabels: false, rowLabels: false, digits: false });
   txt(ctx, S.encRows, 24, g.mTop, { font: small(colors), fill: blue });
   const se = Se.self;
   poly(ctx, [[se.x - 3, se.y + se.h / 2], [PAD_L + 4, se.y + se.h / 2], [PAD_L + 4, me.y0 + me.h / 2], [me.x0 - 4, me.y0 + me.h / 2]], colors.ink1, 1.5);
 
-  /* the rows done: every row before the press's, and the press's own once its beat is past */
   const Ds = M.meanHeads(T.self[1]), X = M.crossMean(T);
-  const selfSw = ph.beat === "self" ? sweepAt(ph.u, r + 1) : null, crossSw = ph.beat === "cross" ? sweepAt(ph.u, 18) : null;
-  const selfCell = (i, j) => {
-    if (j > i || i > r) return null;
-    if (i < r || past("self")) return Ds[i][j];
-    return selfSw && j <= selfSw.j ? Ds[i][j] : null;
-  };
-  const crossCell = (i, j) => {
-    if (i > r) return null;
-    if (i < r || past("cross")) return X[i][j];
-    return crossSw && j <= crossSw.j ? X[i][j] : null;
-  };
-  /* hover, at rest: a cell of either decoder matrix */
+  const selfCell = (i, j) => (j > i || i > r ? null : i < r || training || past("enc") ? Ds[i][j] : null);
+  const crossCell = (i, j) => (i > r ? null : i < r || training || past("self") ? X[i][j] : null);
   const cc = g.cc, cx = PAD_L + 84, cy = g.cy, dx = Math.round(g.decX - 20), dTop = g.mTop + 40;
   let hov = null;
-  if (pointer && ph.beat === "rest" && n > 0) {
+  if (pointer && ph.beat === "rest" && R > 0) {
     const ci = Math.floor((pointer.y - cy) / cc), cj = Math.floor((pointer.x - cx) / cc);
-    if (ci >= 0 && ci < 6 && cj >= 0 && cj < 18 && crossCell(ci, cj) !== null) hov = { m: "cross", i: ci, j: cj };
+    if (ci >= 0 && ci < XD.rows && cj >= 0 && cj < 18 && crossCell(ci, cj) !== null) hov = { m: "cross", i: ci, j: cj };
     const si = Math.floor((pointer.y - dTop) / XD.cd), sj = Math.floor((pointer.x - dx) / XD.cd);
-    if (si >= 0 && si < 7 && sj >= 0 && sj < 7 && selfCell(si, sj) !== null) hov = { m: "self", i: si, j: sj };
+    if (si >= 0 && si < XD.rows && sj >= 0 && sj < XD.rows && selfCell(si, sj) !== null) hov = { m: "self", i: si, j: sj };
   }
 
   /* the decoder's masked attention over the protein so far */
-  const md = matrix(ctx, colors, selfCell, 7, 7, prot, prot, dx, dTop, XD.cd, { rowHue: amber, colHue: amber, rowOn: (i) => i <= r, colOn: (j) => j <= r, digits: false });
+  const qs = prot.slice(0, XD.rows);
+  const md = matrix(ctx, colors, selfCell, XD.rows, XD.rows, qs, qs, dx, dTop, XD.cd, { rowHue: amber, colHue: amber, rowOn: (i) => i <= r, colOn: (j) => j <= r, digits: false });
   txt(ctx, S.decRows, dx - 50, g.mTop, { font: small(colors), fill: amber });
-  if (ph.beat === "self") {
-    rect(ctx, md.x0 - 2.5, md.y0 + r * XD.cd - 2, md.w + 4, XD.cd + 3, colors.ink1, 1.2, [3, 3]);
-    rect(ctx, md.x0 + selfSw.jPos * XD.cd - 1, md.y0 + r * XD.cd - 1, XD.cd + 1, XD.cd + 1, colors.ink1, 2);
-  }
+  if (!training && ph.beat === "self") rect(ctx, md.x0 - 2.5, md.y0 + r * XD.cd - 2, md.w + 4, XD.cd + 3, colors.ink1, 1.2, [3, 3]);
   if (hov?.m === "self") rect(ctx, md.x0 + hov.j * XD.cd - 1, md.y0 + hov.i * XD.cd - 1, XD.cd + 1, XD.cd + 1, colors.ink1, 2);
   const ms = Sd.masked, rx1 = w - PAD_R - 22, rx2 = w - PAD_R - 6;
   poly(ctx, [[ms.x + ms.w + 3, ms.y + ms.h / 2], [rx1, ms.y + ms.h / 2], [rx1, md.y0 + md.h / 2], [md.x0 + md.w + 4, md.y0 + md.h / 2]], colors.ink1, 1.5);
@@ -482,11 +458,11 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
   /* the queries over the codons they read, the lines from one query down to the gene */
   const yP = cy - 78, yN = cy - 10, colX = (j) => cx + j * cc + cc / 2, qX = (q) => cx + (3 * q + 1.5) * cc;
   txt(ctx, S.crossCols, cx, cy - 94, { font: small(colors), fill: blue });
-  const outGliding = ph.beat === "out" && ph.u < 1;
-  const shownQ = ph.beat === "rest" ? n : r;           // slots 0 … shownQ hold a query
-  for (let q = 0; q <= Math.min(shownQ, 6); q++) txt(ctx, prot[q], qX(q), yP, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: amber, align: "center" });
-  const lineRow = hov?.m === "cross" ? hov.i : n > 0 && (past("self")) ? r : -1;
-  const litJ = hov?.m === "cross" ? hov.j : crossSw ? Math.round(crossSw.jPos) : -1;
+  const outGliding = !training && ph.beat === "out" && ph.u < 1;
+  const shownQ = training ? XD.rows - 1 : ph.beat === "rest" ? Math.min(pg.n, XD.rows) : r;
+  for (let q = 0; q <= shownQ; q++) txt(ctx, prot[q], qX(q), yP, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: amber, align: "center" });
+  const lineRow = hov?.m === "cross" ? hov.i : R > 0 && (training || past("self")) ? (training ? 2 : r) : -1;
+  const litJ = hov?.m === "cross" ? hov.j : -1;
   if (lineRow >= 0) {
     const drawLine = (j, on) => {
       const v = crossCell(lineRow, j);
@@ -500,51 +476,77 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
   T.codons.forEach((_, k) => poly(ctx, [[cx + 3 * k * cc + 2, yN - 12.5], [cx + 3 * k * cc + 3 * cc - 3, yN - 12.5]], colors.ink3, 1));
   nt.forEach((c, j) => txt(ctx, c, colX(j), yN, { font: mono(colors), fill: blue, align: "center" }));
 
-  /* cross-attention: the protein's rows over the gene's columns */
-  const rows = prot.slice(0, 6).map((q, i) => `${q} → ${i < r || (i === r && past("cross")) ? prot[i + 1] : "?"}`);
-  const mx = matrix(ctx, colors, crossCell, 6, 18, rows, nt, cx, cy, cc, { rowHue: amber, colHue: blue, rowOn: (i) => i <= r, colLabels: false, digits: false });
-  if (crossSw) {
-    rect(ctx, mx.x0 - 2.5, mx.y0 + r * cc - 2, mx.w + 4, cc + 3, colors.ink1, 1.2, [3, 3]);
-    rect(ctx, mx.x0 + crossSw.jPos * cc - 1, mx.y0 + r * cc - 1, cc + 1, cc + 1, colors.ink1, 2);
-  }
+  /* cross-attention, and beside each row in training its target and the probability it is given */
+  const rows = qs.map((q, i) => `${q} → ${i < r || (i === r && (training || past("cross"))) ? prot[i + 1] : "?"}`);
+  const mx = matrix(ctx, colors, crossCell, XD.rows, 18, rows, nt, cx, cy, cc, { rowHue: amber, colHue: blue, rowOn: (i) => i <= r, colLabels: false, digits: false });
+  if (!training && ph.beat === "cross") rect(ctx, mx.x0 - 2.5, mx.y0 + r * cc - 2, mx.w + 4, cc + 3, colors.ink1, 1.2, [3, 3]);
   if (hov?.m === "cross") rect(ctx, mx.x0 + hov.j * cc - 1, mx.y0 + hov.i * cc - 1, cc + 1, cc + 1, colors.ink1, 2);
+  const tx = mx.x0 + mx.w + 8;
+  if (training) {
+    S.targetHead.forEach((s, i) => txt(ctx, s, tx, cy - 22 + i * 12, { font: small(colors), fill: colors.ink3 }));
+    for (let i = 0; i < R; i++) {
+      const t = prot[i + 1], p = T.probs[i][M.TGT.indexOf(t)];
+      txt(ctx, `${t} ${p.toFixed(2)}`, tx, cy + i * cc + cc / 2, { font: mono(colors), fill: colors.ink1 });
+    }
+  }
   txt(ctx, S.crossRows, PAD_L, mx.y0 + mx.h + 14, { font: small(colors), fill: amber });
-  /* the cross-attention leader enters at the matrix's lower right, clear of the output's lane */
   const ly = mx.y0 + mx.h - 5;
   poly(ctx, [[cr.x + cr.w + 3, cr.y + cr.h / 2], [rx2, cr.y + cr.h / 2], [rx2, ly], [mx.x0 + mx.w + 4, ly]], colors.ink1, 1.5);
-  /* the output, fed back: from the end of its row, up the lane right of the matrix, along the query line */
   if (outGliding) {
     const laneX = mx.x0 + mx.w + 14, y0 = mx.y0 + r * cc + cc / 2, x1 = qX(r + 1);
     const legs = [y0 - yP, Math.abs(x1 - laneX)], d = ease(ph.u) * (legs[0] + legs[1]);
     const gx = d <= legs[0] ? laneX : lerp(laneX, x1, (d - legs[0]) / legs[1]), gy = d <= legs[0] ? y0 - d : yP;
     txt(ctx, prot[r + 1], gx, gy, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: amber, align: "center" });
   }
-  /* what the press is doing, or the hovered weight */
   const q = prot[Math.max(0, r)];
   const why = hov ? S.weightOf(prot[hov.i], hov.m === "cross" ? `${nt[hov.j]} (nucleotide ${hov.j + 1})` : prot[hov.j], (hov.m === "cross" ? X : Ds)[hov.i][hov.j])
-    : n === 0 ? S.xWait
-      : ph.beat === "enc" ? S.xEnc
-        : ph.beat === "self" ? S.xSelf(q, r + 1)
-          : ph.beat === "cross" ? S.xCross(q)
-            : ph.beat === "out" ? S.xOut(prot[r + 1]) : S.xRest;
+    : R === 0 && !(pg.n === 1 && !training) ? S.xWait[params.phase]
+      : training ? S.xTrain
+        : ph.beat === "enc" ? S.xEnc
+          : ph.beat === "self" ? S.xSelf(q, r + 1)
+            : ph.beat === "cross" ? S.xCross(q)
+              : ph.beat === "out" ? S.xOut(prot[r + 1]) : S.xRest;
   txt(ctx, why, PAD_L, g.why, { font: small(colors), fill: ph.beat === "rest" && !hov ? colors.ink2 : colors.ink1 });
   txt(ctx, S.eg[params.page], PAD_L, g.eg, { font: small(colors), fill: colors.ink3 });
 }
 
 /* ============================================================ the widget */
 
-const maxOf = (page) => (page === "encoder-decoder" ? 6 : N);
-const msOf = (page, mode, n) => (page === "encoder-decoder" ? xdMs(n, mode) : selfMs(n, page === "encoder", mode));
-const pageOf = (anim, params) => anim.p[params.page];
-function settle(anim, params) {
-  anim.page = params.page;
-  const pg = anim.p[params.page];
-  anim.done = pg.n >= maxOf(params.page) && pg.t >= 1;
+const keyOf = (params) => (params.page === "encoder" ? "encoder" : `${params.page}:${params.phase}`);
+const maxOf = (params, state) => (params.page === "encoder" || params.phase === "training" ? 1
+  : params.page === "decoder" ? 1 + state.decG.steps : XD.rows);
+function msOf(params, mode, n) {
+  const run = mode === "run" ? 0.5 : 1;
+  if (params.page === "encoder-decoder") return xdMs(n, params.phase, mode);
+  if (params.page === "encoder" || params.phase === "training") return 450 * run;
+  return (n <= 1 ? GEN.prefill : GEN.glide) * run;
+}
+const pageOf = (anim, params) => anim.p[keyOf(params)];
+function settle(anim, params, state) {
+  anim.key = keyOf(params);
+  const pg = anim.p[anim.key];
+  anim.done = pg.n >= maxOf(params, state) && pg.t >= 1;
 }
 
 /* memoised: compute() is pure, and nothing here depends on a parameter */
 let STAGE = null;
-const stage = () => (STAGE ??= { enc: M.entering("base"), dec: M.entering("causal"), dna: M.translate(M.GENES[0]) });
+function stage() {
+  if (STAGE) return STAGE;
+  /* the encoder: the lesson's masked sentence, one pass */
+  const masked = TOKENS.map((t, i) => (i === MASK_AT ? "[MASK]" : t)), fe = M.forward("base", masked), pe = M.nextTokens("base", fe.h[MASK_AT]);
+  const enc = { tokens: masked, A: M.meanHeads(fe.alpha[0]), top: pe.map((p, i) => [M.VOCAB[i], p]).sort((a, b) => b[1] - a[1]).slice(0, 2) };
+  /* the decoder in training: the whole sentence, one pass, every row's true next token */
+  const fd = M.forward("causal", TOKENS);
+  const decT = { tokens: TOKENS, A: M.meanHeads(fd.alpha[0]), next: TOKENS.slice(1).map((t, i) => M.nextTokens("causal", fd.h[i])[M.VOCAB.indexOf(t)]) };
+  /* the decoder in generation: the prompt, then each prediction fed back */
+  const gen = M.generate(PROMPT), promptLen = gen.steps[0].context.length, runs = {};
+  for (let k = promptLen; k <= gen.tokens.length; k++) {
+    const f = M.forward("causal", gen.tokens.slice(0, k)), step = gen.steps[k - promptLen];
+    runs[k] = { A: M.meanHeads(f.alpha[0]), next: step ? step.next : null, p: step ? Math.max(...step.probs) : 0 };
+  }
+  STAGE = { enc, decT, decG: { tokens: gen.tokens, promptLen, runs, steps: gen.steps.length }, dna: M.translate(M.GENES[0]) };
+  return STAGE;
+}
 
 defineWidget({
   slug: "transformer",
@@ -556,13 +558,13 @@ defineWidget({
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "encoder", display: true },
+    phase: { type: "segmented", label: S.phaseLabel, detail: S.phaseDetail, options: S.phaseOpts, default: "training", display: true, when: ON_DECODER },
     /* authoring escape hatch, first render only: presses already made on the page opened */
     shown: { type: "int", min: 0, max: 8, default: 0, hidden: true },
   },
 
   legend: [],
-
-  /* hover on a token of the sentence draws its arcs at full strength and lightens the rest */
+  /* hover on a token or a cell: that row's arcs, that cell's arc or line inked */
   pointer: true,
 
   compute: () => stage(),
@@ -572,33 +574,33 @@ defineWidget({
     stepTitle: { param: "page", labels: S.stepTitle, default: S.stepTitle.encoder },
     runLabel: S.runLabel,
     runTitle: S.runTitle,
-    init: ({ params, fromScratch }) => {
-      const anim = { p: { encoder: { n: 0, t: 1 }, decoder: { n: 0, t: 1 }, "encoder-decoder": { n: 0, t: 1 } }, moving: false, halt: false };
-      if (!fromScratch) anim.p[params.page].n = Math.max(0, Math.min(maxOf(params.page), Number(params.shown) || 0));
-      settle(anim, params);
+    init: ({ params, state, fromScratch }) => {
+      const anim = { p: Object.fromEntries(["encoder", "decoder:training", "decoder:generation", "encoder-decoder:training", "encoder-decoder:generation"].map((k) => [k, { n: 0, t: 1 }])), moving: false, halt: false };
+      if (!fromScratch) anim.p[keyOf(params)].n = Math.max(0, Math.min(maxOf(params, state), Number(params.shown) || 0));
+      settle(anim, params, state);
       return anim;
     },
-    advance: (anim, { dt, params }) => {
-      /* the loop a page switch left running for the other page's press ends here */
-      if (anim.halt) { anim.halt = false; anim.moving = false; settle(anim, params); return false; }
-      const pg = anim.p[params.page], max = maxOf(params.page), ms = msOf(params.page, anim.mode, pg.n);
+    advance: (anim, { dt, params, state }) => {
+      /* the loop a page or phase switch left running for the other one's press ends here */
+      if (anim.halt) { anim.halt = false; anim.moving = false; settle(anim, params, state); return false; }
+      const pg = anim.p[keyOf(params)], max = maxOf(params, state);
       let more;
-      if (pg.t < 1) { pg.t = Math.min(1, pg.t + dt / ms); more = pg.t < 1 || (anim.mode === "run" && pg.n < max); }
+      if (pg.t < 1) { pg.t = Math.min(1, pg.t + dt / msOf(params, anim.mode, pg.n)); more = pg.t < 1 || (anim.mode === "run" && pg.n < max); }
       else if (pg.n < max) { pg.n += 1; pg.t = 0; more = true; }
       else more = false;
       anim.moving = more;
-      settle(anim, params);
+      settle(anim, params, state);
       return more;
     },
-    rebuild: (anim, { params }) => {
-      /* A PRESS BELONGS TO THE PAGE IT STARTED ON (widget 70's rule): a switch
-         mid-press finishes it, and `halt` ends the loop at its next frame. Only
-         while a press moves: set otherwise, it would swallow the reader's next press. */
-      if (anim.moving && params.page !== anim.page) {
+    rebuild: (anim, { params, state }) => {
+      /* A PRESS BELONGS TO THE PAGE AND PHASE IT STARTED ON (widget 70's rule): a switch
+         mid-press finishes it, and `halt` ends the loop at its next frame. Only while a
+         press moves: set otherwise, it would swallow the reader's next press. */
+      if (anim.moving && keyOf(params) !== anim.key) {
         for (const pg of Object.values(anim.p)) pg.t = 1;
         anim.halt = true;
       }
-      settle(anim, params);
+      settle(anim, params, state);
     },
   },
 
@@ -609,26 +611,50 @@ defineWidget({
   },
 
   readout({ params, state, anim }) {
-    const pg = pageOf(anim, params), k = pg.t >= 1 ? pg.n : pg.n - 1;
-    if (params.page === "encoder-decoder") {
-      const A = M.crossMean(state.dna), r = k - 1;   // the last row finished, not the one being computed
+    const pg = pageOf(anim, params), done = pg.t >= 1, k = done ? pg.n : pg.n - 1;
+    if (params.page === "encoder") {
+      const top = state.enc.top[0];
       return [
-        { label: S.tileAmino, value: `${Math.max(0, k)} of 6`, note: S.tileAminoNote },
-        { label: S.tileProt, value: k > 0 ? state.dna.protein.slice(0, k).join("") : S.wait, note: S.tileProtNote },
-        { label: S.tileCodon, value: r >= 0 ? (A[r][3 * r] + A[r][3 * r + 1] + A[r][3 * r + 2]).toFixed(2) : S.wait, note: S.tileCodonNote },
+        { label: S.tileRows, value: k >= 1 ? `${N}` : S.wait, note: S.tileRowsNote(N) },
+        { label: S.tileMask, value: k >= 1 ? `${top[0]} ${top[1].toFixed(2)}` : S.wait, note: S.tileMaskNote },
+        { label: S.tileKeys, value: `${N}`, note: S.tileKeysNote },
       ];
     }
-    const E = params.page === "encoder" ? state.enc : state.dec, mv = pg.n >= 2 && pg.t >= 1 ? E.move[pg.n] : null;
-    const top = mv ? mv.indexOf(Math.max(...mv)) : -1;
+    if (params.page === "decoder" && params.phase === "training") {
+      const D = state.decT, low = D.next.indexOf(Math.min(...D.next));
+      return [
+        { label: S.tileRows, value: k >= 1 ? `${N}` : S.wait, note: S.tileRowsNote(N) },
+        { label: S.tilePreds, value: k >= 1 ? `${N - 1}` : S.wait, note: S.tilePredsNote },
+        { label: S.tileLow, value: k >= 1 ? `${D.tokens[low + 1]} ${D.next[low].toFixed(2)}` : S.wait, note: S.tileLowNote },
+      ];
+    }
+    if (params.page === "decoder") {
+      const G = state.decG, n = k <= 0 ? 0 : G.promptLen + k - 1, run = n > 0 ? G.runs[n] : null;
+      return [
+        { label: S.tileGen, value: n > 0 ? `${n} of ${G.tokens.length}` : S.wait, note: S.tileGenNote },
+        { label: S.tileRows, value: k === 1 ? `${G.promptLen}` : k > 1 ? "1" : S.wait, note: S.tileRowsNote(k === 1 ? G.promptLen : 1) },
+        { label: S.tileNext, value: run?.next ? `${run.next} ${run.p.toFixed(2)}` : S.wait, note: S.tileNextNote },
+      ];
+    }
+    const T = state.dna, A = M.crossMean(T);
+    if (params.phase === "training") {
+      const right = T.top.slice(0, XD.rows).filter((t, i) => t === T.protein[i]).length;
+      return [
+        { label: S.tileRows, value: k >= 1 ? `${XD.rows}` : S.wait, note: S.tileRowsNote(XD.rows) },
+        { label: S.tileProt, value: k >= 1 ? T.protein.join("") : S.wait, note: S.tileProtNote },
+        { label: S.tileTargets, value: k >= 1 ? `${right} of ${XD.rows}` : S.wait, note: S.tileTargetsNote },
+      ];
+    }
+    const r = k - 1;
     return [
-      { label: S.tileTokens, value: `${Math.max(0, k)} of ${N}`, note: S.tileTokensNote },
-      { label: S.tileMoved, value: mv ? `${mv.filter((v) => v > 0).length} of ${mv.length}` : S.wait, note: S.tileMovedNote },
-      { label: S.tileMax, value: !mv ? S.wait : mv[top] > 0 ? `${TOKENS[top]} ${mv[top].toFixed(1)}` : "0.0", note: S.tileMaxNote },
+      { label: S.tileAmino, value: `${Math.max(0, k)} of ${XD.rows}`, note: S.tileAminoNote },
+      { label: S.tileProt, value: k > 0 ? T.protein.slice(0, k).join("") : S.wait, note: S.tileProtNote },
+      { label: S.tileCodon, value: r >= 0 ? (A[r][3 * r] + A[r][3 * r + 1] + A[r][3 * r + 2]).toFixed(2) : S.wait, note: S.tileCodonNote },
     ];
   },
 
-  summary({ params, anim }) {
+  summary({ params, state, anim }) {
     const pg = pageOf(anim, params);
-    return S.sum(PAGES.find((p) => p.value === params.page).label, pg.n, maxOf(params.page));
+    return S.sum(PAGES.find((p) => p.value === params.page).label, pg.n, maxOf(params, state));
   },
 });
