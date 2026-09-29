@@ -101,7 +101,9 @@ const S = {
   tagHead: "tag", note4pool: "the [CLS] row's final vector: the sentence's embedding", note5cls: "a new head: negative or positive",
   vecCap: "the embedding: [CLS]'s 48 numbers, each a bar up or down from 0",
   outCls: (c) => `the sentence: ${c}, the more likely (positive: an abnormal finding is asserted)`, tokensWord: "tokens", note7: (n) => `a probability for each of the ${n} amino acids and [EOS]`,
-  gene: "the gene", encRows: "rows and columns: the gene", note5: "each protein row reads the gene",
+  gene: "the gene", encRows: "rows and columns: the gene", note5: (n) => `each row reads all ${n} nucleotides at once`,
+  /* his ask, 2026-09-30: nothing ties output k to codon k; block 2 puts 0.95 of each row's weight on its own codon because it was trained to */
+  learned: ["the weight on its", "own codon is learned"],
   crossRows: "rows: protein", crossCols: "columns: gene",
 
   /* the output layer's titles */
@@ -696,7 +698,7 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
   if (hov?.m === "self") rect(ctx, md.x0 + hov.j * XD.cd - 1, md.y0 + hov.i * XD.cd - 1, XD.cd + 1, XD.cd + 1, colors.ink1, 2);
 
   /* 5 · cross-attention: the inputs over the codons they read, one row's lines to the gene, the matrix */
-  sectionHead(ctx, colors, PAD_L, L.y5, 5, S.cross, amber, S.note5, lit.has(5));
+  sectionHead(ctx, colors, PAD_L, L.y5, 5, S.cross, amber, S.note5(nt.length), lit.has(5));
   const colX = (j) => cx + j * cc + cc / 2, qX = (q) => cx + (3 * q + 1.5) * cc;
   const lineRow = hov?.m === "cross" ? hov.i : crossIn ? r : -1, litJ = hov?.m === "cross" ? hov.j : -1;
   for (let q = 0; q < XD.rows; q++) if (q < inShown) txt(ctx, ins[q], qX(q), L.yQ, { font: q === lineRow ? monoBold(colors) : mono(colors), fill: q === lineRow ? colors.ink1 : amber, align: "center" });
@@ -717,7 +719,7 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
   const mx = matrix(ctx, colors, crossCell, XD.rows, 18, ins, nt, cx, L.cy, cc, { rowHue: amber, colHue: blue, rowOn: (i) => i < inShown, colLabels: false, digits: false });
   if (lineRow >= 0) rowRing(ctx, colors, mx, lineRow, cc);
   if (hov?.m === "cross") rect(ctx, mx.x0 + hov.j * cc - 1, mx.y0 + hov.i * cc - 1, cc + 1, cc + 1, colors.ink1, 2);
-  [[S.blockNote(2)[0], colors.ink3], [S.blockNote(2)[1], colors.ink3], [S.crossRows, amber], [S.crossCols, blue]].forEach(([s, c], i) => txt(ctx, s, mx.x0 + mx.w + 8, mx.y0 + 8 + i * 13, { font: small(colors), fill: c }));
+  [[S.blockNote(2)[0], colors.ink3], [S.blockNote(2)[1], colors.ink3], [S.crossRows, amber], [S.crossCols, blue], ["", colors.ink3], [S.learned[0], colors.ink3], [S.learned[1], colors.ink3]].forEach(([s, c], i) => s && txt(ctx, s, mx.x0 + mx.w + 8, mx.y0 + 8 + i * 13, { font: small(colors), fill: c }));
 
   /* 6 · Feed forward; 7 · Linear + softmax over the amino acids */
   const aminos = M.TGT.filter((t) => !t.startsWith("[")).length;
