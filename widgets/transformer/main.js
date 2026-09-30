@@ -266,8 +266,9 @@ function mapBox(ctx, colors, b, lines, hue, k, lit, ring = lit) {
   if (!k) return;
   /* on the box's hue a number needs its own ground: the surface, the number in ink */
   const x = b.x, y = b.y + b.h / 2;
+  /* ringed in the box's hue, so the half outside the box does not vanish into a background of the same surface (his catch) */
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.fillStyle = colors.surface; ctx.fill();
-  if (lit) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.stroke(); }
+  ctx.strokeStyle = lit ? colors.ink1 : hue; ctx.lineWidth = lit ? 2 : 1.5; ctx.stroke();
   ctx.restore();
   txt(ctx, String(k), x, y + 0.5, { font: bold(colors), fill: colors.ink1, align: "center" });
 }
