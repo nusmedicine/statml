@@ -22935,6 +22935,22 @@ trained on labelled data stays with slot 85, Pre-training and adapting. The link
 value is the shown word (`phase=pretraining`); core's first-option stand-in gives
 page 3 Training where the default is absent.
 
+**START AND END TOKENS CHECKED AGAINST THE NOTEBOOKS, 2026-09-30 (ca139f4).** His
+question: [CLS] for the encoder, [BOS]/[EOS] for the decoders? The notebooks:
+08-1 cells 5–6 ([CLS] start, [SEP] end), 08-1 cells 12–13 and 08-2 cell 12 (the
+[CLS] embedding to the classifier) — the Encoder page matched. 10-3 cells 50–68
+(`<bos>` … `<eos>`, generation from `<bos>` alone "until it reaches the `<eos>`
+token") — the Decoder page did NOT: its model carried the encoder's [CLS]/[SEP]
+and was stopped at the first "." by our rule (left to run it wrote three clauses
+before [SEP]; after "pain", "." 0.741 and [SEP] 0.258). Measured
+(`_lab/transformer-eos-measure.py`) and applied on his word: the decoder retrained
+on one-clause notes (same size, steps, seed) starts at [BOS] and writes [EOS] by
+itself (from the prompt "chest pain [EOS]"; 300 of 300 samples end at it; pain →
+[EOS] 1.000). **His pick: the widget's brackets, [BOS]/[EOS], on both decoder
+pages** (over 10-3's `<bos>`/`<eos>`); the encoder keeps [CLS]/[SEP]. The
+decoder's own vocabulary names ids 1 and 2 [BOS] and [EOS] (`VOCABS.causal`), the
+roles they have in its training. The other four models byte-identical.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
