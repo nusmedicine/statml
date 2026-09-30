@@ -50,7 +50,7 @@ const STATES = {
     ...["0", "1", "4", "8"].map((k) => `?page=encoder&shown=${k}`),
     ...["1", "4", "6", "8"].map((k) => `?page=encoder&phase=prediction&shown=${k}`),
     ...["1", "8", "9"].map((k) => `?page=encoder&phase=prediction&task=sentence&shown=${k}`),
-    ...["0", "1", "4", "7"].map((k) => `?page=decoder&phase=training&shown=${k}`),
+    ...["0", "1", "4", "7"].map((k) => `?page=decoder&phase=pretraining&shown=${k}`),
     ...["0", "1", "4", "5", "6", "8"].map((k) => `?page=decoder&phase=generation&shown=${k}`),
     ...["0", "1", "3", "6", "7"].map((k) => `?page=encoder-decoder&phase=training&shown=${k}`),
     ...["0", "1", "3", "6", "7"].map((k) => `?page=encoder-decoder&phase=generation&shown=${k}`),

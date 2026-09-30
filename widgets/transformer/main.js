@@ -69,16 +69,22 @@ const S = {
     + "and values from the encoded input.",
   pageLabel: "Architecture",
   phaseLabel: "Phase",
-  /* the Encoder has no generation: its second phase is prediction, a task read from its vectors (his ask, 2026-09-30) */
+  /* the Encoder has no generation: its second phase is prediction, a task read from its vectors (his ask, 2026-09-30).
+     THE KIND OF TRAINING IS NAMED (his pick, 2026-09-30): the Encoder and the Decoder are PRETRAINED, self-supervised, the
+     text its own label; page 3's model is TRAINED, supervised, on labelled gene-protein pairs, with no pretraining. A head
+     trained on labelled data is shown by its result here; its training is slot 85's. The details stay about the length
+     of the ones they replaced: page 3's frame has 20 px left. */
   phaseOpts: {
-    encoder: [{ value: "training", label: "Training", detail: "Masked-token pretraining: tokens hidden at random, each prediction scored against the hidden original." },
-      { value: "prediction", label: "Prediction", detail: "The pretrained encoder, unchanged, and a head trained afterwards on its vectors: a tag for every token, or a class for the sentence." }],
-    decoder: [{ value: "training", label: "Training", detail: "The whole sequence in one pass, each row scored on the true next token." },
+    encoder: [{ value: "pretraining", label: "Pretraining", detail: "Self-supervised: tokens hidden at random, each prediction scored against the hidden original." },
+      { value: "prediction", label: "Prediction", detail: "The pretrained encoder, unchanged, and a head trained afterwards on labelled notes: a tag for every token, or a class for the sentence." }],
+    decoder: [{ value: "pretraining", label: "Pretraining", detail: "Self-supervised: each row scored on the text's own next token, in one pass." },
+      { value: "generation", label: "Generation", detail: "One token a step, each output fed back as the next input." }],
+    "encoder-decoder": [{ value: "training", label: "Training", detail: "Supervised: 20,000 gene–protein pairs, each row scored on the true protein." },
       { value: "generation", label: "Generation", detail: "One token a step, each output fed back as the next input." }],
   },
   step: { encoder: "Next token", decoder: "Next token", "encoder-decoder": "Next amino acid" },
   stepTitle: { encoder: "Pass the next token's row through the block",
-    decoder: { param: "phase", labels: { training: "Pass the next token's row through the block", generation: "Compute the next token and feed it back" } },
+    decoder: { param: "phase", labels: { pretraining: "Pass the next token's row through the block", generation: "Compute the next token and feed it back" } },
     "encoder-decoder": { param: "phase", labels: { training: "Pass the next row through the decoder", generation: "Compute the next amino acid and feed it back" } } },
   taskLabel: "Task",
   taskOpts: [{ value: "tokens", label: "Tokens", detail: "A tag for every word: other, drug, finding or negated finding." },
@@ -742,7 +748,7 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
 /* ============================================================ the widget */
 
 const keyOf = (params) => `${params.page}:${params.phase}${params.page === "encoder" && params.phase === "prediction" ? `:${params.task}` : ""}`;
-const maxOf = (params, state) => (params.page === "encoder" ? N + (modeOf(params) === "sentence" ? 1 : 0) : params.page === "decoder" ? (params.phase === "training" ? N - 1 : state.decG.tokens.length - 1) : XD.rows);
+const maxOf = (params, state) => (params.page === "encoder" ? N + (modeOf(params) === "sentence" ? 1 : 0) : params.page === "decoder" ? (params.phase === "pretraining" ? N - 1 : state.decG.tokens.length - 1) : XD.rows);
 const msOf = (params, state, mode, n) => beatsOf(params, state, Math.max(1, n)).length * BEAT * (mode === "run" ? 0.5 : 1);
 const pageOf = (anim, params) => anim.p[keyOf(params)];
 function settle(anim, params, state) {
@@ -782,8 +788,9 @@ defineWidget({
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "encoder", display: true },
-    phase: { type: "segmented", label: S.phaseLabel, options: (v) => (v.page === "encoder" ? S.phaseOpts.encoder : S.phaseOpts.decoder), optionsFrom: ["page"],
-      default: "training", display: true },
+    /* page 3 has no "pretraining": there its first option, Training, stands in for the default */
+    phase: { type: "segmented", label: S.phaseLabel, options: (v) => S.phaseOpts[v.page], optionsFrom: ["page"],
+      default: "pretraining", display: true },
     task: { type: "segmented", label: S.taskLabel, options: S.taskOpts, default: "tokens", display: true,
       when: { all: [{ param: "page", equals: "encoder" }, { param: "phase", equals: "prediction" }] } },
     /* authoring escape hatch, first render only: presses already made on the page opened */
@@ -802,7 +809,7 @@ defineWidget({
     runLabel: S.runLabel,
     runTitle: S.runTitle,
     init: ({ params, state, fromScratch }) => {
-      const anim = { p: Object.fromEntries(["encoder:training", "encoder:prediction:tokens", "encoder:prediction:sentence", "decoder:training", "decoder:generation", "encoder-decoder:training", "encoder-decoder:generation"].map((k) => [k, { n: 0, t: 1 }])), moving: false, halt: false };
+      const anim = { p: Object.fromEntries(["encoder:pretraining", "encoder:prediction:tokens", "encoder:prediction:sentence", "decoder:pretraining", "decoder:generation", "encoder-decoder:training", "encoder-decoder:generation"].map((k) => [k, { n: 0, t: 1 }])), moving: false, halt: false };
       if (!fromScratch) anim.p[keyOf(params)].n = Math.max(0, Math.min(maxOf(params, state), Number(params.shown) || 0));
       settle(anim, params, state);
       return anim;
@@ -864,7 +871,7 @@ defineWidget({
         { label: S.tileKeys, value: `${N}`, note: S.tileKeysNote },
       ];
     }
-    if (params.page === "decoder" && params.phase === "training") {
+    if (params.page === "decoder" && params.phase === "pretraining") {
       const D = state.decT, t = r >= 0 ? D.tokens[r + 1] : null;
       return [
         rowsTile,
