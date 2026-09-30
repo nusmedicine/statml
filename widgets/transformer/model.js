@@ -7,8 +7,11 @@
      base    the language arc's tiny BERT, widget 83's model: 4 heads of 12,
              FFN 96, two post-LN blocks, masked-token pretraining on the
              synthetic clinical notes. The Encoder page.
-     causal  the same size, trained on the same notes by next-token
-             prediction, every key after the query masked. The Decoder page.
+     causal  the same size, trained on one-clause notes by next-token
+             prediction, every key after the query masked; its start and end
+             tokens are [BOS] and [EOS] (its own vocabulary, DEC_VOCAB: the
+             encoder's [CLS] and [SEP] ids, named for their role here, 10-3's
+             <bos>/<eos>). The Decoder page.
      dna     an encoder-decoder, 2 + 2 blocks, trained on DNA -> protein
              (08-1 cell 4's own sequence-to-sequence example). The
              Encoder-decoder page.
@@ -28,7 +31,10 @@ import { MODELS, VOCABS } from "./weights.js";
 
 export const D = 48, H = 4, DK = 12;
 export const VOCAB = VOCABS.clinical;
-const ID = Object.fromEntries(VOCAB.map((w, i) => [w, i]));
+/* the decoder's vocabulary: the same ids, 1 and 2 named for what they are in its training, the start and the end */
+export const DEC_VOCAB = VOCABS.causal;
+if (DEC_VOCAB.length !== VOCAB.length || DEC_VOCAB.some((w, i) => w !== VOCAB[i] && !(i === 1 || i === 2))) throw new Error("weights: the decoder's vocabulary is not the encoder's with two names");
+const ID = Object.fromEntries([...VOCAB.map((w, i) => [w, i]), ["[BOS]", 1], ["[EOS]", 2]]);
 
 /* ------------------------------------------------------------ the weights */
 
@@ -112,6 +118,8 @@ function block(T, pre, X, { causal = false } = {}) {
 /* ------------------------------------------------------------ the clinical models */
 
 export const tokensOf = (sentence) => ["[CLS]", ...sentence.split(" "), "[SEP]"];
+/** the same sentence as the decoder reads it, between its start and end tokens */
+export const decTokensOf = (sentence) => ["[BOS]", ...sentence.split(" "), "[EOS]"];
 function embed(T, toks) {
   return toks.map((t, p) => {
     const r = ID[t];
@@ -150,7 +158,7 @@ export const SENTENCE = "treated with aspirin for chest pain";
     block-1 weights (the mean of the four heads) and final vectors; move[k][i] is how far
     token i's final vector moved when token k entered (k = 2 … N, i < k − 1) */
 export function entering(which) {
-  const tokens = tokensOf(SENTENCE), N = tokens.length, runs = [null], move = [null, []];
+  const tokens = (which === "causal" ? decTokensOf : tokensOf)(SENTENCE), N = tokens.length, runs = [null], move = [null, []];
   for (let k = 1; k <= N; k++) { const r = forward(which, tokens.slice(0, k)); runs.push({ alpha: meanHeads(r.alpha[0]), h: r.h }); }
   for (let k = 2; k <= N; k++) move.push(Array.from({ length: k - 1 }, (_, i) => Math.hypot(...runs[k - 1].h[i].map((v, d) => v - runs[k].h[i][d]))));
   return { tokens, runs, move };
@@ -160,18 +168,17 @@ export const meanHeads = (heads) => heads[0].map((r, i) => r.map((_, j) => heads
 
 /* ------------------------------------------------------------ generation */
 
-/* Greedy generation, fed back, stopping at the first "." or [SEP]. The Decoder
-   page no longer draws it (his pick, 2026-09-27: the tokens entering are the step,
-   and his diagram's loop says the output is fed back); the verify runs it on five
-   prompts as its check of the causal model against torch. */
-export const STOP = new Set([".", "[SEP]"]);
+/* Greedy generation from [BOS], fed back, until the model writes [EOS], as 10-3
+   generates until <eos> (his question, 2026-09-30). The model was trained on
+   one-clause notes, so [EOS] follows a clause and the stop is the model's own. */
+export const STOP = new Set(["[EOS]"]);
 const MAX_LEN = 16;
 /** every step of greedy generation: the context, the next-token probabilities, each block's weights */
 export function generate(prompt) {
-  const cur = ["[CLS]", ...prompt.split(" ")], steps = [];
+  const cur = ["[BOS]", ...prompt.split(" ")], steps = [];
   while (cur.length < MAX_LEN) {
     const r = run(W.causal, cur, { causal: true }), probs = predict(W.causal, r.h[r.h.length - 1]);
-    const next = VOCAB[probs.indexOf(Math.max(...probs))];
+    const next = DEC_VOCAB[probs.indexOf(Math.max(...probs))];
     steps.push({ context: cur.slice(), probs, alpha: r.alpha, next });
     cur.push(next);
     if (STOP.has(next)) break;

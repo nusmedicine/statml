@@ -12,7 +12,8 @@
    2. The claims the pages print: as each token of the sentence enters, every
       earlier encoder token's final vector moves and every decoder token's stays
       exactly, its weights the same numbers; greedy from the lesson's prompt
-      gives "chest pain ." and every prompt stops at the first "."; each amino
+      gives "chest pain [EOS]" and every prompt writes one clause and stops at the
+      model's own [EOS] (retrained on one-clause notes, 2026-09-30); each amino
       acid's cross-attention lands on its own codon; the rows of the mean of
       heads sum to 1, and the decoder's are 0 past the diagonal.
 
@@ -63,7 +64,7 @@ ok(worst < 1e-9, `the forward against torch (both float64 on float32 weights): l
 const moves = [];
 for (const which of ["base", "causal"]) {
   const E = M.entering(which), N = E.tokens.length;
-  ok(E.tokens.join(" ") === "[CLS] treated with aspirin for chest pain [SEP]", `${which}: the sentence's tokens`);
+  ok(E.tokens.join(" ") === (which === "base" ? "[CLS] treated with aspirin for chest pain [SEP]" : "[BOS] treated with aspirin for chest pain [EOS]"), `${which}: the sentence's tokens`);
   for (let k = 2; k <= N; k++) {
     const mv = E.move[k];
     if (which === "base") { ok(mv.every((v) => v > 1), `encoder, ${E.tokens[k - 1]} enters: every earlier token moves (${mv.map((v) => v.toFixed(2)).join(" ")})`); moves.push(...mv); }
@@ -81,7 +82,7 @@ for (const which of ["base", "causal"]) {
 /* training against generation (the Phase control, 2026-09-29): one pass over the whole sequence
    gives what building it a token at a time gives, exactly — the mask is why training runs in parallel */
 {
-  const toks = M.tokensOf(M.SENTENCE), full = M.forward("causal", toks);
+  const toks = M.decTokensOf(M.SENTENCE), full = M.forward("causal", toks);
   let worst = 0;
   for (let k = 1; k <= toks.length; k++) {
     const pre = M.forward("causal", toks.slice(0, k)), a = M.nextTokens("causal", pre.h[k - 1]), b = M.nextTokens("causal", full.h[k - 1]);
@@ -99,11 +100,11 @@ for (const which of ["base", "causal"]) {
   }
 }
 const lesson = M.generate("treated with aspirin for");
-ok(lesson.tokens.slice(5).join(" ") === "chest pain .", `the lesson's prompt: ${lesson.tokens.join(" ")}`);
+ok(lesson.tokens.slice(5).join(" ") === "chest pain [EOS]", `the lesson's prompt: ${lesson.tokens.join(" ")}`);
 ok(lesson.steps[0].probs[M.VOCAB.indexOf("chest")] > 0.99, "chest after the lesson's prompt, above 0.99");
 for (const g of REF.generate) {
   const js = M.generate(g.prompt);
-  ok(M.STOP.has(js.tokens.at(-1)) && js.tokens.slice(0, -1).every((t) => !M.STOP.has(t)), `${g.prompt}: stops at the first "."`);
+  ok(js.tokens.at(-1) === "[EOS]" && js.tokens.slice(0, -1).every((t) => t !== "[EOS]" && t !== "."), `${g.prompt}: one clause, stopped by the model's own [EOS]`);
 }
 for (const dna of M.GENES) {
   const t = M.translate(dna), A = M.crossMean(t);

@@ -56,6 +56,8 @@ import * as M from "./model.js";
 
 const PAGES = [{ value: "encoder", label: "Encoder" }, { value: "decoder", label: "Decoder" }, { value: "encoder-decoder", label: "Encoder–decoder" }];
 const TOKENS = M.tokensOf(M.SENTENCE), N = TOKENS.length, MASK_AT = 3;
+/* the decoders' start and end tokens are [BOS] and [EOS] (his pick, 2026-09-30: 10-3's <bos>/<eos>, in the widget's brackets) */
+const DEC_TOKENS = M.decTokensOf(M.SENTENCE);
 const PROMPT = "treated with aspirin for";
 
 /* ================================================================== copy */
@@ -118,6 +120,7 @@ const S = {
   outTrain: (q, t) => `the row of ${q}: the six largest; the true next token (${t}) marked`,
   outPrompt: (q, t) => `the row of ${q}: the six largest; the prompt's next token (${t}) marked`,
   outGen: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
+  outGenEnd: (q) => `the row of ${q}: the six largest; [EOS], the most likely, ends the text`,
   outTrainX: (q, t) => `the row of ${q}: the six largest; the true next amino acid (${t}) marked`,
   outGenX: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
   outTrainEos: (q) => `the row of ${q}: the six largest; the target, [EOS], marked: the protein ends here`,
@@ -137,7 +140,7 @@ const S = {
     if (!v.gen) return `Each row attends only to the tokens up to it. One pass computes all ${N} rows together; a press shows one.`;
     const G = state.decG, r = v.pr.r;
     if (r < G.promptLen - 1) return "In the prompt the token after each is given, not generated.";
-    if (r === G.tokens.length - 2 && !v.pr.beat) return `The most likely next token is “${G.tokens[r + 1]}”, so generation stops.`;
+    if (r === G.tokens.length - 2 && !v.pr.beat) return `${G.tokens[r + 1]} is the most likely, so generation stops.`;
     return "Generating: the most likely token is fed back as the next input, and only its row is computed.";
   },
   xLine: (params, pr, T) => {
@@ -162,7 +165,7 @@ const S = {
   tileTargetNoteX: "the newest row's target, its probability",
   tileKeysRow: "Keys", tileKeysRowNote: "the tokens up to the newest row",
   tileGen: "Tokens", tileGenNote: "the prompt and those fed back",
-  tileNext: "Next token", tileNextNote: "the most likely, fed back",
+  tileNext: "Next token", tileNextNote: "the most likely, fed back", tileNextNoteEnd: "the most likely; it ends generation",
   tileProt: "Protein", tileProtNote: "the amino acids written",
   tileCodon: "On its own codon", tileCodonNote: "the newest row's weight on its three nucleotides",
   sum: (page, n, max) => `${page}: ${n} of ${max} rows computed.`,
@@ -330,7 +333,8 @@ function mapOne(x, y, enc, outLabel, pool = false) {
     else arrow(ctx, cx, bT - 1, cx, out.y + out.h + 3, colors.ink3);
     arrow(ctx, cx, att.y - 1, cx, ffn.y + ffn.h + 3, colors.ink3);
     rect(ctx, bx - 12, bT, MP.bw + 18, bB - bT, colors.reference, 1.3, [4, 3]);
-    txt(ctx, S.times, bx + MP.bw + 6, bB + 8, { font: f, fill: colors.reference, align: "right" });
+    /* at the frame's bottom-LEFT: the fed-back token rides the arrow down the right */
+    txt(ctx, S.times, bx - 10, bB + 8, { font: f, fill: colors.reference, align: "left" });
     arrow(ctx, cx, emb.y - 1, cx, bB + 3, colors.ink3);
     arrow(ctx, cx, inY - 7, cx, emb.y + emb.h + 3, colors.ink3);
     txt(ctx, enc ? S.encIn : S.decIn, cx, inY, { font: f, fill: colors.ink2, align: "center" });
@@ -449,7 +453,8 @@ function beatsOf(params, state, n) {
   /* the sentence class: a row a press through the block, then one press to pool and classify */
   if (params.page === "encoder" && params.phase === "prediction" && params.task === "sentence") return n <= N ? [1, 2, 3] : [4, 5];
   const gen = params.page === "decoder" && params.phase === "generation", r = n - 1;
-  return gen && r >= state.decG.promptLen - 1 ? [1, 2, 3, 4, "back"] : [1, 2, 3, 4];
+  /* the last row writes [EOS]: generation stops there, nothing rides the arrow back */
+  return gen && r >= state.decG.promptLen - 1 && r < state.decG.tokens.length - 2 ? [1, 2, 3, 4, "back"] : [1, 2, 3, 4];
 }
 /** where the page's press stands: the row, the beat it is at (null at rest), and whether a box is reached */
 function pressOf(params, state, pg, xd = false) {
@@ -538,12 +543,12 @@ function selfView(state, params, pg) {
   if (!gen) {
     const D = state.decT;
     return { enc, gen, pr, toks: D.tokens, shown: N, rows, rowIn, outIn, A: D.A, masked: true,
-      out: outIn ? { probs: D.probs[r], mark: D.tokens[r + 1], title: S.outTrain(D.tokens[r], D.tokens[r + 1]) } : null };
+      out: outIn ? { probs: D.probs[r], mark: D.tokens[r + 1], title: S.outTrain(D.tokens[r], D.tokens[r + 1]), vocab: M.DEC_VOCAB } : null };
   }
   const G = state.decG, k0 = G.promptLen, back = r >= k0 - 1 && !pr.moving;   // in only once it has ridden the arrow
   const shown = Math.min(G.tokens.length, Math.max(k0, back ? pr.n + 1 : pr.n));
-  const out = outIn ? (r < k0 - 1 ? { probs: G.probs[r], mark: G.tokens[r + 1], title: S.outPrompt(G.tokens[r], G.tokens[r + 1]) }
-    : { probs: G.probs[r], mark: G.tokens[r + 1], title: S.outGen(G.tokens[r], G.tokens[r + 1]) }) : null;
+  const out = outIn ? (r < k0 - 1 ? { probs: G.probs[r], mark: G.tokens[r + 1], title: S.outPrompt(G.tokens[r], G.tokens[r + 1]), vocab: M.DEC_VOCAB }
+    : { probs: G.probs[r], mark: G.tokens[r + 1], title: G.tokens[r + 1] === "[EOS]" ? S.outGenEnd(G.tokens[r]) : S.outGen(G.tokens[r], G.tokens[r + 1]), vocab: M.DEC_VOCAB }) : null;
   return { enc, gen, pr, toks: G.tokens, shown, rows, rowIn, outIn, A: G.A, masked: true, out, k0 };
 }
 
@@ -765,8 +770,8 @@ function stage() {
   const masked = TOKENS.map((t, i) => (i === MASK_AT ? "[MASK]" : t)), fe = M.forward("base", masked);
   const enc = { tokens: masked, A: M.meanHeads(fe.alpha[0]), probs: M.nextTokens("base", fe.h[MASK_AT]), target: TOKENS[MASK_AT] };
   /* the decoder in training: the whole sentence, one pass, every row's next-token distribution */
-  const fd = M.forward("causal", TOKENS);
-  const decT = { tokens: TOKENS, A: M.meanHeads(fd.alpha[0]), probs: TOKENS.slice(1).map((_, i) => M.nextTokens("causal", fd.h[i])) };
+  const fd = M.forward("causal", DEC_TOKENS);
+  const decT = { tokens: DEC_TOKENS, A: M.meanHeads(fd.alpha[0]), probs: DEC_TOKENS.slice(1).map((_, i) => M.nextTokens("causal", fd.h[i])) };
   /* the decoder in generation: the prompt, then each prediction fed back. One pass over the finished
      sequence gives every row a token-at-a-time run gives (the mask; measured), so it is read once */
   const gen = M.generate(PROMPT), fg = M.forward("causal", gen.tokens);
@@ -875,7 +880,7 @@ defineWidget({
       const D = state.decT, t = r >= 0 ? D.tokens[r + 1] : null;
       return [
         rowsTile,
-        { label: S.tileTarget, value: t ? `${t} ${D.probs[r][M.VOCAB.indexOf(t)].toFixed(2)}` : S.wait, note: S.tileTargetNote },
+        { label: S.tileTarget, value: t ? `${t} ${D.probs[r][M.DEC_VOCAB.indexOf(t)].toFixed(2)}` : S.wait, note: S.tileTargetNote },
         { label: S.tileKeysRow, value: r >= 0 ? `${r + 1}` : S.wait, note: S.tileKeysRowNote },
       ];
     }
@@ -884,7 +889,7 @@ defineWidget({
       return [
         { label: S.tileGen, value: `${Math.min(shownN, G.tokens.length)} of ${G.tokens.length}`, note: S.tileGenNote },
         rowsTile,
-        { label: S.tileNext, value: p && genR ? `${G.tokens[r + 1]} ${Math.max(...p).toFixed(2)}` : S.wait, note: S.tileNextNote },
+        { label: S.tileNext, value: p && genR ? `${G.tokens[r + 1]} ${Math.max(...p).toFixed(2)}` : S.wait, note: genR && G.tokens[r + 1] === "[EOS]" ? S.tileNextNoteEnd : S.tileNextNote },
       ];
     }
     /* the [EOS] row has no codon of its own */
