@@ -22919,6 +22919,22 @@ pass while generation adds a token at a time. **Blurb:** "Encoders attend to eve
 token, decoders only to earlier ones; in cross-attention one sequence attends to
 another." The longer subtitle leaves page 3 at body 1,180 of the 1,200 frame.
 
+**THE KINDS OF TRAINING NAMED, 2026-09-30.** His check of his understanding
+(pretraining self-supervised; a task needs labelled data, per token or per
+sequence; does it hold for the decoder and the encoder–decoder?). Answered: yes for
+the encoder (both heads here trained on labelled notes, the encoder frozen); the
+decoder's pretraining is self-supervised too and generation needs no labels or
+head (tasks by fine-tuning on labelled examples, or by prompting); an
+encoder–decoder is usually trained on labelled pairs (T5/BART pretrain by
+denoising first) and this one was trained from scratch, supervised, on 20,000
+gene–protein pairs. The gap: all three pages called their first phase Training.
+**Picked:** rename — **Pretraining** on the Encoder and the Decoder (details
+"Self-supervised: …"), **Training** on page 3 ("Supervised: 20,000 gene–protein
+pairs, …"); Prediction's detail names the labelled notes. Showing a head being
+trained on labelled data stays with slot 85, Pre-training and adapting. The link
+value is the shown word (`phase=pretraining`); core's first-option stand-in gives
+page 3 Training where the default is absent.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
