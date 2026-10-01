@@ -23206,7 +23206,20 @@ clinical outcome (frozen probe 98%) and not prescribing error (61%, though the
 model fills a drug from its symptom), which is why the head alone suffices on
 one only; and from scratch also reaches 100% on clinical outcome, so the copy
 says "the head alone is enough when the pretrained vectors already separate
-the classes", not that transfer beats scratch. NEXT: build on his word.
+the classes", not that transfer beats scratch. 
+**ROUND 4 BUILT, 2026-10-01, on "build round 4".** The generator adds the four
+held-out notes a label (`examples`) and every run's P(label 1) on them at step
+0 and every 50 steps (`pred`); evaluation only, so curves, maps and LoRA factors
+came out byte-identical to the previous table, and the predictions equal the
+measurement's. The page: **Label: Clinical outcome · Prescribing error** (link
+values still `outcome` and `match`), chips negative/positive and no error/error;
+the four rows replace the two training notes, each with its prediction at the
+latest snapshot ("error 0.70 ✗", ink marks, "—" before Train); the map moved
+down two rows, the LoRA detail to 1.5 px a cell and the chart to 96 tall. Verify
+951 checks (the examples' shape and lines; full right on all four under both
+labels; transfer one answer for all four under prescribing error). Settled sweep
+clean on 16 states, tallest 1,193 of 1,200; mid-run recordings clean; switch
+probe 0 of 4. NEXT: his review, then the copy audit.
 
 ### The open calls
 

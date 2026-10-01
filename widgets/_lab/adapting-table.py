@@ -40,8 +40,12 @@ Linear(48 -> 2) head, held-out accuracy on 1,000 notes at step 0 and every 10.
             W' = W). The lesson writes W' = W + A B^T with A, B 48 x r: its A
             is peft's B and its B^T is peft's A, so the page uses the lesson's
             names.
-  notes     two of each task's labelled training notes, one of each label, the
-            first that fit a line (60 characters), in the set's order.
+  examples  ROUND 4 (his "maybe some examples of inputs and the labels";
+            picked E2): four HELD-OUT notes a task, not chosen by outcome — the
+            first two of each label in the held-out set that fit a line (60
+            characters) — and each run's P(label 1) on them at step 0 and every
+            50 steps (`pred`, 9 x 4). Evaluation only, so the training is
+            unchanged.
 
 Run:  python widgets/_lab/adapting-table.py            (about 1 min)
       python widgets/_lab/adapting-table.py --check    rerun one entry and compare
@@ -83,7 +87,7 @@ def test_set(task):
     Xt, Yt = A.make_task(999, 1000, task); ids, m = A.batchify(Xt)
     return (ids, m, torch.tensor(Yt)), sum(Yt) / len(Yt)
 
-def run(way, task, test):
+def run(way, task, test, ex):
     X, Y = A.make_task(100, N, task)
     torch.manual_seed(0)
     mdl = A.TinyBERT(A.V)
@@ -96,14 +100,19 @@ def run(way, task, test):
     params = [p for p in mdl.parameters() if p.requires_grad]
     opt = torch.optim.Adam(params, lr=LR[way]); g = torch.Generator().manual_seed(0)
     ids, m = A.batchify(X); y = torch.tensor(Y)
-    W0 = matrices(mdl); curve, snaps, lora = [], [], []
+    W0 = matrices(mdl); curve, snaps, lora, pred = [], [], [], []
+    eid, em = A.batchify([n.split() for n, _ in ex])
+    def predict():
+        mdl.eval()
+        with torch.no_grad(): p = mdl.classify(eid, em, "cls").softmax(-1)[:, 1].tolist()
+        mdl.train(); pred.append([round(v, 4) for v in p])
     def acc():
         mdl.eval(); a = round(CT.score(mdl, *test), 4); mdl.train(); return a
     def factors(s):
         lin = mdl.blocks[0].att.q
         lora.append({"step": s, "A": [[round(v, 5) for v in r] for r in lin.A.detach().tolist()],
                      "B": [[round(v, 5) for v in r] for r in lin.B.detach().tolist()]})
-    mdl.train(); curve.append(acc())
+    mdl.train(); curve.append(acc()); predict()
     if way == "lora": factors(0)
     for s in range(1, STEPS + 1):
         idx = torch.randint(len(X), (16,), generator=g)
@@ -111,7 +120,7 @@ def run(way, task, test):
         opt.zero_grad(); loss.backward(); opt.step()
         if s % EVERY == 0: curve.append(acc())
         if s % SNAP == 0:
-            Wt = matrices(mdl); snaps.append({k: (Wt[k] - W0[k]) for k in MATS})
+            predict(); Wt = matrices(mdl); snaps.append({k: (Wt[k] - W0[k]) for k in MATS})
         if way == "lora" and s % LSNAP == 0: factors(s)
     # frozen means untouched: assert it, so the page's "frozen" is a fact
     for k in MATS:
@@ -123,7 +132,7 @@ def run(way, task, test):
         for k in TRAINS[way]:
             raw += signed_bytes(sn[k] / scale)
     if way == "scratch": START["scratch"] = W0
-    out = {"curve": curve, "scale": round(scale, 6), "maps": base64.b64encode(bytes(raw)).decode("ascii"), "mats": TRAINS[way],
+    out = {"curve": curve, "pred": pred, "scale": round(scale, 6), "maps": base64.b64encode(bytes(raw)).decode("ascii"), "mats": TRAINS[way],
            "rel": {k: round((snaps[-1][k].norm() / W0[k].norm()).item(), 4) for k in TRAINS[way]}}
     if way == "transfer": START["base"] = W0
     if way == "lora": out["lora"] = lora
@@ -135,17 +144,17 @@ def signed_bytes(x):
     q = x.clamp(-1, 1).mul(127).round().to(torch.int16).flatten()
     return bytes(((q + 256) % 256).to(torch.uint8).tolist())
 
-def notes(task):
-    X, Y = A.make_task(100, N, task); got = []
+def examples(task):
+    X, Y = A.make_task(999, 1000, task); got = []
     for x, y in zip(X, Y):
-        if len(" ".join(x)) <= 60 and y not in [g[1] for g in got]: got.append([" ".join(x), y])
-        if len(got) == 2: break
+        if len(" ".join(x)) <= 60 and sum(1 for g in got if g[1] == y) < 2: got.append([" ".join(x), y])
+        if len(got) == 4: break
     return got
 
 if "--check" in sys.argv:
     js = (here.parent / "adapting" / "table.js").read_text(encoding="utf-8")
     T = json.loads(js[js.index("{"):js.rindex("}") + 1])
-    test, _ = test_set("match"); r = run("lora", "match", test)
+    test, _ = test_set("match"); r = run("lora", "match", test, T["examples"]["match"])
     worst = max(abs(a - b) for a, b in zip(r["curve"], T["runs"]["match"]["lora"]["curve"]))
     same = r["maps"] == T["runs"]["match"]["lora"]["maps"]
     log(f"rerun match / lora: curve worst difference {worst:.4f}; maps identical: {same}")
@@ -157,11 +166,11 @@ T = {"n": N, "steps": STEPS, "every": EVERY, "snap": SNAP, "lsnap": LSNAP, "r": 
      "shapes": {k: list(v.shape) for k, v in base.named_parameters() if k in MATS},
      "wq": [[round(v, 5) for v in r] for r in base.blocks[0].att.q.weight.detach().tolist()],
      "trains": {"scratch": backbone + head, "full": backbone + head, "transfer": head, "lora": 2 * 2 * 2 * 48 * R_ + head, "backbone": backbone},
-     "base": {}, "notes": {}, "runs": {}}
+     "base": {}, "examples": {}, "runs": {}}
 for task in TASKS:
-    test, rate = test_set(task); T["base"][task] = round(rate, 4); T["notes"][task] = notes(task); T["runs"][task] = {}
+    test, rate = test_set(task); T["base"][task] = round(rate, 4); T["examples"][task] = examples(task); T["runs"][task] = {}
     for way in WAYS:
-        r = run(way, task, test); T["runs"][task][way] = r
+        r = run(way, task, test, T["examples"][task]); T["runs"][task][way] = r
         log(f"  {task} {way:8s}: {r['curve'][-1]:.0%}, scale {r['scale']:.4f}, maps {len(r['maps']):,} chars  ({time.time()-T0:.0f}s)")
 
 T["w0"], T["w0scale"] = {}, {}

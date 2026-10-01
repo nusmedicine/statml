@@ -66,11 +66,15 @@ const WAYS = {
   lora: { label: "LoRA", name: "LoRA", color: "groupC", detail: "The backbone frozen; a small update A Bᵀ trained beside Q and V, and the head." },
 };
 const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label, detail: w.detail }));
+/* THE LABEL (round 4, his "finding asserted and wrong drug looks weird"; picked the clinical names): one kind
+   of prediction, a note's class from its [CLS] vector, with the label set by one fact or the other. The pretrained
+   [CLS] already separates clinical outcome (a probe on the frozen vectors 98%) and not prescribing error (61%),
+   which is why the head alone is enough on one only. The link values stay `outcome` and `match`. */
 const TASKS = [
-  { value: "outcome", label: "Finding asserted", detail: "1 when the note asserts an abnormal finding, 0 otherwise." },
-  { value: "match", label: "Wrong drug", detail: "1 when a drug is given for a symptom it does not treat, 0 when it treats it. Every pretraining note paired a drug with its own symptom." },
+  { value: "outcome", label: "Clinical outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. The same notes, model and head under either label." },
+  { value: "match", label: "Prescribing error", detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. Every pretraining note paired a drug with its own symptom." },
 ];
-const LABELS = { outcome: ["negative", "positive"], match: ["right drug", "wrong drug"] };
+const LABELS = { outcome: ["negative", "positive"], match: ["no error", "error"] };
 const STEPS = TABLE.steps, POINTS = STEPS / TABLE.every, SNAP = TABLE.snap, LSNAP = TABLE.lsnap;
 const SCALE = TABLE.alpha / TABLE.r;
 const TOTAL = (way) => TABLE.trains.backbone + 98 + (way === "lora" ? TABLE.trains.lora - 98 : 0);
@@ -83,10 +87,11 @@ const S = {
     + "head alone, full fine-tuning every weight, and LoRA a small low-rank update beside frozen weights; training from scratch starts "
     + "the same network from random weights. The head alone is enough when the pretrained vectors already separate the classes.",
   pageLabel: "Training",
-  taskLabel: "Task",
+  taskLabel: "Label",
   step: "Train", stepTitle: "Train on the 1,024 labelled notes, 400 steps",
   wait: "—",
-  notesHead: "Labelled notes: 1,024 for training, 1,000 held out",
+  notesHead: "Four of the 1,000 held-out notes; the head trains on 1,024 others",
+  predHead: "prediction",
   mapHead: (s) => `The weights after ${s} steps`,
   blinkNote: "blink: moved over 5% of the largest change in 50 steps",
   blinkNow: (n, a, b) => `${n.toLocaleString("en-US")} moved more than 5% of the largest change in steps ${a}–${b}`,
@@ -205,7 +210,9 @@ function hatch(ctx, c, x, y, w, h) {
 /* every vertical position in one place, so the drawing and the height cannot disagree. The map is
    0.95 px a weight so his figure fits in a column at its left (round 1, D1). */
 const PX = 0.95, T48 = 48 * PX, FIG = { x: PAD + 4, w: 92 }, MAP_X = PAD + 112;
-const MAP_TOP = 106, MAP_H = 304, LORA_H = 196, CURVE_H = 186;
+/* four held-out rows above the map (round 4): MAP_HEAD and MAP_TOP moved down two rows; the LoRA detail (1.5 px a
+   cell) and the chart (96 tall) gave back the height, so the LoRA page stays inside the 1,200 frame */
+const MAP_HEAD = 128, MAP_TOP = 150, MAP_H = 304, LORA_H = 180, CURVE_H = 172;
 const lay = (way) => {
   const lora = MAP_TOP + MAP_H, curve = lora + (way === "lora" ? LORA_H : 0);
   return { lora, curve, height: curve + CURVE_H };
@@ -245,13 +252,23 @@ function blinkMask(task, way, k) {
   return (MASKS[key] = out);
 }
 
-function drawNotes(ctx, c, task) {
+/* THE HELD-OUT NOTES (round 4, picked E2 with X1, `_lab/adapting-examples-mock.html`): four notes a label, not
+   chosen by outcome (the generator takes the first two of each label in the held-out set that fit a line), each
+   with its true label and this page's prediction, the predicted label, its probability and right or wrong. The
+   prediction is the run's own at the latest 50-step snapshot, so it switches at once, as the map's snapshots do. */
+function drawNotes(ctx, c, w, way, task, step, trained) {
   txt(ctx, S.notesHead, PAD, 14, { font: cap(c), fill: c.ink1 });
-  TABLE.notes[task].forEach(([t, y], i) => {
+  txt(ctx, S.predHead, w - PAD, 14, { font: small(c), fill: c.ink3, align: "right" });
+  const pred = TABLE.runs[task][way].pred, k = Math.min(pred.length - 1, Math.floor(step / SNAP));
+  TABLE.examples[task].forEach(([t, y], i) => {
     const yy = 38 + i * 22;
     ctx.save(); ctx.strokeStyle = c.ink3; ctx.strokeRect(PAD + 0.5, yy - 9.5, 96, 19); ctx.restore();
     txt(ctx, `${y} ${LABELS[task][y]}`, PAD + 48, yy, { font: small(c), fill: c.ink1, align: "center" });
     txt(ctx, t, PAD + 106, yy, { font: body(c), fill: c.ink1 });
+    if (!trained) { txt(ctx, S.wait, w - PAD, yy, { font: small(c), fill: c.ink3, align: "right" }); return; }
+    const p = pred[k][i], call = p > 0.5 ? 1 : 0, right = call === y;
+    txt(ctx, right ? "✓" : "✗", w - PAD, yy, { font: cap(c), fill: c.ink1, align: "right" });
+    txt(ctx, `${LABELS[task][call]} ${(call ? p : 1 - p).toFixed(2)}`, w - PAD - 16, yy, { font: small(c), fill: right ? c.ink1 : c.ink2, align: "right" });
   });
 }
 
@@ -286,9 +303,9 @@ function drawFigure(ctx, c, way, rows) {
 
 function drawMap(ctx, c, w, way, task, step, blink) {
   const run = TABLE.runs[task][way], s = Math.round(step);
-  txt(ctx, S.mapHead(s), PAD, 84, { font: cap(c), fill: c.ink1 });
+  txt(ctx, S.mapHead(s), PAD, MAP_HEAD, { font: cap(c), fill: c.ink1 });
   const mask = blink ? blinkMask(task, way, blink) : null;
-  txt(ctx, mask ? S.blinkNow(mask.n, (blink - 1) * SNAP, blink * SNAP) : S.blinkNote, w - PAD, 84, { font: small(c), fill: mask ? c.ink1 : c.ink3, align: "right" });
+  txt(ctx, mask ? S.blinkNow(mask.n, (blink - 1) * SNAP, blink * SNAP) : S.blinkNote, w - PAD, MAP_HEAD, { font: small(c), fill: mask ? c.ink1 : c.ink3, align: "right" });
   const maps = mapsOf(task, way), k = step / SNAP, k0 = Math.floor(k), f = k - k0, start = startOf(way), trained = new Set(run.mats);
   /* the change, in the run's scale: maps[k0 − 1] holds step 50·k0, step 0 is zero; between snapshots, linear */
   const change = (m, idx) => {
@@ -363,7 +380,7 @@ function drawLora(ctx, c, w, task, step, y0, blink) {
   const upd = prod(lA, lBt), updLast = prod(last.B, last.A);
   const mx = (M) => Math.max(1e-12, ...M.flat().map(Math.abs));
   const mW = mx(W), mA = mx(last.B), mB = mx(TABLE.runs[task].lora.lora.flatMap((x) => x.A)), mU = mx(updLast);
-  const cell = 1.8, Sz = 48 * cell, R8 = r * cell, yT = y0 + 42, yM = yT + R8 + 6;
+  const cell = 1.5, Sz = 48 * cell, R8 = r * cell, yT = y0 + 42, yM = yT + R8 + 6;
   const xW = PAD + 2, xA = xW + Sz + 40, xP = xA + R8 + 6, xWp = xP + Sz + 32;
   const draw = (M, scale, x, y, lit = null, dim = false) => image(ctx, c, M.length, M[0].length, (i, j) => M[i][j] / scale, x, y, M[0].length * cell, M.length * cell, false, lit, dim);
   const qLit = q ? (i, j) => q[i * 48 + j] === 1 : null;
@@ -385,7 +402,7 @@ function drawLora(ctx, c, w, task, step, y0, blink) {
 
 function drawCurve(ctx, c, w, way, task, step, y0) {
   txt(ctx, S.curveHead, PAD, y0 + 6, { font: cap(c), fill: c.ink1 });
-  const ch = { x: PAD + 40, y: y0 + 26, w: w - 2 * PAD - 160, h: 110 };
+  const ch = { x: PAD + 40, y: y0 + 26, w: w - 2 * PAD - 160, h: 96 };
   const Y = (v) => ch.y + ch.h - ((v - 0.4) / 0.6) * ch.h, X = (i) => ch.x + ch.w * i / POINTS;
   for (const v of [0.4, 0.6, 0.8, 1]) { line(ctx, [[ch.x, Y(v)], [ch.x + ch.w, Y(v)]], c.grid); txt(ctx, pct(v), ch.x - 6, Y(v), { font: small(c), fill: c.ink3, align: "right" }); }
   for (let s = 0; s <= STEPS; s += 100) txt(ctx, String(s), X(s / TABLE.every), ch.y + ch.h + 12, { font: small(c), fill: c.ink3, align: "center" });
@@ -485,7 +502,7 @@ defineWidget({
 
   draw({ ctx, colors, w, params, anim }) {
     const pg = pageOf(anim, params), way = params.page, task = params.task, step = stepOf(pg), L = lay(way);
-    drawNotes(ctx, colors, task);
+    drawNotes(ctx, colors, w, way, task, step, pg.n >= 1);
     drawMap(ctx, colors, w, way, task, step, blinkOf(pg));
     if (way === "lora") drawLora(ctx, colors, w, task, step, L.lora, blinkOf(pg));
     drawCurve(ctx, colors, w, way, task, step, L.curve);

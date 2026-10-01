@@ -101,13 +101,23 @@ for (const task of ["outcome", "match"]) for (const way of ["scratch", "transfer
   ok(blinks > 0, `${task} ${way}: ${blinks} blinks over the run`);
 }
 
-/* 3 · notes and base rates */
+/* 3 · the held-out notes (round 4) and base rates: four a label, two of each, within a line; every run's
+   P(label 1) on them at step 0 and every 50 steps, probabilities */
 for (const task of ["outcome", "match"]) {
-  const n = T.notes[task];
-  ok(n.length === 2 && new Set(n.map((x) => x[1])).size === 2, `${task}: two notes, one of each label`);
-  ok(n.every(([t]) => t.length <= 60), `${task}: each note fits a line`);
+  const ex = T.examples[task];
+  ok(ex.length === 4 && ex.filter((x) => x[1] === 1).length === 2, `${task}: four held-out notes, two of each label`);
+  ok(ex.every(([t]) => t.length <= 60), `${task}: each note fits a line`);
+  for (const way of ["scratch", "transfer", "full", "lora"]) {
+    const P = T.runs[task][way].pred;
+    ok(P.length === T.steps / T.snap + 1 && P.every((row) => row.length === 4 && row.every((v) => v >= 0 && v <= 1)), `${task} ${way}: 9 snapshots of 4 probabilities`);
+  }
   ok(T.base[task] > 0.4 && T.base[task] < 1, `${task}: base rate ${T.base[task]}`);
 }
+/* what the rows show at the end, as the catalogue records it: full fine-tuning right on all four under both labels;
+   transfer under prescribing error gives one answer to all four */
+const rightAll = (task, way) => T.runs[task][way].pred.at(-1).every((p, i) => (p > 0.5 ? 1 : 0) === T.examples[task][i][1]);
+ok(rightAll("outcome", "full") && rightAll("match", "full"), "full fine-tuning ends right on all four held-out notes under both labels");
+ok(new Set(T.runs.match.transfer.pred.at(-1).map((p) => p > 0.5)).size === 1, "transfer gives every held-out note the same answer under prescribing error");
 
 /* 4 · the claims the lines make, on the data */
 for (const task of ["outcome", "match"]) {
