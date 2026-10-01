@@ -1,5 +1,59 @@
 # Handover
 
+**2026-09-30 / 10-01: 84 `transformer` SHIPPED AND PUSHED — the record is the
+catalogue's § Slot 84, from *SECTIONS UNDER A MAP* to *SHIPPED AND PUSHED*.**
+"Deep Learning - Language: Transformer", PHM5005 08-1 cells 2–4. Three pages BY
+ARCHITECTURE, each with a Phase:
+
+- **Encoder** — Pretraining (the lesson's "treated with [MASK] for chest pain",
+  the [MASK] row's Linear + softmax: aspirin 0.61, nitrate 0.39) · Prediction,
+  with a **Task** Tokens (a tag head: other · drug · finding · negated) ·
+  Sentence (the [CLS] row's final vector pooled into negative/positive, 08-2's
+  clinical_outcome). Both heads trained offline on the FROZEN encoder.
+- **Decoder** — Pretraining (one pass, each row scored on the next token) ·
+  Generation (the prompt read a row a press, then each output fed back until the
+  model writes its own [EOS]).
+- **Encoder–decoder** — DNA → protein. Training (supervised on 20,000
+  gene–protein pairs, seven decoder rows to [EOS]) · Generation (the encoder
+  once, then an amino acid a press).
+
+Layout, all his picks: the block's boxes as SECTION HEADS read top to bottom; his
+figure small in the top-right corner as a MAP, a number on each box and its
+section (no leader lines); a press carries ONE ROW through the block a box at a
+time, the box ringed on map and section; tweens only move (the ring along the
+arrow, arcs drawing out, bars growing, the fed-back token riding his feed-back
+arrow); hover rings box ↔ section. 28 fingerprint states; verify 1,532 checks
+against torch.
+
+**Worth knowing before 85:**
+
+- **Five trained things in `weights.js`, all from `_lab/transformer-weights.py`**
+  (base · causal · dna · tag · cls). The causal model was RETRAINED 2026-09-30
+  on one-clause notes so it stops at its own [EOS] (10-3 generates "until
+  `<eos>`"); its own vocabulary names ids 1/2 [BOS]/[EOS] (`VOCABS.causal`), the
+  encoder's [CLS]/[SEP]. Regenerate and rerun the verify after any change; the
+  other models come out byte-identical (check it with the diff in the commit).
+- **Page 3 is at 1,180 of the 1,200-px harness frame.** Anything taller in the
+  header, the rail or page 3 brings a scrollbar, narrows the canvas to 534 and
+  drops page 3 to its two-column layout. Measure body height in a 900×1200
+  iframe after any copy or layout change.
+- **Check a widget's tokens and stopping rule against the lesson that TEACHES
+  that architecture** (10-3 for generation), not only the lesson the widget
+  serves; and check each phase's kind of training (self-supervised vs
+  supervised) — both were gaps he found after the copy audit.
+- **85 Pre-training and adapting** should SHOW a head being trained on labelled
+  data: 84 shows only the trained heads' results (his question, 2026-09-30).
+  The arc measurement's adaptation numbers are in `_lab/language-arc-measure.py`
+  part C; the task heads here, `_lab/transformer-task-measure.py`.
+- **The PHM5005 notebooks are in `C:\Users\Admin\Downloads\PHM5005 AY2025-26 -
+  Notebooks\Master\`** — grep them for the lesson's own choice (pooling, tokens,
+  classes) before proposing one.
+
+**SEVENTY-FOUR WIDGETS IN THE MANIFEST — 73 on the gallery and `roc-auc`
+UNLISTED.** NEXT: his call; the queued one is 85 `clinical-text` (Pre-training and
+adapting), plan with him. Untracked and safe to leave: as below. **SESSION CLOSED
+2026-10-01.**
+
 **2026-09-26 (evening): 70 `mutational-signatures` gains a RANK PAGE, SHIPPED
 AND PUSHED — the record is the catalogue's § Slot 70, *Round 5*.** Kenneth
 asked whether 01-4 cells 19–20 (estimating the number of signatures, the
