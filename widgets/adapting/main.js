@@ -92,10 +92,10 @@ const S = {
   blinkNow: (n, a, b) => `${n.toLocaleString("en-US")} moved more than 5% of the largest change in steps ${a}–${b}`,
   trains: (n, of) => `trains ${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")}`,
   headBox: "Linear (head)", block: (b) => `Block ${b}`, embedding: "Embedding", token: "token", position: "position",
-  attn: "Self-attention", ffn: "Feed forward", loraSub: "Q, V + A Bᵀ",
+  attn: "Self-attention", ffn: "Feed forward", loraSub: "Q, V + A Bᵀ", frozen: "frozen",
   scaleW: "below 0 · 0 · above 0, each matrix on its own scale",
   loraHead: (s) => `Block 1's Q, after ${s} steps: W′ = W + ${SCALE} · A Bᵀ`,
-  loraW: "W", loraWnote: "frozen · 2,304", loraA: "A", loraBt: "Bᵀ", loraUpd: "A Bᵀ, the update", loraWp: "W′", loraWpNote: "what the model uses",
+  loraW: "W", loraWnote: "48 × 48 = 2,304", loraA: "A", loraBt: "Bᵀ", loraUpd: "A Bᵀ, the update", loraWp: "W′", loraWpNote: "what the model uses",
   loraTrained: (r) => `trained: A and B, each 48 × ${r} = ${(2 * 48 * r).toLocaleString("en-US")}`,
   loraLine: (s, u) => (s === 0 ? "A starts at zero, so the update is zero and W′ = W." : `The update is ${u} of W's size; W itself has not moved.`),
   curveHead: "Held-out accuracy while training",
@@ -176,12 +176,17 @@ function lut(c) {
 const shade = (L, v) => L[127 + Math.round(127 * Math.max(-1, Math.min(1, v)))];
 /** a matrix of values in [−1, 1] as an image, one pixel an entry, drawn scaled with no smoothing */
 const offscreen = typeof document !== "undefined" ? document.createElement("canvas") : null;
-function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false, lit = null) {
-  const R = transpose ? cols : rows, C = transpose ? rows : cols, L = lut(c), ink = rgb(c.ink1);
+/* FROZEN TILES DIMMED (round 3, his "should we indicate which matrices are frozen"; picked Z1,
+   `_lab/adapting-frozen-mock.html`): a frozen matrix's weights drawn 70% of the way toward the background with
+   "frozen" on them, so the trained tiles keep the full contrast and the eye goes to them. */
+const DIM = 0.7;
+function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false, lit = null, dim = false) {
+  const R = transpose ? cols : rows, C = transpose ? rows : cols, L = lut(c), ink = rgb(c.ink1), bg = rgb(c.surface);
   offscreen.width = C; offscreen.height = R;
   const g = offscreen.getContext("2d"), img = g.createImageData(C, R);
   for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
-    const on = lit && (transpose ? lit(j, i) : lit(i, j)), q = on ? ink : shade(L, transpose ? at(j, i) : at(i, j)), o = 4 * (i * C + j);
+    const on = lit && (transpose ? lit(j, i) : lit(i, j)), q0 = on ? ink : shade(L, transpose ? at(j, i) : at(i, j)), o = 4 * (i * C + j);
+    const q = dim ? q0.map((v, k) => Math.round(v + (bg[k] - v) * DIM)) : q0;
     img.data[o] = q[0]; img.data[o + 1] = q[1]; img.data[o + 2] = q[2]; img.data[o + 3] = 255;
   }
   g.putImageData(img, 0, 0);
@@ -299,7 +304,9 @@ function drawMap(ctx, c, w, way, task, step, blink) {
   const tile = (m, label, x, y) => {
     const [r, cc] = TABLE.shapes[m], side = r !== 48, W = (side ? r : cc) * PX;
     txt(ctx, label, x + W / 2, y - 7, { font: small(c), fill: c.ink2, align: "center" });
-    image(ctx, c, r, cc, (i, j) => value(m, i * cc + j), x, y, W, T48, side, litOf(m, cc));
+    const frozen = !trained.has(m);
+    image(ctx, c, r, cc, (i, j) => value(m, i * cc + j), x, y, W, T48, side, litOf(m, cc), frozen);
+    if (frozen) txt(ctx, S.frozen, x + W / 2, y + T48 / 2, { font: small(c), fill: c.ink2, align: "center" });
     return W;
   };
   let y = MAP_TOP;
@@ -358,9 +365,10 @@ function drawLora(ctx, c, w, task, step, y0, blink) {
   const mW = mx(W), mA = mx(last.B), mB = mx(TABLE.runs[task].lora.lora.flatMap((x) => x.A)), mU = mx(updLast);
   const cell = 1.8, Sz = 48 * cell, R8 = r * cell, yT = y0 + 42, yM = yT + R8 + 6;
   const xW = PAD + 2, xA = xW + Sz + 40, xP = xA + R8 + 6, xWp = xP + Sz + 32;
-  const draw = (M, scale, x, y, lit = null) => image(ctx, c, M.length, M[0].length, (i, j) => M[i][j] / scale, x, y, M[0].length * cell, M.length * cell, false, lit);
+  const draw = (M, scale, x, y, lit = null, dim = false) => image(ctx, c, M.length, M[0].length, (i, j) => M[i][j] / scale, x, y, M[0].length * cell, M.length * cell, false, lit, dim);
   const qLit = q ? (i, j) => q[i * 48 + j] === 1 : null;
-  draw(W, mW, xW, yM); txt(ctx, S.loraW, xW + Sz / 2, yM - 10, { font: smallBold(c), fill: c.ink1, align: "center" });
+  draw(W, mW, xW, yM, null, true); txt(ctx, S.frozen, xW + Sz / 2, yM + Sz / 2, { font: small(c), fill: c.ink2, align: "center" });
+  txt(ctx, S.loraW, xW + Sz / 2, yM - 10, { font: smallBold(c), fill: c.ink1, align: "center" });
   txt(ctx, S.loraWnote, xW + Sz / 2, yM + Sz + 12, { font: small(c), fill: c.ink3, align: "center" });
   txt(ctx, `+ ${SCALE} ·`, xW + Sz + 20, yM + Sz / 2, { font: body(c), fill: c.ink1, align: "center" });
   draw(lA, mA, xA, yM, fm ? (i, j) => fm.B[i][j] : null); txt(ctx, S.loraA, xA + R8 / 2, yM + Sz + 12, { font: smallBold(c), fill: c.ink1, align: "center" });

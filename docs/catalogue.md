@@ -23170,6 +23170,18 @@ found the curve labels nudged into the tick row mid-run, now stacked upward
 from the chart's foot); settled sweep clean, tallest 1,179; switch probe 0 of 4;
 60 fps.
 
+**ROUND 3, 2026-10-01** — *"the lora matrix does not pulse?"* (an omission: the
+blink was wired to the map only) and *"should we indicate which matrices are
+frozen. mock up ways"*. Fixed: LoRA's detail blinks with the map — W′ and the
+update on exactly the map's block-1 Q cells, A and Bᵀ on entries that moved
+more than 5% of their own largest change in the same 50 steps (63–365 of 384
+a blink), W never; measured in the page, 6,640 ink pixels in the detail at a
+blink against 318 at rest. Mocked four ways (`_lab/adapting-frozen-mock.html`):
+**Z1 dimmed + "frozen" PICKED** (the recommendation) over Z2 grey (busy, loses
+the sign reading), Z3 hatched over the weights (vanishes in the noise) and Z4
+padlock + frames. Built: a frozen matrix's weights 70% toward the background
+with "frozen" on them, on the map and on LoRA's W. Sweep clean, tallest 1,179.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
