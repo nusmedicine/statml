@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 round 4 — held-out notes, their labels and the predictions</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  .ctl { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  .ctl button { font: inherit; padding: 4px 14px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rail { font-size: var(--fs-sm); border: 1px solid var(--grid); padding: var(--sp-2) var(--sp-3); max-width: 300px; background: var(--surface-1); }
+  .rail .seg { display: flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; margin: 4px 0; }
+  .rail .seg span { flex: 1; text-align: center; padding: 4px 6px; } .rail .seg span.on { background: var(--surface-3); font-weight: 600; }
+  .rail .d { color: var(--ink-3); font-size: var(--fs-xs); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 &middot; round 4 &middot; held-out notes, their labels, and the predictions &middot; mock</h1>
+  <p class="note">Your picks: keep both tasks, named as what sets the <b>label</b>; and E2, held-out notes with each way's prediction. The four notes a task
+    are <b>not chosen by outcome</b>: the first two of each label in the held-out set that fit a line. Predictions are the widget's own runs, every 50
+    steps (<code>_lab/adapting-examples-measure.py</code>). This strip <b>replaces</b> the two training notes at the top of each page (the header still says
+    the head trains on 1,024 notes like these); it is two rows taller, which the LoRA page pays for with a slightly smaller detail and chart.</p>
+
+  <h2>1 &middot; The rail: the task named as the label</h2>
+  <div class="rail"><div>Label</div><div class="seg"><span>Finding asserted</span><span class="on">Wrong drug</span></div>
+    <div class="d">1 when a drug is given for a symptom it does not treat, 0 when it treats it. The same notes, model and head on either; only the label differs.</div></div>
+
+  <h2>2 &middot; The held-out notes, as training runs</h2>
+  <div class="ctl">way <select id="iW"><option value="scratch">Scratch</option><option value="transfer">Transfer</option><option value="full" selected>Full</option><option value="lora">LoRA</option></select>
+    label <select id="iT"><option value="match">Wrong drug</option><option value="outcome">Finding asserted</option></select>
+    step <input id="iS" type="range" min="0" max="8" value="8"> <span id="oS"></span> <button id="bP">Play</button></div>
+  <div class="row">
+    <div class="cand"><div class="sub">X1 · the predicted label, its probability, right or wrong (recommended)</div><canvas id="cX1" width="550" height="150"></canvas></div>
+    <div class="cand"><div class="sub">X2 · a probability track from one label to the other, the true side marked</div><canvas id="cX2" width="550" height="150"></canvas></div>
+  </div>
+  <p class="note"><b>What they show, measured.</b> Finding asserted: every way has all four right by step 100&ndash;150; transfer ends less sure (0.27 on a
+    negative note). Wrong drug: from scratch and transfer swing around 0.5 all run, guessing; full fine-tuning ends sure and right on all four
+    (0.01, 0.04, 0.95, 0.97); LoRA right on all four, one barely (0.51).</p>
+
+  <h2>To answer</h2>
+  <p class="q"><b>The prediction</b>X1 label, probability and right/wrong (recommended: reads as a sentence, one row a note) · X2 the probability track (shows the swing around 0.5 best; needs reading).</p>
+  <p class="q"><b>The rail name</b>Label (recommended) · Task (as now) · Predict.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s3: css("--surface-3"),
+  ok: css("--ink-1"), bad: css("--ink-1"), font: css("--font"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const R = await (await fetch("adapting-examples-measure.json", { cache: "no-store" })).json();
+const LABELS = { outcome: ["negative", "positive"], match: ["right drug", "wrong drug"] };
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; const w = +cv.getAttribute("width"), h = +cv.getAttribute("height");
+  if (cv.width !== w * dpr) { cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return g; }
+function text(g, s, x, y, { color = C.ink2, align = "left", bold = false, size = C.xs } = {}) { g.font = `${bold ? "600 " : ""}${size} ${C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); return g.measureText(s).width; }
+function chip(g, s, x, y) { g.strokeStyle = C.ink3; g.lineWidth = 1; g.strokeRect(x + 0.5, y - 9.5, 92, 19); text(g, s, x + 46, y, { align: "center", color: C.ink1 }); }
+function draw(k) {
+  const task = iT.value, way = iW.value, D = R[task], P = D.ways[way][k];
+  oS.textContent = `after ${k * 50} steps`;
+  for (const arm of ["X1", "X2"]) {
+    const g = setup(`c${arm}`);
+    text(g, "Held-out notes: the head never trains on these", 12, 14, { bold: true, color: C.ink1, size: C.sm });
+    text(g, arm === "X1" ? "label · note · prediction" : "label · note · P(label 1)", 538, 14, { align: "right", color: C.ink3 });
+    D.notes.forEach(([note, y], i) => {
+      const yy = 42 + i * 24, p = P[i], pred = p > 0.5 ? 1 : 0, right = pred === y;
+      chip(g, `${y} ${LABELS[task][y]}`, 12, yy);
+      text(g, note, 112, yy, { size: C.sm, color: C.ink1 });
+      if (arm === "X1") {
+        const conf = pred ? p : 1 - p;
+        text(g, `${right ? "✓" : "✗"}`, 538, yy, { align: "right", bold: true, color: right ? C.ok : C.bad, size: C.sm });
+        text(g, `${LABELS[task][pred]} ${conf.toFixed(2)}`, 520, yy, { align: "right", color: right ? C.ink1 : C.bad });
+      } else {
+        const x0 = 400, w = 120; g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x0, yy); g.lineTo(x0 + w, yy); g.stroke();
+        g.beginPath(); g.moveTo(x0 + w / 2, yy - 6); g.lineTo(x0 + w / 2, yy + 6); g.stroke();
+        g.fillStyle = C.s3; g.fillRect(y ? x0 + w / 2 : x0, yy - 5, w / 2, 10);   // the true side
+        g.fillStyle = right ? C.ink1 : C.bad; g.beginPath(); g.arc(x0 + w * p, yy, 4.5, 0, 7); g.fill();
+        text(g, p.toFixed(2), x0 + w + 6, yy, { color: C.ink2 });
+      }
+    });
+    if (arm === "X2") text(g, `0 ${LABELS[task][0]} · 1 ${LABELS[task][1]}; the shaded half is the true label`, 12, 140, { color: C.ink3 });
+  }
+}
+const [iW, iT, iS, oS, bP] = ["iW", "iT", "iS", "oS", "bP"].map((i) => document.getElementById(i));
+[iW, iT, iS].forEach((e) => (e.oninput = () => draw(+iS.value)));
+bP.onclick = () => { let k = 0; const t = setInterval(() => { iS.value = k; draw(k); if (++k > 8) clearInterval(t); }, 600); };
+draw(8);
+</script>
+</body>
+</html>
