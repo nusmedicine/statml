@@ -1250,6 +1250,24 @@
       ],
       "arc": 84,
       "status": "shipped"
+    },
+    {
+      "slug": "adapting",
+      "title": "Deep Learning - Language: Pre-training and Adapting",
+      "blurb": "Pretraining learns from unlabelled text; adapting trains a new head on labelled data, alone or with the weights below.",
+      "course": "PHM5005",
+      "topics": [
+        "pretraining",
+        "masked language model",
+        "transfer learning",
+        "fine-tuning",
+        "LoRA",
+        "PEFT",
+        "language",
+        "deep learning"
+      ],
+      "arc": 85,
+      "status": "draft"
     }
   ]
 }

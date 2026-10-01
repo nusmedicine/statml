@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 Pre-training and Adapting MEASURED, MOCKED AND PICKED 2026-10-01 (pages Pretraining · Adapting; LIG to its own widget after 86), title *Pre-training and Adapting*, slug `adapting`, every choice picked, NEXT the draft on his word — § *Slot 85*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 Pre-training and Adapting MEASURED, MOCKED AND PICKED 2026-10-01 (pages Pretraining · Adapting; LIG to its own widget after 86), title *Pre-training and Adapting*, slug `adapting`, DRAFTED 2026-10-01, NEXT his review — § *Slot 85*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -23061,8 +23061,22 @@ right drug). Left to the draft as conventional: the checkpoints and the
 curves as a table generated ahead from torch (as 65 and 75 ship theirs), held
 by a verify that reruns one entry; one training run per setting (seed 0)
 rather than a mean of seeds, with no Seed control; the Labelled notes control
-16 · 64 · 256 · 1,024 and the Task control as data parameters. NEXT: the
-draft, on his word.
+16 · 64 · 256 · 1,024 and the Task control as data parameters. 
+**DRAFTED 2026-10-01 on "start the draft"** (manifest status `draft`, at
+`/lab/` only): `widgets/adapting/` (main.js; GENERATED `table.js` from
+`_lab/adapting-table.py`, whose `--check` reruns match / 256 / LoRA and matched
+the table to 0.0000); `_lab/adapting-verify.mjs` in `npm test` (1,240 checks:
+the last checkpoint's five tokens at [MASK] equal 84's JS forward on its own
+weights, the trainable counts by formula, every caption's claim, the table's
+shape, the struck-word sweep with lesson references added). Three draft calls
+for his review: **no Play** on either page (`runLabel: null`: seven read
+presses, and one Train press that is the whole run); the second task's face
+shortened to **Wrong drug** (the full wording truncated in the rail; the
+detail carries it); default **256 notes, Finding asserted**. The masking
+heading says each token is hidden with probability 0.15 (the three notes
+shown hide 1–2 of 4–5 tokens, picked so something is hidden). Overlap sweep
+clean on 20 states; switch probe 0 of 1 flagged; `check` and `npm test` pass.
+NEXT: his review rounds, then the copy audit.
 
 ### The open calls
 
