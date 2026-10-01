@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 replan — the weights that change</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  td, th { padding: 3px 10px; border-bottom: 1px solid var(--grid); text-align: right; vertical-align: top; }
+  td:first-child, th:first-child { text-align: left; }
+  table.scope td, table.scope th { text-align: left; max-width: 62ch; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  .ctl { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-2); display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .rec { font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 replan &middot; from scratch and adapting, a way at a time, the weights that change &middot; mock</h1>
+  <p class="note"><b>Your step back:</b> pretraining is 84's (its Encoder page fills the lesson's [MASK]); this widget compares <b>training from scratch</b>
+    with <b>adapting</b> a pretrained model, <b>one way at a time</b>, animated on <b>the weights</b>, and <b>LoRA in detail</b>. Every picture here is drawn
+    from real matrices of 84's model (<code>_lab/adapting-weights-measure.py</code>, seed 0, 400 steps, the arc's rates).</p>
+
+  <h2>What the measurement says a weight picture can show</h2>
+  <table id="tParts"></table>
+  <p class="note"><b>Visible only as a change.</b> Full fine-tuning moves each matrix by about a tenth of its size: on a picture of W itself nothing
+    appears to happen. A picture of the <b>change since training began</b>, |W<sub>t</sub> &minus; W<sub>0</sub>|, shows it plainly, so every map below
+    draws the change. <b>Transfer</b> changes the head and nothing else (the [CLS] vectors move 0%). <b>LoRA</b> changes only Q and V, and by more than
+    full fine-tuning changes anything (its update is scaled by &alpha;/r = 4). <b>The pattern turns during training</b> on the Wrong drug task: at
+    step 100 the change points only 45&ndash;48% of the way toward where it ends (cosine; 94&ndash;97% on Finding asserted), so an animation must play
+    real snapshots, not fade in the final picture. <b>Full fine-tuning's change is nearly low-rank</b>: 80&ndash;96% of each Q or V change lies in 8 of
+    48 directions, the premise of LoRA; training from scratch shows the same (94&ndash;99%), so it is a property of short training as much as of
+    fine-tuning, and the copy should say no more than the number.</p>
+
+  <h2>1 &middot; Pages</h2>
+  <table class="scope">
+    <tr><th>arm</th><th>pages</th><th>each page</th></tr>
+    <tr><td class="rec">R1 (recommended)</td><td>From scratch &middot; Transfer &middot; Full fine-tuning &middot; LoRA</td><td>the weight map of &sect;2 for that way, one Train press animating it, and its accuracy curve with from scratch's as a dashed reference (on the three adapting pages); LoRA adds &sect;3 under its map</td></tr>
+    <tr><td>R2</td><td>Transfer &middot; Full fine-tuning &middot; LoRA</td><td>as R1, with from scratch only as the dashed reference curve (no map of its own)</td></tr>
+    <tr><td>R3</td><td>R1 plus a last page, Compare</td><td>the four curves together and a table of what each trained, the old Adapting chart</td></tr>
+  </table>
+  <p class="note">The rail: <b>Way</b> (the page) and <b>Task</b> (Finding asserted &middot; Wrong drug). <b>Labelled notes fixed at 1,024</b>: the size
+    control's story was the arc's "transfer wins with few notes", which did not hold with [CLS]; at 1,024 the Wrong drug task separates every way
+    (transfer 52%, LoRA 78%, full 84%, scratch 55%).</p>
+
+  <h2>2 &middot; The weight map: the model taken apart, a tile a matrix</h2>
+  <p class="note">Laid out as your encoder figure, input at the bottom: the embeddings, block 1, block 2, the head. Q, K, V, O are 48 &times; 48; the
+    feed-forward pair 48 &times; 96 and 96 &times; 48 (drawn on their side so a block is one row); the head 2 &times; 48. Frozen tiles are hatched grey and
+    say so; the trainable ones carry your <i>Trainable</i> bracket. <b>M1</b> draws every weight's change (one cell a weight, the magnitude ramp, one scale
+    for the whole page); <b>M2</b> one shade a matrix, its relative change written on it. The slider stands in for the Train press (M2 plays the real
+    snapshots every 50 steps; M1 here shows the final change only, and the widget would ship snapshots).</p>
+  <div class="ctl">way <select id="iW"><option value="scratch">From scratch</option><option value="transfer">Transfer</option><option value="full" selected>Full fine-tuning</option><option value="lora">LoRA</option></select>
+    task <select id="iT"><option value="match/1024">Wrong drug</option><option value="outcome/256">Finding asserted (256 here)</option></select>
+    step <input id="iS" type="range" min="0" max="8" value="8"> <span id="oS"></span></div>
+  <div class="row">
+    <div class="cand"><div class="sub">M1 · every weight's change (recommended: it is the weights)</div><canvas id="cM1" width="550" height="420"></canvas></div>
+    <div class="cand"><div class="sub">M2 · one shade a matrix, relative change</div><canvas id="cM2" width="550" height="420"></canvas></div>
+  </div>
+
+  <h2>3 &middot; LoRA in detail: block 1's W<sub>Q</sub></h2>
+  <p class="note">In the lesson's notation W&prime; = W + A B<sup>T</sup> (with peft's scaling &alpha;/r, which the lesson's formula leaves out), A and B
+    48 &times; r. peft starts the factor that writes the output at <b>zero</b>, so at step 0 the update is zero and W&prime; = W exactly: here that is A.
+    The slider plays the real run every 25 steps. W is drawn as the size of each weight, A and B<sup>T</sup> as theirs, the update and W&prime; the same.</p>
+  <div class="ctl">step <input id="iL" type="range" min="0" max="16" value="16"> <span id="oL"></span></div>
+  <div class="row"><div class="cand"><div class="sub">L · W (frozen) + (α/r) · A Bᵀ (trained) = W′, r 8</div><canvas id="cL" width="550" height="310"></canvas></div></div>
+
+  <h2>4 &middot; The curve on each page</h2>
+  <div class="row"><div class="cand"><div class="sub">C · this way's curve, from scratch's dashed (Wrong drug, 1,024 notes, from the shipped draft's table)</div><canvas id="cC" width="550" height="230"></canvas></div></div>
+
+  <h2>To answer</h2>
+  <div id="qs"></div>
+</main>
+<script type="module">
+import { TABLE } from "../adapting/table.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), c: css("--c-group-c"), ref: css("--c-reference"), mag: css("--c-magnitude"),
+  font: css("--font"), mono: css("--font-mono"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const R = await (await fetch("adapting-weights-measure.json", { cache: "no-store" })).json();
+const WAYCOL = { scratch: C.ref, transfer: C.a, full: C.b, lora: C.c };
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const ramp = (t) => { const a = rgb(C.s3), b = rgb(C.mag), u = Math.sqrt(Math.max(0, Math.min(1, t))); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; const w = +cv.getAttribute("width"), h = +cv.getAttribute("height");
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return g; }
+function text(g, s, x, y, { color = C.ink2, align = "left", bold = false, size = C.xs } = {}) { g.font = `${bold ? "600 " : ""}${size} ${C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function hatch(g, x, y, w, h) { g.save(); g.fillStyle = C.s2; g.fillRect(x, y, w, h); g.beginPath(); g.rect(x, y, w, h); g.clip(); g.strokeStyle = C.grid; g.lineWidth = 1;
+  for (let k = -h; k < w; k += 6) { g.beginPath(); g.moveTo(x + k, y + h); g.lineTo(x + k + h, y); g.stroke(); } g.restore(); g.strokeStyle = C.grid; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
+
+/* the parts table */
+(function parts() {
+  const rows = ["match/1024", "outcome/256"].flatMap((t) => ["scratch", "transfer", "full", "lora"].map((s) => [t, s]));
+  let h = `<tr><th>task · way</th><th>accuracy</th><th>embeddings</th><th>attention</th><th>feed forward</th><th>head</th><th>[CLS] vectors move</th><th>Q, V change in top 8 of 48 directions</th></tr>`;
+  for (const [t, s] of rows) { const r = R[`${t}/${s}`], rel = r.snaps[r.snaps.length - 1].rel, avg = (f) => { const ks = Object.keys(rel).filter(f); return ks.reduce((a, k) => a + rel[k], 0) / ks.length; };
+    const f3 = (v) => v === 0 ? "0" : v.toFixed(3);
+    h += `<tr><td>${t === "match/1024" ? "Wrong drug, 1,024" : "Finding asserted, 256"} · ${s}</td><td>${Math.round(100 * r.snaps[r.snaps.length - 1].acc)}%</td><td>${f3(avg((k) => /^(tok|pos)/.test(k)))}</td><td>${f3(avg((k) => k.includes(".att.")))}</td><td>${f3(avg((k) => k.includes(".ff.")))}</td><td>${f3(rel["head.weight"])}</td><td>${r.cls_move === undefined ? "—" : Math.round(100 * r.cls_move) + "%"}</td><td>${r.top8 ? Object.values(r.top8).map((v) => Math.round(100 * v) + "%").join(" · ") : "—"}</td></tr>`; }
+  document.getElementById("tParts").innerHTML = h + `<tr><td colspan="8" style="text-align:left;color:var(--ink-3)">columns 3–6: ‖W₄₀₀ − W₀‖ / ‖W₀‖, the mean over a part's matrices; from scratch measured from its random start</td></tr>`;
+})();
+
+/* the map's layout: input at the bottom, as his encoder figure */
+const KEYS = (b) => ["q", "k", "v", "o"].map((m) => [`blocks.${b}.att.${m}.weight`, m.toUpperCase(), false]).concat([[`blocks.${b}.ff.0.weight`, "FF 1", true], [`blocks.${b}.ff.2.weight`, "FF 2", false]]);
+const PX = 1.1;
+function tileOf(mat, flip) { // drawn rows x cols; the feed-forward pair on their side so every tile is 48 tall
+  const rows = mat.length, cols = mat[0].length;
+  if (rows === 48) return { h: 48, w: cols, at: (i, j) => mat[i][j] };
+  return { h: 48, w: rows, at: (i, j) => mat[j][i] };
+}
+function drawMap(id, mode) {
+  const g = setup(id), way = iW.value, task = iT.value, r = R[`${task}/${way}`], k = +iS.value, snap = r.snaps[k];
+  const dW = r.dW, rel = snap.rel, frozen = (key) => (rel[key] ?? 0) === 0 && r.snaps[r.snaps.length - 1].rel[key] === 0;
+  /* one scale for the page: the 99th percentile of the final |dW| over every trained weight */
+  const all = []; for (const [key, m] of Object.entries(dW)) if (!frozen(key)) for (const row of m) for (const v of row) all.push(Math.abs(v));
+  all.sort((a, b) => a - b); const top = all[Math.floor(all.length * 0.99)] || 1;
+  const relMax = Math.max(...Object.values(r.snaps[r.snaps.length - 1].rel));
+  const fracT = r.snaps[k].step / 400;
+  text(g, `${{ scratch: "From scratch", transfer: "Transfer learning", full: "Full fine-tuning", lora: "LoRA" }[way]} · after ${snap.step} steps · ${Math.round(100 * snap.acc)}% held out`, 14, 14, { bold: true, color: C.ink1, size: C.sm });
+  text(g, mode === "M1" ? "each cell: how far one weight has moved since step 0" : "each tile: how far the matrix has moved, relative to its size", 14, 32, { color: C.ink3 });
+  let y = 52;
+  const drawTile = (key, label, x, y0, hh = 48, ww = null) => {
+    const m = dW[key], t = tileOf(m), W = (ww ?? t.w) * PX, H = hh * PX;
+    text(g, label, x + W / 2, y0 - 7, { align: "center", color: C.ink2 });
+    if (frozen(key)) { hatch(g, x, y0, W, H); text(g, "frozen", x + W / 2, y0 + H / 2, { align: "center", color: C.ink3 }); return [x, y0, W, H]; }
+    if (mode === "M1") {
+      const sx = W / t.w, sy = H / t.h; const scale = k === 8 ? 1 : 0; // M1: final only in this mock
+      for (let i = 0; i < t.h; i++) for (let j = 0; j < t.w; j++) { g.fillStyle = ramp(k === 8 ? Math.abs(t.at(i, j)) / top : 0); g.fillRect(x + j * sx, y0 + i * sy, sx + 0.3, sy + 0.3); }
+    } else {
+      g.fillStyle = ramp((rel[key] ?? 0) / relMax); g.fillRect(x, y0, W, H);
+      text(g, (rel[key] ?? 0).toFixed(2), x + W / 2, y0 + H / 2, { align: "center", color: (rel[key] ?? 0) / relMax > 0.45 ? C.s1 : C.ink1 });
+    }
+    return [x, y0, W, H];
+  };
+  const spans = {};
+  // the head on top, as his figure
+  const hx = 14 + 40; const head = R[`${task}/${way}`].dW["head.weight"];
+  text(g, "Head  2 × 48", hx, y + 4, { bold: true, color: C.ink1 });
+  y += 16; spans.head = [y, y + 16];
+  { const W = 48 * 4, H = 16; if (mode === "M1") { for (let i = 0; i < 2; i++) for (let j = 0; j < 48; j++) { g.fillStyle = ramp(k === 8 ? Math.abs(head[i][j]) / top : 0); g.fillRect(hx + j * 4, y + i * 8, 4.3, 8.3); } }
+    else { g.fillStyle = ramp(rel["head.weight"] / relMax); g.fillRect(hx, y, W, H); text(g, rel["head.weight"].toFixed(2), hx + W / 2, y + 8, { align: "center", color: rel["head.weight"] / relMax > 0.45 ? C.s1 : C.ink1 }); } }
+  y += 30;
+  for (const b of [1, 0]) {
+    text(g, `Block ${b + 1}`, hx, y + 4, { bold: true, color: C.ink1 }); y += 26;
+    let x = hx; const y0 = y;
+    for (const [key, label] of KEYS(b)) { const [, , W] = drawTile(key, label, x, y); x += W + (label === "O" ? 12 : 6); }
+    spans[`b${b}`] = [y0, y0 + 48 * PX]; y += 48 * PX + 14;
+  }
+  text(g, "Embeddings", hx, y + 4, { bold: true, color: C.ink1 }); y += 22;
+  { let x = hx; const [, , W] = drawTile("tok.weight", "token", x, y, 48, 58); x += W + 12; drawTile("pos.weight", "position", x, y, 48, 64); spans.emb = [y, y + 48 * PX]; }
+  y += 48 * PX + 10;
+  // the Trainable bracket over the trained parts
+  const tr = { scratch: ["head", "b1", "b0", "emb"], full: ["head", "b1", "b0", "emb"], transfer: ["head"], lora: ["head", "b1", "b0"] }[way];
+  const top0 = Math.min(...tr.map((p) => spans[p][0])), bot0 = Math.max(...tr.map((p) => spans[p][1]));
+  g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.beginPath(); g.moveTo(hx - 8, top0); g.lineTo(hx - 13, top0); g.lineTo(hx - 13, bot0); g.lineTo(hx - 8, bot0); g.stroke();
+  g.save(); g.translate(hx - 22, (top0 + bot0) / 2); g.rotate(-Math.PI / 2); text(g, way === "lora" ? "Trainable: Q, V and the head" : "Trainable", 0, 0, { align: "center", bold: true, color: C.ink1 }); g.restore();
+  const n = TABLE.trains[way];
+  text(g, `trains ${n.toLocaleString("en-US")} of ${(43874 + (way === "lora" ? 3072 : 0)).toLocaleString("en-US")}`, 536, 14, { align: "right", bold: true, color: WAYCOL[way] });
+  // scale
+  if (mode === "M1") { const sy = y + 8; for (let i = 0; i < 120; i++) { g.fillStyle = ramp(i / 119); g.fillRect(hx + i, sy, 1.2, 8); } text(g, "0", hx - 4, sy + 4, { align: "right", color: C.ink3 }); text(g, `${top.toFixed(3)} and over`, hx + 126, sy + 4, { color: C.ink3 }); }
+}
+
+/* LoRA in detail */
+function drawL() {
+  const g = setup("cL"), k = +iL.value, s = R["match/1024/lora"].lora_snaps[k], sc = 4;
+  oL.textContent = `${s.step} steps`;
+  const W = R["match/1024/lora"].mats.q1_W0;           // [48][48]
+  const P = s.B, Q = s.A;                              // peft: B 48 x r (zeros at 0), A r x 48
+  const lessonA = P, lessonBt = Q;                     // the lesson's A (48 x r) and Bᵀ (r x 48)
+  const dW = W.map((_, i) => W[i].map((_, j) => sc * lessonA[i].reduce((acc, a, t) => acc + a * lessonBt[t][j], 0)));
+  const Wp = W.map((row, i) => row.map((v, j) => v + dW[i][j]));
+  const mW = Math.max(...W.flat().map(Math.abs)), mA = Math.max(1e-9, ...R["match/1024/lora"].lora_snaps.at(-1).B.flat().map(Math.abs)), mB = Math.max(...Q.flat().map(Math.abs));
+  const mD = (() => { const f = R["match/1024/lora"].lora_snaps.at(-1); let m = 0; for (let i = 0; i < 48; i++) for (let j = 0; j < 48; j++) m = Math.max(m, Math.abs(sc * f.B[i].reduce((a, b, t) => a + b * f.A[t][j], 0))); return m; })();
+  /* laid out as a product: A stands at the left, Bᵀ lies across the top, and their product fills the square where they meet */
+  const cell = 2.2, S = 48 * cell, R8 = 8 * cell, yT = 58, yM = yT + R8 + 6;
+  const mat = (M, x, y, scale) => { for (let i = 0; i < M.length; i++) for (let j = 0; j < M[0].length; j++) { g.fillStyle = ramp(Math.abs(M[i][j]) / scale); g.fillRect(x + j * cell, y + i * cell, cell + 0.2, cell + 0.2); } };
+  const xW = 14, xA = xW + S + 34, xP = xA + R8 + 6, xWp = xP + S + 30;
+  mat(W, xW, yM, mW); text(g, "W", xW + S / 2, yM - 10, { align: "center", bold: true, color: C.ink1 }); text(g, "frozen · 48 × 48 = 2,304", xW + S / 2, yM + S + 12, { align: "center", color: C.ink3 });
+  text(g, "+ 4 ·", xW + S + 17, yM + S / 2, { align: "center", color: C.ink1, size: C.sm });
+  mat(lessonA, xA, yM, mA); text(g, "A", xA + R8 / 2, yM + S + 12, { align: "center", bold: true, color: C.ink1 });
+  mat(lessonBt, xP, yT, mB); text(g, "Bᵀ", xP + S + 6, yT + R8 / 2, { bold: true, color: C.ink1 });
+  mat(dW, xP, yM, mD); text(g, "A Bᵀ, the update", xP + S / 2, yM + S + 12, { align: "center", color: C.ink2 });
+  text(g, "=", xP + S + 15, yM + S / 2, { align: "center", color: C.ink1, size: C.sm });
+  mat(Wp, xWp, yM, mW); text(g, "W′", xWp + S / 2, yM - 10, { align: "center", bold: true, color: C.ink1 }); text(g, "what the model uses", xWp + S / 2, yM + S + 12, { align: "center", color: C.ink3 });
+  text(g, `trained: A 48 × 8 and B 48 × 8 = ${(2 * 48 * 8).toLocaleString("en-US")}`, xA, yT - 26, { bold: true, color: C.c });
+  const nA = Math.sqrt(lessonA.flat().reduce((a, v) => a + v * v, 0)), nD = Math.sqrt(dW.flat().reduce((a, v) => a + v * v, 0)), nW = Math.sqrt(W.flat().reduce((a, v) => a + v * v, 0));
+  text(g, `after ${s.step} steps: ‖A‖ ${nA.toFixed(3)}${s.step === 0 ? ", zero, so the update is zero and W′ = W" : ""} · ‖update‖ / ‖W‖ = ${(nD / nW).toFixed(2)}`, 14, 268, { color: C.ink2 });
+  text(g, "each cell: the size of one entry. W and W′ on one scale; A, Bᵀ and the update each on its own run's largest", 14, 290, { color: C.ink3 });
+}
+
+/* the curve on a page */
+function drawC() {
+  const g = setup("cC"), run = TABLE.adapt.match["1024"], x0 = 52, y0 = 20, w = 360, h = 170, X = (i) => x0 + w * i / 40, Y = (v) => y0 + h - (v - 0.4) / 0.6 * h;
+  for (const v of [0.4, 0.6, 0.8, 1]) { g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x0, Y(v)); g.lineTo(x0 + w, Y(v)); g.stroke(); text(g, `${Math.round(v * 100)}%`, x0 - 6, Y(v), { align: "right", color: C.ink3 }); }
+  const line = (cv, col, dash) => { g.save(); g.strokeStyle = col; g.lineWidth = 2; if (dash) g.setLineDash([5, 3]); g.beginPath(); cv.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v))); g.stroke(); g.restore(); };
+  line(run.scratch, C.ref, true); line(run.full, C.b, false);
+  text(g, `${Math.round(100 * run.full.at(-1))}% Full fine-tuning`, X(40) + 6, Y(run.full.at(-1)), { bold: true, color: C.b });
+  text(g, `${Math.round(100 * run.scratch.at(-1))}% From scratch`, X(40) + 6, Y(run.scratch.at(-1)), { bold: true, color: C.ref });
+  text(g, "held-out accuracy on the Full fine-tuning page; from scratch the same network with random weights", x0, 214, { color: C.ink3 });
+}
+
+const [iW, iT, iS, oS, iL, oL] = ["iW", "iT", "iS", "oS", "iL", "oL"].map((i) => document.getElementById(i));
+const redraw = () => { oS.textContent = `${R[`${iT.value}/${iW.value}`].snaps[+iS.value].step} steps${+iS.value < 8 ? " (M1 shows the final change only)" : ""}`; drawMap("cM1", "M1"); drawMap("cM2", "M2"); };
+[iW, iT, iS].forEach((e) => e.oninput = redraw); iL.oninput = drawL;
+redraw(); drawL(); drawC();
+
+document.getElementById("qs").innerHTML = [
+  ["1 · Pages", "R1 From scratch · Transfer · Full fine-tuning · LoRA (recommended: one way a page, and from scratch is a way you can watch, everything lit) · R2 the three adapting ways, scratch as a reference curve only · R3 R1 plus a Compare page."],
+  ["2 · The weight map", "M1 every weight's change (recommended: it is the weights, and LoRA's lit Q and V and transfer's lit head read at a glance) · M2 one shade a matrix with its number."],
+  ["3 · LoRA's detail", "Under its map on the LoRA page, block 1's W_Q as W + 4 · A Bᵀ = W′, the update drawn, A starting at zero (recommended) · LoRA's detail as a fifth page · with a rank control r 1 · 2 · 4 · 8 (the count changes; accuracy does not, measured)."],
+  ["4 · The rail", "Way and Task, labelled notes fixed at 1,024 (recommended) · keep Labelled notes too."],
+].map(([h, t]) => `<p class="q"><b>${h}</b>${t}</p>`).join("");
+</script>
+</body>
+</html>
