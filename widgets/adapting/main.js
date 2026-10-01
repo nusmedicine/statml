@@ -330,8 +330,24 @@ function factorsAt(task, step) {
   const mix = (a, b) => a.map((row, i) => row.map((v, j) => v + (b[i][j] - v) * f));
   return { A: mix(L[k0].A, L[k1].A), B: mix(L[k0].B, L[k1].B), last: L[L.length - 1] };
 }
-function drawLora(ctx, c, w, task, step, y0) {
+/* THE DETAIL BLINKS WITH THE MAP (round 3, his "the lora matrix does not pulse?"): at the same moments, W′
+   and the update blink on exactly the cells of the map's block-1 Q tile (W′ = W + the update, and W does not
+   move), and A and Bᵀ on the entries that moved more than 5% of their own largest change in the same 50
+   steps. W never blinks: it is frozen. */
+const FMASKS = {};
+function factorMasks(task, k) {
+  const key = `${task}/${k}`;
+  if (FMASKS[key]) return FMASKS[key];
+  const L = TABLE.runs[task].lora.lora, per = SNAP / LSNAP, now = L[k * per], before = L[(k - 1) * per], first = L[0], last = L[L.length - 1];
+  const mask = (f) => {
+    const big = Math.max(1e-12, ...last[f].flatMap((row, i) => row.map((v, j) => Math.abs(v - first[f][i][j]))));
+    return now[f].map((row, i) => row.map((v, j) => Math.abs(v - before[f][i][j]) > THRESH * big));
+  };
+  return (FMASKS[key] = { A: mask("A"), B: mask("B") });
+}
+function drawLora(ctx, c, w, task, step, y0, blink) {
   const s = Math.round(step);
+  const q = blink ? blinkMask(task, "lora", blink)["blocks.0.att.q.weight"] : null, fm = blink ? factorMasks(task, blink) : null;
   txt(ctx, S.loraHead(s), PAD, y0 + 6, { font: cap(c), fill: c.ink1 });
   const { A: pA, B: pB, last } = factorsAt(task, step);
   /* the lesson's names: its A is peft's B (48 × r, zero at the start), its Bᵀ is peft's A (r × 48) */
@@ -342,16 +358,17 @@ function drawLora(ctx, c, w, task, step, y0) {
   const mW = mx(W), mA = mx(last.B), mB = mx(TABLE.runs[task].lora.lora.flatMap((x) => x.A)), mU = mx(updLast);
   const cell = 1.8, Sz = 48 * cell, R8 = r * cell, yT = y0 + 42, yM = yT + R8 + 6;
   const xW = PAD + 2, xA = xW + Sz + 40, xP = xA + R8 + 6, xWp = xP + Sz + 32;
-  const draw = (M, scale, x, y) => image(ctx, c, M.length, M[0].length, (i, j) => M[i][j] / scale, x, y, M[0].length * cell, M.length * cell);
+  const draw = (M, scale, x, y, lit = null) => image(ctx, c, M.length, M[0].length, (i, j) => M[i][j] / scale, x, y, M[0].length * cell, M.length * cell, false, lit);
+  const qLit = q ? (i, j) => q[i * 48 + j] === 1 : null;
   draw(W, mW, xW, yM); txt(ctx, S.loraW, xW + Sz / 2, yM - 10, { font: smallBold(c), fill: c.ink1, align: "center" });
   txt(ctx, S.loraWnote, xW + Sz / 2, yM + Sz + 12, { font: small(c), fill: c.ink3, align: "center" });
   txt(ctx, `+ ${SCALE} ·`, xW + Sz + 20, yM + Sz / 2, { font: body(c), fill: c.ink1, align: "center" });
-  draw(lA, mA, xA, yM); txt(ctx, S.loraA, xA + R8 / 2, yM + Sz + 12, { font: smallBold(c), fill: c.ink1, align: "center" });
-  draw(lBt, mB, xP, yT); txt(ctx, S.loraBt, xP + Sz + 6, yT + R8 / 2, { font: smallBold(c), fill: c.ink1 });
-  draw(upd, mU, xP, yM); txt(ctx, S.loraUpd, xP + Sz / 2, yM + Sz + 12, { font: small(c), fill: c.ink2, align: "center" });
+  draw(lA, mA, xA, yM, fm ? (i, j) => fm.B[i][j] : null); txt(ctx, S.loraA, xA + R8 / 2, yM + Sz + 12, { font: smallBold(c), fill: c.ink1, align: "center" });
+  draw(lBt, mB, xP, yT, fm ? (i, j) => fm.A[i][j] : null); txt(ctx, S.loraBt, xP + Sz + 6, yT + R8 / 2, { font: smallBold(c), fill: c.ink1 });
+  draw(upd, mU, xP, yM, qLit); txt(ctx, S.loraUpd, xP + Sz / 2, yM + Sz + 12, { font: small(c), fill: c.ink2, align: "center" });
   txt(ctx, "=", xP + Sz + 16, yM + Sz / 2, { font: body(c), fill: c.ink1, align: "center" });
   const Wp = W.map((row, i) => row.map((v, j) => v + upd[i][j]));
-  draw(Wp, mW, xWp, yM); txt(ctx, S.loraWp, xWp + Sz / 2, yM - 10, { font: smallBold(c), fill: c.ink1, align: "center" });
+  draw(Wp, mW, xWp, yM, qLit); txt(ctx, S.loraWp, xWp + Sz / 2, yM - 10, { font: smallBold(c), fill: c.ink1, align: "center" });
   txt(ctx, S.loraWpNote, xWp + Sz / 2, yM + Sz + 12, { font: small(c), fill: c.ink3, align: "center" });
   txt(ctx, S.loraTrained(r), xA, yT - 18, { font: smallBold(c), fill: c.ink1 });
   const norm = (M) => Math.sqrt(M.flat().reduce((a, v) => a + v * v, 0));
@@ -462,7 +479,7 @@ defineWidget({
     const pg = pageOf(anim, params), way = params.page, task = params.task, step = stepOf(pg), L = lay(way);
     drawNotes(ctx, colors, task);
     drawMap(ctx, colors, w, way, task, step, blinkOf(pg));
-    if (way === "lora") drawLora(ctx, colors, w, task, step, L.lora);
+    if (way === "lora") drawLora(ctx, colors, w, task, step, L.lora, blinkOf(pg));
     drawCurve(ctx, colors, w, way, task, step, L.curve);
     txt(ctx, caption(way, task, pg.n >= 1 && pg.t >= 1), PAD, L.height - 14, { font: body(colors), fill: colors.ink2 });
   },
