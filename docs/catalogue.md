@@ -23256,6 +23256,26 @@ gradients against attention on 85's models (the path and completeness — 0.81 �
 hid a "no"; attention is not attribution; re-measure the "with" shortcut on
 85's models first). Order: measure 86 → mock → build; then 87 the same.
 
+**MEASURED 2026-10-02 on the lesson's own data** (`_lab/protein-measure.py`;
+the CSV downloaded on his leave to the scratchpad, NOT committed, 16 MB):
+28,517 HA sequences, every one DISTINCT (no leakage across the lesson's split),
+61.1% human, length 560–567 (max 576), 8.3% with a non-standard letter. With
+no attention: amino-acid composition + logistic regression 87.2%, 3-mer
+composition 92.3%. The lesson's TransformerModel (cell 28) from scratch on
+4,000 training sequences: mean pooling 98.7% after one epoch, [CLS] 97.9% then
+96.8%, max 98.4% then 98.7% (one seed, two epochs: pooling differences not yet
+settled). So attention adds 6–11 points over composition: a real stage for 86.
+
+**PROTEINS IN 85 — PICKED 2026-10-02** (his "so adapting pretrain model widget
+shouldn't have protein sequences? i thought it may be good to have"): a **Data**
+choice in 85, Clinical notes · HA proteins, the same four ways on a small
+protein encoder pretrained by hiding residues (a stand-in for 08-3's ESM-2),
+**measured first** for a stage where the ways differ — from scratch already
+reaches 98.7% at 4,000 labels, so pretraining may show only at 16–64 labels.
+Costs to solve: a 576-row position table on the map, about a megabyte more
+table, and 85's height. 86 then stays Prepare · Encode · Pool · Train ·
+Occlusion. NEXT: that measurement.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
