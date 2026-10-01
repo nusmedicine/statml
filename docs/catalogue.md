@@ -23289,6 +23289,20 @@ against attribution; the path, steps and completeness; signed against the
 lesson's clip; occlusion's window, stride and PAD, and ESM-2's pad id). **86
 narrows** to Prepare · Encode · Pool · Train (no occlusion page).
 
+**OVERLAP REVIEW, 2026-10-02 — PICKED A: 86 CUT.** Laid out against 74, 75,
+83, 84, 85 and 87, 86's Train page repeated 85's Scratch page on the same HA
+data, its Prepare repeated 74's Tokenize (amino acids already there), its Encode
+84's Encoder and 83's padding mask; only mean/max pooling and the padding mask
+at protein length were new. So: **no widget 86**; 08-3's from-scratch half is
+served by 74 (tokens), 83 (the padding mask), 84 (the block) and **85's Scratch
+page on HA proteins, which gains a Pooling choice mean · max · [CLS]** (mean is
+08-3's own; ESM-2's head reads [CLS]), measured first for a stage where the
+poolings differ. **85's Data and Label merge into ONE control** (his call):
+Clinical outcome · Prescribing error · HA host (name and wording at the mock).
+Other items from the review: credit BV-BRC on any page that shows HA sequences;
+87 Occlusion's own point beyond 75 is the transformer and the tokenizer's ids;
+87 Attention's beyond 83/84 is that attention is not attribution.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
