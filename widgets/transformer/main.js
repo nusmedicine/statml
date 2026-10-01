@@ -785,7 +785,7 @@ function stage() {
 
 defineWidget({
   slug: "transformer",
-  status: "draft",
+  status: "shipped",
   title: S.title,
   subtitle: S.subtitle,
   layout: "side",

@@ -11029,6 +11029,316 @@
       },
       "px": "626ba206",
       "tx": "bc58f95b"
+    },
+    {
+      "$note": "transformer · Encoder, Pretraining, before any press: the masked sentence, the map, empty sections",
+      "slug": "transformer",
+      "state": "?theme=light&shown=0",
+      "px": "4e0828b5",
+      "tx": "861aa033"
+    },
+    {
+      "$note": "transformer · Encoder, Pretraining, the [MASK] row: its arcs and aspirin 0.606 against nitrate 0.390",
+      "slug": "transformer",
+      "state": "?theme=light&shown=4",
+      "px": "b67c8f33",
+      "tx": "b3864f62"
+    },
+    {
+      "$note": "transformer · Encoder, Pretraining, every row: the [SEP] row not scored",
+      "slug": "transformer",
+      "state": "?theme=light&shown=8",
+      "px": "ab55c381",
+      "tx": "b3be0696"
+    },
+    {
+      "$note": "transformer · Encoder, Prediction, Tokens, before any press",
+      "slug": "transformer",
+      "state": "?theme=light&phase=prediction&shown=0",
+      "px": "2b64136a",
+      "tx": "074dc583"
+    },
+    {
+      "$note": "transformer · Encoder, Prediction, Tokens, four rows: aspirin tagged drug",
+      "slug": "transformer",
+      "state": "?theme=light&phase=prediction&shown=4",
+      "px": "e20dcb4d",
+      "tx": "953bee8a"
+    },
+    {
+      "$note": "transformer · Encoder, Prediction, Tokens, every row: the [SEP] row has no tag",
+      "slug": "transformer",
+      "state": "?theme=light&phase=prediction&shown=8",
+      "px": "47eafefd",
+      "tx": "cce680db"
+    },
+    {
+      "$note": "transformer · Encoder, Prediction, Sentence, every row, not yet pooled",
+      "slug": "transformer",
+      "state": "?theme=light&phase=prediction&task=sentence&shown=8",
+      "px": "55dd7410",
+      "tx": "0397f8ff"
+    },
+    {
+      "$note": "transformer · Encoder, Prediction, Sentence, pooled: [CLS]'s 48 values and positive 1.000",
+      "slug": "transformer",
+      "state": "?theme=light&phase=prediction&task=sentence&shown=9",
+      "px": "97ae6964",
+      "tx": "cf1edf01"
+    },
+    {
+      "$note": "transformer · Decoder, Pretraining, before any press",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&shown=0",
+      "px": "c74b85c6",
+      "tx": "d0e514f5"
+    },
+    {
+      "$note": "transformer · Decoder, Pretraining, the row of for: chest 0.997",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&shown=5",
+      "px": "4b17f82e",
+      "tx": "5e7b5027"
+    },
+    {
+      "$note": "transformer · Decoder, Pretraining, every row: pain -> [EOS] 1.000",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&shown=7",
+      "px": "5a42c818",
+      "tx": "a0e6dc3b"
+    },
+    {
+      "$note": "transformer · Decoder, Generation, before any press: the prompt and the feed-back arrow",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&phase=generation&shown=0",
+      "px": "58d6f993",
+      "tx": "986eedd5"
+    },
+    {
+      "$note": "transformer · Decoder, Generation, the prompt read to aspirin",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&phase=generation&shown=4",
+      "px": "927ad8fa",
+      "tx": "bb5c8709"
+    },
+    {
+      "$note": "transformer · Decoder, Generation, chest generated and fed back",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&phase=generation&shown=6",
+      "px": "e12e313f",
+      "tx": "ff03f8ac"
+    },
+    {
+      "$note": "transformer · Decoder, Generation, [EOS] written: generation stops",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&phase=generation&shown=7",
+      "px": "9ecf96b9",
+      "tx": "7f68b11f"
+    },
+    {
+      "$note": "transformer · Encoder–decoder, Training, before any press: the gene and the two-stack map",
+      "slug": "transformer",
+      "state": "?theme=light&page=encoder-decoder&shown=0",
+      "px": "043aa751",
+      "tx": "351c4b36"
+    },
+    {
+      "$note": "transformer · Encoder–decoder, Training, the first press: the gene encoded, [BOS]'s row",
+      "slug": "transformer",
+      "state": "?theme=light&page=encoder-decoder&shown=1",
+      "px": "e3e055c3",
+      "tx": "c1936163"
+    },
+    {
+      "$note": "transformer · Encoder–decoder, Training, every row: R's row and its target [EOS]",
+      "slug": "transformer",
+      "state": "?theme=light&page=encoder-decoder&shown=7",
+      "px": "cc02eebc",
+      "tx": "9f582f85"
+    },
+    {
+      "$note": "transformer · Encoder–decoder, Generation, three amino acids written, V fed back",
+      "slug": "transformer",
+      "state": "?theme=light&page=encoder-decoder&phase=generation&shown=3",
+      "px": "4097ad4f",
+      "tx": "ada98e72"
+    },
+    {
+      "$note": "transformer · Encoder–decoder, Generation, [EOS] written: the decoder stops, KLVHAR",
+      "slug": "transformer",
+      "state": "?theme=light&page=encoder-decoder&phase=generation&shown=7",
+      "px": "b595e5f7",
+      "tx": "6b3564ca"
+    },
+    {
+      "$note": "transformer · DRIVEN - Encoder, the first press at the attention box: the ring travelling, [CLS]'s arcs drawing out",
+      "slug": "transformer",
+      "state": "?theme=light",
+      "px": "2f227a27",
+      "tx": "861aa033",
+      "drive": {
+        "click": "step",
+        "frames": 18,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "transformer · DRIVEN - Encoder, the first press at Linear + softmax: the row not scored",
+      "slug": "transformer",
+      "state": "?theme=light",
+      "px": "d6226ceb",
+      "tx": "861aa033",
+      "drive": {
+        "click": "step",
+        "frames": 42,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "transformer · DRIVEN - Decoder, Generation, the fifth press riding the feed-back arrow: chest on its way to the input",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&phase=generation",
+      "px": "c58d73e2",
+      "tx": "bb5c8709",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 50
+          },
+          {
+            "click": "step",
+            "frames": 50
+          },
+          {
+            "click": "step",
+            "frames": 50
+          },
+          {
+            "click": "step",
+            "frames": 50
+          }
+        ],
+        "click": "step",
+        "frames": 60,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "transformer · DRIVEN - Encoder–decoder, the first press at the encoder's self-attention",
+      "slug": "transformer",
+      "state": "?theme=light&page=encoder-decoder",
+      "px": "f852a374",
+      "tx": "351c4b36",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "transformer · DRIVEN - Encoder–decoder, Generation, the second press: L riding the feed-back arrow",
+      "slug": "transformer",
+      "state": "?theme=light&page=encoder-decoder&phase=generation",
+      "px": "191af9b5",
+      "tx": "6ae18dd5",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 110
+          }
+        ],
+        "click": "step",
+        "frames": 70,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "transformer · DRIVEN - Encoder, Prediction, Sentence, the pooling press: [CLS]'s arcs and the embedding's bars rising",
+      "slug": "transformer",
+      "state": "?theme=light&phase=prediction&task=sentence",
+      "px": "ab603ba0",
+      "tx": "0397f8ff",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 38
+          },
+          {
+            "click": "step",
+            "frames": 38
+          },
+          {
+            "click": "step",
+            "frames": 38
+          },
+          {
+            "click": "step",
+            "frames": 38
+          },
+          {
+            "click": "step",
+            "frames": 38
+          },
+          {
+            "click": "step",
+            "frames": 38
+          },
+          {
+            "click": "step",
+            "frames": 38
+          },
+          {
+            "click": "step",
+            "frames": 38
+          }
+        ],
+        "click": "step",
+        "frames": 8,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "transformer · INTERRUPTED - Encoder mid-press, the Decoder page visited: its press untouched, the loop ended",
+      "slug": "transformer",
+      "state": "?theme=light",
+      "px": "c74b85c6",
+      "tx": "d0e514f5",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "decoder"
+        },
+        "frames": 10,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "transformer · INTERRUPTED - Decoder Generation mid-press, Pretraining chosen: nothing of the generation press carried over",
+      "slug": "transformer",
+      "state": "?theme=light&page=decoder&phase=generation",
+      "px": "c74b85c6",
+      "tx": "d0e514f5",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "phase": "pretraining"
+        },
+        "frames": 10,
+        "dt": 32
+      }
     }
   ]
 }
