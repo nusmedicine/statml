@@ -90,7 +90,25 @@
   <h2>5 &middot; The numbers</h2>
   <div id="tbl"></div>
 
-  <h2>To answer</h2>
+  <h2>6 &middot; Round two: what the reader sees</h2>
+  <p class="note"><b>The labelled notes on screen.</b> Your ask was to show a head trained on <i>labelled data</i>; &sect;3 shows the training but not the
+    data. V1 puts a strip of the training notes above the columns, each with its label, the batch the current press draws from (real notes from the
+    measurement's sets). The page height allows it: 84's tallest page sits at 1,180 of the 1,200 frame, this one would be about 760.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">V1 · four labelled notes above the three columns, per task</div><canvas id="cV" width="550" height="250"></canvas>
+      <div class="ctl">task <select id="iVT"><option value="outcome">Finding asserted</option><option value="match">Drug for the wrong symptom</option></select></div></div>
+  </div>
+  <table class="scope">
+    <tr><th>choice</th><th>recommended</th><th>other arms</th></tr>
+    <tr><td>Title</td><td><i>Deep Learning - Language: Pre-training and Adapting</i> (83 and 84's form, the lesson's two headings)</td><td><i>Deep Learning - Language: Adapting Pre-trained Models</i> &middot; <i>Deep Learning - Language: Transfer Learning and Fine-tuning</i></td></tr>
+    <tr><td>Slug (public, in every link)</td><td><code>adapting</code></td><td><code>pretrained-models</code> &middot; <code>fine-tuning</code> &middot; <code>clinical-text</code> (the arc's provisional name; the widget is not about clinical text as such)</td></tr>
+    <tr><td>Strategy colours</td><td>as drawn: transfer <span style="color:var(--c-group-a)">group-a</span>, full <span style="color:var(--c-group-b)">group-b</span>, LoRA <span style="color:var(--c-group-c)">group-c</span> (three parallel branches, the role's own definition); scratch <span style="color:var(--c-reference)">reference</span>; frozen parts surface grey</td><td>your figure's colours (backbone blue, head red, adapter light blue) for the PARTS, with the strategies told apart by name only</td></tr>
+    <tr><td>Press, Pretraining</td><td><b>Step</b> to the next checkpoint (0 &middot; 25 &middot; 100 &middot; 200 &middot; 500 &middot; 750 &middot; 3,000: seven presses, each one read)</td><td>Play through all thirteen checkpoints</td></tr>
+    <tr><td>Press, Adapting</td><td><b>Train</b>: one press runs the 400 steps, the three curves growing together (training is repetition)</td><td>Step: 50 steps a press, eight presses</td></tr>
+    <tr><td>Label words</td><td>Finding asserted: <i>positive</i> &middot; <i>negative</i> (08-2's 1 and 0); Drug for the wrong symptom: <i>wrong drug</i> &middot; <i>right drug</i></td><td>the numbers 1 and 0 alone, as the CSV holds them</td></tr>
+  </table>
+
+  <h2>Round one, picked 2026-10-01: every recommendation</h2>
   <div id="qs"></div>
 </main>
 <script type="module">
@@ -237,7 +255,7 @@ document.getElementById("qs").innerHTML = [
  ["5 · From scratch", "A fourth line, on by default in the reference colour (recommended: on the second task it is the line that shows what pretraining bought, 54% against 82%) · a display toggle, off by default · left out (your figure has no scratch column)."],
  ["6 · Learning rates", "The arc's 5e-3 · 3e-4 · 1e-3, stated in the controls' detail (recommended: at the lesson's 1e-4 full fine-tuning has not finished learning by 400 steps) · the lesson's, with more steps (to re-measure)."],
 ].map(([h, t]) => `<p class="q"><b>${h}</b>${t}</p>`).join("") +
- `<p class="note">Next round, once these are picked: the title (for example <i>Deep Learning - Language: Pre-training and Adapting</i>), the slug (<code>clinical-text</code> was provisional), the strategy colours, and what a press is on each page.</p>`;
+"";
 
 // ---------------------------------------------------------------- 5 the table
 function table() {
@@ -253,7 +271,21 @@ function table() {
   document.getElementById("tbl").innerHTML = h;
 }
 
-drawPre(); redrawA(); drawL(); table();
+const NOTES = {
+  outcome: [["managed with paracetamol for fever", 1], ["ready discharge home tomorrow", 0], ["patient deteriorated overnight", 1], ["no fever reported", 0]],
+  match: [["treated with paracetamol for chest pain", 1], ["treated with oxygen for breathlessness", 0], ["managed with cefazolin for fever", 1], ["no breathlessness on exam . treated with antibiotics for infection", 0]] };
+const LAB = { outcome: ["negative", "positive"], match: ["right drug", "wrong drug"] };
+function drawV() {
+  const { g } = setup("cV"), task = document.getElementById("iVT").value;
+  text(g, "Labelled notes: 1,024 for training, 1,000 held out", 20, 18, { bold: true, color: C.ink1, size: C.sm });
+  NOTES[task].forEach(([t, y], i) => { const yy = 46 + i * 24;
+    g.fillStyle = y ? C.ink1 : C.s3; g.fillRect(20, yy - 9, 74, 18); text(g, `${y} ${LAB[task][y]}`, 57, yy, { align: "center", color: y ? C.s1 : C.ink1 });
+    text(g, t, 104, yy, { size: C.sm, color: C.ink1 }); });
+  text(g, "the head is trained to output the label from the note", 20, 148, { color: C.ink3 });
+  text(g, "(the three columns of §3 follow here)", 275, 200, { align: "center", color: C.ink3 });
+}
+document.getElementById("iVT").oninput = drawV;
+drawPre(); redrawA(); drawL(); table(); drawV();
 </script>
 </body>
 </html>
