@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); NEXT 85 `clinical-text` (Pre-training and adapting), plan with him** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 Pre-training and Adapting MEASURED, MOCKED AND PICKED 2026-10-01 (pages Pretraining · Adapting; LIG to its own widget after 86), NEXT its visible choices (title, slug, colours, presses) — § *Slot 85*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -22997,6 +22997,57 @@ figures (`dl-language-transformer-encoder.png`, `-decoder.png`,
 **Told to him for the lesson:** the FFN-and-negation claim and the
 layer-hierarchy claim of 08-1 cell 2 (both about large models; the widget
 draws neither).
+
+### Slot 85 · Pre-training and Adapting — MEASURED, MOCKED AND PICKED 2026-10-01
+
+**The ask** (84's ship, 2026-09-30): pretraining and adapting as their own
+widget, and it should SHOW a head being trained on labelled data, since 84
+shows only the trained heads' results. Hosts: 08-1 cells 4 and 13–19, 08-2
+cells 3 and 19–65 (`dl-language-pretrain-adapt.png`, `-transfer.png`,
+`-finetune.png`, `-lora.png`).
+
+**Measured on 84's own base** (`_lab/clinical-text-measure.py`, the base
+rebuilt bit for bit, MLM 80%; `_lab/clinical-text-measure.json`), with the
+[CLS] row as the sentence vector, as 08-1 cells 12–13, 08-2 and 84 use. The
+arc's part C used mean pooling, so its adaptation numbers are not this
+widget's:
+
+- **Pretraining over steps:** the lesson's *treated with [MASK] for chest
+  pain* goes from noise (step 0) to grammar words, *from* and *with* (25–100),
+  to a drug (200: paracetamol 0.08), to the drugs for chest pain (750:
+  aspirin 0.39, nitrate 0.31) and to 84's 0.61 / 0.39 at 3,000; held-out MLM
+  accuracy 4% → 19% (25) → 50% (200) → 72% (500) → 80%. The checkpointed run
+  ends equal to 84's base.
+- **Adaptation**, 400 steps of batch 16, three seeds, the arc's rates
+  (transfer 5e-3, full 3e-4, LoRA r 8 α 32 1e-3), at n = 16 · 64 · 256 ·
+  1,024. Trainable: transfer 98, LoRA 3,170 (3,072 on Q and V of both blocks
+  + the head), full and scratch 43,874 (the MLM head dropped, as
+  `AutoModelForSequenceClassification` drops it).
+  - *Finding asserted* (08-2's clinical_outcome; 79% positive): transfer 91
+    91 95 95, LoRA 90 97 99 100, full 90 95 99 100, scratch 88 95 99 100.
+  - *Drug for the wrong symptom* (52% positive): transfer 50 50 51 51, LoRA
+    51 57 74 78, full 51 57 73 82, scratch 51 55 58 54. A probe on the
+    frozen [CLS] with 4,000 labelled notes reaches 61%.
+  - So transfer's case is cost, not accuracy; fine-tuning's is a task the
+    pretrained vectors do not separate; pretraining is worth 28 points there.
+- **Ruled out, so no draft proposes it:** the arc's "transfer wins at
+  n = 16" (a mean-pooling number; 91 against 90 with [CLS]); forgetting (MLM
+  80% after every strategy at the lesson's rates, seed 0; LoRA 78% with the adapter on, 80%
+  removed); a drug the labels never name (trained on aspirin, tested on
+  nitrate: every strategy at chance, pretrained or not); the lesson's own
+  rates over 400 steps (full 59% at 1,024 on the second task).
+
+**PICKED 2026-10-01, two AskUserQuestion calls, every recommendation**
+(mock `_lab/clinical-text-mock.html`): pages **Pretraining · Adapting**
+(LoRA drawn on its column, not a page of its own); **Explainability (LIG) to
+its own widget after 86**; the Adapting chart as **training curves at one
+size (A1)**, a press training the three heads together under his adapt
+figure, the trained parts filled and bracketed *Trainable*, LoRA's A Bᵀ
+inside the backbone beside Q and V (finding 9); **both tasks**; **from
+scratch a fourth line, on**, in the reference colour; **the arc's learning
+rates**, stated in the detail. NEXT: the visible choices — title, slug,
+strategy colours, what a press is on each page — mocked and asked, then the
+draft on his word.
 
 ### The open calls
 

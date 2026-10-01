@@ -76,7 +76,7 @@
     28 points. So transfer's case is cost (98 numbers trained against 43,874), not accuracy, and fine-tuning's case is a task the pretrained vectors do not
     already separate.</p>
   <p class="note"><b>Measured and left out.</b> (1) The arc's "transfer wins at 16 notes" does not hold with [CLS] (91% against 90%); it was a mean-pooling
-    number. (2) Forgetting: at these rates no strategy loses masked-word accuracy (80% before and after; LoRA 78% with the adapter on, 80% removed), so there
+    number. (2) Forgetting: at the lesson's rates no strategy loses masked-word accuracy (80% before and after; LoRA 78% with the adapter on, 80% removed), so there
     is no forgetting to show. (3) A drug the labels never name (trained on aspirin, tested on nitrate): every strategy is at chance, pretrained or not; this
     model does not learn that nitrate stands for aspirin. (4) At the lesson's own rate, full fine-tuning is too slow for 400 steps (59% at 1,024 notes on the
     second task).</p>
