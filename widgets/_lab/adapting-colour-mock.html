@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 round 1 — a diagram beside the blocks, and the weights in blue–red</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  .ctl { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-2); display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 &middot; round 1 &middot; a diagram beside the blocks, and the weights in blue&ndash;red &middot; mock</h1>
+  <p class="note">Your two comments on the rebuild. Every picture is drawn from the real run (Wrong drug, 1,024 notes, seed 0;
+    <code>_lab/adapting-colour-measure.py</code>). The controls stand in for the page and the Train press.</p>
+  <div class="ctl">way <select id="iW"><option value="scratch">Scratch</option><option value="transfer">Transfer</option><option value="full" selected>Full</option><option value="lora">LoRA</option></select>
+    step <select id="iS"><option>0</option><option>200</option><option selected>400</option></select></div>
+
+  <h2>1 &middot; The colour: the weights, or how far they moved</h2>
+  <p class="note"><b>Measured:</b> on a picture of the weights themselves, the share of all weights whose colour moves by a tenth of the ramp or more
+    between step 0 and step 400 is <span id="seen"></span>. Full fine-tuning moves every weight, each by a little, so on the weights
+    reading it looks as if almost nothing happened; on the change reading every tile lights up. <b>Blue&ndash;red</b> is the collection's signed-value pair
+    (<code>--c-value-low/high</code>, blue below zero, red above, as 83 draws signed weights); a panel using it colours nothing else by identity, so the map's
+    labels and the Trainable marks go to ink and the way colours stay on the curve.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">C1 · the weights W, blue–red: there from the start, changing with training</div><canvas id="cC1" width="550" height="400"></canvas></div>
+    <div class="cand"><div class="sub">C2 · the change W − W₀, blue–red: grey at step 0, signed</div><canvas id="cC2" width="550" height="400"></canvas></div>
+  </div>
+  <div class="row">
+    <div class="cand"><div class="sub">C3 · the shipped draft's |W − W₀| on the violet ramp, for comparison</div><canvas id="cC3" width="550" height="400"></canvas></div>
+  </div>
+  <p class="note"><b>C4, recommended:</b> both readings, a display control <b>Show: Weights &middot; Change</b> on the rail, Weights the default (the picture you
+    expected), Change one click away for the ways whose weights move too little to see. A display control, so switching keeps the run.</p>
+
+  <h2>2 &middot; A diagram beside the blocks</h2>
+  <p class="note"><b>D1</b>: your encoder figure in a column at the left, each box level with its row of tiles (input at the bottom), the boxes a way trains
+    outlined in ink and the frozen ones hatched like their tiles, so the figure carries the Trainable mark too; and over the tiles the box each group belongs
+    to. <b>D2</b>: no figure, only those group headers on the map. The map shrinks to 0.95 px a weight in D1 to make room.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">D1 · the figure beside the rows (recommended)</div><canvas id="cD1" width="550" height="400"></canvas></div>
+    <div class="cand"><div class="sub">D2 · group headers only</div><canvas id="cD2" width="550" height="400"></canvas></div>
+  </div>
+
+  <h2>To answer</h2>
+  <p class="q"><b>1 · The colour</b>C4 both readings, Show: Weights · Change, Weights first (recommended) · C1 the weights only · C2 the change only, blue–red · C3 as now.</p>
+  <p class="q"><b>2 · The diagram</b>D1 your figure beside the rows, carrying the Trainable mark (recommended) · D2 group headers only · neither.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  lo: css("--c-value-low"), hi: css("--c-value-high"), mag: css("--c-magnitude"), font: css("--font"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const R = await (await fetch("adapting-colour-measure.json", { cache: "no-store" })).json();
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t))));
+const SIGNED = (v) => mix(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v));
+const MAG = (v) => mix(rgb(C.s3), rgb(C.mag), Math.sqrt(Math.abs(v)));
+const SHAPES = { "head.weight": [2, 48], "tok.weight": [58, 48], "pos.weight": [64, 48] };
+for (const b of [0, 1]) { for (const m of ["q", "k", "v", "o"]) SHAPES[`blocks.${b}.att.${m}.weight`] = [48, 48]; SHAPES[`blocks.${b}.ff.0.weight`] = [96, 48]; SHAPES[`blocks.${b}.ff.2.weight`] = [48, 96]; }
+const TRAINS = { scratch: Object.keys(SHAPES), full: Object.keys(SHAPES), transfer: ["head.weight"], lora: ["head.weight", "blocks.0.att.q.weight", "blocks.0.att.v.weight", "blocks.1.att.q.weight", "blocks.1.att.v.weight"] };
+const p99 = (arr) => { const a = arr.map(Math.abs).sort((x, y) => x - y); return a[Math.floor(a.length * 0.99)] || 1e-9; };
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; const w = +cv.getAttribute("width"), h = +cv.getAttribute("height");
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return g; }
+function text(g, s, x, y, { color = C.ink2, align = "left", bold = false, size = C.xs } = {}) { g.font = `${bold ? "600 " : ""}${size} ${C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); }
+const off = document.createElement("canvas");
+function image(g, M, fill, x, y, w, h, side) {
+  const R0 = M.length, C0 = M[0].length, Rr = side ? C0 : R0, Cc = side ? R0 : C0;
+  off.width = Cc; off.height = Rr; const o = off.getContext("2d"), img = o.createImageData(Cc, Rr);
+  for (let i = 0; i < Rr; i++) for (let j = 0; j < Cc; j++) { const v = side ? M[j][i] : M[i][j], q = fill(v), k = 4 * (i * Cc + j); img.data[k] = q[0]; img.data[k + 1] = q[1]; img.data[k + 2] = q[2]; img.data[k + 3] = 255; }
+  o.putImageData(img, 0, 0); g.save(); g.imageSmoothingEnabled = false; g.drawImage(off, x, y, w, h); g.restore();
+}
+function hatch(g, x, y, w, h) { g.save(); g.fillStyle = C.s2; g.fillRect(x, y, w, h); g.beginPath(); g.rect(x, y, w, h); g.clip(); g.strokeStyle = C.grid;
+  for (let k = -h; k < w; k += 6) { g.beginPath(); g.moveTo(x + k, y + h); g.lineTo(x + k + h, y); g.stroke(); } g.restore(); g.strokeStyle = C.grid; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
+
+/* one map: mode weights | change | magnitude; diagram none | D1 | D2 */
+function map(id, mode, diagram) {
+  const g = setup(id), way = iW.value, s = iS.value, W0 = R[way]["0"], Wt = R[way][s], trained = new Set(TRAINS[way]);
+  const PX = diagram === "D1" ? 0.95 : 1.1, T = 48 * PX, x0 = diagram === "D1" ? 140 : 54;
+  /* scales: weights, per matrix from W0; change, one for the page from the final change */
+  const sc = {}; for (const k of Object.keys(SHAPES)) sc[k] = p99(W0[k].flat());
+  const allD = []; for (const k of TRAINS[way]) { const W4 = R[way]["400"][k]; W4.forEach((r, i) => r.forEach((v, j) => allD.push(v - W0[k][i][j]))); }
+  const scD = p99(allD);
+  const val = (k, i, j) => mode === "weights" ? Wt[k][i][j] / sc[k] : (Wt[k][i][j] - W0[k][i][j]) / scD;
+  const fill = mode === "magnitude" ? MAG : SIGNED;
+  text(g, `${{ scratch: "From scratch", transfer: "Transfer learning", full: "Full fine-tuning", lora: "LoRA" }[way]} · after ${s} steps · ${mode === "weights" ? "the weights" : "how far each weight moved since step 0"}`, 12, 14, { bold: true, color: C.ink1, size: C.sm });
+  const rows = {}; let y = 46;
+  const tile = (k, label, x, y0) => {
+    const [r, c] = SHAPES[k], side = r !== 48, W = (side ? r : c) * PX;
+    text(g, label, x + W / 2, y0 - 7, { align: "center", color: C.ink2 });
+    if (!trained.has(k) && mode !== "weights") { hatch(g, x, y0, W, T); text(g, "frozen", x + W / 2, y0 + T / 2, { align: "center", color: C.ink3 }); return W; }
+    const M = Array.from({ length: r }, (_, i) => Array.from({ length: c }, (_, j) => val(k, i, j)));
+    image(g, M, fill, x, y0, W, T, side);
+    if (!trained.has(k)) { g.save(); g.strokeStyle = C.ink3; g.setLineDash([2, 2]); g.strokeRect(x + 0.5, y0 + 0.5, W - 1, T - 1); g.restore(); }
+    return W;
+  };
+  // head
+  { const M = [0, 1].map((i) => Array.from({ length: 48 }, (_, j) => val("head.weight", i, j)));
+    if (diagram !== "D1") text(g, "Head", x0, y, { bold: true, color: C.ink1 });
+    const hx0 = diagram === "D1" ? x0 : x0 + 36; image(g, M, fill, hx0, y - 8, 192, 16, false); rows.head = [y - 8, y + 8]; }
+  y += 22;
+  for (const b of [1, 0]) {
+    const ty = y + (diagram === "D2" ? 40 : diagram === "D1" ? 34 : 18); let x = x0;
+    if (diagram !== "D1") text(g, `Block ${b + 1}`, x0, y, { bold: true, color: C.ink1 });
+    const xs = [];
+    for (const [m, l] of [["att.q", "Q"], ["att.k", "K"], ["att.v", "V"], ["att.o", "O"], ["ff.0", "FF 1"], ["ff.2", "FF 2"]]) { xs.push(x); x += tile(`blocks.${b}.${m}.weight`, l, x, ty) + (l === "O" ? 12 : 6); }
+    if (diagram) { // group headers over the tiles
+      const attR = xs[3] + T, ffL = xs[4], ffR = x - 6;
+      for (const [a, z, s2] of [[xs[0], attR, "Self-attention"], [ffL, ffR, "Feed forward"]]) {
+        g.strokeStyle = C.ink3; g.lineWidth = 1; g.beginPath(); g.moveTo(a, ty - 14); g.lineTo(a, ty - 18); g.lineTo(z, ty - 18); g.lineTo(z, ty - 14); g.stroke();
+        text(g, s2, (a + z) / 2, ty - 25, { align: "center", color: C.ink1, bold: true });
+      }
+    }
+    rows[`b${b}`] = [ty, ty + T]; y = ty + T + (diagram ? 16 : 14);
+  }
+  { const ty = y + 18; let x = x0; if (diagram !== "D1") text(g, "Embeddings", x0, y, { bold: true, color: C.ink1 });
+    x += tile("tok.weight", "token", x, ty) + 12; tile("pos.weight", "position", x, ty); rows.emb = [ty, ty + T]; y = ty + T; }
+  // the diagram: his figure, each box level with its row
+  const parts = way === "transfer" ? ["head"] : way === "lora" ? ["head", "b1", "b0"] : ["head", "b1", "b0", "emb"];
+  if (diagram === "D1") {
+    const bx = 36, bw = 92, box = (y0, h, label, on, sub) => {
+      if (on) { g.fillStyle = C.s1; g.fillRect(bx, y0, bw, h); g.strokeStyle = C.ink1; g.lineWidth = 2; g.strokeRect(bx + 1, y0 + 1, bw - 2, h - 2); }
+      else hatch(g, bx, y0, bw, h);
+      text(g, label, bx + bw / 2, y0 + h / 2 - (sub ? 5 : 0), { align: "center", color: on ? C.ink1 : C.ink3, bold: on });
+      if (sub) text(g, sub, bx + bw / 2, y0 + h / 2 + 7, { align: "center", color: C.ink2 });
+    };
+    const arrow = (y1, y2) => { g.strokeStyle = C.ink3; g.lineWidth = 1.2; g.beginPath(); g.moveTo(bx + bw / 2, y1); g.lineTo(bx + bw / 2, y2 + 4); g.stroke(); g.fillStyle = C.ink3; g.beginPath(); g.moveTo(bx + bw / 2, y2); g.lineTo(bx + bw / 2 - 4, y2 + 6); g.lineTo(bx + bw / 2 + 4, y2 + 6); g.fill(); };
+    const on = (p) => parts.includes(p);
+    box(rows.emb[0] + 8, T - 16, "Embedding", on("emb"));
+    /* a block's frame spans its row of tiles and the headers above them: Feed forward on top, as his figure */
+    for (const b of [0, 1]) {
+      const [a, z] = rows[`b${b}`];
+      g.save(); g.setLineDash([4, 3]); g.strokeStyle = C.ink3; g.strokeRect(bx - 5, a - 32, bw + 10, z - a + 34); g.restore();
+      text(g, `Block ${b + 1}`, bx - 1, a - 25, { color: C.ink2, bold: true });
+      box(a - 16, 24, "Feed forward", on(`b${b}`) && way !== "lora");
+      box(a + 12, z - a - 12, "Self-attention", on(`b${b}`), way === "lora" ? "Q, V + A Bᵀ" : null);
+    }
+    box(rows.head[0], 16, "Linear (head)", true);
+    arrow(rows.emb[0] + 8, rows.b0[1] + 2); arrow(rows.b0[0] - 32, rows.b1[1] + 2); arrow(rows.b1[0] - 32, rows.head[1] + 1);
+  } else if (mode !== "weights" || true) {
+    const t0 = Math.min(...parts.map((p) => rows[p][0])), t1 = Math.max(...parts.map((p) => rows[p][1])), hx = x0;
+    g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.beginPath(); g.moveTo(hx - 8, t0); g.lineTo(hx - 13, t0); g.lineTo(hx - 13, t1); g.lineTo(hx - 8, t1); g.stroke();
+    g.save(); g.translate(hx - 22, (t0 + t1) / 2); g.rotate(-Math.PI / 2); text(g, "Trainable", 0, 0, { align: "center", bold: true, color: C.ink1 }); g.restore();
+  }
+  // scale
+  const sy = y + 18;
+  for (let i = 0; i < 160; i++) { const v = mode === "magnitude" ? i / 159 : (i - 80) / 79; const q = fill(v); g.fillStyle = `rgb(${q.join(",")})`; g.fillRect(x0 + i, sy - 4, 1.2, 8); }
+  text(g, mode === "weights" ? "negative · 0 · positive, each matrix on its own scale" : mode === "change" ? `decreased · 0 · increased, ±${scD.toFixed(3)} and over` : `0 · ${scD.toFixed(3)} and over`, x0 + 168, sy, { color: C.ink3 });
+}
+const [iW, iS] = ["iW", "iS"].map((i) => document.getElementById(i));
+function redraw() {
+  document.getElementById("seen").innerHTML = ["scratch", "transfer", "full", "lora"].map((w) => `${{ scratch: "from scratch", transfer: "transfer", full: "full fine-tuning", lora: "LoRA" }[w]} <b>${(100 * R[w].seen).toFixed(1)}%</b>`).join(", ");
+  map("cC1", "weights", null); map("cC2", "change", null); map("cC3", "magnitude", null); map("cD1", "weights", "D1"); map("cD2", "weights", "D2");
+}
+[iW, iS].forEach((e) => (e.oninput = redraw)); redraw();
+</script>
+</body>
+</html>
