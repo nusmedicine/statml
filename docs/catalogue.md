@@ -23182,6 +23182,23 @@ the sign reading), Z3 hatched over the weights (vanishes in the noise) and Z4
 padlock + frames. Built: a frozen matrix's weights 70% toward the background
 with "frozen" on them, on the map and on LoRA's W. Sweep clean, tallest 1,179.
 
+**ROUND 4 PLANNING, 2026-10-01 — PICKED, NOT BUILT (his "not yet").** His
+questions: were the two tasks different predictions (no: one kind, a note's
+class from [CLS], the labels set by different facts — a frozen-[CLS] probe 98%
+against 61%, transfer 96% against 52%), and could the page show inputs and
+labels. **Picked:** keep both tasks, the control renamed **Label** (Finding
+asserted · Wrong drug) with a line that only the label differs; **E2**, four
+HELD-OUT notes a label replacing the two training notes, not chosen by outcome
+(the first two of each label in the held-out set within 60 characters), each
+with its true label and the page's prediction as **X1** ("wrong drug 0.70 ✗",
+ink marks), updating every 50 steps. Measured (`_lab/adapting-examples-measure.py`,
+mock `_lab/adapting-examples-mock.html`, 3506cf2): on Wrong drug transfer calls
+all four "wrong drug" at 0.56–0.70 (two right by always answering the same),
+full ends sure and right on all four (0.01, 0.04, 0.95, 0.97), LoRA right on
+all four (one at 0.51), scratch swings around 0.5; on Finding asserted every
+way has all four right by step 150. Cost: two rows; the LoRA page (20 px spare)
+pays with a smaller detail and chart. NEXT: build on his word.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
