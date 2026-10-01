@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 pre-training and adapting — plan mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 115ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  td, th { padding: 3px 10px; border-bottom: 1px solid var(--grid); text-align: right; vertical-align: top; }
+  td:first-child, th:first-child { text-align: left; }
+  table.scope td, table.scope th { text-align: left; max-width: 60ch; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  .ctl { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 115ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .rec { font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 &middot; Pre-training and Adapting &middot; plan mock</h1>
+  <p class="note"><b>Where 85 starts.</b> 84 already shows a pretrained encoder filling the lesson's [MASK] (aspirin 0.61, nitrate 0.39), a decoder's
+    next-token pretraining, and two heads <i>after</i> training on labelled notes (token tags, the [CLS] sentence class). What no widget shows: <b>pretraining
+    happening</b> (labels made from the text itself), <b>a head being trained on labelled data</b> (your note at 84's ship), <b>which parameters each way of
+    adapting trains</b>, and 08-2 cell 19's closing claim, <i>"the choice between transfer learning and fine-tuning depends on dataset size and domain
+    similarity"</i>. Every number below is measured on <b>84's own base model</b> (rebuilt bit for bit, MLM 80%) with the [CLS] row as the sentence vector,
+    as 08-1 cells 12&ndash;13, 08-2 and 84 all use: <code>_lab/clinical-text-measure.py</code>.</p>
+
+  <h2>1 &middot; Scope: which pages</h2>
+  <table class="scope">
+    <tr><th>arm</th><th>pages</th><th>what it covers</th><th>what it leaves</th></tr>
+    <tr><td class="rec">S1 (recommended)</td><td>Pretraining &middot; Adapting</td><td>08-1 cell 4 as training over steps; 08-1 cells 13&ndash;15 and 08-2 cells 19&ndash;65 as one stage (transfer &middot; full &middot; LoRA trained side by side on labelled notes, the trained parts marked on your adapt figure)</td><td>LoRA's matrices drawn as a count on the LoRA column only; inference and explainability</td></tr>
+    <tr><td>S2</td><td>Pretraining &middot; Adapting &middot; LoRA</td><td>S1, plus a LoRA page: W frozen, A and Bᵀ trained, W&prime; = W + (&alpha;/r)ABᵀ, the rank as a count (&sect;4)</td><td>inference and explainability</td></tr>
+    <tr><td>S3 (the arc's plan)</td><td>Inference &middot; Adapting &middot; LoRA &middot; Explain</td><td>08-2 in its order: embeddings and dot products, the three adaptations, LoRA, Layer Integrated Gradients</td><td>pretraining as a process; the heaviest, five pages' worth</td></tr>
+  </table>
+  <p class="note">Explainability (08-2 cells 66&ndash;76, LIG) was measured in the arc (completeness gap 0.81 &middot; 0.067 &middot; 0.011 at 5 &middot; 50 &middot; 300
+    steps; the lesson's clip at zero hides a <i>no</i> that pushed against the prediction in 52 of 120 notes). It is a different question from adapting, so S1 and S2
+    leave it to <b>its own widget</b>, after 86. Inference (08-2 cells 3&ndash;18) is mostly the [CLS] vector 84 already draws.</p>
+
+  <h2>2 &middot; Pretraining: the same [MASK], as the model learns</h2>
+  <p class="note">The press runs pretraining forward a checkpoint at a time (thirteen checkpoints from 0 to 3,000 steps).
+    The top says where the targets come from: tokens hidden in unlabelled notes, so no one labels anything. The lesson's example is the probe; its prediction moves
+    from noise, to grammar words (<i>from</i>, <i>with</i>), to <i>a</i> drug, to the drugs for chest pain. The step slider below stands in for the press.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">P · one page, three parts: the targets, the probe, the held-out accuracy</div><canvas id="cPre" width="550" height="452"></canvas>
+      <div class="ctl">checkpoint <input id="iPre" type="range" min="0" max="12" value="7"></div></div>
+  </div>
+
+  <h2>3 &middot; Adapting: three ways, one labelled set</h2>
+  <p class="note">Your adapt figure, one column a strategy: the parts that train are filled in that strategy's colour and bracketed <b>Trainable</b>, frozen parts
+    are grey. LoRA's column draws its trained matrices <i>inside</i> the backbone beside Q and V (peft's default for BERT), not as a box between backbone and
+    head (notebook finding 9). The press trains all three on the same labelled notes; the chart is accuracy on 1,000 held-out notes. Two data controls are
+    the lesson's two factors: <b>Labelled notes</b> (dataset size) and <b>Task</b> (whether pretraining already carries it: domain similarity).</p>
+  <div class="row">
+    <div class="cand"><div class="sub">A1 · training curves at one size (recommended: shows the heads training)</div><canvas id="cA1" width="550" height="470"></canvas></div>
+    <div class="cand"><div class="sub">A2 · final accuracy against labelled notes (the summary, no training shown)</div><canvas id="cA2" width="550" height="470"></canvas></div>
+  </div>
+  <div class="ctl">Labelled notes <select id="iN"><option>16</option><option selected>64</option><option>256</option><option>1024</option></select>
+    Task <select id="iT"><option value="outcome">Finding asserted</option><option value="match">Drug for the wrong symptom</option></select>
+    learning rates <select id="iLR"><option value="arc">the arc's (5e-3 · 3e-4 · 1e-3)</option><option value="lesson">the lesson's (5e-3 · 1e-4 · 5e-4)</option></select>
+    step <input id="iS" type="range" min="1" max="16" value="16">
+    <label><input id="iScr" type="checkbox" checked> from scratch (no pretraining)</label></div>
+  
+  <p class="note"><b>What the stage says, measured (arc rates, three seeds).</b> On <i>Finding asserted</i> every strategy is at 88&ndash;91% from 16 notes (79% of notes are
+    positive); transfer stops at 95%, the two fine-tunings reach 100% by 256 notes, and training from scratch does as well, because the words alone decide this
+    task. On <i>Drug for the wrong symptom</i> transfer sits at chance at every size: the frozen [CLS] does not hold the pairing (a probe with 4,000 labelled
+    notes reaches 61%). Full fine-tuning reaches 82% and LoRA 78% at 1,024 notes, where the same network from scratch reaches 54%: here pretraining is worth
+    28 points. So transfer's case is cost (98 numbers trained against 43,874), not accuracy, and fine-tuning's case is a task the pretrained vectors do not
+    already separate.</p>
+  <p class="note"><b>Measured and left out.</b> (1) The arc's "transfer wins at 16 notes" does not hold with [CLS] (91% against 90%); it was a mean-pooling
+    number. (2) Forgetting: at these rates no strategy loses masked-word accuracy (80% before and after; LoRA 78% with the adapter on, 80% removed), so there
+    is no forgetting to show. (3) A drug the labels never name (trained on aspirin, tested on nitrate): every strategy is at chance, pretrained or not; this
+    model does not learn that nitrate stands for aspirin. (4) At the lesson's own rate, full fine-tuning is too slow for 400 steps (59% at 1,024 notes on the
+    second task).</p>
+
+  <h2>4 &middot; LoRA, for S2</h2>
+  <p class="note">One attention projection of this model: W is 48 &times; 48 = 2,304 numbers, frozen; A is 48 &times; r and B is 48 &times; r, trained. The lesson's formula
+    with peft's scaling. Values drawn here are illustrative; the page would draw the model's own W<sub>Q</sub> and the A, B the run learned.</p>
+  <div class="row"><div class="cand"><div class="sub">L · W′ = W + (α/r)·A Bᵀ, the rank as a count</div><canvas id="cL" width="550" height="300"></canvas>
+    <div class="ctl">rank r <select id="iR"><option>1</option><option>2</option><option>4</option><option selected>8</option></select></div></div></div>
+
+  <h2>5 &middot; The numbers</h2>
+  <div id="tbl"></div>
+
+  <h2>To answer</h2>
+  <div id="qs"></div>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), c: css("--c-group-c"), ref: css("--c-reference"), hi: css("--c-highlight"), emp: css("--c-empirical"),
+  font: css("--font"), mono: css("--font-mono"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const D = await (await fetch("clinical-text-measure.json", { cache: "no-store" })).json();
+const STRAT = [["transfer", "Transfer learning", C.a], ["full", "Full fine-tuning", C.b], ["lora", "LoRA (PEFT)", C.c]];
+const fmt = (n) => n.toLocaleString("en-US"), pct = (v) => `${Math.round(100 * v)}%`;
+
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1;
+  const w = +cv.getAttribute("width"), h = +cv.getAttribute("height");
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return { g, w, h }; }
+function text(g, s, x, y, { color = C.ink2, align = "left", mono = false, bold = false, size = C.xs } = {}) {
+  g.font = `${bold ? "600 " : ""}${size} ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); return g.measureText(s).width; }
+function tokens(g, toks, x, y, style = () => ({})) { let cx = x; const out = [];
+  for (const t of toks) { const st = style(t, out.length); g.font = `${st.bold ? "600 " : ""}${C.sm} ${C.font}`; const w = g.measureText(t).width;
+    if (st.box) { g.fillStyle = st.box; g.fillRect(cx - 3, y - 9, w + 6, 18); }
+    text(g, t, cx, y, { size: C.sm, color: st.color ?? C.ink1, bold: st.bold }); out.push([cx, w]); cx += w + 9; } return out; }
+const LO = 0.4, Y = (v) => (v - LO) / (1 - LO); // accuracy axes start at 40%
+function axes(g, x, y, w, h, { ylab, xlab, xt = [], yt = [0, 0.5, 1], lo = 0 }) {
+  g.strokeStyle = C.grid; g.lineWidth = 1;
+  for (const v of yt) { const yy = y + h - (v - lo) / (1 - lo) * h; g.beginPath(); g.moveTo(x, yy); g.lineTo(x + w, yy); g.stroke(); text(g, pct(v), x - 6, yy, { align: "right", color: C.ink3 }); }
+  for (const [v, s] of xt) text(g, s, x + v * w, y + h + 12, { align: "center", color: C.ink3 });
+  if (ylab) text(g, ylab, x, y - 12, { color: C.ink2 }); if (xlab) text(g, xlab, x + w, y + h + 28, { align: "right", color: C.ink3 }); }
+
+// ---------------------------------------------------------------- 2 pretraining
+const PRE = D.pretrain;
+function drawPre() {
+  const { g } = setup("cPre"), k = +document.getElementById("iPre").value, r = PRE[k];
+  text(g, "Unlabelled notes, 15% of tokens hidden", 20, 18, { bold: true, color: C.ink1, size: C.sm });
+  const notes = [["patient", "presented", "with", "[MASK]", "and", "nausea"], ["yellow", "discharge", "from", "[MASK]"], ["no", "fever", "[MASK]", "exam"]];
+  const hid = ["fever", "wound", "on"];
+  notes.forEach((n, i) => { const y = 46 + i * 34; const pos = tokens(g, n, 28, y, (t) => t === "[MASK]" ? { box: C.s3, bold: true } : {});
+    const j = n.indexOf("[MASK]"); text(g, `target: ${hid[i]}`, pos[j][0] + pos[j][1] / 2, y + 15, { align: "center", color: C.ref }); });
+  text(g, "the targets are the hidden words themselves: nobody labels anything", 20, 150, { color: C.ink3 });
+
+  const y0 = 182; text(g, `The lesson's example after ${fmt(r.step)} steps`, 20, y0, { bold: true, color: C.ink1, size: C.sm });
+  tokens(g, ["treated", "with", "[MASK]", "for", "chest", "pain"], 28, y0 + 26, (t) => t === "[MASK]" ? { box: C.s3, bold: true } : {});
+  const ex = Object.entries(r.example); ex.forEach(([w, p], i) => { const y = y0 + 54 + i * 20;
+    text(g, w, 120, y, { align: "right", color: C.ink1 }); g.fillStyle = C.emp; g.fillRect(128, y - 6, 300 * p, 12); text(g, p.toFixed(2), 134 + 300 * p, y, { color: C.ink2 }); });
+
+  const cx = 70, cy = 330, cw = 440, ch = 80; const xs = (s) => cx + cw * Math.sqrt(s / 3000);
+  axes(g, cx, cy, cw, ch, { ylab: "Masked tokens predicted right, 2,000 held-out notes", xlab: "training step (square-root scale)", xt: [0, 100, 500, 1000, 3000].map(s => [Math.sqrt(s / 3000), fmt(s)]) });
+  g.strokeStyle = C.emp; g.lineWidth = 2; g.beginPath(); PRE.slice(0, k + 1).forEach((p, i) => { const X = xs(p.step), Y = cy + ch - p.mlm * ch; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }); g.stroke();
+  g.fillStyle = C.emp; g.beginPath(); g.arc(xs(r.step), cy + ch - r.mlm * ch, 4, 0, 7); g.fill();
+  text(g, pct(r.mlm), xs(r.step) + 8, cy + ch - r.mlm * ch - 8, { color: C.ink1, bold: true });
+}
+document.getElementById("iPre").oninput = drawPre;
+
+// ---------------------------------------------------------------- 3 adapting
+const N = [16, 64, 256, 1024];
+const get = (lr, task, s) => D.adapt[`${lr}/${task}/${s}`];
+function columns(g, y, lr, task) {
+  const cols = STRAT.map(([s, name, col]) => ({ s, name, col, n: get(lr, task, s).trains }));
+  const bb = 46716 - 2842 - 98; // backbone: embeddings and two blocks (the MLM head is dropped, as AutoModelForSequenceClassification drops it)
+  cols.forEach((c, i) => {
+    const x = 34 + i * 176, w = 112;
+    text(g, c.name, x + w / 2, y, { align: "center", bold: true, color: C.ink1 });
+    const bt = y + 16, bh = 70, hh = 20;
+    const backTrain = c.s === "full";
+    g.fillStyle = backTrain ? c.col : C.s3; g.fillRect(x, bt, w, bh);
+    text(g, "Backbone", x + w / 2, bt + 22, { align: "center", color: backTrain ? C.s1 : C.ink2, bold: true });
+    text(g, backTrain ? `${fmt(bb)}` : `${fmt(bb)} frozen`, x + w / 2, bt + 40, { align: "center", color: backTrain ? C.s1 : C.ink3 });
+    if (c.s === "lora") { // A Bᵀ beside Q and V in each block, inside the backbone
+      [0, 1].forEach(k => { g.fillStyle = c.col; g.fillRect(x + 10 + k * 50, bt + 50, 42, 13); text(g, `A Bᵀ ×2`, x + 31 + k * 50, bt + 56.5, { align: "center", color: C.s1, size: "9px" }); });
+    }
+    g.fillStyle = c.col; g.fillRect(x, bt + bh + 4, w, hh); text(g, "Head  48 → 2", x + w / 2, bt + bh + 14, { align: "center", color: C.s1, bold: true });
+    // the Trainable bracket
+    const top = backTrain ? bt : c.s === "lora" ? bt + 48 : bt + bh + 4, bot = bt + bh + 4 + hh;
+    g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x - 6, top); g.lineTo(x - 11, top); g.lineTo(x - 11, bot); g.lineTo(x - 6, bot); g.stroke();
+    g.save(); g.translate(x - 19, (top + bot) / 2); g.rotate(-Math.PI / 2); text(g, "Trainable", 0, 0, { align: "center", color: C.ink1, size: "9px", bold: true }); g.restore();
+    text(g, `trains ${fmt(c.n)}`, x + w / 2, bot + 14, { align: "center", color: c.col, bold: true });
+    text(g, `${(100 * c.n / (bb + 98 + (c.s === "lora" ? c.n - 98 : 0))).toFixed(c.n > 1000 ? 0 : 1)}% of the model`, x + w / 2, bot + 28, { align: "center", color: C.ink3 });
+  });
+  return y + 160;
+}
+// the share of the larger class on the test notes (printed by the measurement): a head that ignores the note scores this
+const BASE = { outcome: 0.79, match: 0.52, unseen: 0.50 };
+function floor(g, cx, cy, cw, ch, task) {
+  const yy = cy + ch - Y(BASE[task]) * ch; g.save(); g.setLineDash([3, 3]); g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(cx, yy); g.lineTo(cx + cw, yy); g.stroke(); g.restore();
+  text(g, task === "outcome" ? "always “positive” 79%" : `chance ${pct(BASE[task])}`, cx + cw, yy + 9, { align: "right", color: C.ink3 }); }
+function drawA1() {
+  const { g } = setup("cA1"); const lr = iLR.value, task = iT.value, n = +iN.value, st = +iS.value;
+  const y = columns(g, 18, lr, task);
+  const cx = 52, cy = y + 30, cw = 400, ch = 200;
+  axes(g, cx, cy, cw, ch, { ylab: `Held-out accuracy, ${n} labelled notes`, xlab: "training step", xt: [0, 100, 200, 300, 400].map(s => [s / 400, String(s)]), yt: [0.4, 0.6, 0.8, 1], lo: LO });
+  const series = STRAT.map(([s, name, col]) => [name, col, get(lr, task, s).curves[n]]);
+  if (iScr.checked) series.push(["From scratch", C.ref, get(lr, task, "scratch").curves[n]]);
+  series.forEach(([name, col, cv]) => { g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); g.moveTo(cx, cy + ch - Y(BASE[task]) * ch);
+    cv.slice(0, st).forEach((v, i) => g.lineTo(cx + cw * (i + 1) / 16, cy + ch - Y(v) * ch)); g.stroke(); });
+  // labels at the line ends, nudged apart
+  const ends = series.map(([name, col, cv]) => ({ name, col, v: cv[st - 1], y: cy + ch - Y(cv[st - 1]) * ch })).sort((p, q) => p.y - q.y);
+  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 13);
+  ends.forEach(e => text(g, `${pct(e.v)} ${e.name.split(" (")[0].replace(" learning", "").replace(" fine-tuning", "")}`, cx + cw * st / 16 + 6, e.y, { color: e.col, bold: true }));
+  floor(g, cx, cy, cw, ch, task);
+}
+function drawA2() {
+  const { g } = setup("cA2"); const lr = iLR.value, task = iT.value;
+  const y = columns(g, 18, lr, task);
+  const cx = 60, cy = y + 30, cw = 450, ch = 200;
+  axes(g, cx, cy, cw, ch, { ylab: "Held-out accuracy after 400 steps", xlab: "labelled notes", xt: N.map((n, i) => [i / 3, String(n)]), yt: [0.4, 0.6, 0.8, 1], lo: LO });
+  const series = STRAT.map(([s, name, col]) => [name, col, get(lr, task, s).acc]);
+  if (iScr.checked) series.push(["From scratch", C.ref, get(lr, task, "scratch").acc]);
+  series.forEach(([name, col, a]) => { g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 2; g.beginPath();
+    a.forEach((v, i) => { const X = cx + cw * i / 3, YY = cy + ch - Y(v) * ch; i ? g.lineTo(X, YY) : g.moveTo(X, YY); }); g.stroke();
+    a.forEach((v, i) => { g.beginPath(); g.arc(cx + cw * i / 3, cy + ch - Y(v) * ch, 3, 0, 7); g.fill(); }); });
+  floor(g, cx, cy, cw, ch, task);
+}
+function drawForget() {
+  const f = D.forget; if (!f) return;
+  document.getElementById("fgt").innerHTML = "<b>Forgetting</b> (MLM accuracy on held-out notes after adapting on the first task, seed 0; the base scores 80%): " +
+    Object.entries(f).map(([n, r]) => `${n} notes &mdash; ` + Object.entries(r).map(([k, v]) => `${k} ${pct(v)}`).join(" &middot; ")).join("; ") + ".";
+}
+const [iN, iT, iLR, iS, iScr] = ["iN", "iT", "iLR", "iS", "iScr"].map(id => document.getElementById(id));
+const redrawA = () => { drawA1(); drawA2(); };
+[iN, iT, iLR, iS, iScr].forEach(e => e.oninput = redrawA);
+
+// ---------------------------------------------------------------- 4 LoRA
+function drawL() {
+  const { g } = setup("cL"), r = +document.getElementById("iR").value;
+  let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647) - 0.5;
+  const cell = 3.2, x0 = 24, y0 = 40, M = 48;
+  const mat = (x, y, rows, cols, col) => { for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+    g.globalAlpha = 0.25 + 0.75 * Math.min(1, 2 * Math.abs(rnd())); g.fillStyle = col; g.fillRect(x + j * cell, y + i * cell, cell - 0.4, cell - 0.4); } g.globalAlpha = 1; };
+  mat(x0, y0, M, M, C.ink3); text(g, "W  48 × 48", x0 + M * cell / 2, y0 - 14, { align: "center", bold: true, color: C.ink1 });
+  text(g, "frozen · 2,304", x0 + M * cell / 2, y0 + M * cell + 14, { align: "center", color: C.ink3 });
+  text(g, "+  α/r ·", x0 + M * cell + 34, y0 + M * cell / 2, { align: "center", size: C.sm, color: C.ink1 });
+  const ax = x0 + M * cell + 66; mat(ax, y0, M, r, C.c); text(g, `A  48 × ${r}`, ax + r * cell / 2, y0 - 14, { align: "center", bold: true, color: C.ink1 });
+  const bx = ax + r * cell + 12; mat(bx, y0, r, M, C.c); text(g, `Bᵀ  ${r} × 48`, bx + M * cell / 2, y0 - 14, { align: "center", bold: true, color: C.ink1 });
+  text(g, `trained · ${fmt(2 * 48 * r)}`, bx + M * cell / 2, y0 + r * cell + 14, { align: "center", color: C.c, bold: true });
+  text(g, `On Q and V of both blocks: 4 × ${fmt(2 * 48 * r)} = ${fmt(8 * 48 * r)} trained, beside the head's 98; W stays as pretrained,`, 24, 238, { color: C.ink2 });
+  text(g, `so removing A Bᵀ gives the pretrained model back exactly. The lesson's α 32 at r ${r} scales A Bᵀ by ${32 / r}.`, 24, 256, { color: C.ink2 });
+  text(g, "The rank changes what trains, not the score on this stage (arc measurement: r 1, 2, 8 within 2 points).", 24, 280, { color: C.ink3 });
+}
+document.getElementById("iR").oninput = drawL;
+document.getElementById("qs").innerHTML = [
+ ["1 · Pages", "S1 Pretraining · Adapting (recommended: one page per idea you asked for, and the lighter widget; 84 was cut down twice for doing too much) · S2 with LoRA as its own page · S3 the arc's four pages in 08-2's order."],
+ ["2 · Explainability (LIG)", "Its own widget after 86 (recommended: a different question from adapting, and the arc measured enough for a page set of its own) · a page in this widget · not planned."],
+ ["3 · The Adapting chart", "A1 training curves at one size, the press training the three heads together (recommended: it shows the heads being trained, your ask) · A2 final accuracy against the number of labelled notes."],
+ ["4 · Tasks on Adapting", "Two: Finding asserted (08-2's clinical_outcome) and Drug for the wrong symptom (recommended: the second is the only task where the strategies differ, and where pretraining shows its worth) · Finding asserted only (the lesson's dataset; the three end within 5 points of each other)."],
+ ["5 · From scratch", "A fourth line, on by default in the reference colour (recommended: on the second task it is the line that shows what pretraining bought, 54% against 82%) · a display toggle, off by default · left out (your figure has no scratch column)."],
+ ["6 · Learning rates", "The arc's 5e-3 · 3e-4 · 1e-3, stated in the controls' detail (recommended: at the lesson's 1e-4 full fine-tuning has not finished learning by 400 steps) · the lesson's, with more steps (to re-measure)."],
+].map(([h, t]) => `<p class="q"><b>${h}</b>${t}</p>`).join("") +
+ `<p class="note">Next round, once these are picked: the title (for example <i>Deep Learning - Language: Pre-training and Adapting</i>), the slug (<code>clinical-text</code> was provisional), the strategy colours, and what a press is on each page.</p>`;
+
+// ---------------------------------------------------------------- 5 the table
+function table() {
+  let h = "";
+  for (const lr of ["lesson", "arc"]) for (const task of ["outcome", "match", "unseen"]) { if (!get(lr, task, "transfer")) continue;
+    h += `<table><tr><th>${lr} rates · task ${{ outcome: "Finding asserted", match: "Drug for the wrong symptom", unseen: "A drug the labels never name (trained on aspirin, tested on nitrate)" }[task]}</th><th>trains</th>${N.map(n => `<th>n ${n}</th>`).join("")}</tr>`;
+    for (const s of ["transfer", "lora", "full", "scratch"]) { const r = get(lr, task, s); if (!r) continue;
+      h += `<tr><td>${s}</td><td>${fmt(r.trains)}</td>${r.acc.map(a => `<td>${pct(a)}</td>`).join("")}</tr>`; }
+    h += "</table>";
+  }
+  if (D.moves) h += `<p class="note"><b>What moves</b> (n 1,024, lesson rates): ` + Object.entries(D.moves).map(([t, r]) =>
+    `${t}: a probe on the frozen [CLS] with 4,000 labelled notes ${pct(r.probe_frozen)}; ` + ["transfer", "lora", "full"].map(s => `${s} moves the [CLS] ${(100 * r[s].move).toFixed(0)}% (probe ${pct(r[s].probe)})`).join(", ")).join(" &middot; ") + "</p>";
+  document.getElementById("tbl").innerHTML = h;
+}
+
+drawPre(); redrawA(); drawL(); table();
+</script>
+</body>
+</html>
