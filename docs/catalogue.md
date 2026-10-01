@@ -23197,7 +23197,16 @@ all four "wrong drug" at 0.56–0.70 (two right by always answering the same),
 full ends sure and right on all four (0.01, 0.04, 0.95, 0.97), LoRA right on
 all four (one at 0.51), scratch swings around 0.5; on Finding asserted every
 way has all four right by step 150. Cost: two rows; the LoRA page (20 px spare)
-pays with a smaller detail and chart. NEXT: build on his word.
+pays with a smaller detail and chart. **Names PICKED the same day** (his
+"finding asserted and wrong drug looks weird"): the Label control's choices
+**Clinical outcome · Prescribing error** (real clinical terms; 08-2's
+clinical_outcome), chips **0 negative / 1 positive** and **0 no error / 1
+error**. His question answered: yes, the pretrained [CLS] already separates
+clinical outcome (frozen probe 98%) and not prescribing error (61%, though the
+model fills a drug from its symptom), which is why the head alone suffices on
+one only; and from scratch also reaches 100% on clinical outcome, so the copy
+says "the head alone is enough when the pretrained vectors already separate
+the classes", not that transfer beats scratch. NEXT: build on his word.
 
 ### The open calls
 
