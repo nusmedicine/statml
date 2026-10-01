@@ -23221,6 +23221,41 @@ labels; transfer one answer for all four under prescribing error). Settled sweep
 clean on 16 states, tallest 1,193 of 1,200; mid-run recordings clean; switch
 probe 0 of 4. NEXT: his review, then the copy audit.
 
+### Slots 86 and 87 · proteins from scratch, and explainability — PLANNED 2026-10-02
+
+**His ask (2026-10-01):** how to support 08-3 (an encoder built and trained from
+scratch on proteins: is 84's Encoder enough? there is no protein example), and
+how to do explainability across the clinical and protein transformers.
+
+**08-3 read from the Master copy (2026-08-24):** HA proteins of influenza A,
+host 0 animal / 1 human (BV-BRC); `Pad` with `*` → `Tokenize` (ids + attention
+mask) → embedding + learned position → one `nn.TransformerEncoder` layer (d 128,
+2 heads) with `src_key_padding_mask` → mask-aware MEAN pooling (cell 4 compares
+mean, max and [CLS], and warns [CLS] "works only if the model is trained to use
+it") → linear; then cells 50–78 adapt ESM-2 (frozen, a head trained) — STAYING,
+his answer; then cells 80–89 occlusion on that ESM-2 model (k 4, stride 2, PAD
+baseline, the id-0 = `<cls>` finding 3). 08-2 cells 66–76: Layer Integrated
+Gradients on the clinical transfer model, clipped to positive, normalised 0–1.
+
+**Coverage found:** Pad/Tokenize/ids → 74 (amino-acid vocabulary) and 75 (PAD);
+embedding + learned position → 74; the padding mask in attention → 83
+(clinical); the block → 84 (clinical); pooling → 84 has [CLS] only, MEAN (the
+lesson's) nowhere; a protein transformer, training from scratch → nowhere.
+
+**PICKED 2026-10-02, four answers, every recommendation:** **86 a new widget**,
+Prepare · Encode · Pool · Train on proteins (the from-scratch pipeline, mean /
+max / [CLS] pooling, held-out proteins with predictions as 85's rows), its
+stage MEASURED first — the arc's part E put a from-scratch one-layer
+transformer at 65–70% on a synthetic two-site task, and real HA host may be
+decided by composition (mean of plain residue vectors near 100%, 84's
+bag-of-words trap); the lesson's HA data may be downloaded to measure (his
+leave). **Explainability split Y:** occlusion as 86's last page (protein, the
+lesson's k 4 / stride 2 / PAD; the ESM-2 id note), **87** clinical integrated
+gradients against attention on 85's models (the path and completeness — 0.81 ·
+0.067 · 0.011 at 5 · 50 · 300 steps; signed against clipped — 52 of 120 notes
+hid a "no"; attention is not attribution; re-measure the "with" shortcut on
+85's models first). Order: measure 86 → mock → build; then 87 the same.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
