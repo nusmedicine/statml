@@ -23276,6 +23276,19 @@ Costs to solve: a 576-row position table on the map, about a megabyte more
 table, and 85's height. 86 then stays Prepare · Encode · Pool · Train ·
 Occlusion. NEXT: that measurement.
 
+**EXPLAINABILITY AS ONE WIDGET — PICKED 2026-10-02, replacing split Y** (his
+"do you think we should put everything in 1 widget? with the relevant
+examples?"): with proteins in 85, one widget explains **85's own adapted
+models**, as the lessons do (08-2's LIG on the clinical transfer model, 08-3's
+occlusion on the adapted ESM-2). **Deep Learning - Language: Explainability**,
+slug `explainability` (the heading in 08-1, 08-2 and 08-3); pages **Attention ·
+Integrated gradients · Occlusion**; a **Data** choice Clinical notes · HA
+proteins as in 85; the examples 85's held-out notes and proteins with labels
+and predictions. Each page's claim measured on 85's models first (attention
+against attribution; the path, steps and completeness; signed against the
+lesson's clip; occlusion's window, stride and PAD, and ESM-2's pad id). **86
+narrows** to Prepare · Encode · Pool · Train (no occlusion page).
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
