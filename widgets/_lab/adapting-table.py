@@ -1,34 +1,44 @@
 """Generates `widgets/adapting/table.js`, everything widget 85 draws, computed
 ahead in torch because the widget trains nothing in the browser (as 65 and 75
-ship theirs). Run it again after any change to the grammar, the base model or
-the training here, then `node widgets/_lab/adapting-verify.mjs`.
+ship theirs). Run it again after any change to the grammar, 84's base or the
+training here, then `node widgets/_lab/adapting-verify.mjs`.
 
-THE BASE is widget 84's, rebuilt exactly as `transformer-weights.py` builds
-it (masked-token pretraining, 3,000 steps, seed 0). The pretraining run below
-repeats that run with checkpoints and is asserted to end bit for bit on the
-same weights, so page 1's last checkpoint is 84's model.
+THE REPLAN OF 2026-10-01 (catalogue § Slot 85, REPLANNED): four pages, a way
+each — from scratch, transfer, full fine-tuning, LoRA — each animating the
+CHANGE in every weight since training began, with LoRA's W + (alpha/r) A B^T
+drawn in detail. Measured first (`_lab/adapting-weights-measure.py`): full
+fine-tuning moves a matrix by about a tenth of its size, invisible on a picture
+of W and plain on a picture of |W_t - W_0|; on the Wrong drug task the pattern
+of change turns during training (cosine with the final change 0.45 at step
+100), so the page plays REAL snapshots rather than fading the final one in.
 
-  pretrain   thirteen checkpoints (0 ... 3,000 steps): masked-token accuracy
-             on 2,000 held-out notes, and the five most likely tokens at the
-             lesson's [MASK] (08-1 cell 4: "treated with [MASK] for chest
-             pain"). The page steps through seven of them and draws the
-             accuracy line through every one passed.
-  masked     three unlabelled notes from the corpus with the tokens the
-             lesson's rule hides (15% of the real tokens, 08-1 cell 4), the
-             first three whose draw hid one or two tokens and that fit a line.
-  adapt      the picks of 2026-10-01 (catalogue § Slot 85): two tasks x four
-             sizes x four ways (transfer, LoRA r 8 alpha 32 on Q and V, full,
-             scratch), one run each (seed 0), 400 steps of batch 16, Adam at
-             the arc's rates (5e-3, 1e-3, 3e-4, 3e-4), the [CLS] row's final
-             vector into a Linear(48 -> 2) head; held-out accuracy on 1,000
-             notes at step 0 and every 10 steps.
-  notes      four of each task's labelled training notes, two of each label,
-             the first that fit a line (60 characters), in the order the set holds them.
+THE BASE is widget 84's, rebuilt exactly as `transformer-weights.py` builds it.
+Every run: 1,024 labelled notes (his pick: the size is fixed), seed 0, 400
+steps of batch 16, Adam at the arc's rates, the [CLS] row's final vector into a
+Linear(48 -> 2) head, held-out accuracy on 1,000 notes at step 0 and every 10.
 
-Run:  python widgets/_lab/adapting-table.py            (about 4 min)
+  curve     41 accuracies a run.
+  maps      |W_t - W_0| for every matrix the way trains (the forward's own
+            matrix: for LoRA, W + (alpha/r) B A), at steps 50, 100 ... 400,
+            each value divided by the run's SCALE (the 99th percentile of the
+            final change over every trained weight: one scale a page), capped
+            at 1 and stored as a byte, row by row in torch's [out][in] layout,
+            snapshot by snapshot, the matrices in the run's `mats` order;
+            base64. Matrices the way leaves frozen are not stored: the
+            generator asserts they did not move.
+  lora      block 1's W_Q (84's, frozen: `wq`) and the LoRA factors on it
+            every 25 steps, in peft's names: A is r x 48 (random at the
+            start), B is 48 x r (ZERO at the start, so the update is zero and
+            W' = W). The lesson writes W' = W + A B^T with A, B 48 x r: its A
+            is peft's B and its B^T is peft's A, so the page uses the lesson's
+            names.
+  notes     two of each task's labelled training notes, one of each label, the
+            first that fit a line (60 characters), in the set's order.
+
+Run:  python widgets/_lab/adapting-table.py            (about 1 min)
       python widgets/_lab/adapting-table.py --check    rerun one entry and compare
 """
-import importlib.util, json, sys, time
+import base64, importlib.util, json, sys, time
 from pathlib import Path
 import torch, torch.nn.functional as F
 
@@ -39,105 +49,104 @@ A, AM = CT.A, CT.AM
 T0 = time.time()
 def log(*a): print(*a, flush=True)
 
-STRATS = ("transfer", "full", "lora", "scratch")
-LR = CT.LRS["arc"]
-SIZES = (16, 64, 256, 1024)
+WAYS = ("scratch", "transfer", "full", "lora")
 TASKS = ("outcome", "match")
-CHECKS = (0, 25, 50, 100, 200, 300, 500, 750, 1000, 1500, 2000, 2500, 3000)
-EVERY, STEPS = 10, 400
+LR = CT.LRS["arc"]
+N, STEPS, EVERY, SNAP, LSNAP = 1024, 400, 10, 50, 25
+R_, ALPHA = 8, 32
+MATS = (["head.weight"]
+        + [f"blocks.{b}.{m}.weight" for b in (1, 0) for m in ("att.q", "att.k", "att.v", "att.o", "ff.0", "ff.2")]
+        + ["tok.weight", "pos.weight"])
+TRAINS = {"scratch": MATS, "full": MATS, "transfer": ["head.weight"],
+          "lora": ["head.weight"] + [f"blocks.{b}.att.{m}.weight" for b in (1, 0) for m in ("q", "v")]}
 
-def top5(mdl):
-    ids, m = A.batchify([["treated", "with", "[MASK]", "for", "chest", "pain"]])
-    with torch.no_grad():
-        h, _ = mdl.encode(ids, m); p = mdl.mlm(h)[0, 3].softmax(-1)
-    t = p.topk(5)
-    return [[A.VOCAB[i], round(v, 4)] for v, i in zip(t.values.tolist(), t.indices.tolist())]
+base = AM.build(48, 4, 2, 0); AM.pretrain_log(base, CT.corpus, 3000, 0); base.eval()
 
-def pretrain():
-    mdl = AM.build(48, 4, 2, 0)
-    g = torch.Generator().manual_seed(0)
-    opt = torch.optim.Adam(mdl.parameters(), lr=1e-3); mdl.train(); rows = []
-    def snap(s):
-        mdl.eval(); rows.append({"step": s, "mlm": round(CT.mlm_acc(mdl), 4), "top": top5(mdl)}); mdl.train()
-    snap(0)
-    for s in range(1, 3001):
-        idx = torch.randint(len(CT.corpus), (64,), generator=g)
-        ids, m = A.batchify([CT.corpus[i] for i in idx]); x, y = A.mask_tokens(ids, m, g)
-        h, _ = mdl.encode(x, m)
-        loss = F.cross_entropy(mdl.mlm(h).reshape(-1, A.V), y.reshape(-1), ignore_index=-100)
-        opt.zero_grad(); loss.backward(); opt.step()
-        if s in CHECKS: snap(s)
-    mdl.eval()
-    return mdl, rows
-
-def masked_notes():
-    g = torch.Generator().manual_seed(85); out = []
-    for t in CT.corpus:
-        if len(" ".join(t)) > 44: continue
-        ids, m = A.batchify([t]); x, _ = A.mask_tokens(ids, m, g)
-        hid = [i - 1 for i in range(1, len(t) + 1) if x[0, i] == A.MASK]
-        if 1 <= len(hid) <= 2: out.append({"tokens": t, "hidden": hid})
-        if len(out) == 3: break
+def matrices(mdl):
+    """every matrix as the forward uses it: LoRA's W + s B A"""
+    out = {n: p.detach().clone() for n, p in mdl.named_parameters() if n in MATS}
+    for i, b in enumerate(mdl.blocks):
+        for nm in ("q", "v"):
+            lin = getattr(b.att, nm)
+            if isinstance(lin, CT.LoRALinear): out[f"blocks.{i}.att.{nm}.weight"] = (lin.W + lin.s * lin.B @ lin.A).detach().clone()
     return out
-
-def run(base, strat, X, Y, test, seed=0):
-    torch.manual_seed(seed)
-    mdl = A.TinyBERT(A.V)
-    if strat != "scratch": mdl.load_state_dict(base.state_dict())
-    mdl.head.reset_parameters()
-    for p in mdl.parameters(): p.requires_grad = strat in ("full", "scratch")
-    if strat == "lora": CT.lora_wrap(mdl, 8, 32)
-    for p in mdl.mlm.parameters(): p.requires_grad = False
-    for p in mdl.head.parameters(): p.requires_grad = True
-    params = [p for p in mdl.parameters() if p.requires_grad]
-    opt = torch.optim.Adam(params, lr=LR[strat])
-    g = torch.Generator().manual_seed(seed)
-    ids, m = A.batchify(X); y = torch.tensor(Y)
-    curve = []
-    mdl.eval(); curve.append(round(CT.score(mdl, *test), 4)); mdl.train()
-    for s in range(1, STEPS + 1):
-        idx = torch.randint(len(X), (min(16, len(X)),), generator=g)
-        loss = F.cross_entropy(mdl.classify(ids[idx], m[idx], "cls"), y[idx])
-        opt.zero_grad(); loss.backward(); opt.step()
-        if s % EVERY == 0:
-            mdl.eval(); curve.append(round(CT.score(mdl, *test), 4)); mdl.train()
-    return curve, sum(p.numel() for p in params)
 
 def test_set(task):
     Xt, Yt = A.make_task(999, 1000, task); ids, m = A.batchify(Xt)
     return (ids, m, torch.tensor(Yt)), sum(Yt) / len(Yt)
 
-def notes(task):
-    X, Y = A.make_task(100, 16, task); order = []
-    for x, y in zip(X, Y):
-        if len(" ".join(x)) <= 60 and sum(1 for o in order if o[1] == y) < 2: order.append([" ".join(x), y])
-    return order[:4]
+def run(way, task, test):
+    X, Y = A.make_task(100, N, task)
+    torch.manual_seed(0)
+    mdl = A.TinyBERT(A.V)
+    if way != "scratch": mdl.load_state_dict(base.state_dict())
+    mdl.head.reset_parameters()
+    for p in mdl.parameters(): p.requires_grad = way in ("full", "scratch")
+    if way == "lora": CT.lora_wrap(mdl, R_, ALPHA)
+    for p in mdl.mlm.parameters(): p.requires_grad = False
+    for p in mdl.head.parameters(): p.requires_grad = True
+    params = [p for p in mdl.parameters() if p.requires_grad]
+    opt = torch.optim.Adam(params, lr=LR[way]); g = torch.Generator().manual_seed(0)
+    ids, m = A.batchify(X); y = torch.tensor(Y)
+    W0 = matrices(mdl); curve, snaps, lora = [], [], []
+    def acc():
+        mdl.eval(); a = round(CT.score(mdl, *test), 4); mdl.train(); return a
+    def factors(s):
+        lin = mdl.blocks[0].att.q
+        lora.append({"step": s, "A": [[round(v, 5) for v in r] for r in lin.A.detach().tolist()],
+                     "B": [[round(v, 5) for v in r] for r in lin.B.detach().tolist()]})
+    mdl.train(); curve.append(acc())
+    if way == "lora": factors(0)
+    for s in range(1, STEPS + 1):
+        idx = torch.randint(len(X), (16,), generator=g)
+        loss = F.cross_entropy(mdl.classify(ids[idx], m[idx], "cls"), y[idx])
+        opt.zero_grad(); loss.backward(); opt.step()
+        if s % EVERY == 0: curve.append(acc())
+        if s % SNAP == 0:
+            Wt = matrices(mdl); snaps.append({k: (Wt[k] - W0[k]).abs() for k in MATS})
+        if way == "lora" and s % LSNAP == 0: factors(s)
+    # frozen means untouched: assert it, so the page's "frozen" is a fact
+    for k in MATS:
+        if k not in TRAINS[way]: assert snaps[-1][k].max().item() == 0, f"{way}: {k} moved"
+    fin = torch.cat([snaps[-1][k].flatten() for k in TRAINS[way]])
+    scale = torch.quantile(fin.float(), 0.99).item() if fin.numel() > 1000 else fin.max().item()
+    raw = bytearray()
+    for sn in snaps:
+        for k in TRAINS[way]:
+            raw += bytes((sn[k] / scale).clamp(max=1).mul(255).round().to(torch.uint8).flatten().tolist())
+    out = {"curve": curve, "scale": round(scale, 6), "maps": base64.b64encode(bytes(raw)).decode("ascii"), "mats": TRAINS[way],
+           "rel": {k: round((snaps[-1][k].norm() / W0[k].norm()).item(), 4) for k in TRAINS[way]}}
+    if way == "lora": out["lora"] = lora
+    return out
 
-base = AM.build(48, 4, 2, 0); AM.pretrain_log(base, CT.corpus, 3000, 0); base.eval()
+def notes(task):
+    X, Y = A.make_task(100, N, task); got = []
+    for x, y in zip(X, Y):
+        if len(" ".join(x)) <= 60 and y not in [g[1] for g in got]: got.append([" ".join(x), y])
+        if len(got) == 2: break
+    return got
 
 if "--check" in sys.argv:
     js = (here.parent / "adapting" / "table.js").read_text(encoding="utf-8")
     T = json.loads(js[js.index("{"):js.rindex("}") + 1])
-    test, _ = test_set("match"); X, Y = A.make_task(100, 256, "match")
-    curve, _ = run(base, "lora", X, Y, test)
-    worst = max(abs(a - b) for a, b in zip(curve, T["adapt"]["match"]["256"]["lora"]))
-    log(f"rerun match / 256 / lora: worst difference from the table {worst:.4f}")
-    sys.exit(0 if worst < 1e-3 else 1)
+    test, _ = test_set("match"); r = run("lora", "match", test)
+    worst = max(abs(a - b) for a, b in zip(r["curve"], T["runs"]["match"]["lora"]["curve"]))
+    same = r["maps"] == T["runs"]["match"]["lora"]["maps"]
+    log(f"rerun match / lora: curve worst difference {worst:.4f}; maps identical: {same}")
+    sys.exit(0 if worst < 1e-3 and same else 1)
 
-mdl, pre = pretrain()
-same = all(torch.equal(a, b) for a, b in zip(mdl.state_dict().values(), base.state_dict().values()))
-assert same, "the checkpointed run did not end on 84's base"
-log(f"pretraining: {len(pre)} checkpoints, ends on 84's base; lesson example {pre[-1]['top'][:2]}  ({time.time()-T0:.0f}s)")
-
-T = {"pretrain": pre, "masked": masked_notes(), "rates": LR, "every": EVERY, "steps": STEPS,
-     "trains": {}, "base": {}, "notes": {}, "adapt": {}}
+head = 48 * 2 + 2
+backbone = sum(p.numel() for n, p in base.named_parameters() if not n.startswith(("mlm", "head")))
+T = {"n": N, "steps": STEPS, "every": EVERY, "snap": SNAP, "lsnap": LSNAP, "r": R_, "alpha": ALPHA, "rates": LR,
+     "shapes": {k: list(v.shape) for k, v in base.named_parameters() if k in MATS},
+     "wq": [[round(v, 5) for v in r] for r in base.blocks[0].att.q.weight.detach().tolist()],
+     "trains": {"scratch": backbone + head, "full": backbone + head, "transfer": head, "lora": 2 * 2 * 2 * 48 * R_ + head, "backbone": backbone},
+     "base": {}, "notes": {}, "runs": {}}
 for task in TASKS:
-    test, rate = test_set(task); T["base"][task] = round(rate, 4); T["notes"][task] = notes(task); T["adapt"][task] = {}
-    for n in SIZES:
-        X, Y = A.make_task(100, n, task); T["adapt"][task][str(n)] = {}
-        for s in STRATS:
-            curve, k = run(base, s, X, Y, test); T["adapt"][task][str(n)][s] = curve; T["trains"][s] = k
-        log(f"  {task} n {n}: " + "  ".join(f"{s} {T['adapt'][task][str(n)][s][-1]:.0%}" for s in STRATS) + f"  ({time.time()-T0:.0f}s)")
+    test, rate = test_set(task); T["base"][task] = round(rate, 4); T["notes"][task] = notes(task); T["runs"][task] = {}
+    for way in WAYS:
+        r = run(way, task, test); T["runs"][task][way] = r
+        log(f"  {task} {way:8s}: {r['curve'][-1]:.0%}, scale {r['scale']:.4f}, maps {len(r['maps']):,} chars  ({time.time()-T0:.0f}s)")
 
 out = here.parent / "adapting" / "table.js"
 out.write_text("/* GENERATED by widgets/_lab/adapting-table.py; do not edit. Everything widget 85 draws, from torch. */\n"

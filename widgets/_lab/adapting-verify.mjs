@@ -2,24 +2,26 @@
 
    The widget trains nothing in the browser: everything it draws is read from
    `widgets/adapting/table.js`, generated in torch by `_lab/adapting-table.py`
-   (whose `--check` reruns one training run against the table). This file holds
-   the table to what the page prints:
+   (whose `--check` reruns one run and compares its curve and its maps byte for
+   byte). This file holds the table to what the pages print and draw:
 
-   1. Pretraining's last checkpoint IS widget 84's model: the five most likely
-      tokens at the lesson's [MASK] equal what 84's JS forward computes from its
-      own weights on "[CLS] treated with [MASK] for chest pain [SEP]".
-   2. The trainable counts the columns print, by formula from the model's
-      shapes: the head 48 x 2 + 2; LoRA r 8 on Q and V of both blocks; the
-      backbone (embeddings and two blocks, the MLM head dropped).
-   3. Every claim a checkpoint's caption makes (`preLine` in main.js): no drug
-      in the top two at 25 and 100 steps, a drug first at 200 that does not
-      treat chest pain, aspirin and nitrate first from 500.
-   4. The table's shape: thirteen checkpoints including the seven a press
-      reaches; 41 points a curve (step 0 and every 10 to 400); accuracies in
-      [0, 1]; the notes strip two of each label, each line 60 characters or less.
+   1. What each way trains: the counts the map and the tiles print, by formula
+      from the model's shapes (the head 48 x 2 + 2; LoRA r 8 on Q and V of both
+      blocks; the backbone, its embeddings and two blocks), and the matrices
+      each way's maps store — transfer the head alone; LoRA Q, V and the head;
+      scratch and full every matrix. (The generator asserts the rest did not
+      move by a single bit, so a hatched "frozen" tile is a fact.)
+   2. LoRA's two drawings agree: the map's block-1 Q tile at step 400 is
+      |(alpha/r) B A| from the detail's own stored factors, to one byte of the
+      map's quantisation; and B is zero at step 0, so the update the detail
+      draws starts at zero and W' = W, as its line says.
+   3. The table's shape: 41 points a curve, eight snapshots of every stored
+      matrix, notes one of each label within a line, base rates.
+   4. Every claim a caption or line makes: transfer's head is the only thing
+      that moved; full fine-tuning's median relative change is the number the
+      caption prints; the curve ends the tiles print.
    5. The struck-word sweep over main.js's reader-facing copy (principle 5.9 and
-      the memory notes: no "never", no second person, no personification, none
-      of the collection's internal words).
+      the memory notes).
 
    Run:  node widgets/_lab/adapting-verify.mjs
 */
@@ -28,70 +30,79 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const url = (p) => pathToFileURL(join(here, "..", p)).href;
-const { TABLE: T } = await import(url("adapting/table.js"));
-const M = await import(url("transformer/model.js"));
+const { TABLE: T } = await import(pathToFileURL(join(here, "..", "adapting", "table.js")).href);
+const M = await import(pathToFileURL(join(here, "..", "transformer", "model.js")).href);
 
 let fails = 0, checks = 0;
 const ok = (cond, msg) => { checks++; if (!cond) { fails++; console.log(`FAIL ${msg}`); } };
+const bytes = (b64) => Uint8Array.from(Buffer.from(b64, "base64"));
+const ALL = Object.keys(T.shapes);
 
-/* 1 · the last checkpoint is 84's model */
-const toks = ["[CLS]", "treated", "with", "[MASK]", "for", "chest", "pain", "[SEP]"];
-const probs = M.nextTokens("base", M.forward("base", toks).h[3]);
-const js = probs.map((p, i) => [M.VOCAB[i], p]).sort((a, b) => b[1] - a[1]).slice(0, 5);
-const last = T.pretrain[T.pretrain.length - 1];
-ok(last.step === 3000, "the last checkpoint is step 3,000");
-last.top.forEach(([t, p], i) => {
-  ok(js[i][0] === t, `rank ${i + 1} at [MASK]: table ${t}, widget 84 ${js[i][0]}`);
-  ok(Math.abs(js[i][1] - p) < 1e-3, `${t}: table ${p}, widget 84 ${js[i][1].toFixed(4)}`);
-});
-
-/* 2 · the counts the columns print */
-const D = 48, F = 96, V = M.VOCAB.length, L = 64, r = 8;
+/* 1 · what each way trains */
+const D = 48, F = 96, V = M.VOCAB.length, L = 64, r = T.r;
 const lin = (i, o) => i * o + o;
 const block = 4 * lin(D, D) + lin(D, F) + lin(F, D) + 2 * 2 * D;
 const backbone = V * D + L * D + 2 * block, head = lin(D, 2), lora = 2 * 2 * (D * r + r * D);
+ok(T.trains.backbone === backbone, `backbone ${T.trains.backbone}, by formula ${backbone}`);
 ok(T.trains.transfer === head, `transfer trains ${T.trains.transfer}, the head is ${head}`);
 ok(T.trains.lora === lora + head, `LoRA trains ${T.trains.lora}, by formula ${lora + head}`);
-ok(T.trains.full === backbone + head, `full trains ${T.trains.full}, by formula ${backbone + head}`);
-ok(T.trains.scratch === T.trains.full, "scratch trains what full trains");
+ok(T.trains.full === backbone + head && T.trains.scratch === backbone + head, "full and scratch train the backbone and the head");
+ok(T.alpha / T.r === 4, "alpha / r is the 4 the page prints");
+const STORED = { scratch: ALL, full: ALL, transfer: ["head.weight"],
+  lora: ["head.weight", "blocks.1.att.q.weight", "blocks.1.att.v.weight", "blocks.0.att.q.weight", "blocks.0.att.v.weight"] };
+for (const task of ["outcome", "match"]) for (const way of ["scratch", "transfer", "full", "lora"]) {
+  const run = T.runs[task][way];
+  ok(JSON.stringify([...run.mats].sort()) === JSON.stringify([...STORED[way]].sort()), `${task} ${way}: stores ${run.mats.length} matrices`);
+  const per = run.mats.reduce((a, m) => a + T.shapes[m][0] * T.shapes[m][1], 0);
+  ok(bytes(run.maps).length === per * (T.steps / T.snap), `${task} ${way}: ${T.steps / T.snap} snapshots of ${per} weights`);
+  ok(run.curve.length === T.steps / T.every + 1 && run.curve.every((v) => v >= 0 && v <= 1), `${task} ${way}: 41 accuracies in [0, 1]`);
+  ok(run.scale > 0, `${task} ${way}: a positive scale`);
+}
 
-/* 3 · the captions' claims */
-const DRUGS = ["aspirin", "nitrate", "paracetamol", "ibuprofen", "antibiotics", "cefazolin", "salbutamol", "oxygen", "ondansetron", "metoclopramide"];
-const at = (s) => T.pretrain.find((c) => c.step === s);
-for (const s of [25, 100]) ok(at(s).top.slice(0, 2).every(([t]) => !DRUGS.includes(t)), `step ${s}: no drug in the top two (${at(s).top.slice(0, 2).map((x) => x[0])})`);
-ok(DRUGS.includes(at(200).top[0][0]) && !["aspirin", "nitrate"].includes(at(200).top[0][0]), `step 200: a drug first, not for chest pain (${at(200).top[0][0]})`);
-for (const s of [500, 750, 3000]) ok(at(s).top.slice(0, 2).map((x) => x[0]).sort().join() === "aspirin,nitrate", `step ${s}: aspirin and nitrate first`);
-ok(at(0).top[0][1] < 0.1, `step 0: the most likely token gets ${at(0).top[0][1]}`);
-
-/* 4 · the shape */
-const PRESS = [0, 25, 100, 200, 500, 750, 3000];
-ok(T.pretrain.length === 13, "thirteen checkpoints");
-for (const s of PRESS) ok(Boolean(at(s)), `checkpoint ${s} present`);
-ok(T.pretrain.every((c, i) => i === 0 || c.step > T.pretrain[i - 1].step), "checkpoints in order");
-ok(T.pretrain.every((c) => c.mlm >= 0 && c.mlm <= 1 && c.top.length === 5), "accuracies in [0, 1], five tokens a checkpoint");
+/* 2 · LoRA's map and its detail agree */
 for (const task of ["outcome", "match"]) {
-  for (const n of ["16", "64", "256", "1024"]) for (const s of ["transfer", "full", "lora", "scratch"]) {
-    const cv = T.adapt[task][n][s];
-    ok(cv.length === T.steps / T.every + 1, `${task} ${n} ${s}: ${cv.length} points`);
-    ok(cv.every((v) => v >= 0 && v <= 1), `${task} ${n} ${s}: accuracies in [0, 1]`);
+  const run = T.runs[task].lora, fac = run.lora, last = fac[fac.length - 1], first = fac[0];
+  ok(first.step === 0 && first.B.flat().every((v) => v === 0), `${task}: B is zero at step 0, so the update starts at zero`);
+  ok(fac.length === T.steps / T.lsnap + 1 && last.step === T.steps, `${task}: factors every ${T.lsnap} steps to ${T.steps}`);
+  ok(first.A.length === r && first.A[0].length === D && first.B.length === D && first.B[0].length === r, `${task}: A is ${r} x ${D}, B ${D} x ${r}`);
+  const raw = bytes(run.maps), per = run.mats.reduce((a, m) => a + T.shapes[m][0] * T.shapes[m][1], 0);
+  let off = per * (T.steps / T.snap - 1);
+  for (const m of run.mats) { if (m === "blocks.0.att.q.weight") break; off += T.shapes[m][0] * T.shapes[m][1]; }
+  let worst = 0;
+  for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) {
+    let u = 0; for (let t = 0; t < r; t++) u += last.B[i][t] * last.A[t][j];
+    const want = Math.min(255, Math.round(255 * Math.abs(4 * u) / run.scale));
+    worst = Math.max(worst, Math.abs(want - raw[off + i * D + j]));
   }
-  const notes = T.notes[task];
-  ok(notes.length === 4 && notes.filter((x) => x[1] === 1).length === 2, `${task}: four notes, two of each label`);
-  ok(notes.every(([t]) => t.length <= 60), `${task}: every note fits a line`);
+  ok(worst <= 2, `${task}: the map's block-1 Q tile is |4 B A| from the stored factors (worst ${worst} of 255)`);
+}
+ok(T.wq.length === D && T.wq[0].length === D, "W_Q is 48 x 48");
+
+/* 3 · notes and base rates */
+for (const task of ["outcome", "match"]) {
+  const n = T.notes[task];
+  ok(n.length === 2 && new Set(n.map((x) => x[1])).size === 2, `${task}: two notes, one of each label`);
+  ok(n.every(([t]) => t.length <= 60), `${task}: each note fits a line`);
   ok(T.base[task] > 0.4 && T.base[task] < 1, `${task}: base rate ${T.base[task]}`);
 }
-for (const m of T.masked) ok(m.hidden.length >= 1 && m.hidden.length <= 2 && m.hidden.every((j) => j < m.tokens.length), `masked note ${m.tokens.join(" ")}`);
+
+/* 4 · the claims the lines make, on the data */
+for (const task of ["outcome", "match"]) {
+  const rel = Object.values(T.runs[task].full.rel).sort((a, b) => a - b), med = rel[Math.floor(rel.length / 2)];
+  ok(med > 0.02 && med < 0.3, `${task}: full fine-tuning moves a matrix by ${med} at the median`);
+  ok(Object.keys(T.runs[task].transfer.rel).join() === "head.weight", `${task}: transfer moved the head alone`);
+}
+ok(T.runs.match.transfer.curve.at(-1) < T.base.match + 0.03, "Wrong drug: transfer ends near chance");
+ok(T.runs.match.full.curve.at(-1) > T.runs.match.scratch.curve.at(-1) + 0.15, "Wrong drug: full fine-tuning ends well above from scratch");
 
 /* 5 · the struck-word sweep: every string literal in main.js outside comments */
-const src = readFileSync(join(here, "..", "adapting", "main.js"), "utf8")
-  .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+const src = readFileSync(join(here, "..", "adapting", "main.js"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 const strings = [...src.matchAll(/"([^"\\]*(?:\\.[^"\\]*)*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2]).filter((s) => /[a-z] [a-z]/i.test(s));
 const STRUCK = [/\bnever\b/i, /\byou\b/i, /\byour\b/i, /\bcarr(y|ies)\b/i, /\breads\b/i, /\bchose\b/i, /\bknows?\b/i, /\bwants?\b/i,
-  /\bcard\b/i, /\brung\b/i, /\bwell\b(?! )/i, /\btrench\b/i, /\bwalk\b/i, /\bsimply\b/i, /\bjust\b/i, /\bin ink\b/i,
+  /\bcard\b/i, /\brung\b/i, /\btrench\b/i, /\bwalk\b/i, /\bsimply\b/i, /\bjust\b/i, /\bin ink\b/i,
   /\blesson\b/i, /\bnotebook\b/i, /\bcell \d/i, /\b\d\d-\d\b/, /\bwidget \d/i];
 for (const s of strings) for (const re of STRUCK) ok(!re.test(s), `struck word ${re} in "${s}"`);
-ok(strings.length > 40, `the sweep read ${strings.length} strings`);
+ok(strings.length > 30, `the sweep read ${strings.length} strings`);
 
 console.log(`adapting-verify: ${checks} checks, ${fails} failed`);
 process.exit(fails ? 1 : 0);

@@ -1253,13 +1253,12 @@
     },
     {
       "slug": "adapting",
-      "title": "Deep Learning - Language: Pre-training and Adapting",
-      "blurb": "Pretraining learns from unlabelled text; adapting trains a new head on labelled data, alone or with the weights below.",
+      "title": "Deep Learning - Language: Adapting Pre-trained Models",
+      "blurb": "A pretrained model adapted three ways, against training from scratch: the head alone, all weights, or a low-rank update.",
       "course": "PHM5005",
       "topics": [
-        "pretraining",
-        "masked language model",
         "transfer learning",
+        "training from scratch",
         "fine-tuning",
         "LoRA",
         "PEFT",
