@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 Pre-training and Adapting MEASURED, MOCKED AND PICKED 2026-10-01 (pages Pretraining · Adapting; LIG to its own widget after 86), title *Pre-training and Adapting*, slug `adapting`, DRAFTED 2026-10-01, NEXT his review — § *Slot 85*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 Pre-training and Adapting MEASURED, MOCKED AND PICKED 2026-10-01 (pages Pretraining · Adapting; LIG to its own widget after 86), *Adapting Pre-trained Models*, slug `adapting`, DRAFTED then REPLANNED 2026-10-01 (from scratch · transfer · full · LoRA, the weights' change animated), NEXT the rebuild — § *Slot 85*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -23077,6 +23077,35 @@ heading says each token is hidden with probability 0.15 (the three notes
 shown hide 1–2 of 4–5 tokens, picked so something is hidden). Overlap sweep
 clean on 20 states; switch probe 0 of 1 flagged; `check` and `npm test` pass.
 NEXT: his review rounds, then the copy audit.
+
+**REPLANNED 2026-10-01 on his step back** (*"we covered pretraining in the
+previous widget ... focus on training from scratch and adapting to show the
+changes ... separately, perhaps animated ... the weights. LoRA will be shown
+in detail"*). Measured (`_lab/adapting-weights-measure.py`, 84's base, seed
+0, 400 steps, the arc's rates): full fine-tuning moves each matrix by about a
+tenth of its size (attention 0.094, feed forward 0.102 on Wrong drug), so only
+a picture of the CHANGE |W_t − W_0| shows it; transfer changes the head alone
+([CLS] vectors move 0%); LoRA changes Q and V only, by 0.29–0.57, more than
+full changes anything (α/r = 4); on Wrong drug the change's pattern TURNS
+(cosine with the final change 0.45–0.48 at step 100; 0.94–0.97 on Finding
+asserted), so an animation must play real snapshots; full fine-tuning's Q and
+V changes put 80–96% of their size in 8 of 48 directions (LoRA's premise),
+but scratch's do too (94–99%), so copy states the number and no more.
+Mocked (`_lab/adapting-replan-mock.html`, be0e4ea). **PICKED, every
+recommendation:** pages **From scratch · Transfer · Full fine-tuning · LoRA**,
+one Train press each; the Pretraining page CUT (84 has it); a **weight map**
+of every weight's change (M1: the model taken apart as his encoder figure,
+input at the bottom — embeddings, block 1, block 2, head — a tile a matrix,
+one cell a weight on the magnitude ramp, one scale a page, frozen tiles
+hatched and labelled, his Trainable bracket); **LoRA's detail under its map**:
+block 1's W_Q as W + 4·ABᵀ = W′ laid out as a product (A tall, Bᵀ across the
+top, the update where they meet), A from zero so W′ = W at step 0; each
+page's **curve against from scratch's dashed**; the rail **Task** only,
+**1,024 labelled notes fixed**; title **Deep Learning - Language: Adapting
+Pre-trained Models** (slug `adapting` kept); the notes strip **kept, two
+notes**, one of each label. Left to the rebuild: the snapshot resolution and
+file size (measure first), the LoRA page's height against the 1,200 frame.
+NEXT: rebuild the draft on his word.
 
 ### The open calls
 
