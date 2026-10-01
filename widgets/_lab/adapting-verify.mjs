@@ -36,6 +36,7 @@ const M = await import(pathToFileURL(join(here, "..", "transformer", "model.js")
 let fails = 0, checks = 0;
 const ok = (cond, msg) => { checks++; if (!cond) { fails++; console.log(`FAIL ${msg}`); } };
 const bytes = (b64) => Uint8Array.from(Buffer.from(b64, "base64"));
+const signed = (u8) => Array.from(u8, (b) => (b > 127 ? b - 256 : b));
 const ALL = Object.keys(T.shapes);
 
 /* 1 · what each way trains */
@@ -65,18 +66,32 @@ for (const task of ["outcome", "match"]) {
   ok(first.step === 0 && first.B.flat().every((v) => v === 0), `${task}: B is zero at step 0, so the update starts at zero`);
   ok(fac.length === T.steps / T.lsnap + 1 && last.step === T.steps, `${task}: factors every ${T.lsnap} steps to ${T.steps}`);
   ok(first.A.length === r && first.A[0].length === D && first.B.length === D && first.B[0].length === r, `${task}: A is ${r} x ${D}, B ${D} x ${r}`);
-  const raw = bytes(run.maps), per = run.mats.reduce((a, m) => a + T.shapes[m][0] * T.shapes[m][1], 0);
+  const raw = signed(bytes(run.maps)), per = run.mats.reduce((a, m) => a + T.shapes[m][0] * T.shapes[m][1], 0);
   let off = per * (T.steps / T.snap - 1);
   for (const m of run.mats) { if (m === "blocks.0.att.q.weight") break; off += T.shapes[m][0] * T.shapes[m][1]; }
   let worst = 0;
   for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) {
     let u = 0; for (let t = 0; t < r; t++) u += last.B[i][t] * last.A[t][j];
-    const want = Math.min(255, Math.round(255 * Math.abs(4 * u) / run.scale));
+    const want = Math.max(-127, Math.min(127, Math.round(127 * (4 * u) / run.scale)));
     worst = Math.max(worst, Math.abs(want - raw[off + i * D + j]));
   }
-  ok(worst <= 2, `${task}: the map's block-1 Q tile is |4 B A| from the stored factors (worst ${worst} of 255)`);
+  ok(worst <= 1, `${task}: the map's block-1 Q change is 4 B A from the stored factors, signed (worst ${worst} of 127)`);
 }
 ok(T.wq.length === D && T.wq[0].length === D, "W_Q is 48 x 48");
+/* the starting weights the Weights reading draws: every matrix of both starts, and the base's Q the one LoRA's detail draws */
+for (const start of ["base", "scratch"]) {
+  const raw = signed(bytes(T.w0[start])), total = T.mats.reduce((a, m) => a + T.shapes[m][0] * T.shapes[m][1], 0);
+  ok(raw.length === total, `${start}: ${raw.length} starting weights, ${total} in the model`);
+  ok(T.mats.every((m) => T.w0scale[start][m] > 0), `${start}: a scale for every matrix`);
+  if (start === "base") {
+    let off = 0; for (const m of T.mats) { if (m === "blocks.0.att.q.weight") break; off += T.shapes[m][0] * T.shapes[m][1]; }
+    const sc = T.w0scale.base["blocks.0.att.q.weight"]; let worst = 0;
+    for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) worst = Math.max(worst, Math.abs(Math.max(-127, Math.min(127, Math.round(127 * T.wq[i][j] / sc))) - raw[off + i * D + j]));
+    ok(worst <= 1, `the base's stored W_Q is the W the LoRA detail draws (worst ${worst} of 127)`);
+  }
+}
+const headStart = (start) => { const raw = signed(bytes(T.w0[start])); return raw.slice(0, 96).map((b) => b * T.w0scale[start]["head.weight"] / 127); };
+ok(headStart("base").every((v, i) => Math.abs(v - headStart("scratch")[i]) < 0.02), "the head starts the same on every way");
 
 /* 3 · notes and base rates */
 for (const task of ["outcome", "match"]) {

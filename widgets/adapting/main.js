@@ -16,17 +16,22 @@
 
    Each page: two of the labelled notes; THE WEIGHT MAP (his encoder figure taken
    apart, input at the bottom — embeddings, block 1, block 2, head — a tile a
-   matrix, a cell a weight) drawing how far each weight has moved since training
-   began, |W_t − W_0|, on the magnitude ramp with one scale a page; the page's
-   held-out accuracy curve with from scratch's dashed beside it.
+   matrix, a cell a weight), with HIS FIGURE in a column beside the rows (round 1,
+   D1: each box level with its tiles, trained boxes outlined, frozen ones hatched);
+   the page's held-out accuracy curve with from scratch's dashed beside it.
 
-   WHY THE CHANGE AND NOT THE WEIGHTS (measured, `_lab/adapting-weights-measure.py`):
-   full fine-tuning moves a matrix by about a tenth of its size, which a picture of
-   W cannot show. WHY REAL SNAPSHOTS: on Wrong drug the pattern of change turns
-   during training (cosine with the final change 0.45 at step 100), so the map
-   plays the run's own state every 50 steps, interpolated between them, and never
-   fades the final picture in. Frozen tiles are a fact the generator asserts: a
-   frozen matrix did not move by a single bit.
+   TWO READINGS OF ONE RUN, a display control Show (round 1, his "i thought the
+   weights would be there then change with training ... would blue-red be more
+   contrastive?"; picked C4, `_lab/adapting-colour-mock.html`): WEIGHTS, the
+   weights themselves W_t, there from step 0, each matrix on its own scale; and
+   CHANGE, W_t − W_0, on one scale a page. Both on the signed blue-red ramp. Why
+   both (measured, `_lab/adapting-colour-measure.py`): on the weights reading only
+   2.0% of weights visibly move under full fine-tuning (LoRA 10%, scratch 9.6%),
+   because it moves each matrix by about a tenth of its size; the change reading
+   shows every tile move. WHY REAL SNAPSHOTS: on Wrong drug the pattern of change
+   turns during training (cosine with the final change 0.45 at step 100), so the
+   map plays the run's own state every 50 steps, interpolated between them. Frozen
+   is a fact the generator asserts: a frozen matrix did not move by a single bit.
 
    LORA'S NOTATION is the lesson's, W′ = W + A Bᵀ with A and B 48 × r, plus peft's
    scaling α/r (32/8 = 4) that the lesson's formula leaves out. peft starts the
@@ -38,8 +43,8 @@
    notes) and checked by `_lab/adapting-verify.mjs`.
 
    Ways: transfer --c-group-a, full --c-group-b, LoRA --c-group-c (three parallel
-   branches), from scratch --c-reference; how far a weight moved on the
-   --c-magnitude ramp, so nothing here is --c-highlight. EACH PAGE KEEPS ITS OWN
+   branches), from scratch --c-reference, on the curve only: the map and LoRA's
+   detail are on --c-value-low/high and colour nothing else. EACH PAGE KEEPS ITS OWN
    PLACE (`anim.p[page]`); a switch mid-press finishes the press and `halt` ends
    the loop (widget 70's rule). Tweens only move (his rule, 2026-09-26): the
    curve and the maps advance with the training clock; text switches at once.
@@ -76,12 +81,16 @@ const S = {
   step: "Train", stepTitle: "Train on the 1,024 labelled notes, 400 steps",
   wait: "—",
   notesHead: "Labelled notes: 1,024 for training, 1,000 held out",
-  mapHead: (s) => `How far each weight has moved since training began, after ${s} steps`,
+  showLabel: "Show",
+  showOpts: [{ value: "weights", label: "Weights", detail: "The weights themselves, blue below 0 and red above, as training changes them." },
+    { value: "change", label: "Change", detail: "How far each weight has moved since training began: blue down, red up." }],
+  mapHeadW: (s) => `The weights after ${s} steps`,
+  mapHeadC: (s) => `How far each weight has moved since training began, after ${s} steps`,
   trains: (n, of) => `trains ${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")}`,
-  head: "Head", block: (b) => `Block ${b}`, emb: "Embeddings", token: "token", position: "position",
-  frozen: "frozen", trainable: "Trainable",
-  trainableLora: "Trainable: Q, V and the head",
-  scaleLo: "0", scaleHi: (v) => `${v} and over`,
+  headBox: "Linear (head)", block: (b) => `Block ${b}`, embedding: "Embedding", token: "token", position: "position",
+  attn: "Self-attention", ffn: "Feed forward", loraSub: "Q, V + A Bᵀ", frozen: "frozen",
+  scaleW: "below 0 · 0 · above 0, each matrix on its own scale",
+  scaleC: (v) => `down · 0 · up, by ${v} or more`,
   loraHead: (s) => `Block 1's Q, after ${s} steps: W′ = W + ${SCALE} · A Bᵀ`,
   loraW: "W", loraWnote: "frozen · 2,304", loraA: "A", loraBt: "Bᵀ", loraUpd: "A Bᵀ, the update", loraWp: "W′", loraWpNote: "what the model uses",
   loraTrained: (r) => `trained: A and B, each 48 × ${r} = ${(2 * 48 * r).toLocaleString("en-US")}`,
@@ -106,12 +115,14 @@ const S = {
 /* ============================================================ the data */
 
 const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+/** signed bytes (two's complement, × 127) back to [−1, 1] */
+const signed = (u8) => Float32Array.from(u8, (b) => (b > 127 ? b - 256 : b) / 127);
 const DECODED = {};
-/** a run's maps, decoded once: maps[k][mat] is snapshot k's bytes for that matrix (k = 0 is step 50) */
+/** a run's changes, decoded once: maps[k][mat] is W − W₀ at step 50·(k + 1), in units of the run's scale */
 function mapsOf(task, way) {
   const key = `${task}/${way}`;
   if (DECODED[key]) return DECODED[key];
-  const run = TABLE.runs[task][way], raw = bytes(run.maps), out = [];
+  const run = TABLE.runs[task][way], raw = signed(bytes(run.maps)), out = [];
   let o = 0;
   for (let k = 0; k < STEPS / SNAP; k++) {
     const snap = {};
@@ -119,6 +130,16 @@ function mapsOf(task, way) {
     out.push(snap);
   }
   return (DECODED[key] = out);
+}
+/** a starting point's weights, decoded once: the pretrained base, or from scratch's random start; each matrix in units of its own scale */
+const STARTS = {};
+function startOf(way) {
+  const key = way === "scratch" ? "scratch" : "base";
+  if (STARTS[key]) return STARTS[key];
+  const raw = signed(bytes(TABLE.w0[key])), w = {};
+  let o = 0;
+  for (const m of TABLE.mats) { const [r, c] = TABLE.shapes[m]; w[m] = raw.subarray(o, o + r * c); o += r * c; }
+  return (STARTS[key] = { w, scale: TABLE.w0scale[key] });
 }
 
 /* ============================================================ drawing kit */
@@ -137,23 +158,27 @@ function line(ctx, pts, stroke, lw = 1, dash = null) {
   ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore();
 }
 const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
-/** the magnitude ramp as a 256-entry table: √ so small changes still show */
+/* THE SIGNED-VALUE RAMP (round 1, his "would blue-red be more contrastive?"): --c-value-low below zero,
+   --c-value-high above, --surface-3 at zero, the collection's pair for signed values (83 draws its signed
+   weights on it). A panel using it colours nothing else by identity, so the map's text is ink and the ways'
+   colours stay on the curve. 255 entries, −1 to 1. */
 let LUT = null, lutKey = "";
 function lut(c) {
-  const key = c.surface3 + c.magnitude;
+  const key = c.surface3 + c.valueLow + c.valueHigh;
   if (key === lutKey) return LUT;
-  const a = rgb(c.surface3), b = rgb(c.magnitude);
-  LUT = Array.from({ length: 256 }, (_, i) => { const u = Math.sqrt(i / 255); return a.map((x, j) => Math.round(x + (b[j] - x) * u)); });
+  const z = rgb(c.surface3), lo = rgb(c.valueLow), hi = rgb(c.valueHigh);
+  LUT = Array.from({ length: 255 }, (_, i) => { const v = (i - 127) / 127, b = v < 0 ? lo : hi; return z.map((x, j) => Math.round(x + (b[j] - x) * Math.abs(v))); });
   lutKey = key; return LUT;
 }
-/** a matrix of values in [0, 1] as an image, one pixel an entry, drawn scaled with no smoothing */
+const shade = (L, v) => L[127 + Math.round(127 * Math.max(-1, Math.min(1, v)))];
+/** a matrix of values in [−1, 1] as an image, one pixel an entry, drawn scaled with no smoothing */
 const offscreen = typeof document !== "undefined" ? document.createElement("canvas") : null;
 function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false) {
   const R = transpose ? cols : rows, C = transpose ? rows : cols, L = lut(c);
   offscreen.width = C; offscreen.height = R;
   const g = offscreen.getContext("2d"), img = g.createImageData(C, R);
   for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
-    const v = transpose ? at(j, i) : at(i, j), q = L[Math.max(0, Math.min(255, Math.round(255 * v)))], o = 4 * (i * C + j);
+    const q = shade(L, transpose ? at(j, i) : at(i, j)), o = 4 * (i * C + j);
     img.data[o] = q[0]; img.data[o + 1] = q[1]; img.data[o + 2] = q[2]; img.data[o + 3] = 255;
   }
   g.putImageData(img, 0, 0);
@@ -169,9 +194,10 @@ function hatch(ctx, c, x, y, w, h) {
 
 /* ============================================================ geometry */
 
-/* every vertical position in one place, so the drawing and the height cannot disagree */
-const PX = 1.1, T48 = 48 * PX;
-const MAP_TOP = 106, MAP_H = 296, LORA_H = 196, CURVE_H = 186;
+/* every vertical position in one place, so the drawing and the height cannot disagree. The map is
+   0.95 px a weight so his figure fits in a column at its left (round 1, D1). */
+const PX = 0.95, T48 = 48 * PX, FIG = { x: PAD + 4, w: 92 }, MAP_X = PAD + 112;
+const MAP_TOP = 106, MAP_H = 304, LORA_H = 196, CURVE_H = 186;
 const lay = (way) => {
   const lora = MAP_TOP + MAP_H, curve = lora + (way === "lora" ? LORA_H : 0);
   return { lora, curve, height: curve + CURVE_H };
@@ -193,50 +219,76 @@ function drawNotes(ctx, c, task) {
   });
 }
 
-function drawMap(ctx, c, w, way, task, step) {
-  const run = TABLE.runs[task][way], col = c[WAYS[way].color], s = Math.round(step);
-  txt(ctx, S.mapHead(s), PAD, 84, { font: cap(c), fill: c.ink1 });
-  const maps = mapsOf(task, way), k = step / SNAP, k0 = Math.floor(k), f = k - k0;
-  /* maps[k0 − 1] holds step 50·k0; step 0 is all zero */
-  const value = (m, idx) => {
+/* HIS FIGURE BESIDE THE ROWS (round 1, D1): each box level with its row of tiles, input at the bottom;
+   the boxes this way trains outlined in ink, the frozen ones hatched like their tiles, so the figure carries
+   the Trainable mark his adapt figures put in a bracket. Feed forward sits above self-attention in a block,
+   as in his figure; the headers over the tiles tie each group to its box. */
+function drawFigure(ctx, c, way, rows) {
+  const { x, w } = FIG;
+  const box = (y0, h, label, on, sub) => {
+    if (on) { ctx.save(); ctx.fillStyle = c.surface; ctx.fillRect(x, y0, w, h); ctx.strokeStyle = c.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y0 + 1, w - 2, h - 2); ctx.restore(); }
+    else hatch(ctx, c, x, y0, w, h);
+    txt(ctx, label, x + w / 2, y0 + h / 2 - (sub ? 6 : 0), { font: on ? smallBold(c) : small(c), fill: on ? c.ink1 : c.ink3, align: "center" });
+    if (sub) txt(ctx, sub, x + w / 2, y0 + h / 2 + 7, { font: small(c), fill: c.ink2, align: "center" });
+  };
+  const up = (y1, y2) => {
+    line(ctx, [[x + w / 2, y1], [x + w / 2, y2 + 5]], c.ink3, 1.2);
+    ctx.save(); ctx.fillStyle = c.ink3; ctx.beginPath(); ctx.moveTo(x + w / 2, y2); ctx.lineTo(x + w / 2 - 4, y2 + 6); ctx.lineTo(x + w / 2 + 4, y2 + 6); ctx.fill(); ctx.restore();
+  };
+  const all = way === "scratch" || way === "full";
+  box(rows.emb[0] + 8, T48 - 16, S.embedding, all);
+  for (const b of [0, 1]) {
+    const [a, z] = rows[`b${b}`];
+    line(ctx, [[x - 5, a - 32], [x + w + 5, a - 32], [x + w + 5, z + 2], [x - 5, z + 2], [x - 5, a - 32]], c.ink3, 1, [4, 3]);
+    txt(ctx, S.block(b + 1), x - 1, a - 25, { font: smallBold(c), fill: c.ink2 });
+    box(a - 16, 24, S.ffn, all);
+    box(a + 12, z - a - 12, S.attn, all || way === "lora", way === "lora" ? S.loraSub : null);
+  }
+  box(rows.head[0], 16, S.headBox, true);
+  up(rows.emb[0] + 8, rows.b0[1] + 2); up(rows.b0[0] - 32, rows.b1[1] + 2); up(rows.b1[0] - 32, rows.head[1] + 1);
+}
+
+function drawMap(ctx, c, w, way, task, step, show) {
+  const run = TABLE.runs[task][way], s = Math.round(step), weights = show === "weights";
+  txt(ctx, weights ? S.mapHeadW(s) : S.mapHeadC(s), PAD, 84, { font: cap(c), fill: c.ink1 });
+  const maps = mapsOf(task, way), k = step / SNAP, k0 = Math.floor(k), f = k - k0, start = startOf(way), trained = new Set(run.mats);
+  /* the change, in the run's scale: maps[k0 − 1] holds step 50·k0, step 0 is zero; between snapshots, linear */
+  const change = (m, idx) => {
+    if (!trained.has(m)) return 0;
     const a = k0 >= 1 ? maps[Math.min(k0, maps.length) - 1][m][idx] : 0;
     const b = k0 < maps.length ? maps[k0][m][idx] : a;
-    return (a + (b - a) * f) / 255;
+    return a + (b - a) * f;
   };
-  const hx = PAD + 42, trained = new Set(run.mats), spans = {};
+  /* WEIGHTS: W_t = W₀ + the change, on the matrix's own scale. CHANGE: W_t − W₀ on the page's. */
+  const value = weights ? (m, idx) => start.w[m][idx] + (change(m, idx) * run.scale) / start.scale[m] : change;
+  const rows = {};
   const tile = (m, label, x, y) => {
     const [r, cc] = TABLE.shapes[m], side = r !== 48, W = (side ? r : cc) * PX;
     txt(ctx, label, x + W / 2, y - 7, { font: small(c), fill: c.ink2, align: "center" });
-    if (!trained.has(m)) { hatch(ctx, c, x, y, W, T48); txt(ctx, S.frozen, x + W / 2, y + T48 / 2, { font: small(c), fill: c.ink3, align: "center" }); return W; }
+    if (!weights && !trained.has(m)) { hatch(ctx, c, x, y, W, T48); txt(ctx, S.frozen, x + W / 2, y + T48 / 2, { font: small(c), fill: c.ink3, align: "center" }); return W; }
     image(ctx, c, r, cc, (i, j) => value(m, i * cc + j), x, y, W, T48, side);
     return W;
   };
   let y = MAP_TOP;
-  /* the head on top, as his figure: 2 × 48, drawn tall enough to see */
-  txt(ctx, S.head, hx, y, { font: smallBold(c), fill: c.ink1 });
-  image(ctx, c, 2, 48, (i, j) => value("head.weight", i * 48 + j), hx + 40, y - 8, 192, 16);
-  spans.head = [y - 8, y + 8];
-  y += 26;
+  image(ctx, c, 2, 48, (i, j) => value("head.weight", i * 48 + j), MAP_X, y - 8, 192, 16);
+  rows.head = [y - 8, y + 8];
+  txt(ctx, S.trains(TABLE.trains[way], TOTAL(way)), w - PAD, y, { font: smallBold(c), fill: c.ink1, align: "right" });
+  y += 22;
   for (const b of [1, 0]) {
-    txt(ctx, S.block(b + 1), hx, y, { font: smallBold(c), fill: c.ink1 });
-    let x = hx; const ty = y + 20;
-    for (const [m, label] of BLOCK(b)) x += tile(m, label, x, ty) + (label === "O" ? 12 : 6);
-    spans[`b${b}`] = [ty, ty + T48]; y = ty + T48 + 12;
+    let x = MAP_X; const ty = y + 34, xs = [];
+    for (const [m, label] of BLOCK(b)) { xs.push(x); x += tile(m, label, x, ty) + (label === "O" ? 12 : 6); }
+    for (const [a, z, label] of [[xs[0], xs[3] + T48, S.attn], [xs[4], x - 6, S.ffn]]) {
+      line(ctx, [[a, ty - 14], [a, ty - 18], [z, ty - 18], [z, ty - 14]], c.ink3);
+      txt(ctx, label, (a + z) / 2, ty - 25, { font: smallBold(c), fill: c.ink1, align: "center" });
+    }
+    rows[`b${b}`] = [ty, ty + T48]; y = ty + T48 + 16;
   }
-  txt(ctx, S.emb, hx, y, { font: smallBold(c), fill: c.ink1 });
-  { const ty = y + 20; let x = hx; x += tile("tok.weight", S.token, x, ty) + 12; tile("pos.weight", S.position, x, ty); spans.emb = [ty, ty + T48]; y = ty + T48; }
-  /* his Trainable bracket, over what this way trains */
-  const parts = way === "transfer" ? ["head"] : way === "lora" ? ["head", "b1", "b0"] : ["head", "b1", "b0", "emb"];
-  const t0 = Math.min(...parts.map((p) => spans[p][0])), t1 = Math.max(...parts.map((p) => spans[p][1]));
-  line(ctx, [[hx - 8, t0], [hx - 13, t0], [hx - 13, t1], [hx - 8, t1]], c.ink1, 1.5);
-  ctx.save(); ctx.translate(hx - 22, (t0 + t1) / 2); ctx.rotate(-Math.PI / 2);
-  txt(ctx, way === "lora" ? S.trainableLora : S.trainable, 0, 0, { font: smallBold(c), fill: c.ink1, align: "center" }); ctx.restore();
-  txt(ctx, S.trains(TABLE.trains[way], TOTAL(way)), w - PAD, MAP_TOP, { font: smallBold(c), fill: col, align: "right" });
-  /* the scale: one a page */
-  const sy = y + 16, L = lut(c);
-  for (let i = 0; i < 120; i++) { const q = L[Math.round(255 * i / 119)]; ctx.fillStyle = `rgb(${q.join(",")})`; ctx.fillRect(hx + i, sy - 4, 1.2, 8); }
-  txt(ctx, S.scaleLo, hx - 4, sy, { font: small(c), fill: c.ink3, align: "right" });
-  txt(ctx, S.scaleHi(run.scale.toFixed(3)), hx + 126, sy, { font: small(c), fill: c.ink3 });
+  { const ty = y + 18; let x = MAP_X; x += tile("tok.weight", S.token, x, ty) + 12; tile("pos.weight", S.position, x, ty); rows.emb = [ty, ty + T48]; y = ty + T48; }
+  drawFigure(ctx, c, way, rows);
+  /* the scale */
+  const sy = y + 18, L = lut(c);
+  for (let i = 0; i < 160; i++) { const q = shade(L, (i - 79.5) / 79.5); ctx.fillStyle = `rgb(${q.join(",")})`; ctx.fillRect(MAP_X + i, sy - 4, 1.2, 8); }
+  txt(ctx, weights ? S.scaleW : S.scaleC(run.scale.toFixed(3)), MAP_X + 168, sy, { font: small(c), fill: c.ink3 });
 }
 
 /** LoRA's factors at a fractional step, interpolated between the run's snapshots every 25 steps */
@@ -257,7 +309,7 @@ function drawLora(ctx, c, w, task, step, y0) {
   const mW = mx(W), mA = mx(last.B), mB = mx(TABLE.runs[task].lora.lora.flatMap((x) => x.A)), mU = mx(updLast);
   const cell = 1.8, Sz = 48 * cell, R8 = r * cell, yT = y0 + 42, yM = yT + R8 + 6;
   const xW = PAD + 2, xA = xW + Sz + 40, xP = xA + R8 + 6, xWp = xP + Sz + 32;
-  const draw = (M, scale, x, y) => image(ctx, c, M.length, M[0].length, (i, j) => Math.abs(M[i][j]) / scale, x, y, M[0].length * cell, M.length * cell);
+  const draw = (M, scale, x, y) => image(ctx, c, M.length, M[0].length, (i, j) => M[i][j] / scale, x, y, M[0].length * cell, M.length * cell);
   draw(W, mW, xW, yM); txt(ctx, S.loraW, xW + Sz / 2, yM - 10, { font: smallBold(c), fill: c.ink1, align: "center" });
   txt(ctx, S.loraWnote, xW + Sz / 2, yM + Sz + 12, { font: small(c), fill: c.ink3, align: "center" });
   txt(ctx, `+ ${SCALE} ·`, xW + Sz + 20, yM + Sz / 2, { font: body(c), fill: c.ink1, align: "center" });
@@ -268,7 +320,7 @@ function drawLora(ctx, c, w, task, step, y0) {
   const Wp = W.map((row, i) => row.map((v, j) => v + upd[i][j]));
   draw(Wp, mW, xWp, yM); txt(ctx, S.loraWp, xWp + Sz / 2, yM - 10, { font: smallBold(c), fill: c.ink1, align: "center" });
   txt(ctx, S.loraWpNote, xWp + Sz / 2, yM + Sz + 12, { font: small(c), fill: c.ink3, align: "center" });
-  txt(ctx, S.loraTrained(r), xA, yT - 18, { font: smallBold(c), fill: c.groupC });
+  txt(ctx, S.loraTrained(r), xA, yT - 18, { font: smallBold(c), fill: c.ink1 });
   const norm = (M) => Math.sqrt(M.flat().reduce((a, v) => a + v * v, 0));
   txt(ctx, S.loraLine(s, pct(norm(upd) / norm(W))), PAD, yM + Sz + 30, { font: small(c), fill: c.ink2 });
 }
@@ -327,6 +379,8 @@ defineWidget({
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "scratch", display: true },
     task: { type: "segmented", label: S.taskLabel, options: TASKS, default: "match" },
+    /* two readings of one run (round 1): a display control, so switching keeps the run */
+    show: { type: "segmented", label: S.showLabel, options: S.showOpts, default: "weights", display: true },
     /* authoring escape hatch, first render only: 1 opens the page trained */
     shown: { type: "int", min: 0, max: 1, default: 0, hidden: true },
   },
@@ -370,7 +424,7 @@ defineWidget({
   draw({ ctx, colors, w, params, anim }) {
     const pg = pageOf(anim, params), way = params.page, task = params.task, step = stepOf(pg), L = lay(way);
     drawNotes(ctx, colors, task);
-    drawMap(ctx, colors, w, way, task, step);
+    drawMap(ctx, colors, w, way, task, step, params.show);
     if (way === "lora") drawLora(ctx, colors, w, task, step, L.lora);
     drawCurve(ctx, colors, w, way, task, step, L.curve);
     txt(ctx, caption(way, task, pg.n >= 1 && pg.t >= 1), PAD, L.height - 14, { font: body(colors), fill: colors.ink2 });

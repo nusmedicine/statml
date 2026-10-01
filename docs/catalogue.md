@@ -23123,6 +23123,28 @@ clean on 16 states; switch probe 0 of 4. Title *Adapting Pre-trained Models*,
 blurb at the 120 cap. NEXT: his review rounds, then the copy audit; halving
 the snapshots (every 100 steps) roughly halves the file if he wants it lighter.
 
+**ROUND 1, 2026-10-01** — his two comments: *"can you put a diagram next to the
+blocks?"* and *"the color fade in? i thought the weights would be there then
+change with training? would blue-red be more contrastive?"*. Measured
+(`_lab/adapting-colour-measure.py`): on a picture of the weights themselves the
+share of weights whose colour moves a tenth of the ramp is 2.0% under full
+fine-tuning, 10.0% LoRA, 9.6% scratch, 0.2% transfer — so the weights alone make
+full fine-tuning look idle and LoRA's Q, V look like the frozen K, O. Mocked
+(`_lab/adapting-colour-mock.html`, d89743e); **PICKED, both recommendations:**
+**C4**, a display control **Show: Weights · Change**, Weights first (W_t there
+from step 0, each matrix on its own scale; Change W_t − W_0 on one scale a page),
+both on the signed **blue–red** pair `--c-value-low/high` (so the map and LoRA's
+detail colour nothing by identity: their text went to ink, the way colours stay
+on the curve); **D1**, his figure in a column beside the rows, each box level
+with its tiles, trained boxes outlined in ink and frozen ones hatched (it
+replaces the Trainable bracket), Self-attention and Feed forward headers over
+the tiles; the map at 0.95 px a weight to make room. The table now stores the
+change signed and both starting points (base, scratch) as signed bytes on each
+matrix's own scale (2.39 MB); the verify (985 checks) adds the starts' sizes,
+the base's stored W_Q against the detail's, the head starting the same on every
+way. Sweep clean on 32 states (both readings), tallest 1,179 of 1,200; switch
+probe 0 of 5; 60 fps on both readings; a Show switch mid-run keeps the run.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
