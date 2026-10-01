@@ -93,6 +93,14 @@ for (const start of ["base", "scratch"]) {
 const headStart = (start) => { const raw = signed(bytes(T.w0[start])); return raw.slice(0, 96).map((b) => b * T.w0scale[start]["head.weight"] / 127); };
 ok(headStart("base").every((v, i) => Math.abs(v - headStart("scratch")[i]) < 0.02), "the head starts the same on every way");
 
+/* 2b · the blink (round 2): 5% of the page's largest change, exact because the scale IS the largest change */
+for (const task of ["outcome", "match"]) for (const way of ["scratch", "transfer", "full", "lora"]) {
+  const run = T.runs[task][way], raw = signed(bytes(run.maps)), per = raw.length / (T.steps / T.snap);
+  ok(raw.slice(per * (T.steps / T.snap - 1)).some((b) => Math.abs(b) === 127), `${task} ${way}: the scale is the largest final change (some weight reaches 127)`);
+  let blinks = 0; for (let k = 1; k <= T.steps / T.snap; k++) for (let i = 0; i < per; i++) if (Math.abs(raw[(k - 1) * per + i] - (k >= 2 ? raw[(k - 2) * per + i] : 0)) / 127 > 0.05) blinks++;
+  ok(blinks > 0, `${task} ${way}: ${blinks} blinks over the run`);
+}
+
 /* 3 · notes and base rates */
 for (const task of ["outcome", "match"]) {
   const n = T.notes[task];

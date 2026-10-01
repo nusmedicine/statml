@@ -20,9 +20,10 @@ Linear(48 -> 2) head, held-out accuracy on 1,000 notes at step 0 and every 10.
   curve     41 accuracies a run.
   maps      W_t - W_0, SIGNED, for every matrix the way trains (the forward's
             own matrix: for LoRA, W + (alpha/r) B A), at steps 50, 100 ... 400,
-            each value divided by the run's SCALE (the 99th percentile of the
-            final |change| over every trained weight: one scale a page),
-            clamped to [-1, 1] and stored as a signed byte (x 127), row by row
+            each value divided by the run's SCALE (the LARGEST final |change|
+            over every trained weight: one scale a page; round 2 made it the
+            largest so nothing is clamped and the page's blink threshold, 10% of
+            the largest change, is exact), stored as a signed byte (x 127), row by row
             in torch's [out][in] layout, snapshot by snapshot, the matrices in
             the run's `mats` order; base64. Matrices the way leaves frozen are
             not stored: the generator asserts they did not move.
@@ -116,7 +117,7 @@ def run(way, task, test):
     for k in MATS:
         if k not in TRAINS[way]: assert snaps[-1][k].abs().max().item() == 0, f"{way}: {k} moved"
     fin = torch.cat([snaps[-1][k].abs().flatten() for k in TRAINS[way]])
-    scale = torch.quantile(fin.float(), 0.99).item() if fin.numel() > 1000 else fin.max().item()
+    scale = fin.max().item()   # the largest change: nothing is clamped, and the blink's "10% of the largest change" is exact
     raw = bytearray()
     for sn in snaps:
         for k in TRAINS[way]:

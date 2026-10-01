@@ -23145,6 +23145,31 @@ the base's stored W_Q against the detail's, the head starting the same on every
 way. Sweep clean on 32 states (both readings), tallest 1,179 of 1,200; switch
 probe 0 of 5; 60 fps on both readings; a Show switch mid-run keeps the run.
 
+**ROUND 2, 2026-10-01** — his *"maybe another visualization idea. can you flash
+pixels of weights that changed instead?"*. Any change at all lights every
+trained weight (Adam moves them all each step), so a weight flashes when it
+moved past a threshold in the last 50 steps. Mocked three ways
+(`_lab/adapting-flash-mock.html`, 79c858b): F1 a violet pulse fading (lost
+against blue–red), **F2 an ink blink, no fade**, F3 a glow while moving.
+**PICKED, every recommendation:** F2; **the Change reading dropped** (the
+blink does its job; one control fewer); **a fixed threshold**. Built: every 50
+steps the weights past the threshold blink in ink for 250 ms on the press's
+own clock (6 s of training + 250 ms so the last blink shows; a finished page
+shows none), the count written beside the map's heading. **The threshold is
+5% of the page's LARGEST change, not the 10% he picked:** the mock's "10%" was
+of the generator's scale, then the 99th percentile, which I had called the
+largest change; the generator now scales by the true largest change (2–3 × the
+99th percentile, so nothing is clamped either) and 5% of it keeps the density
+he picked from (full fine-tuning on Wrong drug 1,758–8,627 weights a blink).
+What the blinks track, measured: on Wrong drug full fine-tuning's blinks grow
+from step 200, when its accuracy starts to climb; on Finding asserted an early
+burst (18,949 in the first 50 steps) and then near silence, the task learned by
+step 100. Verify 961 checks (the scale is the largest change; every run
+blinks); mid-run recorder on all eight runs: every blink seen, no clashes (it
+found the curve labels nudged into the tick row mid-run, now stacked upward
+from the chart's foot); settled sweep clean, tallest 1,179; switch probe 0 of 4;
+60 fps.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

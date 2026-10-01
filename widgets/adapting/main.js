@@ -20,18 +20,24 @@
    D1: each box level with its tiles, trained boxes outlined, frozen ones hatched);
    the page's held-out accuracy curve with from scratch's dashed beside it.
 
-   TWO READINGS OF ONE RUN, a display control Show (round 1, his "i thought the
+   THE WEIGHTS, AND A BLINK ON THOSE THAT MOVE. Round 1 (his "i thought the
    weights would be there then change with training ... would blue-red be more
-   contrastive?"; picked C4, `_lab/adapting-colour-mock.html`): WEIGHTS, the
-   weights themselves W_t, there from step 0, each matrix on its own scale; and
-   CHANGE, W_t − W_0, on one scale a page. Both on the signed blue-red ramp. Why
-   both (measured, `_lab/adapting-colour-measure.py`): on the weights reading only
-   2.0% of weights visibly move under full fine-tuning (LoRA 10%, scratch 9.6%),
-   because it moves each matrix by about a tenth of its size; the change reading
-   shows every tile move. WHY REAL SNAPSHOTS: on Wrong drug the pattern of change
-   turns during training (cosine with the final change 0.45 at step 100), so the
-   map plays the run's own state every 50 steps, interpolated between them. Frozen
-   is a fact the generator asserts: a frozen matrix did not move by a single bit.
+   contrastive?"): the map draws the weights W_t themselves, there from step 0,
+   each matrix on its own scale, on the signed blue-red ramp. Measured
+   (`_lab/adapting-colour-measure.py`): on that picture only 2.0% of weights
+   visibly move under full fine-tuning (LoRA 10%, scratch 9.6%), because it moves
+   each matrix by about a tenth of its size. Round 2 (his "flash pixels of weights
+   that changed instead"; picked F2, `_lab/adapting-flash-mock.html`): every 50
+   steps the weights that moved more than 5% of the page's largest change in
+   those 50 steps blink in ink for 250 ms, no fade. Any change at all would light
+   every trained tile (Adam moves them all on every step), hence the threshold
+   (5% of the page's largest change; see THRESH).
+   The Change reading of round 1 was dropped in favour of the blink (his pick).
+   WHY REAL SNAPSHOTS: on Wrong drug the pattern of change turns during training
+   (cosine with the final change 0.45 at step 100), so the map plays the run's own
+   state every 50 steps, interpolated between them. Frozen is a fact the
+   generator asserts: a frozen matrix did not move by a single bit, so it never
+   blinks.
 
    LORA'S NOTATION is the lesson's, W′ = W + A Bᵀ with A and B 48 × r, plus peft's
    scaling α/r (32/8 = 4) that the lesson's formula leaves out. peft starts the
@@ -81,16 +87,13 @@ const S = {
   step: "Train", stepTitle: "Train on the 1,024 labelled notes, 400 steps",
   wait: "—",
   notesHead: "Labelled notes: 1,024 for training, 1,000 held out",
-  showLabel: "Show",
-  showOpts: [{ value: "weights", label: "Weights", detail: "The weights themselves, blue below 0 and red above, as training changes them." },
-    { value: "change", label: "Change", detail: "How far each weight has moved since training began: blue down, red up." }],
-  mapHeadW: (s) => `The weights after ${s} steps`,
-  mapHeadC: (s) => `How far each weight has moved since training began, after ${s} steps`,
+  mapHead: (s) => `The weights after ${s} steps`,
+  blinkNote: "blink: moved over 5% of the largest change in 50 steps",
+  blinkNow: (n, a, b) => `${n.toLocaleString("en-US")} moved more than 5% of the largest change in steps ${a}–${b}`,
   trains: (n, of) => `trains ${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")}`,
   headBox: "Linear (head)", block: (b) => `Block ${b}`, embedding: "Embedding", token: "token", position: "position",
-  attn: "Self-attention", ffn: "Feed forward", loraSub: "Q, V + A Bᵀ", frozen: "frozen",
+  attn: "Self-attention", ffn: "Feed forward", loraSub: "Q, V + A Bᵀ",
   scaleW: "below 0 · 0 · above 0, each matrix on its own scale",
-  scaleC: (v) => `down · 0 · up, by ${v} or more`,
   loraHead: (s) => `Block 1's Q, after ${s} steps: W′ = W + ${SCALE} · A Bᵀ`,
   loraW: "W", loraWnote: "frozen · 2,304", loraA: "A", loraBt: "Bᵀ", loraUpd: "A Bᵀ, the update", loraWp: "W′", loraWpNote: "what the model uses",
   loraTrained: (r) => `trained: A and B, each 48 × ${r} = ${(2 * 48 * r).toLocaleString("en-US")}`,
@@ -173,12 +176,12 @@ function lut(c) {
 const shade = (L, v) => L[127 + Math.round(127 * Math.max(-1, Math.min(1, v)))];
 /** a matrix of values in [−1, 1] as an image, one pixel an entry, drawn scaled with no smoothing */
 const offscreen = typeof document !== "undefined" ? document.createElement("canvas") : null;
-function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false) {
-  const R = transpose ? cols : rows, C = transpose ? rows : cols, L = lut(c);
+function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false, lit = null) {
+  const R = transpose ? cols : rows, C = transpose ? rows : cols, L = lut(c), ink = rgb(c.ink1);
   offscreen.width = C; offscreen.height = R;
   const g = offscreen.getContext("2d"), img = g.createImageData(C, R);
   for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
-    const q = shade(L, transpose ? at(j, i) : at(i, j)), o = 4 * (i * C + j);
+    const on = lit && (transpose ? lit(j, i) : lit(i, j)), q = on ? ink : shade(L, transpose ? at(j, i) : at(i, j)), o = 4 * (i * C + j);
     img.data[o] = q[0]; img.data[o + 1] = q[1]; img.data[o + 2] = q[2]; img.data[o + 3] = 255;
   }
   g.putImageData(img, 0, 0);
@@ -206,8 +209,36 @@ const BLOCK = (b) => [["att.q", "Q"], ["att.k", "K"], ["att.v", "V"], ["att.o", 
 
 /* ============================================================ the page */
 
+/* THE PRESS'S CLOCK: 6 s of training, then 250 ms more so the last snapshot's blink shows. Each 50 steps the
+   weights that moved past the threshold blink in ink for 250 ms and switch off at once (round 2, his "flash
+   pixels of weights that changed"; picked F2, `_lab/adapting-flash-mock.html`: no fade, his rule). Timed on
+   the press's own clock, so a driven state is deterministic; a finished page shows no blink. */
+/* THE THRESHOLD, 5% of the page's largest change: the mock he picked from flashed at 10% of the 99th
+   percentile, which the generator's scale was until round 2; the largest change is 2–3 times that, so 5% of it
+   keeps the density he saw (full fine-tuning on Wrong drug: 1,758–8,627 weights a blink) and says exactly
+   what it is. */
+const RUN_MS = 6000, BLINK_MS = 250, MS = RUN_MS + BLINK_MS, THRESH = 0.05;
 /** where the run is: the training step, fractional */
-const stepOf = (pg) => (pg.n === 0 ? 0 : STEPS * pg.t);
+const stepOf = (pg) => (pg.n === 0 ? 0 : STEPS * Math.min(1, (pg.t * MS) / RUN_MS));
+/** the snapshot blinking now (1 … 8, the one at step 50·k), or 0 */
+function blinkOf(pg) {
+  if (pg.n === 0 || pg.t >= 1) return 0;
+  const e = pg.t * MS, per = RUN_MS / (STEPS / SNAP), k = Math.floor(e / per);
+  return k >= 1 && k <= STEPS / SNAP && e - k * per < BLINK_MS ? k : 0;
+}
+/** which weights blink at snapshot k: those that moved more than THRESH of the page's scale in the 50 steps before it */
+const MASKS = {};
+function blinkMask(task, way, k) {
+  const key = `${task}/${way}/${k}`;
+  if (MASKS[key]) return MASKS[key];
+  const maps = mapsOf(task, way), out = { n: 0 };
+  for (const m of TABLE.runs[task][way].mats) {
+    const now = maps[k - 1][m], before = k >= 2 ? maps[k - 2][m] : null, mask = new Uint8Array(now.length);
+    for (let i = 0; i < now.length; i++) if (Math.abs(now[i] - (before ? before[i] : 0)) > THRESH) { mask[i] = 1; out.n++; }
+    out[m] = mask;
+  }
+  return (MASKS[key] = out);
+}
 
 function drawNotes(ctx, c, task) {
   txt(ctx, S.notesHead, PAD, 14, { font: cap(c), fill: c.ink1 });
@@ -248,9 +279,11 @@ function drawFigure(ctx, c, way, rows) {
   up(rows.emb[0] + 8, rows.b0[1] + 2); up(rows.b0[0] - 32, rows.b1[1] + 2); up(rows.b1[0] - 32, rows.head[1] + 1);
 }
 
-function drawMap(ctx, c, w, way, task, step, show) {
-  const run = TABLE.runs[task][way], s = Math.round(step), weights = show === "weights";
-  txt(ctx, weights ? S.mapHeadW(s) : S.mapHeadC(s), PAD, 84, { font: cap(c), fill: c.ink1 });
+function drawMap(ctx, c, w, way, task, step, blink) {
+  const run = TABLE.runs[task][way], s = Math.round(step);
+  txt(ctx, S.mapHead(s), PAD, 84, { font: cap(c), fill: c.ink1 });
+  const mask = blink ? blinkMask(task, way, blink) : null;
+  txt(ctx, mask ? S.blinkNow(mask.n, (blink - 1) * SNAP, blink * SNAP) : S.blinkNote, w - PAD, 84, { font: small(c), fill: mask ? c.ink1 : c.ink3, align: "right" });
   const maps = mapsOf(task, way), k = step / SNAP, k0 = Math.floor(k), f = k - k0, start = startOf(way), trained = new Set(run.mats);
   /* the change, in the run's scale: maps[k0 − 1] holds step 50·k0, step 0 is zero; between snapshots, linear */
   const change = (m, idx) => {
@@ -259,18 +292,18 @@ function drawMap(ctx, c, w, way, task, step, show) {
     const b = k0 < maps.length ? maps[k0][m][idx] : a;
     return a + (b - a) * f;
   };
-  /* WEIGHTS: W_t = W₀ + the change, on the matrix's own scale. CHANGE: W_t − W₀ on the page's. */
-  const value = weights ? (m, idx) => start.w[m][idx] + (change(m, idx) * run.scale) / start.scale[m] : change;
+  /* the weights: W_t = W₀ + the change, on the matrix's own scale */
+  const value = (m, idx) => start.w[m][idx] + (change(m, idx) * run.scale) / start.scale[m];
+  const litOf = (m, cc) => (mask && mask[m] ? (i, j) => mask[m][i * cc + j] === 1 : null);
   const rows = {};
   const tile = (m, label, x, y) => {
     const [r, cc] = TABLE.shapes[m], side = r !== 48, W = (side ? r : cc) * PX;
     txt(ctx, label, x + W / 2, y - 7, { font: small(c), fill: c.ink2, align: "center" });
-    if (!weights && !trained.has(m)) { hatch(ctx, c, x, y, W, T48); txt(ctx, S.frozen, x + W / 2, y + T48 / 2, { font: small(c), fill: c.ink3, align: "center" }); return W; }
-    image(ctx, c, r, cc, (i, j) => value(m, i * cc + j), x, y, W, T48, side);
+    image(ctx, c, r, cc, (i, j) => value(m, i * cc + j), x, y, W, T48, side, litOf(m, cc));
     return W;
   };
   let y = MAP_TOP;
-  image(ctx, c, 2, 48, (i, j) => value("head.weight", i * 48 + j), MAP_X, y - 8, 192, 16);
+  image(ctx, c, 2, 48, (i, j) => value("head.weight", i * 48 + j), MAP_X, y - 8, 192, 16, false, litOf("head.weight", 48));
   rows.head = [y - 8, y + 8];
   txt(ctx, S.trains(TABLE.trains[way], TOTAL(way)), w - PAD, y, { font: smallBold(c), fill: c.ink1, align: "right" });
   y += 22;
@@ -288,7 +321,7 @@ function drawMap(ctx, c, w, way, task, step, show) {
   /* the scale */
   const sy = y + 18, L = lut(c);
   for (let i = 0; i < 160; i++) { const q = shade(L, (i - 79.5) / 79.5); ctx.fillStyle = `rgb(${q.join(",")})`; ctx.fillRect(MAP_X + i, sy - 4, 1.2, 8); }
-  txt(ctx, weights ? S.scaleW : S.scaleC(run.scale.toFixed(3)), MAP_X + 168, sy, { font: small(c), fill: c.ink3 });
+  txt(ctx, S.scaleW, MAP_X + 168, sy, { font: small(c), fill: c.ink3 });
 }
 
 /** LoRA's factors at a fractional step, interpolated between the run's snapshots every 25 steps */
@@ -347,8 +380,15 @@ function drawCurve(ctx, c, w, way, task, step, y0) {
     const e = pts[pts.length - 1];
     ends.push({ y: e[1], x: e[0], text: `${pct(cv[Math.min(POINTS, Math.round(upto))])} ${WAYS[k].name}`, fill: c[WAYS[k].color], font: smallBold(c) });
   }
+  /* nudged apart, and kept above the tick row: mid-run three labels can crowd near the floor (the sweep of
+     settled states could not see it), so a stack pushed past the chart's foot is re-stacked upward from it */
   ends.sort((a, b) => a.y - b.y);
   for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 14);
+  const foot = ch.y + ch.h - 2;
+  if (ends.length && ends[ends.length - 1].y > foot) {
+    ends[ends.length - 1].y = foot;
+    for (let i = ends.length - 2; i >= 0; i--) ends[i].y = Math.min(ends[i].y, ends[i + 1].y - 14);
+  }
   for (const e of ends) txt(ctx, e.text, e.x + 6, e.y, { font: e.font, fill: e.fill });
 }
 
@@ -360,7 +400,6 @@ function caption(way, task, done) {
 
 /* ============================================================ animation */
 
-const MS = 6000;
 const pageOf = (anim, params) => anim.p[params.page];
 function settle(anim, params) {
   const pg = pageOf(anim, params);
@@ -379,8 +418,6 @@ defineWidget({
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "scratch", display: true },
     task: { type: "segmented", label: S.taskLabel, options: TASKS, default: "match" },
-    /* two readings of one run (round 1): a display control, so switching keeps the run */
-    show: { type: "segmented", label: S.showLabel, options: S.showOpts, default: "weights", display: true },
     /* authoring escape hatch, first render only: 1 opens the page trained */
     shown: { type: "int", min: 0, max: 1, default: 0, hidden: true },
   },
@@ -424,7 +461,7 @@ defineWidget({
   draw({ ctx, colors, w, params, anim }) {
     const pg = pageOf(anim, params), way = params.page, task = params.task, step = stepOf(pg), L = lay(way);
     drawNotes(ctx, colors, task);
-    drawMap(ctx, colors, w, way, task, step, params.show);
+    drawMap(ctx, colors, w, way, task, step, blinkOf(pg));
     if (way === "lora") drawLora(ctx, colors, w, task, step, L.lora);
     drawCurve(ctx, colors, w, way, task, step, L.curve);
     txt(ctx, caption(way, task, pg.n >= 1 && pg.t >= 1), PAD, L.height - 14, { font: body(colors), fill: colors.ink2 });
