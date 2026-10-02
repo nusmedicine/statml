@@ -1254,7 +1254,7 @@
     {
       "slug": "adapting",
       "title": "Deep Learning - Language: Adapting Pre-trained Models",
-      "blurb": "A pretrained model adapted three ways, against training from scratch: the head alone, all weights, or a low-rank update.",
+      "blurb": "Adapting a pretrained model trains a new head alone, every weight, or a low-rank update, unlike training from scratch.",
       "course": "PHM5005",
       "topics": [
         "transfer learning",

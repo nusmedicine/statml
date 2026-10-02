@@ -23303,6 +23303,36 @@ Other items from the review: credit BV-BRC on any page that shows HA sequences;
 87 Occlusion's own point beyond 75 is the transformer and the tokenizer's ids;
 87 Attention's beyond 83/84 is that attention is not attribution.
 
+**PROTEIN ADAPTATION MEASURED, 2026-10-02** (`_lab/protein-adapt-measure.py`,
+`_lab/protein-adapt-measure.json`; the trained base `_lab/protein-base.pt` is
+regenerated, not committed): 85's shape pretrained by masked-residue prediction
+on the 22,813 unlabelled training proteins, 3,000 steps of 32 — held-out
+accuracy 3% → 54% (250) → 76% (1,000) → **87.8%** (chance 5%, the commonest
+residue 8%). Then 85's protocol on [CLS], one seed, 1,000 test proteins (62%
+human), at n = 16 · 64 · 256 · 1,024: **transfer 90.1 · 94.3 · 94.2 · 97.2;
+LoRA 89.4 · 97.4 · 97.9 · 98.6; full 82.1 · 97.6 · 98.2 · 98.6; scratch 83.9 ·
+96.7 · 97.7 · 98.5**; transfer on MEAN pooling 90.5 · 97.0 · 97.3 · 94.7. So the
+four ways differ only at **16 labels**, where the frozen pretrained backbone
+wins (90 against 82–84) — the small-data case the clinical stage did not show —
+and from 64 labels on all four sit at 94–99%. At 85's fixed 1,024 the protein
+curves would be four near-identical lines. One seed: the 16-label gaps need
+three seeds before any page states them.
+
+**COPY AUDIT OF 85, 2026-10-02 — APPLIED, every row, "changed" for "moved"**
+(his pick): the held-out header no longer says the head trains on every page
+("training uses 1,024 others"); **parameters** for "numbers" (the lesson's
+word); the LoRA update **added to** the Q and V weights, not "beside"; the LoRA
+caption "Only the head and the updates to Q and V changed; the pretrained W
+stayed fixed."; the subtitle "…a low-rank update added to frozen weights… Training
+the head alone works only when the pretrained vectors already separate the
+classes."; the chart floor one name for both labels, **"majority class"** (the
+proposed "always the larger class" ran 4 px off the canvas, so the field's term);
+"more than", "used in the forward pass", "changed" throughout; the blurb
+"Adapting a pretrained model trains a new head alone, every weight, or a
+low-rank update, unlike training from scratch." (118). 292 banlist terms: no
+real hit. The verify's sweep strikes the audit's words (1,252 checks). Link
+values (`task=match`) settle with the merged control.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

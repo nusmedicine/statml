@@ -133,7 +133,10 @@ const src = readFileSync(join(here, "..", "adapting", "main.js"), "utf8").replac
 const strings = [...src.matchAll(/"([^"\\]*(?:\\.[^"\\]*)*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2]).filter((s) => /[a-z] [a-z]/i.test(s));
 const STRUCK = [/\bnever\b/i, /\byou\b/i, /\byour\b/i, /\bcarr(y|ies)\b/i, /\breads\b/i, /\bchose\b/i, /\bknows?\b/i, /\bwants?\b/i,
   /\bcard\b/i, /\brung\b/i, /\btrench\b/i, /\bwalk\b/i, /\bsimply\b/i, /\bjust\b/i, /\bin ink\b/i,
-  /\blesson\b/i, /\bnotebook\b/i, /\bcell \d/i, /\b\d\d-\d\b/, /\bwidget \d/i];
+  /\blesson\b/i, /\bnotebook\b/i, /\bcell \d/i, /\b\d\d-\d\b/, /\bwidget \d/i,
+  /* the copy audit of 2026-10-02: "beside" for an added update, "numbers" for parameters, the head training on
+     every page, "called", "moved" for a changed weight, the matrix the model "uses", "over" for "more than" */
+  /\bbeside\b/i, /\bnumbers\b/i, /\bthe head trains\b/i, /\bcalled\b/i, /\bmoved?\b/i, /\bthe model uses\b/i, /\bover \d/i];
 for (const s of strings) for (const re of STRUCK) ok(!re.test(s), `struck word ${re} in "${s}"`);
 ok(strings.length > 30, `the sweep read ${strings.length} strings`);
 

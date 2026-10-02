@@ -63,7 +63,7 @@ const WAYS = {
   scratch: { label: "Scratch", name: "From scratch", color: "reference", detail: "The same network from random weights: every weight trained." },
   transfer: { label: "Transfer", name: "Transfer learning", color: "groupA", detail: "The pretrained backbone frozen; only a new head trained." },
   full: { label: "Full", name: "Full fine-tuning", color: "groupB", detail: "Every weight trained, starting from the pretrained ones." },
-  lora: { label: "LoRA", name: "LoRA", color: "groupC", detail: "The backbone frozen; a small update A Bᵀ trained beside Q and V, and the head." },
+  lora: { label: "LoRA", name: "LoRA", color: "groupC", detail: "The backbone frozen; a low-rank update A Bᵀ added to the Q and V weights, and the head, trained." },
 };
 const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label, detail: w.detail }));
 /* THE LABEL (round 4, his "finding asserted and wrong drug looks weird"; picked the clinical names): one kind
@@ -84,39 +84,39 @@ const TOTAL = (way) => TABLE.trains.backbone + 98 + (way === "lora" ? TABLE.trai
 const S = {
   title: "Deep Learning - Language: Adapting Pre-trained Models",
   subtitle: "A pretrained model is adapted to a task by adding a head and training on labelled examples. Transfer learning trains the "
-    + "head alone, full fine-tuning every weight, and LoRA a small low-rank update beside frozen weights; training from scratch starts "
-    + "the same network from random weights. The head alone is enough when the pretrained vectors already separate the classes.",
+    + "head alone, full fine-tuning every weight, and LoRA a low-rank update added to frozen weights; training from scratch starts "
+    + "the same network from random weights. Training the head alone works only when the pretrained vectors already separate the classes.",
   pageLabel: "Training",
   taskLabel: "Label",
   step: "Train", stepTitle: "Train on the 1,024 labelled notes, 400 steps",
   wait: "—",
-  notesHead: "Four of the 1,000 held-out notes; the head trains on 1,024 others",
+  notesHead: "Four of the 1,000 held-out notes; training uses 1,024 others",
   predHead: "prediction",
   mapHead: (s) => `The weights after ${s} steps`,
-  blinkNote: "blink: moved over 5% of the largest change in 50 steps",
-  blinkNow: (n, a, b) => `${n.toLocaleString("en-US")} moved more than 5% of the largest change in steps ${a}–${b}`,
+  blinkNote: "blink: changed by more than 5% of the largest change in 50 steps",
+  blinkNow: (n, a, b) => `${n.toLocaleString("en-US")} changed by more than 5% of the largest change in steps ${a}–${b}`,
   trains: (n, of) => `trains ${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")}`,
   headBox: "Linear (head)", block: (b) => `Block ${b}`, embedding: "Embedding", token: "token", position: "position",
   attn: "Self-attention", ffn: "Feed forward", loraSub: "Q, V + A Bᵀ", frozen: "frozen",
   scaleW: "below 0 · 0 · above 0, each matrix on its own scale",
   loraHead: (s) => `Block 1's Q, after ${s} steps: W′ = W + ${SCALE} · A Bᵀ`,
-  loraW: "W", loraWnote: "48 × 48 = 2,304", loraA: "A", loraBt: "Bᵀ", loraUpd: "A Bᵀ, the update", loraWp: "W′", loraWpNote: "what the model uses",
+  loraW: "W", loraWnote: "48 × 48 = 2,304", loraA: "A", loraBt: "Bᵀ", loraUpd: "A Bᵀ, the update", loraWp: "W′", loraWpNote: "used in the forward pass",
   loraTrained: (r) => `trained: A and B, each 48 × ${r} = ${(2 * 48 * r).toLocaleString("en-US")}`,
-  loraLine: (s, u) => (s === 0 ? "A starts at zero, so the update is zero and W′ = W." : `The update is ${u} of W's size; W itself has not moved.`),
+  loraLine: (s, u) => (s === 0 ? "A starts at zero, so the update is zero and W′ = W." : `The update is ${u} of W's size; W itself has not changed.`),
   curveHead: "Held-out accuracy while training",
   curveAxis: "training step",
-  floor: (task, p) => (task === "outcome" ? `all called positive: ${p}` : `chance: ${p}`),
+  floor: (task, p) => `majority class: ${p}`,
   before: (way) => `Train runs 400 steps on the labelled notes, from ${way === "scratch" ? "random weights" : "the pretrained weights"}.`,
   /* the accuracies are in the tiles: the line says what moved */
   after: {
-    scratch: () => "Every weight moved from its random start.",
-    transfer: () => "Only the head moved: 98 numbers. The backbone is as pretrained.",
-    full: (rel) => `Every weight moved, a matrix by ${rel} of its size at the median.`,
-    lora: () => "Only Q, V and the head moved; the frozen W did not, the update beside it did.",
+    scratch: () => "Every weight changed from its random start.",
+    transfer: () => "Only the head changed: 98 parameters. The backbone is as pretrained.",
+    full: (rel) => `Every weight changed, a matrix by ${rel} of its size at the median.`,
+    lora: () => "Only the head and the updates to Q and V changed; the pretrained W stayed fixed.",
   },
   tileAcc: "Held out", tileAccNote: "accuracy on 1,000 notes",
   tileScratch: "From scratch", tileScratchNote: "the same notes, random start",
-  tileTrains: "Trained", tileTrainsNote: (of) => `numbers, of ${of.toLocaleString("en-US")}`,
+  tileTrains: "Trained", tileTrainsNote: (of) => `parameters, of ${of.toLocaleString("en-US")}`,
   sum: (page, step) => `${page}: ${step} of 400 training steps.`,
 };
 
