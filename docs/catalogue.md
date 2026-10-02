@@ -23333,6 +23333,22 @@ low-rank update, unlike training from scratch." (118). 292 banlist terms: no
 real hit. The verify's sweep strikes the audit's words (1,252 checks). Link
 values (`task=match`) settle with the merged control.
 
+**THREE SEEDS AND THE POOLING, 2026-10-02** (his "run both"; parts S and Q of
+`_lab/protein-adapt-measure.py`, each seed its own labelled proteins, 1,000 test
+proteins, mean ± sd over three). At **16 labels**, [CLS]: transfer **93.8 ± 3.5**,
+LoRA **92.4 ± 2.6**, full **91.1 ± 7.9**, scratch **83.9 ± 8.6** (seeds 83.9 ·
+92.5 · 75.4). The one-seed "transfer beats full" was full's seed 0 (82.1; its
+others 94.3, 97.0): it does not survive. What does is **pretrained against
+scratch**, 8–10 points, with scratch's spread the widest. At **64 labels** all
+four sit at 94–96 (scratch 93.8 ± 2.6). At **1,024** scratch reaches 98.5 ± 0.3
+and frozen transfer 96.1 ± 1.8: with many labels the frozen backbone caps the
+head. **Pooling** mean · max · [CLS]: scratch at 16 80.7 · 83.8 · 83.9 (sds
+9–14), at 1,024 98.5 · 98.1 · 98.5; transfer at 16 94.4 · 94.9 · 93.8, at 1,024
+94.9 · 95.9 · 96.1 — every gap inside the seed spread, so no stage where one
+pooling loses, and by the metric-choice rule **no Pooling control**. (The first
+pooling run asked TinyBERT.classify for "max", which it reads as mean; the
+script now pools max itself, and the seeds half was saved from its log.)
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

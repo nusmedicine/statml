@@ -15,7 +15,7 @@ lesson's model from scratch already reaches 98.7% on 4,000 labelled proteins
      the lesson's test proteins; one seed first. Transfer also with MEAN pooling.
 
 Data: the lesson's CSV (downloaded on his leave; NOT in the repository).
-Run:  python widgets/_lab/protein-adapt-measure.py <influenza_ha.csv> [P A] [--steps 3000]
+Run:  python widgets/_lab/protein-adapt-measure.py <influenza_ha.csv> [P A S Q] [--steps 3000]
 Writes `_lab/protein-adapt-measure.json`.
 """
 import csv, importlib.util, json, math, random, sys, time
@@ -32,7 +32,7 @@ T0 = time.time()
 def log(*a): print(*a, flush=True)
 
 path = sys.argv[1]
-parts = [p for p in sys.argv[2:] if p in ("P", "A")] or ["P", "A"]
+parts = [p for p in sys.argv[2:] if p in ("P", "A", "S", "Q")] or ["P", "A"]
 STEPS = int(sys.argv[sys.argv.index("--steps") + 1]) if "--steps" in sys.argv else 3000
 with open(path, newline="") as fh:
     rows = [(r["seq"].upper(), int(r["label"])) for r in csv.DictReader(fh)]
@@ -80,12 +80,19 @@ if "P" in parts:
     OUT["pretrain"] = curve
     log(f"   chance for 20 amino acids: 5%; the most common residue's share: {max(sum(s.count(a) for s in corpus) for a in AA) / sum(map(len, corpus)):.1%}")
 
-if "A" in parts:
+def logits(mdl, X, M, pool):
+    """the head on [CLS], the mean or the max over the real tokens. TinyBERT.classify knows only "cls" and
+    reads anything else as mean, so max went through as a second mean on the first pooling run (2026-10-02)"""
+    if pool != "max": return mdl.classify(X, M, pool)
+    h, _ = mdl.encode(X, M)
+    return mdl.head(h.masked_fill((M == 0)[..., None], float("-inf")).max(1).values)
+
+if "A" in parts or "S" in parts or "Q" in parts:
     base = build(0); base.load_state_dict(torch.load(here / "protein-base.pt")); base.eval()
     test = te[:1000]; Xt, Mt = batch([s for s, _ in test]); yt = torch.tensor([y for _, y in test])
-    log(f"\n== A  adaptation on [CLS], 400 steps of 16; test 1,000 (human {yt.float().mean():.0%})")
     def adapt(way, n, pool="cls", seed=0):
-        X, Y = zip(*tr[:n]); Xb, Mb = batch(X); y = torch.tensor(Y)
+        """seed 0 trains on the first n of the train split, as part A did; seed k on the k-th block of n after it"""
+        X, Y = zip(*tr[seed * n:(seed + 1) * n]); Xb, Mb = batch(X); y = torch.tensor(Y)
         torch.manual_seed(seed); mdl = build(seed)
         if way != "scratch": mdl.load_state_dict(base.state_dict())
         mdl.head.reset_parameters()
@@ -98,17 +105,40 @@ if "A" in parts:
         mdl.train()
         for s in range(400):
             idx = torch.randint(len(X), (min(16, len(X)),), generator=g)
-            loss = F.cross_entropy(mdl.classify(Xb[idx], Mb[idx], pool), y[idx]); opt.zero_grad(); loss.backward(); opt.step()
+            loss = F.cross_entropy(logits(mdl, Xb[idx], Mb[idx], pool), y[idx]); opt.zero_grad(); loss.backward(); opt.step()
         mdl.eval(); acc = 0
         with torch.no_grad():
-            for i in range(0, len(test), 100): acc += (mdl.classify(Xt[i:i + 100], Mt[i:i + 100], pool).argmax(-1) == yt[i:i + 100]).sum().item()
+            for i in range(0, len(test), 100): acc += (logits(mdl, Xt[i:i + 100], Mt[i:i + 100], pool).argmax(-1) == yt[i:i + 100]).sum().item()
         return acc / len(test)
+
+if "A" in parts:
+    log(f"\n== A  adaptation on [CLS], 400 steps of 16; test 1,000 (human {yt.float().mean():.0%})")
     OUT["adapt"] = {}
     for way in ("transfer", "lora", "full", "scratch"):
         row = [round(adapt(way, n), 4) for n in (16, 64, 256, 1024)]; OUT["adapt"][way] = row
         log(f"   {way:8s}: " + "  ".join(f"{a:.1%}" for a in row) + f"   ({time.time()-T0:.0f}s)")
     row = [round(adapt("transfer", n, "mean"), 4) for n in (16, 64, 256, 1024)]; OUT["adapt"]["transfer_mean"] = row
     log(f"   transfer, mean pooling: " + "  ".join(f"{a:.1%}" for a in row) + f"   ({time.time()-T0:.0f}s)")
+
+import statistics as st
+ms = lambda v: f"{st.mean(v):.1%} ± {st.stdev(v):.1%}"
+if "S" in parts:
+    # S (2026-10-02, his "run both"): the 16- and 64-label gaps over three seeds, each seed its own labelled
+    # proteins. Q: the pooling choice (mean · max · [CLS]) for from scratch and transfer at 16 and 1,024.
+    log("\n== S  three seeds (each its own labelled proteins); test 1,000")
+    OUT["seeds"] = {}
+    for n in (16, 64):
+        for way in ("transfer", "lora", "full", "scratch"):
+            v = [adapt(way, n, "cls", sd) for sd in range(3)]; OUT["seeds"][f"{way}/{n}"] = [round(x, 4) for x in v]
+            log(f"   n {n:4d} {way:8s} [CLS]: {ms(v)}   {[round(x, 3) for x in v]}   ({time.time()-T0:.0f}s)")
+if "Q" in parts:
+    log("\n== Q  pooling, three seeds; test 1,000")
+    OUT["pooling"] = {}
+    for way in ("scratch", "transfer"):
+        for n in (16, 1024):
+            for pool in ("mean", "max", "cls"):
+                v = [adapt(way, n, pool, sd) for sd in range(3)]; OUT["pooling"][f"{way}/{n}/{pool}"] = [round(x, 4) for x in v]
+                log(f"   pooling {way:8s} n {n:4d} {pool:4s}: {ms(v)}   ({time.time()-T0:.0f}s)")
 
 prev = here / "protein-adapt-measure.json"
 old = json.loads(prev.read_text()) if prev.exists() else {}
