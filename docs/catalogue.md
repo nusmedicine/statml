@@ -23373,6 +23373,18 @@ at 577 past which no protein reaches), so every page keeps its height; the
 notes → proteins in the rows' header, Train's title, the caption and the tiles;
 the Trained tile's total 68,018 on proteins.
 
+**BUILT 2026-10-03 (22f5e14, local):** Influenza host in the widget on its own
+model; the link values are the buttons' words, `task=outcome · drug-error ·
+influenza-host` (`match` is gone; nothing published links it, 85 is a draft).
+The table keeps shapes, counts, W_Q and the starts per model (`models.notes`,
+`models.proteins`, `model[task]`) and is 4.2 MB (was 2.4; the proteins' full
+and scratch maps are 68,018 weights × 8 snapshots each). The notes' runs
+reproduce exactly. Checks: verify 1,364; the text-overlap sweep clean on all
+24 states (four pages × three tasks × before/after); the switch probe clean;
+the LoRA page 1,198 px in the 900 frame under every task; a blink in the
+squeezed position tile seen mid-run (nothing past the dashed line). Copy audit of
+the new strings: no hits.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
