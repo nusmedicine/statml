@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 — HA proteins in the merged control</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  .ctl { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  canvas { display: block; background: var(--surface); border: 1px solid var(--grid); }
+  .mrail .w-controls { margin-top: 0; padding-top: 0; border-top: 0; }
+  .mrail { width: 300px; box-sizing: border-box; border: 1px solid var(--grid); padding: var(--sp-2) var(--sp-3); background: var(--surface-1); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  table.t { font-size: var(--fs-sm); border-collapse: collapse; margin: 0 0 var(--sp-3); }
+  table.t td, table.t th { padding: 3px 10px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top; }
+  table.t th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 &middot; HA proteins in the merged control &middot; mock</h1>
+  <p class="note">Your picks: <b>one control</b> for data and label; HA host at <b>1,024 labelled proteins</b>, 85's own protocol; <b>no Pooling control</b>.
+    Everything below is drawn from real runs (<code>_lab/adapting-ha-measure.py</code>: the four ways on seed 0, the protein model pretrained by
+    hiding amino acids). Canvases are the widget's own width in the 900 px frame, <b>549 px</b>. Only what HA changes is mocked; the blocks of the
+    map, his figure and the LoRA detail are the same 48-wide matrices on either data.</p>
+  <p class="note" id="facts"></p>
+
+  <h2>1 &middot; The control: its name and the third option</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">K1 · the three names as they are: core cuts two of them</div><div class="mrail" id="k1"></div></div>
+    <div class="cand"><div class="sub">K2 · shorter names on the buttons (recommended)</div><div class="mrail" id="k2"></div></div>
+    <div class="cand"><div class="sub">K3 · a dropdown, the full names</div><div class="mrail" id="k3"></div></div>
+  </div>
+  <p class="note">The rail is 300 px, so three buttons get about 92 px each: "Clinical outcome" and "Prescribing error" do not fit, and core
+    ends them with "…". K2 keeps the buttons and shortens the names (the detail under them says what each label is); K3 keeps your names in a
+    dropdown, which hides the other two options until it is opened. Why <b>Task</b> now: Label was picked when the two clinical options shared the notes and the model and only the label differed. The
+    third option changes the data and the pretrained model too, so "Label" would undersell it. The detail names the source, which is <b>the BV-BRC credit</b>
+    (C1): it shows whenever the proteins do, and no canvas line is spent on it.</p>
+
+  <h2>2 &middot; The held-out rows: a protein on one line</h2>
+  <div class="ctl">way <select id="iW"><option value="scratch">Scratch</option><option value="transfer">Transfer</option><option value="full" selected>Full</option><option value="lora">LoRA</option></select>
+    step <input id="iS" type="range" min="0" max="8" value="8"> <span id="oS"></span></div>
+  <div class="row">
+    <div class="cand"><div class="sub">P1 · the first residues, then the length (recommended)</div><canvas id="cP1" data-w="549" data-h="124"></canvas></div>
+    <div class="cand"><div class="sub">P2 · the first and the last residues, then the length</div><canvas id="cP2" data-w="549" data-h="124"></canvas></div>
+  </div>
+  <p class="note">A protein is 547&ndash;576 residues; one line holds about 40 in the monospace font, as many as fit before the prediction. The notes keep the body font. The four are the first
+    two of each label in the test split, not chosen by outcome (85's rule).</p>
+
+  <h2>3 &middot; The embedding row: 600 positions in a 413 px row</h2>
+  <div class="ctl">way <select id="eW"><option value="scratch">Scratch</option><option value="full" selected>Full</option><option value="transfer">Transfer (frozen)</option></select>
+    weights at <select id="eS"><option value="w0">step 0</option><option value="w400" selected>step 400</option></select></div>
+  <div class="row">
+    <div class="cand"><div class="sub">E1 · every position in one row, 0.63 px a position, averaged into the pixels (recommended)</div><canvas id="cE1" data-w="549" data-h="96"></canvas></div>
+    <div class="cand"><div class="sub">E2 · two strips of 300 at the map's 0.95 px, one weight a pixel; 50 px taller</div><canvas id="cE2" data-w="549" data-h="146"></canvas></div>
+  </div>
+  <p class="note" id="eNote"></p>
+
+  <h2>4 &middot; The chart under Influenza host</h2>
+  <div class="row"><div class="cand"><div class="sub">all four ways at once, for judging (a page draws its own way and from scratch dashed)</div><canvas id="cC" data-w="549" data-h="150"></canvas></div></div>
+  <p class="note" id="cNote"></p>
+
+  <h2>5 &middot; The words that follow the task</h2>
+  <table class="t">
+    <tr><th>where</th><th>the notes</th><th>the proteins</th></tr>
+    <tr><td>rows' header</td><td>Four of the 1,000 held-out notes; training uses 1,024 others</td><td>Four of the 1,000 held-out proteins; training uses 1,024 others</td></tr>
+    <tr><td>Train's title</td><td>Train on the 1,024 labelled notes, 400 steps</td><td>Train on the 1,024 labelled proteins, 400 steps</td></tr>
+    <tr><td>caption before</td><td>Train runs 400 steps on the labelled notes, from …</td><td>Train runs 400 steps on the labelled proteins, from …</td></tr>
+    <tr><td>tiles</td><td>accuracy on 1,000 notes · the same notes, random start</td><td>accuracy on 1,000 proteins · the same proteins, random start</td></tr>
+    <tr><td>Trained tile, map</td><td>of 43,874</td><td id="tot"></td></tr>
+  </table>
+
+  <h2>To answer</h2>
+  <p class="q"><b>The control's name</b>Task (recommended: the third option changes the data and the model, not only the label) · Label, as now.</p>
+  <p class="q"><b>Its buttons</b>K2 shorter names, Outcome · Drug error · Influenza host (recommended: all three in sight, like the Training row above) ·
+    K3 a dropdown with your names · the third named "HA host" (the lesson's term) instead of "Influenza host".</p>
+  <p class="q"><b>The protein on a line</b>P1 the first residues and the length (recommended: reads left to right like the notes) · P2 first and last.</p>
+  <p class="q"><b>The position matrix</b>E1 every position squeezed into one row (recommended: the page keeps its height, and the LoRA page its 1,200) ·
+    E2 two strips, one weight a pixel, 50 px taller, so the LoRA page under this task is 1,243 unless something else gives.</p>
+  <p class="q"><b>The credit</b>C1 in the option's detail (recommended) · C2 a line under the chart as well.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), surface: css("--surface"), s2: css("--surface-2"), s3: css("--surface-3"),
+  lo: css("--c-value-low"), hi: css("--c-value-high"), ref: css("--c-reference"), a: css("--c-group-a"), b: css("--c-group-b"), c3: css("--c-group-c"),
+  font: css("--font"), mono: css("--font-mono"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const R = await (await fetch("adapting-ha-measure.json", { cache: "no-store" })).json();
+const pct = (v) => `${Math.round(100 * v)}%`;
+const PAD = 12, LABELS = ["animal", "human"];
+
+/* ---------- 1 · rails, the core segmented markup */
+const OPTS = (third) => [["outcome", "Clinical outcome"], ["match", "Prescribing error"], ["host", third]];
+const DET = (third) => `1 human when the ${third === "HA host" ? "HA protein" : "influenza A hemagglutinin (HA)"} came from a virus isolated from a person, 0 animal otherwise. `
+  + "Its own model, pretrained on HA proteins by hiding amino acids. Sequences from BV-BRC.";
+function rail(id, name, third, names = null, dropdown = false) {
+  const seg = dropdown
+    ? `<select class="w-select" style="width:100%">${OPTS(third).map(([v, l]) => `<option ${v === "host" ? "selected" : ""}>${l}</option>`).join("")}</select>`
+    : `<div class="w-seg" role="group">${(names ?? OPTS(third)).map(([v, l]) => `<button type="button" class="w-seg-btn" aria-pressed="${v === "host"}">${l}</button>`).join("")}</div>`;
+  document.getElementById(id).innerHTML = `<div class="w-controls"><div class="w-field"><label><span>Training</span></label><div class="w-seg" role="group">`
+    + ["Scratch", "Transfer", "Full", "LoRA"].map((l, i) => `<button type="button" class="w-seg-btn" aria-pressed="${i === 2}">${l}</button>`).join("")
+    + `</div><p class="w-detail">Every weight trained, starting from the pretrained ones.</p></div>`
+    + `<div class="w-field"><label><span>${name}</span></label>${seg}<p class="w-detail">${DET(third)}</p></div></div>`;
+}
+rail("k1", "Task", "Influenza host");
+rail("k2", "Task", "Influenza host", [["outcome", "Outcome"], ["match", "Drug error"], ["host", "Influenza host"]]);
+rail("k3", "Task", "Influenza host", null, true);
+
+/* ---------- canvas helpers */
+function setup(id) {
+  const cv = document.getElementById(id), w = +cv.dataset.w, h = +cv.dataset.h, d = devicePixelRatio || 1;
+  cv.width = w * d; cv.height = h * d; cv.style.width = w + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h); return { ctx, w, h };
+}
+function txt(ctx, s, x, y, { font, fill, align = "left" }) { ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = "middle"; ctx.fillText(s, x, y); ctx.restore(); }
+const cap = `600 ${C.sm} ${C.font}`, small = `${C.xs} ${C.font}`, smallB = `600 ${C.xs} ${C.font}`, body = `${C.sm} ${C.font}`, mono = `${C.sm} ${C.mono}`;
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const Z = rgb(C.s3), LO = rgb(C.lo), HI = rgb(C.hi), BG = rgb(C.surface);
+const shade = (v) => { v = Math.max(-1, Math.min(1, v)); const b = v < 0 ? LO : HI; return Z.map((x, j) => Math.round(x + (b[j] - x) * Math.abs(v))); };
+const bytes = (b64) => Int8Array.from(atob(b64), (c) => { const b = c.charCodeAt(0); return b > 127 ? b - 256 : b; });
+
+/* ---------- 2 · rows */
+function rows(id, form) {
+  const { ctx, w } = setup(id), way = document.getElementById("iW").value, k = +document.getElementById("iS").value;
+  txt(ctx, "Four of the 1,000 held-out proteins; training uses 1,024 others", PAD, 14, { font: cap, fill: C.ink1 });
+  txt(ctx, "prediction", w - PAD, 14, { font: small, fill: C.ink3, align: "right" });
+  R.examples.forEach(([s, y, n], i) => {
+    const yy = 38 + i * 22;
+    ctx.save(); ctx.strokeStyle = C.ink3; ctx.strokeRect(PAD + 0.5, yy - 9.5, 96, 19); ctx.restore();
+    txt(ctx, `${y} ${LABELS[y]}`, PAD + 48, yy, { font: small, fill: C.ink1, align: "center" });
+    ctx.save(); ctx.font = mono; const cw = ctx.measureText("M").width; ctx.restore();
+    const fit = Math.floor((w - PAD - 104 - (PAD + 106) - 34) / cw) - 1;
+    const shown = form === "first" ? `${s.slice(0, fit)}…` : `${s.slice(0, fit - 10)}…${s.slice(-9)}`;
+    txt(ctx, shown, PAD + 106, yy, { font: mono, fill: C.ink1 });
+    ctx.save(); ctx.font = mono; const tw = ctx.measureText(shown).width; ctx.restore();
+    txt(ctx, `${n}`, PAD + 106 + tw + 8, yy, { font: small, fill: C.ink3 });
+    if (k === 0 && false) return;
+    const p = R.runs[way].pred[k][i], call = p > 0.5 ? 1 : 0, right = call === y;
+    txt(ctx, right ? "✓" : "✗", w - PAD, yy, { font: cap, fill: C.ink1, align: "right" });
+    txt(ctx, `${LABELS[call]} ${(call ? p : 1 - p).toFixed(2)}`, w - PAD - 16, yy, { font: small, fill: right ? C.ink1 : C.ink2, align: "right" });
+  });
+  document.getElementById("oS").textContent = `step ${k * 50}`;
+}
+
+/* ---------- 3 · the embedding row */
+const off = document.createElement("canvas");
+function imgOf(vals, R_, C_, frozen) {
+  off.width = C_; off.height = R_; const g = off.getContext("2d"), im = g.createImageData(C_, R_);
+  for (let i = 0; i < R_; i++) for (let j = 0; j < C_; j++) {
+    let q = shade(vals(i, j) / 127); if (frozen) q = q.map((v, t) => Math.round(v + (BG[t] - v) * 0.7));
+    const o = 4 * (i * C_ + j); im.data[o] = q[0]; im.data[o + 1] = q[1]; im.data[o + 2] = q[2]; im.data[o + 3] = 255;
+  }
+  g.putImageData(im, 0, 0); return off;
+}
+function emb(id, mode) {
+  const { ctx, w } = setup(id), way = document.getElementById("eW").value, at = document.getElementById("eS").value;
+  const frozen = way === "transfer", E = R.runs[way].emb, MAP_X = PAD + 112, T48 = 48 * 0.95, top = 30;
+  const tok = bytes(E["tok.weight"][at]), pos = bytes(E["pos.weight"][at]);
+  const [Vt] = E["tok.weight"].shape, [P] = E["pos.weight"].shape;
+  /* the figure's Embedding box at the left, as in the widget */
+  ctx.save(); if (frozen) { ctx.fillStyle = C.s2; ctx.fillRect(PAD + 4, top + 8, 92, T48 - 16); } else { ctx.strokeStyle = C.ink1; ctx.lineWidth = 2; ctx.strokeRect(PAD + 5, top + 9, 90, T48 - 18); } ctx.restore();
+  txt(ctx, "Embedding", PAD + 50, top + T48 / 2, { font: frozen ? small : smallB, fill: frozen ? C.ink3 : C.ink1, align: "center" });
+  const tw = Vt * 0.95;
+  txt(ctx, "token", MAP_X + tw / 2, top - 7, { font: small, fill: C.ink2, align: "center" });
+  ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(imgOf((i, j) => tok[j * 48 + i], 48, Vt, frozen), MAP_X, top, tw, T48); ctx.restore();
+  const px = MAP_X + tw + 12, room = w - PAD - px;
+  if (mode === "squeeze") {
+    txt(ctx, `position 0–${P - 1}`, px + room / 2, top - 7, { font: small, fill: C.ink2, align: "center" });
+    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(imgOf((i, j) => pos[j * 48 + i], 48, P, frozen), px, top, room, T48); ctx.restore();
+    const ux = px + room * R.used / P; ctx.save(); ctx.strokeStyle = C.ink3; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.moveTo(ux, top - 2); ctx.lineTo(ux, top + T48 + 2); ctx.stroke(); ctx.restore();
+    if (frozen) txt(ctx, "frozen", px + room / 2, top + T48 / 2, { font: small, fill: C.ink2, align: "center" });
+    txt(ctx, `${(room / P).toFixed(2)} px a position; past the dashed line (${R.used}) no protein reaches`, px, top + T48 + 12, { font: small, fill: C.ink3 });
+  } else {
+    const half = P / 2, sw = half * 0.95;
+    for (const s of [0, 1]) {
+      const y = top + s * (T48 + 6);
+      txt(ctx, s ? `position ${half}–${P - 1}` : `position 0–${half - 1}`, px + sw + 6, y + T48 / 2, { font: small, fill: C.ink2 });
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(imgOf((i, j) => pos[(j + s * half) * 48 + i], 48, half, frozen), px, y, sw, T48); ctx.restore();
+      if (frozen) txt(ctx, "frozen", px + sw / 2, y + T48 / 2, { font: small, fill: C.ink2, align: "center" });
+    }
+    txt(ctx, "0.95 px a position, one weight a pixel", px, top + 2 * T48 + 18, { font: small, fill: C.ink3 });
+  }
+}
+
+/* ---------- 4 · the chart */
+function chart() {
+  const { ctx, w } = setup("cC"), ch = { x: PAD + 40, y: 16, w: w - 2 * PAD - 160, h: 96 }, POINTS = 40;
+  const Y = (v) => ch.y + ch.h - ((v - 0.4) / 0.6) * ch.h, X = (i) => ch.x + ch.w * i / POINTS;
+  const ln = (pts, s, lw = 1, d = null) => { ctx.save(); ctx.strokeStyle = s; ctx.lineWidth = lw; if (d) ctx.setLineDash(d); ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); };
+  for (const v of [0.4, 0.6, 0.8, 1]) { ln([[ch.x, Y(v)], [ch.x + ch.w, Y(v)]], C.grid); txt(ctx, pct(v), ch.x - 6, Y(v), { font: small, fill: C.ink3, align: "right" }); }
+  for (let s = 0; s <= 400; s += 100) txt(ctx, String(s), X(s / 10), ch.y + ch.h + 12, { font: small, fill: C.ink3, align: "center" });
+  ln([[ch.x, Y(R.base)], [ch.x + ch.w, Y(R.base)]], C.ink3, 1, [3, 3]);
+  const ends = [{ y: Y(R.base), text: `majority class: ${pct(R.base)}`, fill: C.ink3, font: small }];
+  for (const [k, col, name] of [["scratch", C.ref, "From scratch"], ["transfer", C.a, "Transfer learning"], ["full", C.b, "Full fine-tuning"], ["lora", C.c3, "LoRA"]]) {
+    const cv = R.runs[k].curve; ln(cv.map((v, i) => [X(i), Y(v)]), col, 2);
+    ends.push({ y: Y(cv[POINTS]), text: `${pct(cv[POINTS])} ${name}`, fill: col, font: smallB });
+  }
+  ends.sort((a, b) => a.y - b.y); for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 14);
+  for (const e of ends) txt(ctx, e.text, ch.x + ch.w + 6, e.y, { font: e.font, fill: e.fill });
+  const c = (k) => R.runs[k].curve;
+  document.getElementById("cNote").innerHTML = `At step 400: from scratch <b>${pct(c("scratch")[40])}</b>, transfer <b>${pct(c("transfer")[40])}</b>, full <b>${pct(c("full")[40])}</b>, `
+    + `LoRA <b>${pct(c("lora")[40])}</b>; at step 100: ${["scratch", "transfer", "full", "lora"].map((k) => pct(c(k)[10])).join(" · ")} (the same order).`;
+}
+
+const draw = () => { rows("cP1", "first"); rows("cP2", "ends"); emb("cE1", "squeeze"); emb("cE2", "strips"); };
+for (const id of ["iW", "iS", "eW", "eS"]) document.getElementById(id).addEventListener("input", draw);
+draw(); chart();
+const bl = (way) => R.runs[way].blinks["pos.weight"];
+document.getElementById("eNote").innerHTML = `The position matrix's blinks, weights a 50 steps (of 28,800): from scratch ${bl("scratch").join(" · ")}; full fine-tuning ${bl("full").join(" · ")}. `
+  + `The notes' 64 positions take 61 px; the proteins' 600 need 570 at the map's scale, and the row has 377 after the token tile.`;
+const tot = 25 * 48 + 600 * 48 + 2 * (4 * (48 * 48 + 48) + 48 * 96 + 96 + 96 * 48 + 48 + 4 * 48) + 98;
+document.getElementById("tot").textContent = `of ${tot.toLocaleString("en-US")} (600 positions, 25 tokens)`;
+document.getElementById("facts").innerHTML = `Test proteins ${pct(R.base)} human; the longest held-out protein plus [CLS] and [SEP] reaches position ${R.used - 1} of the model's 600.`;
+</script>
+</body>
+</html>
