@@ -85,9 +85,9 @@ const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label,
    data and the model too, so it is Task; three names to a 300 px rail, so the buttons are short and the detail says
    what each label is. The link values are the buttons' words. */
 const TASKS = [
-  { value: "outcome", label: "Outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. The same notes and model as Drug error; only the label differs." },
-  { value: "drug-error", label: "Drug error", detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. Every pretraining note paired a drug with its own symptom." },
-  { value: "influenza-host", label: "Influenza host", detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. Its own model, pretrained on HA proteins by hiding amino acids. Sequences from BV-BRC." },
+  { value: "outcome", label: "Outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. A small BERT-style model, pretrained on clinical notes by hiding words; the same notes and model as Drug error, only the label differs." },
+  { value: "drug-error", label: "Drug error", detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. The same small BERT-style model as Outcome; every pretraining note paired a drug with its own symptom." },
+  { value: "influenza-host", label: "Influenza host", detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. A small BERT-style model, pretrained on HA proteins by hiding amino acids as ESM-2 is. Sequences from BV-BRC." },
 ];
 const LABELS = { outcome: ["negative", "positive"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
 /** the task's model: its shapes, counts, W_Q, starting weights and the positions a sequence reaches */
