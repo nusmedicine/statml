@@ -23357,6 +23357,22 @@ from-scratch training on proteins. **No Pooling control**; [CLS] throughout.
 NEXT: the mock of the merged Label control with HA host's rows (a protein's
 held-out row, the 576-row position tile, the BV-BRC credit, height ≤ 1,200).
 
+**HA HOST MEASURED AND MOCKED, 2026-10-03** (`_lab/adapting-ha-measure.py`,
+`_lab/adapting-ha-mock.html`): the four ways on 1,024 HA proteins, seed 0 —
+from scratch 98.5%, transfer 97.2%, full and LoRA 98.6% (majority class 62%),
+all four held-out proteins right on every page; the position matrix's blinks
+under full fine-tuning nearly all in the first 50 steps (8,019, then tens to hundreds),
+under from scratch for 200 steps. **PICKED** (every recommendation): the control
+is **Task**, its buttons **Outcome · Drug error · Influenza host** (his names
+"Clinical outcome" and "Prescribing error" do not fit three to a 300 px rail;
+the detail says what each label is); a protein's row is **its first residues
+(about 40, monospace), then its length**; the 600-position matrix **squeezed
+into the one row** (0.63 px a position, averaged into the pixels, a dashed line
+at 577 past which no protein reaches), so every page keeps its height; the
+**BV-BRC credit in Influenza host's detail**. The words that follow the task:
+notes → proteins in the rows' header, Train's title, the caption and the tiles;
+the Trained tile's total 68,018 on proteins.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
