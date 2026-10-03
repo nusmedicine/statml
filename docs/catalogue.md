@@ -23349,6 +23349,14 @@ pooling loses, and by the metric-choice rule **no Pooling control**. (The first
 pooling run asked TinyBERT.classify for "max", which it reads as mean; the
 script now pools max itself, and the seeds half was saved from its log.)
 
+**PICKED 2026-10-03:** **HA host at 1,024 labelled proteins**, 85's own
+protocol, so one header holds under all three labels and the run is the stable
+one (from scratch 98.5 ± 0.3); its story is the many-label one — from scratch
+matches adapting and the frozen backbone falls short — and it is 08-3's
+from-scratch training on proteins. **No Pooling control**; [CLS] throughout.
+NEXT: the mock of the merged Label control with HA host's rows (a protein's
+held-out row, the 576-row position tile, the BV-BRC credit, height ≤ 1,200).
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
