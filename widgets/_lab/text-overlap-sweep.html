@@ -45,6 +45,9 @@ const STATES = {
     "?page=weights&sentence=wound&attention_mask=off&scores=unscaled&shown=10", "?page=weights&sentence=home&head=1&shown=16",
     "?page=output&sentence=wound&query=3&shown=8", "?page=output&sentence=home&query=10&shown=10",
   ],
+  /* widget 85's draft with the proteins (2026-10-03): every page under every task, before and after Train */
+  "adapting": ["scratch", "transfer", "full", "lora"].flatMap((pg) => ["outcome", "drug-error", "influenza-host"].flatMap((t) =>
+    [`?page=${pg}&task=${t}&shown=0`, `?page=${pg}&task=${t}&shown=1`])),
   /* widget 84's draft, training and generation (2026-09-29) */
   "transformer": [
     ...["0", "1", "4", "8"].map((k) => `?page=encoder&shown=${k}`),

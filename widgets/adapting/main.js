@@ -44,9 +44,21 @@
    factor that writes the output at zero, which in the lesson's names is A: so at
    step 0 the update is zero and W′ = W exactly.
 
+   THE PROTEINS (2026-10-03, his picks from `_lab/adapting-ha-mock.html`; 86 was cut
+   into this widget): one control, Task, Outcome · Drug error · Influenza host. The
+   third is 08-3's data, influenza A HA proteins labelled by host, on ITS OWN model
+   (85's shape with 25 tokens and 600 positions, pretrained by hiding amino acids),
+   at the notes' protocol of 1,024 labelled examples: there from scratch matches
+   the adapted models (98.5% against 98.6%) and frozen transfer falls short (97.2%),
+   the many-labels case, measured stable over three seeds. A protein's row shows its
+   first residues and its length; the 600 positions are squeezed into the map's one
+   row (0.63 px a position, averaged into the pixels), with a dashed line where the
+   longest protein ends; BV-BRC is credited in the option's detail. Shapes, counts,
+   W_Q and the starting weights are read per MODEL (`MOD(task)`).
+
    NOTHING TRAINS IN THE BROWSER: every number is read from `table.js`, GENERATED
    by `_lab/adapting-table.py` (torch; one run per way and task, seed 0, 1,024
-   notes) and checked by `_lab/adapting-verify.mjs`.
+   notes or proteins) and checked by `_lab/adapting-verify.mjs`.
 
    Ways: transfer --c-group-a, full --c-group-b, LoRA --c-group-c (three parallel
    branches), from scratch --c-reference, on the curve only: the map and LoRA's
@@ -69,15 +81,22 @@ const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label,
 /* THE LABEL (round 4, his "finding asserted and wrong drug looks weird"; picked the clinical names): one kind
    of prediction, a note's class from its [CLS] vector, with the label set by one fact or the other. The pretrained
    [CLS] already separates clinical outcome (a probe on the frozen vectors 98%) and not prescribing error (61%),
-   which is why the head alone is enough on one only. The link values stay `outcome` and `match`. */
+   which is why the head alone is enough on one only. THE TASK (2026-10-03): with the proteins the control picks the
+   data and the model too, so it is Task; three names to a 300 px rail, so the buttons are short and the detail says
+   what each label is. The link values are the buttons' words. */
 const TASKS = [
-  { value: "outcome", label: "Clinical outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. The same notes, model and head under either label." },
-  { value: "match", label: "Prescribing error", detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. Every pretraining note paired a drug with its own symptom." },
+  { value: "outcome", label: "Outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. The same notes and model as Drug error; only the label differs." },
+  { value: "drug-error", label: "Drug error", detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. Every pretraining note paired a drug with its own symptom." },
+  { value: "influenza-host", label: "Influenza host", detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. Its own model, pretrained on HA proteins by hiding amino acids. Sequences from BV-BRC." },
 ];
-const LABELS = { outcome: ["negative", "positive"], match: ["no error", "error"] };
+const LABELS = { outcome: ["negative", "positive"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
+/** the task's model: its shapes, counts, W_Q, starting weights and the positions a sequence reaches */
+const MOD = (task) => TABLE.models[TABLE.model[task]];
+const PROTEIN = (task) => TABLE.model[task] === "proteins";
+const NOUN = (task) => (PROTEIN(task) ? "proteins" : "notes");
 const STEPS = TABLE.steps, POINTS = STEPS / TABLE.every, SNAP = TABLE.snap, LSNAP = TABLE.lsnap;
 const SCALE = TABLE.alpha / TABLE.r;
-const TOTAL = (way) => TABLE.trains.backbone + 98 + (way === "lora" ? TABLE.trains.lora - 98 : 0);
+const TOTAL = (task, way) => { const t = MOD(task).trains; return t.backbone + 98 + (way === "lora" ? t.lora - 98 : 0); };
 
 /* ================================================================== copy */
 
@@ -87,16 +106,16 @@ const S = {
     + "head alone, full fine-tuning every weight, and LoRA a low-rank update added to frozen weights; training from scratch starts "
     + "the same network from random weights. Training the head alone works only when the pretrained vectors already separate the classes.",
   pageLabel: "Training",
-  taskLabel: "Label",
-  step: "Train", stepTitle: "Train on the 1,024 labelled notes, 400 steps",
+  taskLabel: "Task",
+  step: "Train", stepTitle: (n) => `Train on the 1,024 labelled ${n}, 400 steps`,
   wait: "—",
-  notesHead: "Four of the 1,000 held-out notes; training uses 1,024 others",
+  notesHead: (n) => `Four of the 1,000 held-out ${n}; training uses 1,024 others`,
   predHead: "prediction",
   mapHead: (s) => `The weights after ${s} steps`,
   blinkNote: "blink: changed by more than 5% of the largest change in 50 steps",
   blinkNow: (n, a, b) => `${n.toLocaleString("en-US")} changed by more than 5% of the largest change in steps ${a}–${b}`,
   trains: (n, of) => `trains ${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")}`,
-  headBox: "Linear (head)", block: (b) => `Block ${b}`, embedding: "Embedding", token: "token", position: "position",
+  headBox: "Linear (head)", block: (b) => `Block ${b}`, embedding: "Embedding", token: "token", position: "position", longest: "longest protein",
   attn: "Self-attention", ffn: "Feed forward", loraSub: "Q, V + A Bᵀ", frozen: "frozen",
   scaleW: "below 0 · 0 · above 0, each matrix on its own scale",
   loraHead: (s) => `Block 1's Q, after ${s} steps: W′ = W + ${SCALE} · A Bᵀ`,
@@ -106,7 +125,7 @@ const S = {
   curveHead: "Held-out accuracy while training",
   curveAxis: "training step",
   floor: (task, p) => `majority class: ${p}`,
-  before: (way) => `Train runs 400 steps on the labelled notes, from ${way === "scratch" ? "random weights" : "the pretrained weights"}.`,
+  before: (way, n) => `Train runs 400 steps on the labelled ${n}, from ${way === "scratch" ? "random weights" : "the pretrained weights"}.`,
   /* the accuracies are in the tiles: the line says what moved */
   after: {
     scratch: () => "Every weight changed from its random start.",
@@ -114,8 +133,8 @@ const S = {
     full: (rel) => `Every weight changed, a matrix by ${rel} of its size at the median.`,
     lora: () => "Only the head and the updates to Q and V changed; the pretrained W stayed fixed.",
   },
-  tileAcc: "Held out", tileAccNote: "accuracy on 1,000 notes",
-  tileScratch: "From scratch", tileScratchNote: "the same notes, random start",
+  tileAcc: "Held out", tileAccNote: (n) => `accuracy on 1,000 ${n}`,
+  tileScratch: "From scratch", tileScratchNote: (n) => `the same ${n}, random start`,
   tileTrains: "Trained", tileTrainsNote: (of) => `parameters, of ${of.toLocaleString("en-US")}`,
   sum: (page, step) => `${page}: ${step} of 400 training steps.`,
 };
@@ -134,20 +153,20 @@ function mapsOf(task, way) {
   let o = 0;
   for (let k = 0; k < STEPS / SNAP; k++) {
     const snap = {};
-    for (const m of run.mats) { const [r, c] = TABLE.shapes[m]; snap[m] = raw.subarray(o, o + r * c); o += r * c; }
+    for (const m of run.mats) { const [r, c] = MOD(task).shapes[m]; snap[m] = raw.subarray(o, o + r * c); o += r * c; }
     out.push(snap);
   }
   return (DECODED[key] = out);
 }
-/** a starting point's weights, decoded once: the pretrained base, or from scratch's random start; each matrix in units of its own scale */
+/** a starting point's weights, decoded once: the task's pretrained base, or from scratch's random start; each matrix in units of its own scale */
 const STARTS = {};
-function startOf(way) {
-  const key = way === "scratch" ? "scratch" : "base";
+function startOf(task, way) {
+  const start = way === "scratch" ? "scratch" : "base", M = MOD(task), key = `${TABLE.model[task]}/${start}`;
   if (STARTS[key]) return STARTS[key];
-  const raw = signed(bytes(TABLE.w0[key])), w = {};
+  const raw = signed(bytes(M.w0[start])), w = {};
   let o = 0;
-  for (const m of TABLE.mats) { const [r, c] = TABLE.shapes[m]; w[m] = raw.subarray(o, o + r * c); o += r * c; }
-  return (STARTS[key] = { w, scale: TABLE.w0scale[key] });
+  for (const m of TABLE.mats) { const [r, c] = M.shapes[m]; w[m] = raw.subarray(o, o + r * c); o += r * c; }
+  return (STARTS[key] = { w, scale: M.w0scale[start] });
 }
 
 /* ============================================================ drawing kit */
@@ -158,6 +177,7 @@ const cap = (c) => `600 ${c.fsSm} ${c.font}`;
 const small = (c) => `${c.fsXs} ${c.font}`;
 const smallBold = (c) => `600 ${c.fsXs} ${c.font}`;
 const body = (c) => `${c.fsSm} ${c.font}`;
+const mono = (c) => `${c.fsSm} ${c.mono}`;
 function txt(ctx, s, x, y, { font, fill, align = "left", baseline = "middle" }) {
   ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
 }
@@ -185,7 +205,7 @@ const offscreen = typeof document !== "undefined" ? document.createElement("canv
    `_lab/adapting-frozen-mock.html`): a frozen matrix's weights drawn 70% of the way toward the background with
    "frozen" on them, so the trained tiles keep the full contrast and the eye goes to them. */
 const DIM = 0.7;
-function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false, lit = null, dim = false) {
+function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false, lit = null, dim = false, smooth = false) {
   const R = transpose ? cols : rows, C = transpose ? rows : cols, L = lut(c), ink = rgb(c.ink1), bg = rgb(c.surface);
   offscreen.width = C; offscreen.height = R;
   const g = offscreen.getContext("2d"), img = g.createImageData(C, R);
@@ -195,7 +215,8 @@ function image(ctx, c, rows, cols, at, x, y, w, h, transpose = false, lit = null
     img.data[o] = q[0]; img.data[o + 1] = q[1]; img.data[o + 2] = q[2]; img.data[o + 3] = 255;
   }
   g.putImageData(img, 0, 0);
-  ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(offscreen, x, y, w, h); ctx.restore();
+  /* a tile drawn below a pixel an entry (the proteins' 600 positions) is averaged into the pixels, so no weight is dropped */
+  ctx.save(); ctx.imageSmoothingEnabled = smooth; if (smooth) ctx.imageSmoothingQuality = "high"; ctx.drawImage(offscreen, x, y, w, h); ctx.restore();
 }
 function hatch(ctx, c, x, y, w, h) {
   ctx.save(); ctx.fillStyle = c.surface2; ctx.fillRect(x, y, w, h); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
@@ -256,15 +277,23 @@ function blinkMask(task, way, k) {
    chosen by outcome (the generator takes the first two of each label in the held-out set that fit a line), each
    with its true label and this page's prediction, the predicted label, its probability and right or wrong. The
    prediction is the run's own at the latest 50-step snapshot, so it switches at once, as the map's snapshots do. */
+/* A PROTEIN ON A LINE (2026-10-03, picked P1): its first residues in the monospace font, as many as fit before the
+   prediction, then "…" and its length. */
 function drawNotes(ctx, c, w, way, task, step, trained) {
-  txt(ctx, S.notesHead, PAD, 14, { font: cap(c), fill: c.ink1 });
+  txt(ctx, S.notesHead(NOUN(task)), PAD, 14, { font: cap(c), fill: c.ink1 });
   txt(ctx, S.predHead, w - PAD, 14, { font: small(c), fill: c.ink3, align: "right" });
   const pred = TABLE.runs[task][way].pred, k = Math.min(pred.length - 1, Math.floor(step / SNAP));
   TABLE.examples[task].forEach(([t, y], i) => {
     const yy = 38 + i * 22;
     ctx.save(); ctx.strokeStyle = c.ink3; ctx.strokeRect(PAD + 0.5, yy - 9.5, 96, 19); ctx.restore();
     txt(ctx, `${y} ${LABELS[task][y]}`, PAD + 48, yy, { font: small(c), fill: c.ink1, align: "center" });
-    txt(ctx, t, PAD + 106, yy, { font: body(c), fill: c.ink1 });
+    if (PROTEIN(task)) {
+      ctx.save(); ctx.font = mono(c); const cw = ctx.measureText("M").width; ctx.restore();
+      const shown = `${t.slice(0, Math.floor((w - 2 * PAD - 106 - 104 - 34) / cw) - 1)}…`;
+      txt(ctx, shown, PAD + 106, yy, { font: mono(c), fill: c.ink1 });
+      ctx.save(); ctx.font = mono(c); const tw = ctx.measureText(shown).width; ctx.restore();
+      txt(ctx, String(t.length), PAD + 106 + tw + 8, yy, { font: small(c), fill: c.ink3 });
+    } else txt(ctx, t, PAD + 106, yy, { font: body(c), fill: c.ink1 });
     if (!trained) { txt(ctx, S.wait, w - PAD, yy, { font: small(c), fill: c.ink3, align: "right" }); return; }
     const p = pred[k][i], call = p > 0.5 ? 1 : 0, right = call === y;
     txt(ctx, right ? "✓" : "✗", w - PAD, yy, { font: cap(c), fill: c.ink1, align: "right" });
@@ -306,7 +335,7 @@ function drawMap(ctx, c, w, way, task, step, blink) {
   txt(ctx, S.mapHead(s), PAD, MAP_HEAD, { font: cap(c), fill: c.ink1 });
   const mask = blink ? blinkMask(task, way, blink) : null;
   txt(ctx, mask ? S.blinkNow(mask.n, (blink - 1) * SNAP, blink * SNAP) : S.blinkNote, w - PAD, MAP_HEAD, { font: small(c), fill: mask ? c.ink1 : c.ink3, align: "right" });
-  const maps = mapsOf(task, way), k = step / SNAP, k0 = Math.floor(k), f = k - k0, start = startOf(way), trained = new Set(run.mats);
+  const maps = mapsOf(task, way), k = step / SNAP, k0 = Math.floor(k), f = k - k0, start = startOf(task, way), trained = new Set(run.mats), MD = MOD(task);
   /* the change, in the run's scale: maps[k0 − 1] holds step 50·k0, step 0 is zero; between snapshots, linear */
   const change = (m, idx) => {
     if (!trained.has(m)) return 0;
@@ -318,18 +347,25 @@ function drawMap(ctx, c, w, way, task, step, blink) {
   const value = (m, idx) => start.w[m][idx] + (change(m, idx) * run.scale) / start.scale[m];
   const litOf = (m, cc) => (mask && mask[m] ? (i, j) => mask[m][i * cc + j] === 1 : null);
   const rows = {};
-  const tile = (m, label, x, y) => {
-    const [r, cc] = TABLE.shapes[m], side = r !== 48, W = (side ? r : cc) * PX;
+  /* `room`: the width left in the row; the proteins' 600 positions are squeezed into it (picked E1) */
+  const tile = (m, label, x, y, room = Infinity) => {
+    const [r, cc] = MD.shapes[m], side = r !== 48, W = Math.min(room, (side ? r : cc) * PX), squeezed = W < (side ? r : cc) * PX;
     txt(ctx, label, x + W / 2, y - 7, { font: small(c), fill: c.ink2, align: "center" });
     const frozen = !trained.has(m);
-    image(ctx, c, r, cc, (i, j) => value(m, i * cc + j), x, y, W, T48, side, litOf(m, cc), frozen);
+    image(ctx, c, r, cc, (i, j) => value(m, i * cc + j), x, y, W, T48, side, litOf(m, cc), frozen, squeezed);
+    if (squeezed) {
+      /* where the longest protein ends: past it no sequence reaches, so those positions never change */
+      const ux = x + W * MD.used / r;
+      line(ctx, [[ux, y - 3], [ux, y + T48 + 3]], c.ink2, 1, [2, 2]);
+      txt(ctx, S.longest, ux, y - 7, { font: small(c), fill: c.ink2, align: "right" });
+    }
     if (frozen) txt(ctx, S.frozen, x + W / 2, y + T48 / 2, { font: small(c), fill: c.ink2, align: "center" });
     return W;
   };
   let y = MAP_TOP;
   image(ctx, c, 2, 48, (i, j) => value("head.weight", i * 48 + j), MAP_X, y - 8, 192, 16, false, litOf("head.weight", 48));
   rows.head = [y - 8, y + 8];
-  txt(ctx, S.trains(TABLE.trains[way], TOTAL(way)), w - PAD, y, { font: smallBold(c), fill: c.ink1, align: "right" });
+  txt(ctx, S.trains(MD.trains[way], TOTAL(task, way)), w - PAD, y, { font: smallBold(c), fill: c.ink1, align: "right" });
   y += 22;
   for (const b of [1, 0]) {
     let x = MAP_X; const ty = y + 34, xs = [];
@@ -340,7 +376,7 @@ function drawMap(ctx, c, w, way, task, step, blink) {
     }
     rows[`b${b}`] = [ty, ty + T48]; y = ty + T48 + 16;
   }
-  { const ty = y + 18; let x = MAP_X; x += tile("tok.weight", S.token, x, ty) + 12; tile("pos.weight", S.position, x, ty); rows.emb = [ty, ty + T48]; y = ty + T48; }
+  { const ty = y + 18; let x = MAP_X; x += tile("tok.weight", S.token, x, ty) + 12; tile("pos.weight", S.position, x, ty, w - PAD - x); rows.emb = [ty, ty + T48]; y = ty + T48; }
   drawFigure(ctx, c, way, rows);
   /* the scale */
   const sy = y + 18, L = lut(c);
@@ -375,7 +411,7 @@ function drawLora(ctx, c, w, task, step, y0, blink) {
   txt(ctx, S.loraHead(s), PAD, y0 + 6, { font: cap(c), fill: c.ink1 });
   const { A: pA, B: pB, last } = factorsAt(task, step);
   /* the lesson's names: its A is peft's B (48 × r, zero at the start), its Bᵀ is peft's A (r × 48) */
-  const lA = pB, lBt = pA, W = TABLE.wq, r = TABLE.r;
+  const lA = pB, lBt = pA, W = MOD(task).wq, r = TABLE.r;
   const prod = (P, Q) => W.map((_, i) => W[i].map((_, j) => { let v = 0; for (let t = 0; t < r; t++) v += P[i][t] * Q[t][j]; return SCALE * v; }));
   const upd = prod(lA, lBt), updLast = prod(last.B, last.A);
   const mx = (M) => Math.max(1e-12, ...M.flat().map(Math.abs));
@@ -435,7 +471,7 @@ function drawCurve(ctx, c, w, way, task, step, y0) {
 }
 
 function caption(way, task, done) {
-  if (!done) return S.before(way);
+  if (!done) return S.before(way, NOUN(task));
   const rel = Object.values(TABLE.runs[task][way].rel).sort((x, y) => x - y);
   return S.after[way](pct(rel[Math.floor(rel.length / 2)]));
 }
@@ -459,7 +495,7 @@ defineWidget({
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "scratch", display: true },
-    task: { type: "segmented", label: S.taskLabel, options: TASKS, default: "match" },
+    task: { type: "segmented", label: S.taskLabel, options: TASKS, default: "drug-error" },
     /* authoring escape hatch, first render only: 1 opens the page trained */
     shown: { type: "int", min: 0, max: 1, default: 0, hidden: true },
   },
@@ -470,7 +506,7 @@ defineWidget({
 
   animation: {
     stepLabel: S.step,
-    stepTitle: S.stepTitle,
+    stepTitle: { param: "task", labels: Object.fromEntries(TASKS.map((t) => [t.value, S.stepTitle(NOUN(t.value))])), default: S.stepTitle("notes") },
     /* one press is the whole run (his pick): no Play */
     runLabel: null,
     init: ({ params, fromScratch }) => {
@@ -512,9 +548,10 @@ defineWidget({
   readout({ params, anim }) {
     const pg = pageOf(anim, params), way = params.page, step = stepOf(pg), i = Math.round(step / TABLE.every);
     const run = TABLE.runs[params.task];
-    const tiles = [{ label: S.tileAcc, value: step > 0 ? pct(run[way].curve[i]) : S.wait, note: S.tileAccNote }];
-    if (way !== "scratch") tiles.push({ label: S.tileScratch, value: step > 0 ? pct(run.scratch.curve[i]) : S.wait, note: S.tileScratchNote });
-    tiles.push({ label: S.tileTrains, value: TABLE.trains[way].toLocaleString("en-US"), note: S.tileTrainsNote(TOTAL(way)) });
+    const n = NOUN(params.task);
+    const tiles = [{ label: S.tileAcc, value: step > 0 ? pct(run[way].curve[i]) : S.wait, note: S.tileAccNote(n) }];
+    if (way !== "scratch") tiles.push({ label: S.tileScratch, value: step > 0 ? pct(run.scratch.curve[i]) : S.wait, note: S.tileScratchNote(n) });
+    tiles.push({ label: S.tileTrains, value: MOD(params.task).trains[way].toLocaleString("en-US"), note: S.tileTrainsNote(TOTAL(params.task, way)) });
     return tiles;
   },
 
