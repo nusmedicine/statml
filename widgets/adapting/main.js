@@ -93,8 +93,8 @@ const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label,
    canvas. The two clinical tasks share the pretrained model, not the labelled notes: each draws its own. */
 const MODEL_NAME = { notes: "Clinical notes model", proteins: "Protein model" };
 const TASKS = [
-  { value: "outcome", label: "Outcome", group: MODEL_NAME.notes, detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. Decided by single words: a finding, and 'no' before it. A small BERT-style model, pretrained on synthetic clinical notes by masked-word prediction; the same model as Drug error, with its own labelled notes." },
-  { value: "drug-error", label: "Drug error", group: MODEL_NAME.notes, detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. Decided by the pair: every drug and every symptom appear under both labels. The same pretrained model as Outcome, pretrained on notes in which every drug was given for a symptom it treats." },
+  { value: "outcome", label: "Outcome", group: MODEL_NAME.notes, detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. Decided by single words: a finding, and 'no' before it. A small BERT-style model, pretrained on synthetic clinical notes by masked-word prediction." },
+  { value: "drug-error", label: "Drug error", group: MODEL_NAME.notes, detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. Decided by the pair: every drug and every symptom appear under both labels. A small BERT-style model, pretrained on synthetic clinical notes in which every drug was given for a symptom it treats." },
   { value: "influenza-host", label: "Influenza host", group: MODEL_NAME.proteins, detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. A small BERT-style model, pretrained on HA proteins by masked amino-acid prediction, as ESM-2 is. Sequences from BV-BRC." },
 ];
 const LABELS = { outcome: ["negative", "positive"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
@@ -113,7 +113,7 @@ const S = {
   subtitle: "A network can be trained on labelled examples from random weights, or a pretrained one adapted by adding a head and training "
     + "on the same examples. Transfer learning trains the head alone, full fine-tuning every weight, and LoRA a low-rank update added to "
     + "frozen weights. Training the head alone works only when the pretrained vectors already separate the classes. With enough labelled "
-    + "examples and enough training, training from scratch comes close to an adapted model; pretraining matters most when either is short.",
+    + "examples and enough steps, training from scratch comes close to an adapted model; pretraining matters most when either is short.",
   pageLabel: "Training",
   taskLabel: "Task",
   step: "Train", stepTitle: (n) => `Train on the 1,024 labelled ${n}, 400 steps`,
