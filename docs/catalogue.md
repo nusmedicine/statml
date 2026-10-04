@@ -23492,6 +23492,26 @@ the model sentence **only on Transfer, Full and LoRA** — core's function-value
 error's model sentence names whose: "The same model as Outcome, pretrained only on
 notes with correct pairs." Switch probe clean (`h=1400`), sweep 24 states clean.
 
+**WHAT EACH STAGE TRAINS ON, 2026-10-04** (his "show how the training data is
+assembled … from scratch: every note labeled; pretrained: self-supervised by
+masking", reviewed from the student's seat in `_lab/adapting-data-mock.html`;
+**PICKED D2**): two cards above the held-out rows, the same place on every page —
+**Pretraining · 20,000 unlabelled notes** (22,813 proteins) with one real example,
+a token hidden and the hidden token as the target ("managed with [MASK] for fever
+→ paracetamol"; "MKTVIALSY[MASK]FCLAS… → I"), and **Training · 1,024 labelled
+notes** with one real labelled example and its label. On From scratch the first
+card is dashed, "Pretraining · none / random weights", and the second identical —
+the same-labels comparison the widget makes, which the page never showed (two of
+his own questions this week were that misreading). The cards replace the chip;
+the rows' header drops "training uses 1,024 others" (the card says it). Height:
++24 px for the cards, the chart 16 px shorter (80) and the LoRA detail 8 px higher,
+LoRA page 1,198. Examples from the generator (`--examples` patches them into the
+table without retraining): the first single treatment clause of the corpus, and
+proteins from the training split — **chosen to open differently from every held-out
+row** after the verify caught the first pick sharing a held-out protein's first 30
+residues (HA sequences share their N-terminus; it read as a test protein in
+training). Verify 1,752; sweep 24 states clean.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

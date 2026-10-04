@@ -130,7 +130,10 @@ const S = {
   taskLabel: "Task",
   step: "Train", stepTitle: (n) => `Train on the 1,024 labelled ${n}, 400 steps`,
   wait: "—",
-  notesHead: (n) => `Four of the 1,000 held-out ${n}; training uses 1,024 others`,
+  notesHead: (n) => `Four of the 1,000 held-out ${n}`,
+  preTitle: (count, n) => `Pretraining · ${count.toLocaleString("en-US")} unlabelled ${n}`,
+  preNone: "Pretraining · none", preNoneSub: "random weights",
+  trainTitle: (n) => `Training · 1,024 labelled ${n}`,
   predHead: "prediction",
   mapHead: (s) => `The weights after ${s} steps`,
   blinkNote: "blink: changed by more than 5% of the largest change in 50 steps",
@@ -254,7 +257,10 @@ function hatch(ctx, c, x, y, w, h) {
 const PX = 0.95, T48 = 48 * PX, FIG = { x: PAD + 4, w: 92 }, MAP_X = PAD + 112;
 /* four held-out rows above the map (round 4): MAP_HEAD and MAP_TOP moved down two rows; the LoRA detail (1.5 px a
    cell) and the chart (96 tall) gave back the height, so the LoRA page stays inside the 1,200 frame */
-const MAP_HEAD = 128, MAP_TOP = 150, MAP_H = 304, LORA_H = 180, CURVE_H = 172;
+/* the two cards above the rows (2026-10-04, D2) took 24 px; the chart (16) and the LoRA detail (8) gave them back,
+   so the LoRA page stays inside the 1,200 frame */
+const CARD = { y: 3, h: 36 }, ROWS_HEAD = 54, ROW0 = 74, ROW_PITCH = 20;
+const MAP_HEAD = 152, MAP_TOP = 174, MAP_H = 304, LORA_H = 172, CURVE_H = 156;
 const lay = (way) => {
   const lora = MAP_TOP + MAP_H, curve = lora + (way === "lora" ? LORA_H : 0);
   return { lora, curve, height: curve + CURVE_H };
@@ -300,16 +306,53 @@ function blinkMask(task, way, k) {
    prediction is the run's own at the latest 50-step snapshot, so it switches at once, as the map's snapshots do. */
 /* A PROTEIN ON A LINE (2026-10-03, picked P1): its first residues in the monospace font, as many as fit before the
    prediction, then "…" and its length. */
+/* WHAT EACH STAGE TRAINS ON (2026-10-04, his "show how the training data is assembled"; picked D2,
+   `_lab/adapting-data-mock.html`): two cards, the same place on every page. Pretraining: the unlabelled set, one of its
+   examples with a token hidden and the hidden token as the target; on From scratch the card is dashed and empty, so
+   the second card, the same 1,024 labelled examples on every page, is the comparison the widget makes. Real examples
+   from the generator (`pretrainExample`, `trainExample`), none of them a held-out row. The cards replace the chip. */
+function drawCards(ctx, c, w, way, task) {
+  const gap = 18, cw = (w - 2 * PAD - gap) / 2, { y, h } = CARD, xs = [PAD, PAD + cw + gap], n = NOUN(task), prot = PROTEIN(task);
+  const pre = TABLE.pretrainExample[TABLE.model[task]], scratch = way === "scratch";
+  const box = (x, dashed) => line(ctx, [[x + 0.5, y + 0.5], [x + cw - 0.5, y + 0.5], [x + cw - 0.5, y + h - 0.5], [x + 0.5, y + h - 0.5], [x + 0.5, y + 0.5]], dashed ? c.ink3 : c.ink2, 1, dashed ? [3, 3] : null);
+  const ex = prot ? mono(c) : small(c), exB = prot ? `600 ${c.fsSm} ${c.mono}` : smallBold(c);
+  const width = (s, font) => { ctx.save(); ctx.font = font; const v = ctx.measureText(s).width; ctx.restore(); return v; };
+  /* pretraining */
+  box(xs[0], scratch);
+  if (scratch) {
+    txt(ctx, S.preNone, xs[0] + 8, y + 11, { font: smallBold(c), fill: c.ink3 });
+    txt(ctx, S.preNoneSub, xs[0] + 8, y + 27, { font: small(c), fill: c.ink3 });
+  } else {
+    txt(ctx, S.preTitle(pre.n, n), xs[0] + 8, y + 11, { font: smallBold(c), fill: c.ink1 });
+    let x = xs[0] + 8; const tgt = ` → ${pre.target}`;
+    const room = cw - 16 - width(tgt, small(c)) - width("[MASK]", exB);
+    const before = pre.before + (prot ? "" : " "), after = (prot ? "" : " ") + pre.after;
+    txt(ctx, before, x, y + 27, { font: ex, fill: c.ink1 }); x += width(before, ex);
+    txt(ctx, "[MASK]", x, y + 27, { font: exB, fill: c.ink1 }); x += width("[MASK]", exB);
+    let tail = after; if (width(before + tail, ex) > room) { while (tail.length && width(before + tail + "…", ex) > room) tail = tail.slice(0, -1); tail += "…"; }
+    txt(ctx, tail, x, y + 27, { font: ex, fill: c.ink1 }); x += width(tail, ex);
+    txt(ctx, tgt, x, y + 27, { font: small(c), fill: c.ink2 });
+  }
+  /* the arrow from one stage to the next */
+  const ay = y + h / 2;
+  line(ctx, [[xs[0] + cw + 2, ay], [xs[1] - 6, ay]], scratch ? c.ink3 : c.ink2, 1, scratch ? [3, 3] : null);
+  ctx.save(); ctx.fillStyle = scratch ? c.ink3 : c.ink2; ctx.beginPath(); ctx.moveTo(xs[1] - 1, ay); ctx.lineTo(xs[1] - 7, ay - 3.5); ctx.lineTo(xs[1] - 7, ay + 3.5); ctx.fill(); ctx.restore();
+  /* training */
+  box(xs[1], false);
+  txt(ctx, S.trainTitle(n), xs[1] + 8, y + 11, { font: smallBold(c), fill: c.ink1 });
+  const [t, lab] = TABLE.trainExample[task], tgt = ` → ${lab} ${LABELS[task][lab]}`;
+  let shown = t; const room = cw - 16 - width(tgt, small(c));
+  if (width(shown, ex) > room) { while (shown.length && width(shown + "…", ex) > room) shown = shown.slice(0, -1); shown += "…"; }
+  txt(ctx, shown, xs[1] + 8, y + 27, { font: ex, fill: c.ink1 });
+  txt(ctx, tgt, xs[1] + 8 + width(shown, ex), y + 27, { font: small(c), fill: c.ink2 });
+}
 function drawNotes(ctx, c, w, way, task, step, trained) {
-  const name = DATA_NAME[TABLE.model[task]];
-  ctx.save(); ctx.font = smallBold(c); const cw = ctx.measureText(name).width;
-  ctx.fillStyle = c.surface2; ctx.strokeStyle = c.grid; ctx.beginPath(); ctx.roundRect(PAD + 0.5, 5.5, cw + 14, 17, 8.5); ctx.fill(); ctx.stroke(); ctx.restore();
-  txt(ctx, name, PAD + 7, 14, { font: smallBold(c), fill: c.ink1 });
-  txt(ctx, S.notesHead(NOUN(task)), PAD + cw + 24, 14, { font: cap(c), fill: c.ink1 });
-  txt(ctx, S.predHead, w - PAD, 14, { font: small(c), fill: c.ink3, align: "right" });
+  drawCards(ctx, c, w, way, task);
+  txt(ctx, S.notesHead(NOUN(task)), PAD, ROWS_HEAD, { font: cap(c), fill: c.ink1 });
+  txt(ctx, S.predHead, w - PAD, ROWS_HEAD, { font: small(c), fill: c.ink3, align: "right" });
   const pred = TABLE.runs[task][way].pred, k = Math.min(pred.length - 1, Math.floor(step / SNAP));
   TABLE.examples[task].forEach(([t, y], i) => {
-    const yy = 38 + i * 22;
+    const yy = ROW0 + i * ROW_PITCH;
     ctx.save(); ctx.strokeStyle = c.ink3; ctx.strokeRect(PAD + 0.5, yy - 9.5, 96, 19); ctx.restore();
     txt(ctx, `${y} ${LABELS[task][y]}`, PAD + 48, yy, { font: small(c), fill: c.ink1, align: "center" });
     if (PROTEIN(task)) {
@@ -441,7 +484,7 @@ function drawLora(ctx, c, w, task, step, y0, blink) {
   const upd = prod(lA, lBt), updLast = prod(last.B, last.A);
   const mx = (M) => Math.max(1e-12, ...M.flat().map(Math.abs));
   const mW = mx(W), mA = mx(last.B), mB = mx(TABLE.runs[task].lora.lora.flatMap((x) => x.A)), mU = mx(updLast);
-  const cell = 1.5, Sz = 48 * cell, R8 = r * cell, yT = y0 + 42, yM = yT + R8 + 6;
+  const cell = 1.5, Sz = 48 * cell, R8 = r * cell, yT = y0 + 34, yM = yT + R8 + 6;
   const xW = PAD + 2, xA = xW + Sz + 40, xP = xA + R8 + 6, xWp = xP + Sz + 32;
   const draw = (M, scale, x, y, lit = null, dim = false) => image(ctx, c, M.length, M[0].length, (i, j) => M[i][j] / scale, x, y, M[0].length * cell, M.length * cell, false, lit, dim);
   const qLit = q ? (i, j) => q[i * 48 + j] === 1 : null;
@@ -463,7 +506,7 @@ function drawLora(ctx, c, w, task, step, y0, blink) {
 
 function drawCurve(ctx, c, w, way, task, step, y0) {
   txt(ctx, S.curveHead, PAD, y0 + 6, { font: cap(c), fill: c.ink1 });
-  const ch = { x: PAD + 40, y: y0 + 26, w: w - 2 * PAD - 160, h: 96 };
+  const ch = { x: PAD + 40, y: y0 + 26, w: w - 2 * PAD - 160, h: 80 };
   const Y = (v) => ch.y + ch.h - ((v - 0.4) / 0.6) * ch.h, X = (i) => ch.x + ch.w * i / POINTS;
   for (const v of [0.4, 0.6, 0.8, 1]) { line(ctx, [[ch.x, Y(v)], [ch.x + ch.w, Y(v)]], c.grid); txt(ctx, pct(v), ch.x - 6, Y(v), { font: small(c), fill: c.ink3, align: "right" }); }
   for (let s = 0; s <= STEPS; s += 100) txt(ctx, String(s), X(s / TABLE.every), ch.y + ch.h + 12, { font: small(c), fill: c.ink3, align: "center" });

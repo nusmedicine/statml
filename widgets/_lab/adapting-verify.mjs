@@ -137,6 +137,19 @@ ok(rightAll("outcome", "full") && rightAll("drug-error", "full"), "full fine-tun
 ok(new Set(T.runs["drug-error"].transfer.pred.at(-1).map((p) => p > 0.5)).size === 1, "transfer gives every held-out note the same answer under drug error");
 ok(WAYS.every((way) => rightAll("influenza-host", way)), "every way ends right on all four held-out proteins");
 
+/* 3b · the two cards (2026-10-04): what each stage trains on, real examples, none of them a held-out row */
+ok(T.pretrainExample.notes.n === 20000 && T.pretrainExample.proteins.n === 22813, "the pretraining sets: 20,000 notes, 22,813 proteins");
+ok(M.VOCAB.includes(T.pretrainExample.notes.target), `the notes' hidden word "${T.pretrainExample.notes.target}" is a word of the vocabulary`);
+ok(/^[A-Z]$/.test(T.pretrainExample.proteins.target) && /^[A-Z]+$/.test(T.pretrainExample.proteins.before + T.pretrainExample.proteins.after), "the protein's hidden token is one residue");
+for (const task of TASKS) {
+  const [t, y] = T.trainExample[task];
+  ok(y === 0 || y === 1, `${task}: the training card's label is 0 or 1`);
+  ok(!T.examples[task].some(([e]) => e === t || e.startsWith(t.slice(0, T.model[task] === "proteins" ? 12 : t.length))), `${task}: the training card's example does not look like a held-out row`);
+}
+{ const q = T.pretrainExample.proteins.before + T.pretrainExample.proteins.target + T.pretrainExample.proteins.after;
+  ok(!T.examples["influenza-host"].some(([e]) => e.startsWith(q.slice(0, 12))), "the pretraining card's protein does not look like a held-out row");
+}
+
 /* 4 · the claims the lines make, on the data */
 for (const task of TASKS) {
   const rel = Object.values(T.runs[task].full.rel).sort((a, b) => a - b), med = rel[Math.floor(rel.length / 2)];
