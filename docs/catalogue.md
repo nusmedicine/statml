@@ -23482,6 +23482,16 @@ labelled examples. … With enough labels and steps, training from scratch comes
 close; pretraining matters most when either is short.") and From scratch's detail
 "The same network, every weight trained." LoRA page 1,197.
 
+**THE SCRATCH PAGE'S TASK TEXT, 2026-10-04** (his catch: on From scratch with Drug
+error the rail still said "the same model, pretrained …" — there is no pretrained
+model on that page): the Task heads and the canvas chip **name the data**,
+"Clinical notes" · "HA proteins" (true on every page), and the Task detail carries
+the model sentence **only on Transfer, Full and LoRA** — core's function-valued
+`options` with `optionsFrom: "page"` (widget 53's). On From scratch: the label, plus
+"Synthetic notes." (Outcome) or "HA sequences from BV-BRC." (Influenza host). Drug
+error's model sentence names whose: "The same model as Outcome, pretrained only on
+notes with correct pairs." Switch probe clean (`h=1400`), sweep 24 states clean.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
