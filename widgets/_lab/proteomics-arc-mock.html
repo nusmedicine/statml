@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · the proteomics and metabolomics arc — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+          border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; vertical-align: top; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 150ch; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 170px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.eng { border-color: var(--c-group-a); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The proteomics and metabolomics arc &middot; PHM5003 09 &middot; mock</h1>
+  <p class="note">
+    Four picked slots, 88 &rarr; 91 in the lessons' order, the leading figures of each drawn at the widget's 550px.
+    <b>Every simulated number drawn here is computed on this page</b> by <code>_lab/proteomics-arc-model.js</code>, the module
+    <code>_lab/proteomics-arc-measure.mjs</code> runs over many seeds (its output is &sect;0). The figures marked
+    <i>lesson data</i> read <code>proteomics-arc-measure.json</code>: numbers the script derived from 01-4's two result tables,
+    not the tables. The mock draws filled states so they can be judged; a widget opens empty. On-canvas strings are
+    candidates for the copy audit, not copy. Blue-ruled boxes are my recommendations, grey-ruled ones the calls only you can
+    answer (&sect;5), red-ruled ones what the lesson's own output says.
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings">loading the script's findings&hellip;</div>
+
+  <h2>1 &middot; Slot 88 <code>target-decoy</code> &mdash; the decoy estimate of the FDR, and peptides to proteins (01-1 cell 2)</h2>
+  <p class="note">
+    5,000 spectra, 60% of them from a peptide that is in the database. Each spectrum's best match is the highest of its
+    correct peptide (if any), the best wrong target and the best decoy; wrong targets and decoys come from one null, which
+    is the whole method. Left: the <i>Score</i> page's histogram, targets above the axis, decoys mirrored below, the
+    threshold where the q-value reaches 1%. Here the targets are split into correct and wrong, which no real search can do
+    (&sect;5.2). Right: walking down the ranked list, the decoy estimate D/T against the true share of wrong targets, and
+    the share wrong among the 200 targets just above each point.
+  </p>
+  <div class="row" id="tdRow"></div>
+  <div class="row" id="infRow"></div>
+  <p class="rec">Two pages, <b>Score &middot; Proteins</b>. The Score page's claim measured over 50 seeds: the accepted list's
+    realised FDR is 1.0% (0.3&ndash;1.8%), and the decoy estimate tracks the truth all the way down the list; but the last
+    10% of the list, nearest the threshold, is 3.9% wrong, and the window just above the threshold more. A q-value is a rate
+    for the list, not a confidence in each match. The Proteins page is the parsimony rules 01-1 lists, on a toy a reader can
+    hold in one view; on a simulated proteome (60 families of three isoforms, half present, half of the peptides seen) 89
+    present proteins become 79 reported groups, 8 of them groups of several, and 11 present proteins sit in no reported
+    group because no peptide of their own was seen.</p>
+
+  <h2>2 &middot; Slot 89 <code>imputation</code> &mdash; where each method puts a value below the detection limit (01-3 cells 27&ndash;30, 41&ndash;42; 02-3 cells 12&ndash;14)</h2>
+  <p class="note">
+    600 proteins at 11 vs 11 (the lesson's design) in log2; the chance a value is missing rises as it falls below a soft
+    detection limit, plus 2% missing completely at random &mdash; 34% missing, the lesson's 35.1%. 15% of proteins differ by
+    1&ndash;3 log2; 3% are absent in healthy (six log2 lower). Left: per method, where the imputed values land (filled)
+    against the values that were really there (dashed) and the observed values (outline). Right: one protein absent in
+    healthy &mdash; the eleven cancer values measured, the eleven healthy ones imputed. The random forest is missForest as
+    tidyproteomics passes it the matrix: samples as variables, proteins as observations.
+  </p>
+  <div class="row" id="impRow"></div>
+  <div class="row" id="impTable"></div>
+  <div class="row" id="impReal"></div>
+  <p class="rec">One widget, two pages: <b>Missing</b> (where the holes are: the share missing against abundance, the
+    detection limit drawn, the lesson's own decile curve beside it) &middot; <b>Imputing</b> (a Method control over the
+    figures above, and the test each one feeds). Over 5 seeds: kNN and the forest fill from the observed range (bias +1.1
+    and +0.7 log2), shrink an absence from 6 to 1.8 and 2.6, and kNN's false discovery rate is 26% &mdash; its false calls
+    are proteins seen in one or two samples, whose whole profile comes from neighbours found on those one or two values.
+    The minimum and the low draw keep an absence (4.7, 4.1) and the FDR under 5%. Testing only the measured values leaves
+    123 proteins untestable and finds half the true differences.</p>
+  <p class="tell"><b>Corrected from what I told you in chat.</b> I said a minimum &ldquo;gives no variance and inflates
+    t&rdquo;. Measured, the minimum makes FEWER false calls (0.8 of 491), because in a protein with scattered holes it adds
+    low values and so variance. The values with too little spread are the forest's: in the lesson's table, where all eleven
+    cancer values of a protein were imputed, their SD is 0.13 log2 against 0.41 for the measured healthy values.</p>
+
+  <h2>3 &middot; Slot 90 <code>limma</code> &mdash; the variance is shrunk, the fold change is not (01-4 cells 0, 3&ndash;9)</h2>
+  <p class="note">
+    2,000 proteins whose true variances follow limma's own prior (d0 = 4, s0 = 0.3 log2), 10% differing by 0.5&ndash;1.5
+    log2. Left: at 3 vs 3, each protein's own SD (sorted) and where the moderated SD puts it &mdash; the posterior, pulled
+    toward the prior fitted across all proteins. Right: the same proteins as two volcanoes; the x axis is identical
+    because limma's log2FC is the mean difference, to the last digit. Ringed: the null proteins in the ordinary t's top 50
+    &mdash; small SDs by chance.
+  </p>
+  <div class="row" id="limRow"></div>
+  <div class="row" id="limTable"></div>
+  <p class="rec">Two pages, <b>Variance &middot; Test</b>, with a <b>Replicates</b> control 3 &middot; 5 &middot; 11 per group. The
+    shrinkage matters where replicates are few and vanishes at the lesson's eleven: over 20 seeds, at 3 vs 3 the ordinary t
+    finds 8.8 of 198 true differences and the moderated t 70.3, both at FDR under 5%; at 11 vs 11, 181.8 and 184.7. The
+    refit of the lesson's own table here reproduces its limma t to 1e-10, so the page's arithmetic is limma's.</p>
+  <p class="tell"><b>From the lesson's own tables.</b> On the lesson's data d0 = 3.1 against 20 residual df, so each
+    protein's own variance keeps about 87% of the weight: an ordinary t on log2 calls 678 proteins at adjusted p &lt; 0.05,
+    limma 692. The t-test table's 646 is a Welch test on the unlogged abundances. Cell 9's &ldquo;smaller due to the
+    shrinkage&rdquo; is the scale: limma's log2FC is the difference of mean log2 abundances; the t-test table's is computed
+    on another scale.</p>
+
+  <h2>4 &middot; Slot 91 <code>qc-drift</code> &mdash; drift along the injection order, pooled QCs, and what a median cannot follow (02-1 cells 0, 2; 02-3 cell 10)</h2>
+  <p class="note">
+    Simulated, on your call: 26 metabolites with the lesson's names, 40 + 40 samples, a pooled QC first, after every fifth
+    sample and last (17 QCs in 97 injections). Every metabolite drifts by a shared fall plus a slope and a bend of its own.
+    Two metabolites are really higher in B and two lower, by 0.6 log2. Left: one null metabolite in a run made in group
+    order, A then B, before and after a QC-LOESS fit; its drift reads as a difference between the groups. Right: false calls
+    per run over 100 seeds, by run order and correction.
+  </p>
+  <div class="row" id="drRow"></div>
+  <div class="row" id="spanRow"></div>
+  <p class="rec">Two pages, <b>Drift &middot; Correction</b>, with <b>Run order</b> Random &middot; Grouped and <b>Correction</b>
+    None &middot; Median &middot; QC-LOESS. Median normalization removes the shared fall and nothing of each metabolite's own
+    drift, so in group order it leaves 15 of 22 null metabolites significant against 16 uncorrected; QC-LOESS leaves 0.6
+    at span 0.3. Two things the measurement adds: in a <i>random</i> order the median ADDS false calls (1.1 against 0.3),
+    because a median of 26 metabolites moves with whichever real differences sit near it &mdash; 77's composition
+    argument, at 26 features; and the QC RSD after a QC fit is read off the points the curve went through, so with a QC
+    every tenth injection span 0.3 reads 0.0% while 0.06 log2 of drift remains in the samples (table below).</p>
+
+  <h2>5 &middot; The calls</h2>
+  <p class="q"><b class="h">5.1 &middot; 88's pages</b>
+    <b>A &middot; Score &middot; Proteins (recommended)</b> &nbsp;|&nbsp; B &middot; Score only; the protein rules as the Score page's note</p>
+  <p class="q"><b class="h">5.2 &middot; 88's truth</b>
+    <b>A &middot; a <i>True identity</i> Off &middot; On, off by default, as 25's <i>True values</i>: a real search sees targets and decoys only (recommended)</b> &nbsp;|&nbsp;
+    B &middot; always split into correct and wrong &nbsp;|&nbsp; C &middot; never; the decoys are all the reader gets</p>
+  <p class="q"><b class="h">5.3 &middot; 89's methods</b>
+    <b>A &middot; Minimum &middot; Low draw &middot; kNN &middot; Random forest, and <i>Measured only</i> (no imputation) as the arm each is judged against (recommended: each wins somewhere &mdash; the forest has the smallest error, the low draw the smallest bias, the minimum the fewest false calls)</b> &nbsp;|&nbsp;
+    B &middot; the lesson's two, kNN and Random forest, with Minimum</p>
+  <p class="q"><b class="h">5.4 &middot; 89 and the lesson's 64 proteins</b>
+    <b>A &middot; simulated only; the 64 proteins go to you as a notebook note (recommended: every arc's stage is simulated, and the widget's Imputing page makes the same point)</b> &nbsp;|&nbsp;
+    B &middot; a third page reading the lesson's derived numbers (the deciles and the 64 proteins' fold changes) &nbsp;|&nbsp; C &middot; the deciles only, beside the simulated curve on the Missing page</p>
+  <p class="q"><b class="h">5.5 &middot; 89's filter</b>
+    <b>A &middot; a <i>Minimum measured</i> control (any &middot; half of a group), because kNN's false calls are proteins seen once or twice and the usual remedy is to filter before imputing (recommended, if it measures as the remedy &mdash; not yet measured)</b> &nbsp;|&nbsp; B &middot; no filter, as the lesson</p>
+  <p class="q"><b class="h">5.6 &middot; 90's Replicates</b>
+    <b>A &middot; 3 &middot; 5 &middot; 11 per group (recommended: the lesson's 11 is where limma changes 14 calls of 692)</b> &nbsp;|&nbsp; B &middot; fixed at the lesson's 11</p>
+  <p class="q"><b class="h">5.7 &middot; 90 and the lesson's scale</b>
+    A &middot; a third page, the t-test on unlogged abundances against log2, as the lesson's own comparison &nbsp;|&nbsp;
+    <b>B &middot; not in the widget; to you as the notebook note (recommended: 39 already owns the log)</b></p>
+  <p class="q"><b class="h">5.8 &middot; 91's span and QC spacing</b>
+    <b>A &middot; a Span control 0.3 &middot; 0.75 and a <i>QC every</i> 5 &middot; 10, with a drift-left readout beside the QC RSD (recommended: each span wins somewhere &mdash; 0.75 on a smooth drift, 0.3 on a bend &mdash; and the 0.0% case is the lesson)</b> &nbsp;|&nbsp;
+    B &middot; span fixed at 0.75 (R's default), QCs every 5</p>
+  <p class="q"><b class="h">5.9 &middot; Slugs and titles</b>
+    <code>target-decoy</code> &middot; <code>imputation</code> &middot; <code>limma</code> &middot; <code>qc-drift</code>; titles with the arc's
+    prefixes, as 77&ndash;81: <b>Proteomics: Identification</b> &middot; <b>Proteomics: Imputation</b> &middot; <b>Proteomics:
+    Differential Expression</b> &middot; <b>Metabolomics: QC and Drift</b> &mdash; yours to rename; a slug is a public URL.</p>
+  <p class="q"><b class="h">5.10 &middot; Colours, as drawn</b>
+    targets <code>--c-empirical</code>, decoys <code>--c-reference</code>, a wrong target <code>--c-extreme</code>, the threshold
+    <code>--c-highlight</code> &middot; measured values <code>--c-empirical</code>, an imputed value <code>--c-highlight</code>,
+    the truth behind a hole <code>--c-reference</code> dashed &middot; own SD <code>--c-empirical</code>, the fitted prior
+    <code>--c-prior</code>, the moderated SD <code>--c-posterior</code> (as 78) &middot; groups <code>--c-group-a/b</code>, a pooled
+    QC <code>--c-reference</code>, the LOESS curve <code>--c-smoothed</code>. Any to change?</p>
+
+  <h2>6 &middot; The rails, as proposed</h2>
+  <div class="rail"><span class="w">target-decoy</span><span class="pg">Score</span><span class="pg">Proteins</span><span class="n">01-1 cell 2 &middot; q-value, decoy estimate; groups, subsets, subsumable</span></div>
+  <div class="rail"><span class="w">imputation</span><span class="pg">Missing</span><span class="pg eng">Imputing</span><span class="n">01-3 cells 27&ndash;30, 41&ndash;42; 02-3 cells 12&ndash;14 &middot; Method, Minimum measured</span></div>
+  <div class="rail"><span class="w">limma</span><span class="pg eng">Variance</span><span class="pg eng">Test</span><span class="n">01-4 cells 0, 3&ndash;9 &middot; Replicates 3 &middot; 5 &middot; 11</span></div>
+  <div class="rail"><span class="w">qc-drift</span><span class="pg">Drift</span><span class="pg eng">Correction</span><span class="n">02-1 cells 0, 2; 02-3 cell 10 &middot; Run order, Correction, Span, QC every</span></div>
+  <p class="note">An outlined page runs an engine on the page (a fit, a forest, a curve); a plain one is arithmetic.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "./proteomics-arc-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function frame(ctx, x0, y0, w, h, { xlab = "", ylab = "" } = {}) {
+  line(ctx, x0, y0, x0, y0 + h, T.axis); line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  if (xlab) label(ctx, xlab, x0 + w / 2, y0 + h + 28, { align: "center", colour: T.ink3, size: 10 });
+  if (ylab) { ctx.save(); ctx.translate(x0 - 34, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, ylab, 0, 0, { align: "center", colour: T.ink3, size: 10 }); ctx.restore(); }
+}
+function xTicks(ctx, sx, y, ticks, fmt = String) { for (const t of ticks) { line(ctx, sx(t), y, sx(t), y + 4, T.axis); label(ctx, fmt(t), sx(t), y + 15, { align: "center", size: 10, colour: T.ink3 }); } }
+function yTicks(ctx, sy, x, ticks, fmt = String) { for (const t of ticks) { line(ctx, x - 4, sy(t), x, sy(t), T.axis); label(ctx, fmt(t), x - 6, sy(t) + 3, { align: "right", size: 10, colour: T.ink3 }); } }
+const f = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+const pct = (v, d = 1) => `${(100 * v).toFixed(d)}%`;
+function bins(values, lo, hi, n) { const c = new Array(n).fill(0); for (const v of values) { const k = Math.floor(((v - lo) / (hi - lo)) * n); if (k >= 0 && k < n) c[k] += 1; } return c; }
+function table(rowId, head, rows) {
+  const t = el("table"); const tr = el("tr"); head.forEach((h) => tr.appendChild(el("th", null, h))); t.appendChild(tr);
+  rows.forEach((r) => { const x = el("tr"); r.forEach((v) => x.appendChild(el("td", null, v))); t.appendChild(x); });
+  document.getElementById(rowId).appendChild(t); return t;
+}
+
+/* ============================================================ 0 findings */
+const realP = fetch("proteomics-arc-measure.json").then((r) => r.json()).catch(() => null);
+realP.then((j) => { document.getElementById("findings").textContent = j ? j.findings.join("\n") : "run `node widgets/_lab/proteomics-arc-measure.mjs` to write proteomics-arc-measure.json"; });
+
+/* ======================================================= 1 target-decoy */
+{
+  const psms = M.simulateSearch(M.makeRng(1));
+  const rows = M.fdrCurve(psms);
+  const acc = M.acceptAt(rows, 0.01);
+  const lo = -2, hi = 13, nb = 60;
+  const box = cand("tdRow", "Score · targets above, decoys below", `seed 1 · 5,000 spectra · threshold where the q-value reaches 1%\ntargets split into correct and wrong here only (§5.2)`);
+  const ctx = canvasIn(box, W, 362);
+  const x0 = 56, y0 = 50, w = W - 80, mid = 210;
+  const sx = (v) => x0 + ((v - lo) / (hi - lo)) * w;
+  const cor = bins(psms.filter((p) => p.kind === "correct").map((p) => p.score), lo, hi, nb);
+  const wro = bins(psms.filter((p) => p.kind === "wrong").map((p) => p.score), lo, hi, nb);
+  const dec = bins(psms.filter((p) => p.kind === "decoy").map((p) => p.score), lo, hi, nb);
+  const top = Math.max(...cor.map((c, i) => c + wro[i]), ...dec);
+  const sh = (c) => (c / top) * 150;
+  const bw = w / nb;
+  for (let i = 0; i < nb; i += 1) {
+    const x = x0 + i * bw;
+    rect(ctx, x + 0.5, mid - sh(wro[i]), bw - 1, sh(wro[i]), T.extreme);
+    rect(ctx, x + 0.5, mid - sh(wro[i]) - sh(cor[i]), bw - 1, sh(cor[i]), T.empirical);
+    rect(ctx, x + 0.5, mid, bw - 1, sh(dec[i]) * 0.9, T.reference);
+  }
+  line(ctx, x0, mid, x0 + w, mid, T.axis);
+  const tx = sx(acc.threshold);
+  line(ctx, tx, y0 - 6, tx, mid + 110, T.highlight, 2);
+  xTicks(ctx, sx, mid + 112, [0, 2, 4, 6, 8, 10, 12]);
+  label(ctx, "best-match score", x0 + w / 2, mid + 138, { align: "center", size: 10, colour: T.ink3 });
+  const above = rows.filter((r) => r.score >= acc.threshold);
+  const D = above.filter((r) => r.kind === "decoy").length;
+  label(ctx, `right of the line: targets ${acc.accepted} · decoys ${D} → estimated FDR ${pct(D / acc.accepted)}`, W - 12, 16, { align: "right", colour: T.ink1, size: 11, weight: "600" });
+  label(ctx, `wrong targets ${acc.wrong} → true FDR ${pct(acc.trueFdr)}`, W - 12, 32, { align: "right", colour: T.extreme, size: 11 });
+  label(ctx, `targets`, x0 + 4, y0 + 4, { colour: T.empirical, weight: "600" });
+  label(ctx, `correct`, x0 + 4, y0 + 20, { colour: T.empirical }); label(ctx, `wrong`, x0 + 58, y0 + 20, { colour: T.extreme });
+  label(ctx, `decoys`, x0 + 4, mid + 96, { colour: T.ink3, weight: "600" });
+
+  // the list, walked down
+  const box2 = cand("tdRow", "Score · the decoy estimate along the ranked list", `x: targets accepted so far · y: FDR\ndashed: decoys/targets · solid: true share wrong · thin: wrong among the 200 targets just above`);
+  const c2 = canvasIn(box2, W, 330);
+  const targets = rows.filter((r) => r.kind !== "decoy");
+  const maxT = Math.min(targets.length, 3400);
+  const fx0 = 56, fy0 = 24, fw = W - 80, fh = 250, ymax = 0.10;
+  const px = (n) => fx0 + (n / maxT) * fw, py = (v) => fy0 + fh - (Math.min(v, ymax) / ymax) * fh;
+  frame(c2, fx0, fy0, fw, fh, { xlab: "targets accepted", ylab: "false discovery rate" });
+  xTicks(c2, px, fy0 + fh, [0, 1000, 2000, 3000], (v) => v.toLocaleString());
+  yTicks(c2, py, fx0, [0, 0.02, 0.04, 0.06, 0.08, 0.10], (v) => pct(v, 0));
+  const step = 10, xs = [], est = [], tru = [], loc = [];
+  for (let n = 50; n <= maxT; n += step) {
+    const r = targets[n - 1];
+    xs.push(px(n)); est.push(py(r.est)); tru.push(py(r.tru));
+    const win = targets.slice(Math.max(0, n - 200), n);
+    loc.push(py(win.filter((t) => t.kind === "wrong").length / win.length));
+  }
+  polyline(c2, xs, loc, T.extreme, 1, null);
+  polyline(c2, xs, tru, T.extreme, 2);
+  polyline(c2, xs, est, T.ink1, 1.6, [5, 4]);
+  line(c2, px(acc.accepted), fy0, px(acc.accepted), fy0 + fh, T.highlight, 2);
+  line(c2, fx0, py(0.01), fx0 + fw, py(0.01), T.grid, 1, [2, 3]);
+  label(c2, `q ≤ 1%: ${acc.accepted} accepted`, px(acc.accepted) - 6, fy0 + 12, { align: "right", colour: T.ink1, size: 11, weight: "600" });
+  label(c2, `last 10% of them: ${pct(acc.tailRate)} wrong`, px(acc.accepted) - 6, fy0 + 28, { align: "right", colour: T.extreme, size: 11 });
+}
+{
+  // a toy for the Proteins page: the three rules 01-1 cell 2 lists, and the minimal set
+  const proteins = [
+    { id: "P1", peptides: ["a", "b", "c"] }, { id: "P2", peptides: ["b", "c"] },
+    { id: "P3", peptides: ["d", "e"] }, { id: "P4", peptides: ["d", "e"] },
+    { id: "P5", peptides: ["e", "f"] }, { id: "P6", peptides: ["c", "e"] },
+  ];
+  const peps = ["a", "b", "c", "d", "e", "f"];
+  const g = M.inferProteins(proteins, peps);
+  const groupOf = (id) => g.find((x) => x.ids.includes(id));
+  const share = Object.fromEntries(peps.map((p) => [p, proteins.filter((q) => q.peptides.includes(p)).length]));
+  const box = cand("infRow", "Proteins · six proteins, six peptides seen", "each line: a peptide that protein would produce · filled peptide: unique to one protein\nboxes ringed: reported; P3 and P4 have identical peptides and are one group", W);
+  const ctx = canvasIn(box, W, 260);
+  const px = (i) => 60 + i * 86, ppx = (i) => 60 + i * 86;
+  const yP = 60, yQ = 190;
+  const why = (p) => { const G = groupOf(p.id); if (G.subset) return "subset of P1"; if (G.ids.length > 1) return ""; if (G.subsumable && !G.reported) return "subsumable"; if (G.subsumable) return "no unique"; return G.unique ? "unique peptide" : ""; };
+  proteins.forEach((p, i) => p.peptides.forEach((q) => line(ctx, px(i), yP + 14, ppx(peps.indexOf(q)), yQ - 7, T.grid, 1.2)));
+  // P3 and P4 share every peptide: one protein group, drawn as one enclosure
+  rect(ctx, px(2) - 34, yP - 20, px(3) - px(2) + 68, 40, null, T.ink3, 1);
+  label(ctx, "one group: identical peptides", (px(2) + px(3)) / 2, yP - 26, { align: "center", size: 10, colour: T.ink2 });
+  proteins.forEach((p, i) => {
+    const G = groupOf(p.id);
+    rect(ctx, px(i) - 26, yP - 14, 52, 28, T.surface2, G.reported ? T.empirical : T.axis, G.reported ? 2.5 : 1);
+    label(ctx, p.id, px(i), yP + 4, { align: "center", colour: G.reported ? T.ink1 : T.ink3, weight: "600" });
+    label(ctx, why(p), px(i), yP - 22, { align: "center", size: 10, colour: G.reported ? T.ink2 : T.ink3 });
+  });
+  peps.forEach((q, i) => {
+    if (share[q] === 1) dot(ctx, ppx(i), yQ, 7, T.empirical); else dot(ctx, ppx(i), yQ, 7, T.surface1, T.empirical, 1.5);
+    label(ctx, q, ppx(i), yQ + 24, { align: "center", colour: T.ink2 });
+  });
+  const reported = g.filter((x) => x.reported).map((x) => x.ids.join("/"));
+  label(ctx, `reported: ${reported.join(" · ")} — the fewest proteins that explain every peptide`, 20, 248, { colour: T.ink1, size: 11 });
+}
+
+/* =========================================================== 2 imputation */
+const impStatus = el("p", "note", "computing the four imputations on seed 1 (the forest takes a few seconds)…");
+document.getElementById("impRow").appendChild(impStatus);
+setTimeout(() => {
+  const sim = M.simulateMatrix(M.makeRng(1));
+  const filled = {
+    "Minimum": M.imputeMin(sim.obs),
+    "Low draw": M.imputeLowDraw(sim.obs, M.makeRng(1001)),
+    "kNN": M.imputeKnn(sim.obs, 10),
+    "Random forest": M.imputeForest(sim.obs, M.makeRng(2001)),
+  };
+  impStatus.remove();
+  const holes = [];
+  sim.obs.forEach((r, p) => r.forEach((v, j) => { if (Number.isNaN(v)) holes.push([p, j]); }));
+  const observed = sim.obs.flat().filter((v) => !Number.isNaN(v));
+  const truthH = holes.map(([p, j]) => sim.truth[p][j]);
+  const lo = 15, hi = 31, nb = 64;
+  const box = cand("impRow", "Imputing · where the missing values go", `seed 1 · ${holes.length.toLocaleString()} missing of ${(sim.obs.length * 22).toLocaleString()} (${pct(holes.length / (sim.obs.length * 22))})\noutline: measured values · dashed: what was really there · filled: imputed`);
+  const ctx = canvasIn(box, W, 420);
+  const x0 = 120, w = W - 140, rowH = 88;
+  const sx = (v) => x0 + ((v - lo) / (hi - lo)) * w;
+  const bo = bins(observed, lo, hi, nb), bt = bins(truthH, lo, hi, nb);
+  const norm = (c) => { const s = c.reduce((a, b) => a + b, 0); return c.map((v) => v / s); };
+  const no = norm(bo), nt = norm(bt);
+  Object.entries(filled).forEach(([name, F], k) => {
+    const base = 20 + (k + 1) * rowH - 12;
+    const ni = norm(bins(holes.map(([p, j]) => F[p][j]), lo, hi, nb));
+    const peak = Math.max(...no, ...nt, ...ni.map((v) => Math.min(v, 0.12)));
+    const sh = (v) => (Math.min(v, 0.12) / peak) * (rowH - 18);
+    const bw = w / nb;
+    ni.forEach((v, i) => rect(ctx, x0 + i * bw + 0.5, base - sh(v), bw - 1, sh(v), wash(T.highlight, 0.75)));
+    polyline(ctx, no.map((_, i) => x0 + (i + 0.5) * bw), no.map((v) => base - sh(v)), T.empirical, 1.4);
+    polyline(ctx, nt.map((_, i) => x0 + (i + 0.5) * bw), nt.map((v) => base - sh(v)), T.reference, 1.4, [4, 3]);
+    line(ctx, x0, base, x0 + w, base, T.axis);
+    label(ctx, name, x0 - 10, base - 30, { align: "right", colour: T.ink1, weight: "600" });
+    const bias = M.mean(holes.map(([p, j]) => F[p][j] - sim.truth[p][j]));
+    label(ctx, `bias ${bias >= 0 ? "+" : ""}${f(bias)}`, x0 - 10, base - 14, { align: "right", size: 10, mono: true, colour: T.ink2 });
+  });
+  xTicks(ctx, sx, 20 + 4 * rowH - 12, [16, 20, 24, 28]);
+  label(ctx, "log2 abundance", x0 + w / 2, 20 + 4 * rowH + 18, { align: "center", size: 10, colour: T.ink3 });
+
+  // one protein absent in healthy, with every healthy value missing if one exists
+  const cands = sim.meta.map((m, p) => [m, p]).filter(([m]) => m.kind === "onoff");
+  const [, P] = cands.sort((a, b) => sim.obs[b[1]].slice(11).filter(Number.isNaN).length - sim.obs[a[1]].slice(11).filter(Number.isNaN).length)[0];
+  const missH = sim.obs[P].slice(11).filter(Number.isNaN).length;
+  const box2 = cand("impRow", "Imputing · one protein absent in healthy", `protein ${P + 1}: true log2FC 6.0 · healthy values missing ${missH} of 11\nfilled: measured · hollow: imputed · grey ticks: the healthy values really there`);
+  const c2 = canvasIn(box2, W, 420);
+  const all = [...sim.truth[P], ...Object.values(filled).flatMap((F) => F[P])];
+  const l2 = Math.floor(Math.min(...all)) - 0.5, h2 = Math.ceil(Math.max(...all)) + 0.5;
+  const qx = (v) => 130 + ((v - l2) / (h2 - l2)) * (W - 160);
+  const rowsM = [["Measured only", sim.obs[P]], ...Object.entries(filled).map(([n, F]) => [n, F[P]])];
+  rowsM.forEach(([name, r], k) => {
+    const y = 40 + k * 70;
+    label(c2, name, 120, y + 4, { align: "right", colour: T.ink1, weight: "600" });
+    for (let j = 11; j < 22; j += 1) if (Number.isNaN(sim.obs[P][j])) line(c2, qx(sim.truth[P][j]), y + 8, qx(sim.truth[P][j]), y + 18, T.reference, 1.2);
+    r.forEach((v, j) => {
+      if (Number.isNaN(v)) return;
+      const yy = j < 11 ? y - 8 : y + 13;
+      const col = j < 11 ? T.groupA : T.groupB;
+      if (Number.isNaN(sim.obs[P][j])) dot(c2, qx(v), yy, 3.6, T.surface1, col, 1.6); else dot(c2, qx(v), yy, 3.6, col);
+    });
+    const a = r.slice(0, 11).filter((v) => !Number.isNaN(v)), b = r.slice(11).filter((v) => !Number.isNaN(v));
+    const txt = b.length >= 2 ? `log2FC ${f(M.mean(a) - M.mean(b))}` : `${b.length} healthy value${b.length === 1 ? "" : "s"}: not testable`;
+    label(c2, txt, W - 12, y - 20, { align: "right", size: 11, mono: true, colour: T.ink1 });
+  });
+  label(c2, "cancer", 132, 22, { colour: T.groupA, weight: "600", size: 10 }); label(c2, "healthy", 180, 22, { colour: T.groupB, weight: "600", size: 10 });
+  xTicks(c2, qx, 40 + 5 * 70 - 22, Array.from({ length: Math.floor(h2) - Math.ceil(l2) + 1 }, (_, i) => Math.ceil(l2) + i).filter((v) => v % 2 === 0));
+
+  // the table
+  const sc = { "Measured values": M.scoreImputation(sim, sim.truth) };
+  for (const [n, F] of Object.entries(filled)) sc[n] = M.scoreImputation(sim, F);
+  table("impTable", ["seed 1", "bias", "RMSE", "true calls", "false calls", "FDR", "absent-in-healthy log2FC (true 6)"],
+    Object.entries(sc).map(([n, s]) => [n === "Measured values" ? "no missingness (the truth)" : n, n === "Measured values" ? "—" : f(s.bias), n === "Measured values" ? "—" : f(s.rmse), `${s.tp} / ${s.real}`, `${s.fp} / ${s.nul}`, pct(s.fdr), f(s.onoffFc)]));
+
+  // the lesson's own table
+  realP.then((j) => {
+    if (!j || !j.real.imputation) return;
+    const R = j.real.imputation;
+    const b3 = cand("impReal", "Lesson data · the share imputed, by the protein's abundance", `01-4's tables, 1,337 proteins · ${pct(R.overall)} of values imputed · deciles of the protein's mean log2\n(the mean includes its imputed values, which is why decile 3 stands out)`);
+    const c3 = canvasIn(b3, W, 240);
+    const bx0 = 60, bw = (W - 90) / 10, bh = 170, by0 = 20;
+    frame(c3, bx0, by0, W - 90, bh, { xlab: "decile of mean abundance, lowest → highest", ylab: "share imputed" });
+    yTicks(c3, (v) => by0 + bh - v * bh, bx0, [0, 0.25, 0.5, 0.75, 1], (v) => pct(v, 0));
+    R.deciles.forEach((v, i) => { rect(c3, bx0 + i * bw + 3, by0 + bh - v * bh, bw - 6, v * bh, T.empirical); label(c3, String(i + 1), bx0 + (i + 0.5) * bw, by0 + bh + 14, { align: "center", size: 10, colour: T.ink3 }); });
+
+    const b4 = cand("impReal", "Lesson data · 64 proteins measured in all 11 healthy, missing in ≥ 9 of 11 cancer", `log2FC (cancer / healthy) after the random-forest imputation\na detection limit puts cancer BELOW healthy; ${R.oneSided.filter((x) => x.fc > 0).length} of ${R.oneSided.length} come out above`);
+    const c4 = canvasIn(b4, W, 240);
+    const fx = (v) => 40 + ((v + 1.5) / 3) * (W - 80);
+    line(c4, fx(0), 20, fx(0), 150, T.axis);
+    // a dot plot: binned by 0.05 log2 and stacked up from the axis
+    const stack = new Map();
+    [...R.oneSided].sort((a, b) => a.fc - b.fc).forEach((x) => {
+      const b = Math.round(x.fc / 0.05);
+      const k = stack.get(b) || 0; stack.set(b, k + 1);
+      dot(c4, fx(b * 0.05), 144 - k * 8, 3.4, x.padj < 0.05 ? T.extreme : T.empirical);
+    });
+    xTicks(c4, fx, 156, [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]);
+    label(c4, "log2FC, cancer / healthy", W / 2, 186, { align: "center", size: 10, colour: T.ink3 });
+    label(c4, `red: adjusted p < 0.05 (${R.oneSided.filter((x) => x.padj < 0.05).length}) · none at |log2FC| ≥ 1`, 40, 214, { size: 11, colour: T.ink1 });
+  });
+}, 30);
+
+/* ================================================================ 3 limma */
+{
+  const n = 3;
+  const sim = M.simulateVariances(M.makeRng(1), { n });
+  const fit = M.limmaFit(sim.rows, n);
+  const { d0, s02 } = fit.prior;
+  const s0 = Math.sqrt(s02);
+  const box = cand("limRow", "Variance · own SD, and the moderated SD, at 3 vs 3", `seed 1 · 2,000 proteins, every 16th by own SD drawn · fitted prior d0 = ${f(d0, 1)}, s0 = ${f(s0, 3)}\nthe moderated variance weights own : prior as ${fit.fits[0].df} : ${f(d0, 1)}`);
+  const ctx = canvasIn(box, W, 330);
+  const order = fit.fits.map((x, i) => [Math.sqrt(x.s2), i]).sort((a, b) => a[0] - b[0]);
+  const pick = order.filter((_, k) => k % 16 === 8);
+  const x0 = 60, y0 = 20, w = W - 90, h = 260;
+  const lyLo = Math.log(0.03), lyHi = Math.log(1.6);
+  const sy = (s) => y0 + h - ((Math.log(Math.max(s, 0.03)) - lyLo) / (lyHi - lyLo)) * h;
+  const sx = (k) => x0 + 6 + (k / (pick.length - 1)) * (w - 12);
+  frame(ctx, x0, y0, w, h, { xlab: "proteins, sorted by their own SD", ylab: "SD, log2 (log scale)" });
+  yTicks(ctx, sy, x0, [0.05, 0.1, 0.2, 0.5, 1]);
+  line(ctx, x0, sy(s0), x0 + w, sy(s0), T.prior, 2);
+  label(ctx, `prior s0 = ${f(s0, 2)}`, x0 + w - 4, sy(s0) - 6, { align: "right", colour: T.prior, weight: "600" });
+  pick.forEach(([s, i], k) => {
+    const post = Math.sqrt(fit.fits[i].s2post);
+    line(ctx, sx(k), sy(s), sx(k), sy(post), T.grid, 1);
+    dot(ctx, sx(k), sy(s), 2.8, T.empirical);
+    dot(ctx, sx(k), sy(post), 2.8, T.posterior);
+  });
+  label(ctx, "own SD", x0 + 10, y0 + 12, { colour: T.empirical, weight: "600" });
+  label(ctx, "moderated", x0 + 70, y0 + 12, { colour: T.posterior, weight: "600" });
+
+  // two volcanoes
+  const box2 = cand("limRow", "Test · ordinary t and moderated t, the same proteins", `x: log2FC, identical in both · y: −log10 p · filled: really different · grey: null\nringed: the nulls in the ordinary t's top 50`);
+  const c2 = canvasIn(box2, W, 330);
+  const top50 = new Set(fit.fits.map((x, i) => [Math.abs(x.t), i]).sort((a, b) => b[0] - a[0]).slice(0, 50).map((x) => x[1]).filter((i) => !sim.meta[i].de));
+  const pw = 240, ph = 250;
+  [["ordinary t, df " + fit.fits[0].df, "p"], [`moderated t, df ${f(fit.fits[0].dfMod, 1)}`, "pMod"]].forEach(([title, key], k) => {
+    const vx0 = 40 + k * (pw + 30), vy0 = 30;
+    const ymax = 8;
+    const qx = (v) => vx0 + ((v + 2.5) / 5) * pw, qy = (p) => vy0 + ph - (Math.min(-Math.log10(p), ymax) / ymax) * ph;
+    frame(c2, vx0, vy0, pw, ph, {});
+    xTicks(c2, qx, vy0 + ph, [-2, -1, 0, 1, 2]);
+    label(c2, "log2FC", vx0 + pw / 2, vy0 + ph + 30, { align: "center", size: 10, colour: T.ink3 });
+    if (k === 0) yTicks(c2, (v) => vy0 + ph - (v / ymax) * ph, vx0, [0, 2, 4, 6, 8]);
+    const adj = M.bh(fit.fits.map((x) => x[key]));
+    const cut = Math.max(...fit.fits.map((x, i) => (adj[i] < 0.05 ? x[key] : 0)));
+    if (cut > 0) { line(c2, vx0, qy(cut), vx0 + pw, qy(cut), T.extreme, 1, [4, 3]); }
+    fit.fits.forEach((x, i) => { if (!sim.meta[i].de) dot(c2, qx(x.diff), qy(x[key]), 1.6, wash(T.reference, 0.5)); });
+    fit.fits.forEach((x, i) => { if (sim.meta[i].de) dot(c2, qx(x.diff), qy(x[key]), 2, T.empirical); });
+    fit.fits.forEach((x, i) => { if (top50.has(i)) dot(c2, qx(x.diff), qy(x[key]), 4.5, null, T.extreme, 1.5); });
+    const called = adj.filter((p) => p < 0.05).length;
+    label(c2, title, vx0 + 4, vy0 - 12, { colour: T.ink1, weight: "600", size: 11 });
+    label(c2, `BH < 0.05: ${called}`, vx0 + pw - 4, vy0 + 12, { align: "right", colour: T.extreme, size: 10 });
+  });
+
+  // replicates table, seed 1
+  const rowsT = [3, 5, 11].map((m) => {
+    const s = M.simulateVariances(M.makeRng(1), { n: m });
+    const ft = M.limmaFit(s.rows, m);
+    const cnt = (key) => { const a = M.bh(ft.fits.map((x) => x[key])); let tp = 0, fp = 0; a.forEach((p, i) => { if (p < 0.05) (s.meta[i].de ? tp += 1 : fp += 1); }); return `${tp} true · ${fp} false`; };
+    return [`${m} vs ${m}`, f(ft.prior.d0, 1), `${2 * m - 2} : ${f(ft.prior.d0, 1)}`, cnt("p"), cnt("pMod"), String(s.meta.filter((x) => x.de).length)];
+  });
+  table("limTable", ["seed 1", "fitted d0", "own : prior weight", "ordinary t, BH < 0.05", "moderated t, BH < 0.05", "really different"], rowsT);
+}
+
+/* ============================================================= 4 qc-drift */
+{
+  const run = M.simulateRun(M.makeRng(1), { order: "grouped" });
+  const Y = M.correctQcLoess(run, 0.3);
+  const Ymed = M.correctMedian(run);
+  const scRaw = M.scoreRun(run, run.X), scL = M.scoreRun(run, Y);
+  // the null metabolite whose drift makes the largest group difference
+  const m = run.mets.map((mt, k) => [k, Math.abs(scRaw.tests[k].t)]).filter(([k]) => !run.mets[k].real).sort((a, b) => b[1] - a[1])[0][0];
+  const box = cand("drRow", `Drift · ${run.mets[m].name}, the run made in group order`, `seed 1 · ${run.N} injections, ${run.inj.filter((s) => s.kind === "QC").length} pooled QCs · not really different between A and B\nsquares: pooled QC · curve: LOESS through the QCs, span 0.3`);
+  const ctx = canvasIn(box, W, 420);
+  const x0 = 56, w = W - 76;
+  const sx = (i) => x0 + (i / (run.N - 1)) * w;
+  const panels = [["as measured", run.X[m], scRaw], ["after QC-LOESS", Y[m], scL], ["after median normalization", Ymed[m], M.scoreRun(run, Ymed)]];
+  const all = panels.flatMap(([, r]) => r);
+  const lo = Math.min(...all) - 0.1, hi = Math.max(...all) + 0.1;
+  const qcIdx = run.inj.map((s, i) => (s.kind === "QC" ? i : -1)).filter((i) => i >= 0);
+  panels.forEach(([title, r, sc], k) => {
+    const py0 = 18 + k * 128, ph = 96;
+    const sy = (v) => py0 + ph - ((v - lo) / (hi - lo)) * ph;
+    frame(ctx, x0, py0, w, ph, {});
+    r.forEach((v, i) => {
+      const s = run.inj[i].kind;
+      if (s === "QC") rect(ctx, sx(i) - 3, sy(v) - 3, 6, 6, T.reference);
+      else dot(ctx, sx(i), sy(v), 2.6, s === "A" ? T.groupA : T.groupB);
+    });
+    if (k === 0) {
+      const fit = M.loess(qcIdx, qcIdx.map((i) => r[i]), run.inj.map((_, i) => i), 0.3);
+      polyline(ctx, fit.map((_, i) => sx(i)), fit.map((v) => sy(v)), T.smoothed, 2);
+    }
+    const t = sc.tests[m];
+    label(ctx, title, x0 + 6, py0 + 10, { colour: T.ink1, weight: "600", size: 11 });
+    label(ctx, `B − A ${f(M.mean(run.inj.map((s, i) => (s.kind === "B" ? r[i] : NaN)).filter((v) => !Number.isNaN(v))) - M.mean(run.inj.map((s, i) => (s.kind === "A" ? r[i] : NaN)).filter((v) => !Number.isNaN(v))))} log2 · adj p ${sc.padj[m] < 1e-4 ? sc.padj[m].toExponential(0) : f(sc.padj[m], 3)}`, x0 + w - 6, py0 + 10, { align: "right", mono: true, size: 10, colour: sc.padj[m] < 0.05 ? T.extreme : T.ink2 });
+    void t;
+  });
+  label(ctx, "injection order →", x0 + w / 2, 18 + 3 * 128 - 8, { align: "center", size: 10, colour: T.ink3 });
+  label(ctx, "A", x0 + 8, 18 + 3 * 128 - 8, { colour: T.groupA, weight: "600" }); label(ctx, "B", x0 + 24, 18 + 3 * 128 - 8, { colour: T.groupB, weight: "600" });
+
+  // false calls, 100 seeds, live
+  const box2 = cand("drRow", "Correction · null metabolites called different, per run", `100 seeds · 22 null and 4 real metabolites · BH < 0.05\nbars: mean false calls per run (of 22); the number above: true calls (of 4)`);
+  const c2 = canvasIn(box2, W, 420);
+  const methods = [["none", (r) => r.X], ["median", M.correctMedian], ["QC-LOESS 0.3", (r) => M.correctQcLoess(r, 0.3)], ["QC-LOESS 0.75", (r) => M.correctQcLoess(r, 0.75)], ["drift removed", (r) => r.X.map((row, k) => row.map((v, i) => v - r.drift[k][i]))]];
+  const res = { random: {}, grouped: {} };
+  for (const order of ["random", "grouped"]) {
+    for (const [name] of methods) res[order][name] = { fp: 0, tp: 0 };
+    for (let s = 1; s <= 100; s += 1) {
+      const r = M.simulateRun(M.makeRng(s), { order });
+      for (const [name, fn] of methods) { const sc = M.scoreRun(r, fn(r)); res[order][name].fp += sc.fp / 100; res[order][name].tp += sc.tp / 100; }
+    }
+  }
+  const bx0 = 60, bh = 300, by0 = 40, ymax = 18;
+  const gw = (W - 90) / methods.length;
+  frame(c2, bx0, by0, W - 90, bh, { ylab: "false calls per run (of 22)" });
+  yTicks(c2, (v) => by0 + bh - (v / ymax) * bh, bx0, [0, 5, 10, 15]);
+  methods.forEach(([name], k) => {
+    ["random", "grouped"].forEach((order, o) => {
+      const v = res[order][name].fp;
+      const x = bx0 + k * gw + 10 + o * (gw / 2 - 8);
+      const col = order === "random" ? T.ink3 : T.extreme;
+      rect(c2, x, by0 + bh - (v / ymax) * bh, gw / 2 - 12, (v / ymax) * bh, col);
+      label(c2, f(v, 1), x + (gw / 2 - 12) / 2, by0 + bh - (v / ymax) * bh - 4, { align: "center", size: 10, mono: true, colour: T.ink1 });
+      label(c2, f(res[order][name].tp, 1), x + (gw / 2 - 12) / 2, by0 + bh - (v / ymax) * bh - 16, { align: "center", size: 9, mono: true, colour: T.ink3 });
+    });
+    label(c2, name, bx0 + (k + 0.5) * gw, by0 + bh + 16, { align: "center", size: 10, colour: T.ink2 });
+  });
+  label(c2, "random order", bx0 + 10, by0 - 22, { colour: T.ink3, weight: "600" });
+  label(c2, "grouped order", bx0 + 110, by0 - 22, { colour: T.extreme, weight: "600" });
+
+  // span: QC RSD against what is left, 40 seeds, live
+  const rowsS = [];
+  for (const bendSd of [0, 0.3]) for (const qcEvery of [5, 10]) for (const span of [0.3, 0.75]) {
+    let rsd = 0, left = 0, fp = 0; const S = 40;
+    for (let s = 1; s <= S; s += 1) {
+      const r = M.simulateRun(M.makeRng(s), { order: "grouped", bendSd, qcEvery });
+      const Yc = M.correctQcLoess(r, span);
+      const sc = M.scoreRun(r, Yc);
+      rsd += M.median(sc.rsd) / S; fp += sc.fp / S;
+      left += M.mean(r.X.map((row, k) => { const d = row.map((v, i) => Yc[k][i] - (v - r.drift[k][i])).filter((_, i) => r.inj[i].kind !== "QC"); const mu = M.mean(d); return Math.sqrt(M.mean(d.map((x) => (x - mu) ** 2))); })) / S;
+    }
+    rowsS.push([bendSd ? "with a bend" : "smooth", `every ${qcEvery}`, String(span), pct(rsd), f(left, 3), f(fp, 2)]);
+  }
+  table("spanRow", ["drift, 40 seeds, grouped order", "a QC", "span", "QC RSD after", "drift left in samples, log2", "false calls of 22"], rowsS);
+}
+</script>
+</body>
+</html>

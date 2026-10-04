@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; NEXT measure and mock** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, NEXT his ten calls on the mock** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -21045,6 +21045,59 @@ differences.
 **Build order** is the lessons': 88 → 89 → 90 → 91. NEXT: measure all four
 (`_lab/proteomics-arc-measure.mjs`) and mock the arc
 (`_lab/proteomics-arc-mock.html`), then his calls on the mock.
+
+### MEASURED AND MOCKED 2026-10-05
+
+`_lab/proteomics-arc-model.js` holds the arithmetic for all four slots (a PSM
+search with one null for wrong targets and decoys, q-values, parsimony; a log2
+matrix with a soft detection limit and five imputers, missForest included as
+tidyproteomics orients it — samples as variables; limma's `fitFDist` and the
+moderated t; an injection sequence with pooled QCs, per-metabolite drift,
+median normalization and QC-LOESS). `_lab/proteomics-arc-measure.mjs` runs it
+over seeds (about 20 s) and writes `proteomics-arc-measure.json` (untracked: it
+carries numbers derived from the lesson's tables). The mock
+`_lab/proteomics-arc-mock.html` imports the same module, so its figures are
+computed on the page.
+
+**The limma arithmetic is limma's:** refitted from 01-4's own abundances, the
+moderated t matches the table's `limma_t_statistic` to 1e-10 (d0 = 3.09, s0 =
+0.33 log2, residual df 20).
+
+- **88 holds.** 5,000 spectra, 60% in the database, 50 seeds: at q ≤ 1% about
+  2,670 accepted, realised FDR 1.0% (0.3–1.8%), the decoy estimate on the
+  truth all the way down the list; the last 10% of the list, nearest the
+  threshold, 3.9% wrong (6.3% at 90% in the database). Parsimony on 60
+  families × 3 isoforms: 89 present proteins → 79 reported groups (8
+  multi-protein), 11 present proteins in no reported group.
+- **89 holds, and corrected one claim I made in chat.** 600 proteins, 11 vs
+  11, 34% missing (the lesson's 35.1%), 5 seeds: kNN bias +1.13 log2 and FDR
+  26% (its false calls are proteins seen in one or two samples, profiled from
+  neighbours found on those values), the forest +0.71 and 5.1%; an absence of 6
+  log2 comes out 1.8 (kNN), 2.6 (forest), 4.1 (low draw), 4.7 (minimum);
+  measured-only leaves 123 proteins untestable and finds half the true
+  differences. The minimum does NOT inflate false calls (0.8 of 491): it adds
+  variance to a protein with scattered holes. **On the lesson's own table:** 64
+  proteins measured in all 11 healthy and missing in ≥ 9 of 11 cancer come out
+  of the forest at median log2FC +0.13, 37 of them HIGHER in cancer, none at
+  |log2FC| ≥ 1, 16 at adj p < 0.05; where all 11 cancer values were imputed
+  their SD is 0.13 log2 against 0.41 for the measured healthy values.
+- **90 holds.** limma's log2FC equals the mean difference exactly. 2,000
+  proteins from limma's own prior (d0 4, s0 0.3), 20 seeds: at 3 vs 3 the
+  ordinary t finds 8.8 of 198 true differences and the moderated 70.3 (FDR
+  2.9%, 4.2%); nulls in the top 50, 5.8 against 1.3; at 11 vs 11, 181.8 and
+  184.7. On the lesson's data an ordinary t on log2 calls 678 at adj p < 0.05,
+  limma 692, the raw-scale Welch table 646.
+- **91 holds, with two additions.** 26 metabolites, 40 + 40, a QC every fifth
+  injection (17 in 97), 100 seeds. In group order, uncorrected 16.1 of 22 null
+  metabolites called, median 15.0, QC-LOESS 0.6 (span 0.3) or 2.4 (0.75), the
+  drift-free floor 0.2. In a random order the median ADDS false calls (1.1
+  against 0.3) — the median of 26 metabolites moves with the real differences
+  near it (two up, two down already; all four up gave 2.2). **Each span wins
+  somewhere:** a smooth drift leaves 0.026 log2 at 0.75 and 0.036 at 0.3; a
+  bent one 0.078 and 0.040; and with a QC every tenth injection span 0.3
+  threads all nine QCs, so the QC RSD reads 0.0% with 0.057 log2 of drift left.
+
+The mock's § 5 asks ten calls. NEXT: his answers, then 88's draft.
 
 ---
 
