@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 — shorter task text</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; }
+  .mrail .w-controls { margin-top: 0; padding-top: 0; border-top: 0; }
+  .mrail { width: 300px; box-sizing: border-box; border: 1px solid var(--grid); padding: var(--sp-2) var(--sp-3); background: var(--surface-1); }
+  canvas { display: block; background: var(--surface); border: 1px solid var(--grid); }
+  table.t { font-size: var(--fs-sm); border-collapse: collapse; margin: 0 0 var(--sp-3); max-width: 1200px; }
+  table.t td, table.t th { padding: 4px 10px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top; }
+  table.t th { color: var(--ink-2); font-weight: 600; }
+  td.n { font-family: var(--font-mono); color: var(--ink-3); text-align: right; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 &middot; shorter task text &middot; mock</h1>
+  <p class="note">Your ask: the Task details run long; make the text more concise, and show part of it visually if that works. Each detail carries
+    three things: <b>what the label is</b>, <b>what sets it</b> (single words, or the pair), and <b>the model</b>. The model is already said by the
+    group head and the canvas chip, and the held-out rows already show each label on four examples, so two of the three can move off the rail.</p>
+
+  <h2>1 &middot; The rail, three ways (Drug error selected)</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">now (after this morning's audit)</div><div class="mrail" id="r0"></div></div>
+    <div class="cand"><div class="sub">C1 · the same three things, shorter</div><div class="mrail" id="r1"></div></div>
+    <div class="cand"><div class="sub">C2 · what sets the label shown in the rows, underlined (recommended)</div><div class="mrail" id="r2"></div></div>
+  </div>
+
+  <h2>2 &middot; C2's rows: the words that set the label, underlined</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">Outcome: the finding, and "no" before it; nothing to mark when no finding is asserted</div><canvas id="cO" data-w="549" data-h="124"></canvas></div>
+    <div class="cand"><div class="sub">Drug error: the drug and the symptom, a pair in every row; "fever" sets 0 in one row and 1 in another</div><canvas id="cD" data-w="549" data-h="124"></canvas></div>
+  </div>
+  <p class="note">The underline says <b>which</b> words; the pair is the point on Drug error, and the rows show it without a sentence: the same
+    symptom under both labels. Influenza host marks nothing (what in a protein sets its host is not known to the model or the page). The detail
+    says what the underline is, once.</p>
+
+  <h2>3 &middot; The full text, now against C1 and C2</h2>
+  <table class="t" id="tbl"></table>
+
+  <h2>4 &middot; Elsewhere: two more trims</h2>
+  <table class="t">
+    <tr><th>where</th><th>now</th><th>proposed</th></tr>
+    <tr><td>subtitle</td><td>A network can be trained on labelled examples from random weights, or a pretrained one adapted by adding a head and training
+      on the same examples. Transfer learning trains the head alone, full fine-tuning every weight, and LoRA a low-rank update added to frozen weights.
+      Training the head alone works only when the pretrained vectors already separate the classes. With enough labelled examples and enough steps,
+      training from scratch comes close to an adapted model; pretraining matters most when either is short.</td>
+      <td>A network can be trained from random weights, or a pretrained one adapted with a new head, on the same labelled examples. Transfer learning
+      trains the head alone, full fine-tuning every weight, and LoRA a low-rank update added to frozen weights. The head alone works only when the
+      pretrained vectors already separate the classes. With enough labels and steps, training from scratch comes close; pretraining matters most when
+      either is short.</td></tr>
+    <tr><td>From scratch's detail</td><td>The same network from random weights: every weight trained.</td><td>The same network, every weight trained.
+      (The head above it says "Random weights".)</td></tr>
+  </table>
+
+  <h2>To answer</h2>
+  <p class="q"><b>The Task details</b>C2 the deciding words underlined in the rows (recommended: the pair is shown on the examples instead of described; the text is
+    about three quarters of now) · C1 the same three things in words (the shortest, about two thirds of now) · keep.</p>
+  <p class="q"><b>The two trims</b>the shorter subtitle · From scratch's detail · both (recommended) · neither.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const seg = (items, on) => `<div class="w-seg" role="group">${items.map((l) => `<button type="button" class="w-seg-btn" aria-pressed="${l === on}">${l}</button>`).join("")}</div>`;
+const head = (t) => `<p class="w-seg-head">${t}</p>`;
+const field = (label, body, detail) => `<div class="w-field"><label><span>${label}</span></label>${body}${detail ? `<p class="w-detail">${detail}</p>` : ""}</div>`;
+const training = field("Training", head("Random weights") + seg(["From scratch"], "") + head("Pretrained weights") + seg(["Transfer", "Full", "LoRA"], "Full"),
+  "Every weight trained, starting from the pretrained ones.");
+const TEXT = {
+  now: {
+    Outcome: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. Decided by single words: a finding, and 'no' before it. A small BERT-style model, pretrained on synthetic clinical notes by masked-word prediction.",
+    "Drug error": "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. Decided by the pair: every drug and every symptom appear under both labels. A small BERT-style model, pretrained on synthetic clinical notes in which every drug was given for a symptom it treats.",
+    "Influenza host": "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. A small BERT-style model, pretrained on HA proteins by masked amino-acid prediction, as ESM-2 is. Sequences from BV-BRC.",
+  },
+  C1: {
+    Outcome: "1 positive when the note asserts an abnormal finding, 0 otherwise; set by single words. A small BERT-style model, pretrained by masked-word prediction.",
+    "Drug error": "1 error when the drug does not treat the symptom, 0 when it does; set by the pair alone. The same model, pretrained only on correct pairs.",
+    "Influenza host": "1 human when the virus was isolated from a person, 0 animal. A small BERT-style model, pretrained by masked amino-acid prediction as ESM-2 is. HA sequences from BV-BRC.",
+  },
+  C2: {
+    Outcome: "1 positive when the note asserts an abnormal finding, 0 otherwise. Underlined: the words that set the label. A small BERT-style model, pretrained by masked-word prediction.",
+    "Drug error": "1 error when the drug does not treat the symptom, 0 when it does. Underlined: the words that set the label. The same model, pretrained only on correct pairs.",
+    "Influenza host": "1 human when the virus was isolated from a person, 0 animal. A small BERT-style model, pretrained by masked amino-acid prediction as ESM-2 is. HA sequences from BV-BRC.",
+  },
+};
+const task = (t) => field("Task", head("Clinical notes model") + seg(["Outcome", "Drug error"], "Drug error") + head("Protein model") + seg(["Influenza host"], ""), t);
+for (const [id, k] of [["r0", "now"], ["r1", "C1"], ["r2", "C2"]]) document.getElementById(id).innerHTML = `<div class="w-controls">${training}${task(TEXT[k]["Drug error"])}</div>`;
+document.getElementById("tbl").innerHTML = `<tr><th>task</th><th>now</th><th>chars</th><th>C1</th><th>chars</th><th>C2</th><th>chars</th></tr>`
+  + Object.keys(TEXT.now).map((k) => `<tr><td>${k}</td>${["now", "C1", "C2"].map((v) => `<td>${TEXT[v][k]}</td><td class="n">${TEXT[v][k].length}</td>`).join("")}</tr>`).join("");
+
+/* C2's rows, as drawNotes draws them, with the setting words underlined */
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s2: css("--surface-2"), grid: css("--grid"), font: css("--font"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+function rows(id, LABELS, ex, preds) {
+  const cv = document.getElementById(id), w = +cv.dataset.w, h = +cv.dataset.h, d = devicePixelRatio || 1;
+  cv.width = w * d; cv.height = h * d; cv.style.width = w + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.textBaseline = "middle";
+  ctx.font = `600 ${C.xs} ${C.font}`; const name = "Clinical notes model", cw = ctx.measureText(name).width;
+  ctx.fillStyle = C.s2; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.roundRect(12.5, 5.5, cw + 14, 17, 8.5); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C.ink1; ctx.fillText(name, 19, 14);
+  ctx.font = `600 ${C.sm} ${C.font}`; ctx.fillText("Four of the 1,000 held-out notes; training uses 1,024 others", 12 + cw + 24, 14);
+  ctx.font = `${C.xs} ${C.font}`; ctx.fillStyle = C.ink3; ctx.textAlign = "right"; ctx.fillText("prediction", w - 12, 14); ctx.textAlign = "left";
+  ex.forEach(([words, mark, y], i) => {
+    const yy = 38 + i * 22;
+    ctx.strokeStyle = C.ink3; ctx.lineWidth = 1; ctx.strokeRect(12.5, yy - 9.5, 96, 19);
+    ctx.font = `${C.xs} ${C.font}`; ctx.fillStyle = C.ink1; ctx.textAlign = "center"; ctx.fillText(`${y} ${LABELS[y]}`, 60, yy); ctx.textAlign = "left";
+    ctx.font = `${C.sm} ${C.font}`; let x = 118;
+    words.forEach((wd, j) => {
+      const ww = ctx.measureText(wd).width; ctx.fillStyle = C.ink1; ctx.fillText(wd, x, yy);
+      if (mark.includes(j)) { ctx.strokeStyle = C.ink1; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, yy + 8); ctx.lineTo(x + ww + (mark.includes(j + 1) ? ctx.measureText(" ").width : 0), yy + 8); ctx.stroke(); }
+      x += ww + ctx.measureText(" ").width;
+    });
+    const p = preds[i], call = p > 0.5 ? 1 : 0, right = call === y;
+    ctx.font = `600 ${C.sm} ${C.font}`; ctx.textAlign = "right"; ctx.fillStyle = C.ink1; ctx.fillText(right ? "✓" : "✗", w - 12, yy);
+    ctx.font = `${C.xs} ${C.font}`; ctx.fillStyle = right ? C.ink1 : C.ink2; ctx.fillText(`${LABELS[call]} ${(call ? p : 1 - p).toFixed(2)}`, w - 28, yy); ctx.textAlign = "left";
+  });
+}
+const T = (await import("../adapting/table.js")).TABLE;
+const split = (t) => t.split(" ");
+const markOutcome = (ws) => { const m = []; ws.forEach((x, j) => { if (["deteriorated", "chest", "pain", "fever", "infection", "breathlessness", "nausea", "no"].includes(x)) m.push(j); }); return m; };
+const markDrug = (ws) => { const i = ws.indexOf("with"), f = ws.indexOf("for"); return [i + 1, ...ws.slice(f + 1).map((_, k) => f + 1 + k)]; };
+rows("cO", ["negative", "positive"], T.examples.outcome.map(([t, y]) => [split(t), markOutcome(split(t)), y]), T.runs.outcome.full.pred.at(-1));
+rows("cD", ["no error", "error"], T.examples["drug-error"].map(([t, y]) => [split(t), markDrug(split(t)), y]), T.runs["drug-error"].full.pred.at(-1));
+</script>
+</body>
+</html>
