@@ -11525,11 +11525,177 @@
       "tx": "38095e1d"
     },
     {
-      "$note": "explainability · DRAFT placeholder until the design is agreed",
+      "$note": "explainability · Attention, Drug error, Transfer, before a press: the rows, the matrix, no bars",
       "slug": "explainability",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "276be7d0",
+      "tx": "f4214544"
+    },
+    {
+      "$note": "explainability · Attention finished: the [CLS] row of block 2, mean of heads, as bars",
+      "slug": "explainability",
+      "state": "?theme=light&shown=1",
+      "px": "d9b25bda",
+      "tx": "a65ba832"
+    },
+    {
+      "$note": "explainability · Attention, Full, block 1 head 3: one head's matrix",
+      "slug": "explainability",
+      "state": "?theme=light&training=full&block=1&head=3&shown=1",
+      "px": "c7db2662",
+      "tx": "79d469f6"
+    },
+    {
+      "$note": "explainability · Integrated gradients, Transfer, 50 steps: [CLS] past the scale, the gap 0.007",
+      "slug": "explainability",
+      "state": "?theme=light&page=integrated-gradients&shown=1",
+      "px": "1162f021",
+      "tx": "292d6379"
+    },
+    {
+      "$note": "explainability · Integrated gradients, Full, positive only scaled 0-1",
+      "slug": "explainability",
+      "state": "?theme=light&page=integrated-gradients&training=full&show=positive&shown=1",
+      "px": "a52989f4",
+      "tx": "83179f73"
+    },
+    {
+      "$note": "explainability · Integrated gradients, Outcome, Full, 5 steps, example 4: the larger gap",
+      "slug": "explainability",
+      "state": "?theme=light&page=integrated-gradients&task=outcome&training=full&steps=5&example=4&shown=1",
+      "px": "521fc03a",
+      "tx": "347e6fe1"
+    },
+    {
+      "$note": "explainability · Occlusion, Drug error, Transfer, a word at a time",
+      "slug": "explainability",
+      "state": "?theme=light&page=occlusion&shown=1",
+      "px": "429ffa93",
+      "tx": "8a83202f"
+    },
+    {
+      "$note": "explainability · Occlusion, Outcome, example 2, window 2",
+      "slug": "explainability",
+      "state": "?theme=light&page=occlusion&task=outcome&example=2&words=2&shown=1",
+      "px": "beb03498",
+      "tx": "4cf5cef8"
+    },
+    {
+      "$note": "explainability · Attention on a protein: the pooled matrix, the [CLS] row over 566 residues",
+      "slug": "explainability",
+      "state": "?theme=light&task=influenza-host&shown=1",
+      "px": "8e1e32a7",
+      "tx": "6bbe3a26"
+    },
+    {
+      "$note": "explainability · Integrated gradients on a protein, Full",
+      "slug": "explainability",
+      "state": "?theme=light&page=integrated-gradients&task=influenza-host&training=full&shown=1",
+      "px": "0340f42f",
+      "tx": "21f2e743"
+    },
+    {
+      "$note": "explainability · Occlusion on a protein, window 8",
+      "slug": "explainability",
+      "state": "?theme=light&page=occlusion&task=influenza-host&window=8&shown=1",
+      "px": "1d34f41d",
+      "tx": "954db639"
+    },
+    {
+      "$note": "explainability · Occlusion on a protein before a press",
+      "slug": "explainability",
+      "state": "?theme=light&page=occlusion&task=influenza-host&shown=0",
+      "px": "3cd4c323",
+      "tx": "eb82a139"
+    },
+    {
+      "$note": "explainability · DRIVEN - Attention: the first key's weight in flight from the [CLS] row",
+      "slug": "explainability",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "989551b2",
+      "tx": "f4214544"
+    },
+    {
+      "$note": "explainability · DRIVEN - Integrated gradients: Play, part way along the path, the bars growing",
+      "slug": "explainability",
+      "state": "?theme=light&page=integrated-gradients",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "ff15d05f",
+      "tx": "1b747fce"
+    },
+    {
+      "$note": "explainability · DRIVEN - Occlusion: the window mid-slide between two windows",
+      "slug": "explainability",
+      "state": "?theme=light&page=occlusion",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "d6a5383f",
+      "tx": "4314b844"
+    },
+    {
+      "$note": "explainability · DRIVEN - Occlusion on a protein: Play, part way along",
+      "slug": "explainability",
+      "state": "?theme=light&page=occlusion&task=influenza-host",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "7358091b",
+      "tx": "b761951c"
+    },
+    {
+      "$note": "explainability · HIT - a click on the third held-out row chooses example 3, before any press",
+      "slug": "explainability",
+      "state": "?theme=light&page=integrated-gradients",
+      "drive": {
+        "hit": [
+          200,
+          76
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "3cfcf1a2",
+      "tx": "eeea1f65"
+    },
+    {
+      "$note": "explainability · INTERRUPTED - an Attention press cut by a switch to Occlusion: the press finishes, Occlusion untouched",
+      "slug": "explainability",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 4
+          }
+        ],
+        "set": {
+          "page": "occlusion"
+        },
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "661e93c2",
+      "tx": "a51ad5b6"
     }
   ]
 }

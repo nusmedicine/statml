@@ -443,7 +443,7 @@ const progress = (pg) => (pg.t < 1 ? pg.n - 1 + pg.t : pg.n);
 
 defineWidget({
   slug: "explainability",
-  status: "draft",
+  status: "shipped",
   title: S.title,
   subtitle: S.subtitle,
   layout: "side",
