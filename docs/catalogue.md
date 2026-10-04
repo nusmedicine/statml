@@ -23385,6 +23385,16 @@ the LoRA page 1,198 px in the 900 frame under every task; a blink in the
 squeezed position tile seen mid-run (nothing past the dashed line). Copy audit of
 the new strings: no hits.
 
+**2026-10-04:** each Task detail names its model ("a small BERT-style model,
+pretrained … by hiding words / amino acids as ESM-2 is"; his question whether
+the models were BERT and ESM-2 — both are ours, and ESM-2's rotary positions
+are not modelled). **Copy audit** applied rows 1–3: the notes called
+**generated** (they sit beside real proteins now); "a drug with **a symptom it
+treats**"; the dashed line "**end of the longest protein**". **RETITLED** on his
+word: **Deep Learning - Language: Training and Adapting** (he weighed
+"Pretraining and Adapting"; pretraining is not shown here, 84 shows it). Slug
+`adapting` kept.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

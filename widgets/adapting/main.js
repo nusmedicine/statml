@@ -1,5 +1,5 @@
 /* ============================================================================
-   Widget 85 · Language: Adapting Pre-trained Models (`adapting`) — PHM5005
+   Widget 85 · Language: Training and Adapting (`adapting`; "Adapting Pre-trained Models" until 2026-10-04, his retitle) — PHM5005
    08-1 cells 13–19, 08-2 cells 19–65. DRAFT, rebuilt 2026-10-01 to his replan
    (catalogue § Slot 85, REPLANNED; mock `_lab/adapting-replan-mock.html`).
 
@@ -101,7 +101,7 @@ const TOTAL = (task, way) => { const t = MOD(task).trains; return t.backbone + 9
 /* ================================================================== copy */
 
 const S = {
-  title: "Deep Learning - Language: Adapting Pre-trained Models",
+  title: "Deep Learning - Language: Training and Adapting",
   subtitle: "A pretrained model is adapted to a task by adding a head and training on labelled examples. Transfer learning trains the "
     + "head alone, full fine-tuning every weight, and LoRA a low-rank update added to frozen weights; training from scratch starts "
     + "the same network from random weights. Training the head alone works only when the pretrained vectors already separate the classes.",
