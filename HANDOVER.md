@@ -41,7 +41,14 @@ residues). Also in this session: 85's Outcome labels became **normal · abnormal
 UNLISTED. THE LANGUAGE ARC IS COMPLETE (83 · 84 · 85 · 87).** NEXT: his call.
 Suggested notebook edits told to him: 08-2 cell 19's label as "0 =
 stable/improving, 1 = deteriorating"; 08-2 cell 72 could pass a [CLS]/[SEP]-kept
-baseline. Dev server this session :8011 (another chat held :8010).
+baseline. Dev server this session :8011 (another chat held :8010). Pushed as
+39cf9fc..cfeb414 (87's eight commits and 85's da39a27), deploy run 37228332706
+green. Untracked and safe to leave: as below, plus `_lab/explainability-mock-data.json`
+is committed and the HA CSV and `_lab/protein-base.pt` stay outside the repository.
+Older leftovers still open, all his call: the `wgcna` branch (46's draft), three
+`claude/*` branches from late August / early September not checked against main,
+63 `pretrained` KIV, Harmony for 80 parked, 75's kernel blink. **SESSION CLOSED
+2026-10-05.**
 
 **2026-10-01 to 10-04: 85 `adapting` SHIPPED AND PUSHED (8160db8, 19 states, deploy green) as
 "Deep Learning - Language: Training and Adapting" — the record is the
