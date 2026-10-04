@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; NEXT measure and mock** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -20970,6 +20970,81 @@ mechanism, and the gene-symbol deduplication is data handling.
 So the arc is **five widgets, 77 → 81**, and 82 `cell-clusters` is a page of
 81. NEXT: 77 `count-normalization`, measure its own failing case (the median
 of ratios past half the genes changing) and mock before building.
+
+---
+
+## The proteomics and metabolomics arc — PROPOSED AND PICKED 2026-10-05, from PHM5003 week 9
+
+**Kenneth's ask, 2026-10-05:** *plan for next set of widgets to support PHM5003
+Proteomics and Metabolomics; discuss what widgets are suitable.* Six slots
+were proposed in chat; **he picked four the same day — 88, 89, 90, 91, built
+in the lessons' order, the drift simulated.**
+
+**The nine notebooks were read in full** from
+`../jupyterbook/phm5003/notebook/09 - Proteomics & Metabolomics Analysis/`:
+`01-1` Proteomics introduction (8 cells: bottom-up, TMT/LFQ, DDA/DIA, PSM,
+target–decoy FDR, protein inference), `01-2` downloading from PX (24),
+`01-3` preprocessing in `tidyproteomics` (51: cRAP contaminants, plots,
+`normalize()` choosing among median/linear/limma/randomforest, missForest
+imputation of 10,449 values, heatmap, PCA), `01-4` differential expression
+(19: `stats::t.test` against `limma`, the log2FC scatter, the volcano), `01-5`
+GSEA on GO from UniProt (37); `02-1` metabolomics introduction (7: LC-MS,
+QC and pooled samples, peak detection to identification), `02-2` MetaboLights
+MTBLS6038 into `tidymass` (21), `02-3` preprocessing (21: QC report, median
+normalization because the data has no QCs, kNN imputation shown but not run,
+heatmap, PCA), `02-4` differential analysis (18: hyperplasia vs cancer, 52 vs
+52, median fold change, `wilcox.test`, BH, the volcano). The folder carries
+the lessons' products: `Results_differential_ttest.tsv` and
+`Results_differential_limma.tsv` (1,337 proteins, 11 vs 11, every abundance
+included) and the MTBLS6038 metabolite table (26 organic acids).
+
+### What is already covered
+
+| existing widget | what it already does for this week |
+|---|---|
+| 39 `normalization` | median and quantile normalization on intensities, log and Box–Cox (01-3 cell 31, 02-3 cell 10) |
+| 25 `missing-data` | MCAR, MAR and MNAR as mechanisms, and why conditional imputation works — without an imputer |
+| 6 `multiple-testing` | BH, which both differential lessons apply |
+| 42 `hierarchical-clustering`, 19 `pca` | the heatmap and PCA after preprocessing (01-3 cells 43–48, 02-3 cells 15–18) |
+| 43 `enrichment` | GSEA (01-5) |
+| 78 `deseq2` | empirical Bayes shrinkage of a per-gene dispersion to a trend — 90 is its continuous-data cousin, and differs in that the shrinkage changes the test itself |
+
+### The slots
+
+| # | slug (provisional) | host | misconception | state |
+|---|---|---|---|---|
+| 88 | `target-decoy` | 01-1 cell 2 | a match above the threshold is a correct identification, and 1% FDR means each is 99% certain — the decoys estimate how many wrong matches lie above the threshold, a rate for the list; page 2, peptides to proteins: a shared peptide names no one protein, and the protein list is the smallest set that explains the peptides (groups, subsumable proteins) | **picked** |
+| 89 | `imputation` | 01-3 cells 27–30, 41–42; 02-3 cells 12–14 | imputation recovers the missing values — below a detection limit, kNN and random forest fill from the observed range and shrink a real absence; a minimum gives no variance and inflates t | **picked** |
+| 90 | `limma` | 01-4 cells 0, 3–9 | limma shrinks the fold change (cell 9 says so) — it shrinks the variance toward a prior fitted across all proteins | **picked** |
+| 91 | `qc-drift` | 02-1 cells 0, 2; 02-3 cell 10 | per-sample normalization corrects instrument drift — each metabolite drifts its own way along the injection order, and only a curve through the pooled QCs follows it; run in group order, drift becomes a difference | **picked, simulated** (the lesson's data has no QCs) |
+| 92 | `rank-test` | 02-4 cells 0, 11–12 | the Wilcoxon test compares medians | **not picked**; a page of 5 `permutation-test` if ever |
+| 93 | `ms-features` | 02-1 cell 3 | an m/z match is an identification — MTBLS6038 holds three isomer pairs (glutaric/ethylmalonic C5H8O4 at RT 2.11/3.39, fumaric/maleic C4H4O4 at 2.2/1.78, adipic/3-methylglutaric C6H10O4 at 3.48/3.68), and ethylmalonic acid is 02-4's top hit | **not picked** |
+
+Left out on purpose: contaminant filtering (string matching), the Venn and
+Euler plots (a page of 89 if anything: detected in one group only), and
+`normalize()`'s automatic choice by lowest CV (cell 32 chose randomforest) —
+unmeasured whether lowest CV favours a method that also removes real
+differences.
+
+### Notebook findings, told to him 2026-10-05
+
+1. **01-4 cell 9** reads limma's smaller log2FC as shrinkage. Measured on the
+   lesson's TSVs (scratch `limma_vs_t.py`): limma's `log2_foldchange` is mean
+   log2(cancer) − mean log2(healthy) to 2e-14; the t-test table's `p_value` is
+   a Welch t-test on the **unlogged** abundances (to 1e-14), and its fold
+   change is neither the ratio of means nor of medians (unresolved). At
+   adj_p < 0.05: t-test 646, limma 692, both 627.
+2. **01-3 cell 41**'s MAR example (low abundance missing for sensitivity) is
+   the detection-limit mechanism, usually MNAR; arguable at the protein level.
+3. **02-4 cell 0** says signed-rank; cell 12 runs `wilcox.test(paired =
+   FALSE)`, the rank-sum test.
+4. **02-4 cell 14** `fc_up_cutoff = 1, fc_down_cutoff = 1` may be no
+   fold-change filter on tidymass's ratio scale — tidymass's convention not
+   checked.
+
+**Build order** is the lessons': 88 → 89 → 90 → 91. NEXT: measure all four
+(`_lab/proteomics-arc-measure.mjs`) and mock the arc
+(`_lab/proteomics-arc-mock.html`), then his calls on the mock.
 
 ---
 
