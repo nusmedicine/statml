@@ -23460,6 +23460,28 @@ page 1,197.
 `group` + `groupHeads` as Task's; the lone button **From scratch** (the chart's
 and tiles' name). No core change; switch probe clean at `h=1400`; LoRA page 1,197.
 
+**CONCISE COPY, 2026-10-04** (his "anything to make the text more concise? …
+not sure if there is a visual way"; mock `_lab/adapting-concise-mock.html`): the
+underline of "the words that set the label" in the held-out rows (C2) **REJECTED
+on his question** "how do we know it's decided by one or pair of words … this
+needs looking at the attention scores?" — what sets a LABEL is known by
+construction (the generator's rule); what the MODEL uses is not, and attention
+weights would not say it (attribution would: 87's point); an underline in a row of
+predictions reads as the model's reason. So the details state the labels and the
+data only (C1, picked; "decided by" struck): Outcome "1 positive when the note
+asserts an abnormal finding, 0 negative otherwise. A small BERT-style model,
+pretrained on synthetic notes by masked-word prediction." · Drug error "1 error
+when the drug does not treat the symptom, 0 no error when it does; every drug and
+every symptom appear under both labels. The same model, pretrained only on notes
+with correct pairs." · Influenza host "1 human when the virus was isolated from a
+person, 0 animal. A small BERT-style model, pretrained by masked amino-acid
+prediction as ESM-2 is. HA sequences from BV-BRC." ("synthetic" restored after
+C1 dropped it.) Also picked: the subtitle shortened ("A network can be trained
+from random weights, or a pretrained one adapted with a new head, on the same
+labelled examples. … With enough labels and steps, training from scratch comes
+close; pretraining matters most when either is short.") and From scratch's detail
+"The same network, every weight trained." LoRA page 1,197.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
