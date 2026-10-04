@@ -555,7 +555,7 @@ function settle(anim, params) {
 
 defineWidget({
   slug: "adapting",
-  status: "draft",
+  status: "shipped",
   title: S.title,
   subtitle: S.subtitle,
   layout: "side",

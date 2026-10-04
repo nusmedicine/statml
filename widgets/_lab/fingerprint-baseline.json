@@ -11339,6 +11339,190 @@
         "frames": 10,
         "dt": 32
       }
+    },
+    {
+      "$note": "adapting · From scratch, Drug error, before Train: the cards (self-supervised none), the rows waiting, the random start",
+      "slug": "adapting",
+      "state": "?theme=light&shown=0",
+      "px": "0d2ca38f",
+      "tx": "1212db9c"
+    },
+    {
+      "$note": "adapting · From scratch, Drug error, trained: 58%, every weight changed",
+      "slug": "adapting",
+      "state": "?theme=light&shown=1",
+      "px": "37d3217a",
+      "tx": "ef576348"
+    },
+    {
+      "$note": "adapting · Transfer, Drug error, trained: the head alone, near chance, every row the same answer",
+      "slug": "adapting",
+      "state": "?theme=light&page=transfer&shown=1",
+      "px": "d3ace36b",
+      "tx": "e69712bb"
+    },
+    {
+      "$note": "adapting · Full, Drug error, trained: 84%, all four rows right",
+      "slug": "adapting",
+      "state": "?theme=light&page=full&shown=1",
+      "px": "4991fc5a",
+      "tx": "8ee40264"
+    },
+    {
+      "$note": "adapting · LoRA, Drug error, before Train: W' = W, the update zero",
+      "slug": "adapting",
+      "state": "?theme=light&page=lora&shown=0",
+      "px": "fb17f7c7",
+      "tx": "573aec8b"
+    },
+    {
+      "$note": "adapting · LoRA, Drug error, trained: the detail W + 4 A B^T",
+      "slug": "adapting",
+      "state": "?theme=light&page=lora&shown=1",
+      "px": "07aefecb",
+      "tx": "0f169ce8"
+    },
+    {
+      "$note": "adapting · Transfer, Outcome, trained: the head alone works (96%)",
+      "slug": "adapting",
+      "state": "?theme=light&page=transfer&task=outcome&shown=1",
+      "px": "0ce04cad",
+      "tx": "53937ca2"
+    },
+    {
+      "$note": "adapting · From scratch, Outcome, trained: 100%",
+      "slug": "adapting",
+      "state": "?theme=light&task=outcome&shown=1",
+      "px": "805abff2",
+      "tx": "d8fddc92"
+    },
+    {
+      "$note": "adapting · From scratch, Influenza host, before Train: proteins on a line, 600 positions squeezed",
+      "slug": "adapting",
+      "state": "?theme=light&task=influenza-host&shown=0",
+      "px": "7007c4ec",
+      "tx": "12d83e65"
+    },
+    {
+      "$note": "adapting · Full, Influenza host, trained: the dashed end of the longest protein",
+      "slug": "adapting",
+      "state": "?theme=light&page=full&task=influenza-host&shown=1",
+      "px": "87f4ecec",
+      "tx": "eb366427"
+    },
+    {
+      "$note": "adapting · Transfer, Influenza host, trained: 97%, the backbone frozen",
+      "slug": "adapting",
+      "state": "?theme=light&page=transfer&task=influenza-host&shown=1",
+      "px": "317d173f",
+      "tx": "18f09977"
+    },
+    {
+      "$note": "adapting · LoRA, Influenza host, trained: the protein model's W_Q",
+      "slug": "adapting",
+      "state": "?theme=light&page=lora&task=influenza-host&shown=1",
+      "px": "afbdafea",
+      "tx": "6679b77b"
+    },
+    {
+      "$note": "adapting · DRIVEN - From scratch mid-run, between blinks",
+      "slug": "adapting",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "df8d98bd",
+      "tx": "7e2571dd"
+    },
+    {
+      "$note": "adapting · DRIVEN - From scratch in the first blink (steps 0-50)",
+      "slug": "adapting",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 26,
+        "dt": 32
+      },
+      "px": "57b7a169",
+      "tx": "d44523d6"
+    },
+    {
+      "$note": "adapting · DRIVEN - Full in the first blink",
+      "slug": "adapting",
+      "state": "?theme=light&page=full",
+      "drive": {
+        "click": "step",
+        "frames": 26,
+        "dt": 32
+      },
+      "px": "85534803",
+      "tx": "fcb645ea"
+    },
+    {
+      "$note": "adapting · DRIVEN - LoRA in the second blink: the map and the detail lit together",
+      "slug": "adapting",
+      "state": "?theme=light&page=lora",
+      "drive": {
+        "click": "step",
+        "frames": 50,
+        "dt": 32
+      },
+      "px": "2111a99a",
+      "tx": "a14a98ef"
+    },
+    {
+      "$note": "adapting · DRIVEN - Full, Influenza host, in the first blink: the squeezed position tile lit",
+      "slug": "adapting",
+      "state": "?theme=light&page=full&task=influenza-host",
+      "drive": {
+        "click": "step",
+        "frames": 26,
+        "dt": 32
+      },
+      "px": "aaee32b4",
+      "tx": "b6fe7110"
+    },
+    {
+      "$note": "adapting · INTERRUPTED - From scratch's press cut by a switch to Full: the press finishes on its own page, Full untrained",
+      "slug": "adapting",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "set": {
+          "page": "full"
+        },
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "b827acb5",
+      "tx": "a4885723"
+    },
+    {
+      "$note": "adapting · INTERRUPTED - a press cut by a switch to Outcome: a data change resets",
+      "slug": "adapting",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "set": {
+          "task": "outcome"
+        },
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "b3da0151",
+      "tx": "38095e1d"
     }
   ]
 }
