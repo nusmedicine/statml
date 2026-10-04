@@ -48,7 +48,9 @@ is committed and the HA CSV and `_lab/protein-base.pt` stay outside the reposito
 Older leftovers still open, all his call: the `wgcna` branch (46's draft), three
 `claude/*` branches from late August / early September not checked against main,
 63 `pretrained` KIV, Harmony for 80 parked, 75's kernel blink. **SESSION CLOSED
-2026-10-05.**
+2026-10-05**, then reopened the same day for **round 2**: occlusion occludes with
+**[MASK]** (his updated 08-3; notes too) and gains **Show Signed · Absolute**
+(`values=absolute`); 19 states, 19/19 MATCH — catalogue § Slot 87, *Round 2*.
 
 **2026-10-01 to 10-04: 85 `adapting` SHIPPED AND PUSHED (8160db8, 19 states, deploy green) as
 "Deep Learning - Language: Training and Adapting" — the record is the

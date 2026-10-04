@@ -23651,6 +23651,17 @@ click on the third row) and one interrupted (an Attention press cut by a switch
 to Occlusion) — three identical runs at DPR 1.25 visible, then 18/18 MATCH.
 The language arc's planned widgets are COMPLETE (83 · 84 · 85 · 87; 86 cut into 85).
 
+**Round 2, 2026-10-05 (after the ship):** his "for occlusion (HA protein), we should
+use <MASK> to match the updated notebook ... then have an option for signed and
+absolute values". Occlusion now replaces a window with **[MASK]** on both data
+(his pick: one rule on the page; both models were pretrained with [MASK], id 3;
+[PAD] against [MASK] maps had correlated 0.66 on proteins), k and stride unchanged;
+a **Show Signed · Absolute** control on the Occlusion page, Signed first (link
+`values=absolute`; Absolute is the lesson's np.abs). The table regenerated: only
+the occlusion arrays changed (every other field identical in all 48 rows). Seven
+occlusion states moved (px only) and one Absolute state added: 19 states, three
+identical runs, 19/19 MATCH.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
