@@ -84,11 +84,11 @@ const UNIT = (task, n) => (PROTEIN(task) ? (n === 1 ? "residue" : "residues") : 
 
 const S = {
   title: "Deep Learning - Language: Explainability",
-  /* the copy audit of 2026-10-05, his S2: the attribution methods first, attention as the contrast */
-  subtitle: "An attribution scores each token by how much it changed a model's prediction. Integrated gradients adds up gradients "
-    + "along a path from a baseline to the input; occlusion replaces a window of the input and measures the change. Attention weights "
-    + "measure how much one token's query matches another's key, a different quantity. Each is a statement about the model it is run "
-    + "on: two models can score the same input differently.",
+  /* his T1 (2026-10-05, after S2): attention first, the natural reading, then why it can mislead (measured: attention
+     against |IG| 0.15–0.52), then the attribution scores; no line on models scoring differently */
+  subtitle: "Attention weights show how much one token's query matches each key, but a large weight need not mean that token changed "
+    + "the prediction. Attribution scores measure that change directly: integrated gradients adds up gradients along a path from a "
+    + "baseline to the input, and occlusion replaces a window of the input and measures the change.",
   pageLabel: "Method", trainingLabel: "Training", taskLabel: "Task", exampleLabel: "Example",
   blockLabel: "Block", blockDetail: "Block 1's input is the token and position vectors; block 2's is block 1's output.",
   headLabel: "Head", headDetail: "One head's weights, or the mean of the four heads'.",

@@ -1272,7 +1272,7 @@
     {
       "slug": "explainability",
       "title": "Deep Learning - Language: Explainability",
-      "blurb": "Attention weights, integrated gradients and occlusion: three ways to score which tokens a prediction depended on.",
+      "blurb": "Attention weights, then integrated gradients and occlusion: which tokens a prediction depended on.",
       "course": "PHM5005",
       "topics": [
         "explainability",
