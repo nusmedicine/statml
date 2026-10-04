@@ -48,6 +48,7 @@ const SCRIPTS = [
   "widgets/_lab/attention-verify.mjs",          // block 1 of the trained tiny BERT against torch, and the claims widget 83 prints
   "widgets/_lab/transformer-verify.mjs",        // the three trained transformers against torch, and the claims widget 84 prints
   "widgets/_lab/adapting-verify.mjs",         // widget 85's table against 84's model, its counts and its captions' claims
+  "widgets/_lab/explainability-verify.mjs",   // widget 87's table against 85's models and rows, IG's completeness, attention rows, occlusion's windows
   "widgets/_lab/cell-qc-verify.mjs",            // the droplet stage against the lesson's own 40,564 cells, the filter, the map and the claims widget 79 draws
   "widgets/_lab/augmentation-verify.mjs",       // the engine against MONAI 1.6.0, the smear's claims and the stage widget 62 draws
   "widgets/_lab/loss-functions-verify.mjs",     // the three losses and the stage widget 54 draws

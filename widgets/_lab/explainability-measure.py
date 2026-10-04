@@ -39,6 +39,7 @@ import torch
 here = Path(__file__).parent
 argv = sys.argv[1:]
 parts = [a for a in argv if a in ("notes", "baseline", "words", "proteins", "export", "inner")] or ["notes", "baseline", "proteins"]
+if "lib" in argv: parts = []   # imported by `explainability-table.py` for its functions: run nothing
 csv_path = next(a for a in argv if a.endswith(".csv"))
 sys.argv = [sys.argv[0], csv_path]
 
@@ -363,4 +364,4 @@ if "export" in parts:
     (here / "explainability-mock-data.json").write_text(json.dumps(MOCK, separators=(",", ":")), encoding="utf-8")
     log(f"  wrote explainability-mock-data.json ({(here / 'explainability-mock-data.json').stat().st_size:,} bytes)")
 
-log(f"done ({time.time()-T0:.0f}s)")
+if parts: log(f"done ({time.time()-T0:.0f}s)")

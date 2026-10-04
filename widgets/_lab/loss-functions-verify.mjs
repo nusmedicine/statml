@@ -797,9 +797,12 @@ const BCE = M.computeFor({
     others.filter(([, s]) => /^\s+cells: \{/m.test(s)).map(([n]) => n).join());
   check("nor `cellsFrom`",
     !others.some(([, s]) => /cellsFrom/.test(s)));
-  check("and no other option anywhere declares a `qual`, so no segmented row takes two lines",
-    others.filter(([, s]) => /\bqual:/.test(s)).map(([n]) => n).join() === "",
-    others.filter(([, s]) => /\bqual:/.test(s)).map(([n]) => n).join());
+  /* widget 87 opts in on purpose (2026-10-04): "Integrated gradients" is wider than a third of the rail, so its
+     Method row takes two lines. Any OTHER opt-in is still a rail that moved. */
+  const QUAL_OK = new Set(["explainability/main.js"]);
+  check("and no other option declares a `qual` (87's Method row excepted), so no other segmented row takes two lines",
+    others.filter(([n, s]) => /\bqual:/.test(s) && !QUAL_OK.has(n)).map(([n]) => n).join() === "",
+    others.filter(([n, s]) => /\bqual:/.test(s) && !QUAL_OK.has(n)).map(([n]) => n).join());
 
   /* the core renderers themselves: the single field is untouched, the grid is
      the same one parameter, and both additions are gated on a declaration */

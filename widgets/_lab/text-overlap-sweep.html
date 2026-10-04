@@ -45,6 +45,15 @@ const STATES = {
     "?page=weights&sentence=wound&attention_mask=off&scores=unscaled&shown=10", "?page=weights&sentence=home&head=1&shown=16",
     "?page=output&sentence=wound&query=3&shown=8", "?page=output&sentence=home&query=10&shown=10",
   ],
+  /* widget 87's draft (2026-10-04): every page under every task and way, finished, plus each page's settings */
+  "explainability": [
+    ...["attention", "integrated-gradients", "occlusion"].flatMap((pg) => ["outcome", "drug-error", "influenza-host"].flatMap((t) =>
+      ["scratch", "transfer", "full", "lora"].map((tr) => `?page=${pg}&task=${t}&training=${tr}&shown=1`))),
+    ...["1", "2", "3", "4"].map((e) => `?page=integrated-gradients&example=${e}&show=positive&steps=5&shown=1`),
+    ...["1", "2", "3", "4"].map((e) => `?page=occlusion&example=${e}&words=2&shown=1`),
+    ...["8", "12"].map((k) => `?page=occlusion&task=influenza-host&window=${k}&shown=1`),
+    "?page=attention&block=1&head=3&shown=1", "?page=attention&task=outcome&example=2&shown=0",
+  ],
   /* widget 85's draft with the proteins (2026-10-03): every page under every task, before and after Train */
   "adapting": ["scratch", "transfer", "full", "lora"].flatMap((pg) => ["outcome", "drug-error", "influenza-host"].flatMap((t) =>
     [`?page=${pg}&task=${t}&shown=0`, `?page=${pg}&task=${t}&shown=1`])),

@@ -1268,6 +1268,24 @@
       ],
       "arc": 85,
       "status": "shipped"
+    },
+    {
+      "slug": "explainability",
+      "title": "Deep Learning - Language: Explainability",
+      "blurb": "Attention weights, integrated gradients and occlusion on the same prediction, and why they differ.",
+      "course": "PHM5005",
+      "topics": [
+        "explainability",
+        "attribution",
+        "integrated gradients",
+        "occlusion",
+        "attention",
+        "protein sequences",
+        "language",
+        "deep learning"
+      ],
+      "arc": 87,
+      "status": "draft"
     }
   ]
 }
