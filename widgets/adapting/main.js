@@ -98,7 +98,7 @@ const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label,
 const DATA_NAME = { notes: "Clinical notes", proteins: "HA proteins" };
 const TASKS = [
   { value: "outcome", label: "Outcome", group: DATA_NAME.notes,
-    detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise.",
+    detail: "1 abnormal when the note asserts an abnormal finding, 0 normal otherwise.",
     scratch: "Synthetic notes.", model: "A small BERT-style model, pretrained on synthetic notes by masked-word prediction." },
   { value: "drug-error", label: "Drug error", group: DATA_NAME.notes,
     detail: "1 error when the drug does not treat the symptom, 0 no error when it does; every drug and every symptom appear under both labels.",
@@ -109,7 +109,9 @@ const TASKS = [
 ];
 const taskOptions = (values) => TASKS.map(({ value, label, group, detail, scratch, model }) =>
   ({ value, label, group, detail: [detail, values.page === "scratch" ? scratch : model].filter(Boolean).join(" ") }));
-const LABELS = { outcome: ["negative", "positive"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
+/* OUTCOME'S WORDS (2026-10-05, his pick after "positive = positive outcome or yes for illness?"): the lesson's
+   clinical_outcome.csv has 1 = deteriorating, 0 = stable, so "positive" read as a good outcome; normal / abnormal says it */
+const LABELS = { outcome: ["normal", "abnormal"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
 /** the task's model: its shapes, counts, W_Q, starting weights and the positions a sequence reaches */
 const MOD = (task) => TABLE.models[TABLE.model[task]];
 const PROTEIN = (task) => TABLE.model[task] === "proteins";
