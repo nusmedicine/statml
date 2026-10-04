@@ -51,6 +51,10 @@ Older leftovers still open, all his call: the `wgcna` branch (46's draft), three
 2026-10-05**, then reopened the same day for **round 2**: occlusion occludes with
 **[MASK]** (his updated 08-3; notes too) and gains **Show Signed · Absolute**
 (`values=absolute`); 19 states, 19/19 MATCH — catalogue § Slot 87, *Round 2*.
+Pushed on his "tested ok" (b2b8eab..59a2c06), deploy run 37230540582 green.
+Regenerating `table.js` changes only the occlusion arrays when only the occluding
+token changes (checked field by field). NEXT: his call. **SESSION CLOSED
+2026-10-05.**
 
 **2026-10-01 to 10-04: 85 `adapting` SHIPPED AND PUSHED (8160db8, 19 states, deploy green) as
 "Deep Learning - Language: Training and Adapting" — the record is the
