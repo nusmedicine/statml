@@ -31,7 +31,7 @@ NOT DEPLOYED.</p>
    through driver-genes-shoot.html on 2026-09-20; the `setParam` branches are
    the harness's, including the pill/action-button one. */
 const FRAME_W = 900;
-const FRAME_H = 1200;
+const FRAME_H = Number(new URLSearchParams(location.search).get("h")) || 1200;   // ?h= for a draft whose banner pushes a page past 1,200 (85, 2026-10-04)
 const DONE_FRAMES = 700;   // long enough for any single press; a Play run may not finish
 const CUT_FRAMES = 5;      // the interruption, as widget 70's probe
 const MAX_OPTIONS = 3;

@@ -59,7 +59,7 @@ Run:  python widgets/_lab/adapting-table.py <influenza_ha.csv>   (about 13 min; 
       CSV, not in the repository)
       python widgets/_lab/adapting-table.py --check    rerun drug-error / LoRA and compare
 """
-import base64, csv, importlib.util, json, sys, time
+import base64, csv, importlib.util, json, random, sys, time
 from pathlib import Path
 import torch, torch.nn.functional as F
 
@@ -88,9 +88,29 @@ BASE = {"notes": AM.build(48, 4, 2, 0)}
 AM.pretrain_log(BASE["notes"], CT.corpus, 3000, 0); BASE["notes"].eval()
 def notes_build():
     torch.manual_seed(0); return A.TinyBERT(A.V)
+# CLINICALLY DEFENSIBLE "WRONG" PAIRS LEFT OUT (2026-10-04, his pick): the grammar gives each symptom two drugs,
+# so every other drug counted as an error, and a held-out note read "managed with aspirin for fever" -> error.
+# Aspirin lowers fever; oxygen is given in chest pain when hypoxic; NSAIDs treat pericarditis and analgesics
+# musculoskeletal chest pain; nitrates are given in acute pulmonary oedema; antibiotics are started empirically
+# for fever. These pairs are never drawn as errors; the grammar itself (shared with 83 and 84) is unchanged.
+PLAUSIBLE = {("fever", "aspirin"), ("chest pain", "oxygen"), ("chest pain", "ibuprofen"), ("chest pain", "paracetamol"),
+             ("breathlessness", "nitrate"), ("fever", "antibiotics"), ("fever", "cefazolin")}
+def make_drug_error(seed, n):
+    """A.make_task(seed, n, "match") with PLAUSIBLE out of the error draws: the same construction, call for call"""
+    rng = random.Random(seed); X, Y = [], []
+    while len(X) < n:
+        s = rng.choice(A.SYMS); bad = rng.random() < 0.5
+        d = rng.choice([x for x in A.DRUGS if x not in A.SYM_DRUG[s] and (s, x) not in PLAUSIBLE] if bad else A.SYM_DRUG[s])
+        t = [rng.choice(["treated", "managed"]), "with", d, "for"] + A.sym_words(s)
+        other = A.note(rng, rng.choice([0, 1, 2]) or 1)[0] if rng.random() < 0.7 else []
+        t = (other + ["."] + t) if other and rng.random() < 0.5 else (t + ["."] + other if other else t)
+        X.append(t); Y.append(int(bad))
+    return X, Y
+def make(seed, n, task):
+    return make_drug_error(seed, n) if task == "match" else A.make_task(seed, n, task)
 def notes_data(task):
-    X, Y = A.make_task(100, N, task); ids, m = A.batchify(X)
-    Xt, Yt = A.make_task(999, 1000, task); tids, tm = A.batchify(Xt)
+    X, Y = make(100, N, task); ids, m = A.batchify(X)
+    Xt, Yt = make(999, 1000, task); tids, tm = A.batchify(Xt)
     ex = []
     for x, y in zip(Xt, Yt):
         if len(" ".join(x)) <= 60 and sum(1 for g in ex if g[1] == y) < 2: ex.append([" ".join(x), y])

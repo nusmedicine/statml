@@ -23409,6 +23409,31 @@ LoRA page at 1,246 px with the draft banner and **1,197 without it** (measured
 with the banner removed), so the shipped page fits the 900 × 1,200 frame, 3 px
 spare; record the states after the status flip.
 
+**OUTCOME AND DRUG ERROR, 2026-10-04** (his question: is Drug error harder
+because the pretrained model is different? No — the same model; the label rests
+on a PAIR, which pretraining never showed mismatched: a frozen-[CLS] probe 98%
+on Outcome, 61% on Drug error). Found while answering: **Outcome's detail said
+"the same notes" — false since round 4**: the two clinical tasks share the
+pretrained model, each draws its own labelled notes (Drug error's are built
+around "treated with ⟨drug⟩ for ⟨symptom⟩"); corrected to "the same model as
+Drug error, with its own labelled notes". **Clinically defensible "wrong" pairs
+left out of Drug error** (his pick, all seven): aspirin–fever, oxygen–chest pain,
+ibuprofen and paracetamol–chest pain, nitrate–breathlessness, antibiotics and
+cefazolin–fever (`PLAUSIBLE` in the generator; the grammar shared with 83/84
+untouched). Drug error now: transfer 51.4%, LoRA 81.6%, full 83.7%, from scratch
+58.4%; the held-out notes lose "aspirin for fever", gain "metoclopramide for
+fever". **Which tasks share a model, PICKED M2 + M3** (`_lab/adapting-model-mock.html`):
+the Task buttons under group heads **Clinical notes model** (Outcome · Drug error)
+and **Protein model** (Influenza host) — core's `group` + `groupHeads`, stacked,
+so no core change (the mock showed them side by side, which would be one) — and
+the model's name as a **chip** before the rows' header. No domain-gap note (his
+call). Open: from scratch's 54–58% on Drug error may be [CLS] training speed rather
+than missing knowledge (mean pooling reached 84% in the arc's part C) — the
+subtitle's last clause leans on it; measure if he asks. Checks: verify 1,472;
+sweep 24 states clean; the switch probe flags the LoRA page only while the draft
+banner pushes it past the probe's 1,200 frame (clean at `?h=1400`; the probe now
+takes `h`); the shipped LoRA page 1,198.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

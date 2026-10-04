@@ -84,10 +84,15 @@ const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label,
    which is why the head alone is enough on one only. THE TASK (2026-10-03): with the proteins the control picks the
    data and the model too, so it is Task; three names to a 300 px rail, so the buttons are short and the detail says
    what each label is. The link values are the buttons' words. */
+/* WHICH TASKS SHARE A MODEL (2026-10-04, his question "is there a way to visually indicate that outcome and drug
+   error use the same dataset"; picked M2 + M3, `_lab/adapting-model-mock.html`): the Task buttons grouped under
+   their model's name (core's `group` with `groupHeads`), and the same name as a chip before the rows' header on the
+   canvas. The two clinical tasks share the pretrained model, not the labelled notes: each draws its own. */
+const MODEL_NAME = { notes: "Clinical notes model", proteins: "Protein model" };
 const TASKS = [
-  { value: "outcome", label: "Outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. A small BERT-style model, pretrained on synthetic clinical notes by masked-word prediction; the same notes and model as Drug error, only the label differs." },
-  { value: "drug-error", label: "Drug error", detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. The same small BERT-style model as Outcome; every pretraining note paired a drug with a symptom it treats." },
-  { value: "influenza-host", label: "Influenza host", detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. A small BERT-style model, pretrained on HA proteins by masked amino-acid prediction, as ESM-2 is. Sequences from BV-BRC." },
+  { value: "outcome", label: "Outcome", group: MODEL_NAME.notes, detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. A small BERT-style model, pretrained on synthetic clinical notes by masked-word prediction; the same model as Drug error, with its own labelled notes." },
+  { value: "drug-error", label: "Drug error", group: MODEL_NAME.notes, detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. The same pretrained model as Outcome; each labelled note gives a drug for a symptom, and every pretraining note paired a drug with a symptom it treats." },
+  { value: "influenza-host", label: "Influenza host", group: MODEL_NAME.proteins, detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. A small BERT-style model, pretrained on HA proteins by masked amino-acid prediction, as ESM-2 is. Sequences from BV-BRC." },
 ];
 const LABELS = { outcome: ["negative", "positive"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
 /** the task's model: its shapes, counts, W_Q, starting weights and the positions a sequence reaches */
@@ -282,7 +287,11 @@ function blinkMask(task, way, k) {
 /* A PROTEIN ON A LINE (2026-10-03, picked P1): its first residues in the monospace font, as many as fit before the
    prediction, then "…" and its length. */
 function drawNotes(ctx, c, w, way, task, step, trained) {
-  txt(ctx, S.notesHead(NOUN(task)), PAD, 14, { font: cap(c), fill: c.ink1 });
+  const name = MODEL_NAME[TABLE.model[task]];
+  ctx.save(); ctx.font = smallBold(c); const cw = ctx.measureText(name).width;
+  ctx.fillStyle = c.surface2; ctx.strokeStyle = c.grid; ctx.beginPath(); ctx.roundRect(PAD + 0.5, 5.5, cw + 14, 17, 8.5); ctx.fill(); ctx.stroke(); ctx.restore();
+  txt(ctx, name, PAD + 7, 14, { font: smallBold(c), fill: c.ink1 });
+  txt(ctx, S.notesHead(NOUN(task)), PAD + cw + 24, 14, { font: cap(c), fill: c.ink1 });
   txt(ctx, S.predHead, w - PAD, 14, { font: small(c), fill: c.ink3, align: "right" });
   const pred = TABLE.runs[task][way].pred, k = Math.min(pred.length - 1, Math.floor(step / SNAP));
   TABLE.examples[task].forEach(([t, y], i) => {
@@ -497,7 +506,7 @@ defineWidget({
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "scratch", display: true },
-    task: { type: "segmented", label: S.taskLabel, options: TASKS, default: "drug-error" },
+    task: { type: "segmented", label: S.taskLabel, options: TASKS, groupHeads: true, default: "drug-error" },
     /* authoring escape hatch, first render only: 1 opens the page trained */
     shown: { type: "int", min: 0, max: 1, default: 0, hidden: true },
   },
