@@ -23512,6 +23512,14 @@ row** after the verify caught the first pick sharing a held-out protein's first 
 residues (HA sequences share their N-terminus; it read as a test protein in
 training). Verify 1,752; sweep 24 states clean.
 
+**COPY AUDIT OF THE CARDS, 2026-10-04 — APPLIED, all three:** the card titles
+**Self-supervised · 20,000 unlabelled notes** and **Supervised · 1,024 labelled
+notes** ("Training" named both the rail's control and the second card; his own
+words name what differs, labels or none), From scratch's "Self-supervised · none /
+starts from random weights", and the caption before Train "Train runs 400 steps on
+the labelled notes." (the cards say where each page starts). Measured: every card
+string inside its card (the longest, the proteins' title, 29 px spare).
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

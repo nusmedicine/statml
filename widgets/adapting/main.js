@@ -131,9 +131,9 @@ const S = {
   step: "Train", stepTitle: (n) => `Train on the 1,024 labelled ${n}, 400 steps`,
   wait: "—",
   notesHead: (n) => `Four of the 1,000 held-out ${n}`,
-  preTitle: (count, n) => `Pretraining · ${count.toLocaleString("en-US")} unlabelled ${n}`,
-  preNone: "Pretraining · none", preNoneSub: "random weights",
-  trainTitle: (n) => `Training · 1,024 labelled ${n}`,
+  preTitle: (count, n) => `Self-supervised · ${count.toLocaleString("en-US")} unlabelled ${n}`,
+  preNone: "Self-supervised · none", preNoneSub: "starts from random weights",
+  trainTitle: (n) => `Supervised · 1,024 labelled ${n}`,
   predHead: "prediction",
   mapHead: (s) => `The weights after ${s} steps`,
   blinkNote: "blink: changed by more than 5% of the largest change in 50 steps",
@@ -149,7 +149,7 @@ const S = {
   curveHead: "Held-out accuracy while training",
   curveAxis: "training step",
   floor: (task, p) => `majority class: ${p}`,
-  before: (way, n) => `Train runs 400 steps on the labelled ${n}, from ${way === "scratch" ? "random weights" : "the pretrained weights"}.`,
+  before: (way, n) => `Train runs 400 steps on the labelled ${n}.`,
   /* the accuracies are in the tiles: the line says what moved */
   after: {
     scratch: () => "Every weight changed from its random start.",
