@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 — what data each way trains on</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 var(--sp-1); }
+  p.note, ul.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  ul.note li { margin: 0 0 4px; }
+  p.note b, ul.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; }
+  canvas { display: block; background: var(--surface); border: 1px solid var(--grid); }
+  .tiles { display: flex; gap: 24px; font-size: var(--fs-sm); padding: 10px 12px; border: 1px solid var(--grid); width: 549px; box-sizing: border-box; }
+  .tiles div b { display: block; font-size: var(--fs-lg); color: var(--ink-1); } .tiles div span { color: var(--ink-3); font-size: var(--fs-xs); }
+  .tiles div i { color: var(--ink-2); font-style: normal; font-size: var(--fs-xs); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 &middot; what data each way trains on &middot; mock</h1>
+  <p class="note">Your question: would it help a student to see how the training data is put together — <b>from scratch</b> needs every training
+    note labelled; a <b>pretrained</b> model first learned from unlabelled notes by masking words, then from the same labelled notes.</p>
+
+  <h2>1 &middot; Review, from a student's seat</h2>
+  <h3>What the page says about data today</h3>
+  <ul class="note">
+    <li>The rows' header: "Four of the 1,000 held-out notes; training uses 1,024 others". Train's caption: "from random weights" or "from the
+      pretrained weights". The Task detail (pretrained pages): "pretrained … by masked-word prediction".</li>
+    <li>Nowhere: that <b>every way, from scratch included, trains on the same 1,024 labelled notes</b>; that the pretrained ways <b>also</b> saw
+      <b>20,000 unlabelled notes</b> (22,813 proteins) earlier; or what "masked-word prediction" does to a note.</li>
+  </ul>
+  <h3>The misreadings this leaves open (two of them yours, this week)</h3>
+  <ul class="note">
+    <li><b>"From scratch is trained on different (or more) data."</b> You asked whether from scratch on Outcome trained on Drug error's notes. The
+      fair comparison — same labelled notes, different start — is the widget's whole design and is not on the page.</li>
+    <li><b>"Pretraining needs labels too."</b> The point of self-supervision is that the 20,000 notes carry no label: the hidden word is the target.</li>
+    <li><b>"The pretrained model knows the task."</b> It was never shown a label for any task; that is why the head alone fails on Drug error.</li>
+  </ul>
+  <h3>What the field draws</h3>
+  <p class="note">The standard picture of adapting is two stages on a line: <b>(1) self-supervised pretraining on a large unlabelled corpus</b>, then
+    <b>(2) supervised training on a small labelled set for one task</b> (Jay Alammar's <i>Illustrated BERT</i>, the Hugging Face course's transfer-learning
+    figure). From scratch is stage 2 alone. Widget 84 already animates stage 1 (the masked sentence, the [MASK] row scored), so 85 needs it as a
+    <b>reminder with one example</b>, not a second animation.</p>
+  <h3>Principles the options are judged on</h3>
+  <ul class="note">
+    <li><b>Contrast in a fixed place</b> (consistency): the same strip at the same position on every page, so switching From scratch ↔ Full changes
+      one box and the eye catches it.</li>
+    <li><b>Concrete before abstract</b> (worked example, dual coding): one real masked note beside one real labelled note says "no label vs label"
+      faster than the words "self-supervised".</li>
+    <li><b>Show quantities</b>: 20,000 unlabelled against 1,024 labelled is the economic argument for pretraining.</li>
+    <li><b>Spend nothing twice; keep the figure first</b> (the map and the curve are the page): one band, no animation, no new control; the LoRA
+      page must stay inside 1,200 px.</li>
+  </ul>
+
+  <h2>2 &middot; D1 · a pipeline line, the same place on every page</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">Full (Drug error)</div><canvas id="d1a" data-w="549" data-h="150"></canvas></div>
+    <div class="cand"><div class="sub">From scratch (Drug error)</div><canvas id="d1b" data-w="549" data-h="150"></canvas></div>
+  </div>
+  <p class="note">One line replaces the chip: the data in boxes, what is done to it on the arrows. From scratch draws the same line with the pretraining
+    stage absent (dashed, "none"), so the labelled stage stays where it was. Quantities, no example. +12 px.</p>
+
+  <h2>3 &middot; D2 · two example cards: unlabelled and labelled (recommended)</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">Full (Drug error)</div><canvas id="d2a" data-w="549" data-h="196"></canvas></div>
+    <div class="cand"><div class="sub">From scratch (Drug error)</div><canvas id="d2b" data-w="549" data-h="196"></canvas></div>
+    <div class="cand"><div class="sub">Full (Influenza host)</div><canvas id="d2c" data-w="549" data-h="196"></canvas></div>
+  </div>
+  <p class="note">Each stage as a card with its size and one real example: <b>pretraining</b> shows a note with a word hidden and the hidden word as the
+    target (84's sentence); <b>training</b> shows a labelled note and its label. From scratch's first card is empty ("random weights, no pretraining"),
+    the second card identical. (The mock's protein example is a held-out protein; built, the pretraining card shows a protein from the
+    pretraining set, which held-out proteins were never in.) The cards replace the chip row and the rows' header (the second card's header says the 1,024 and the held-out 1,000).
+    +40 px, so the LoRA page needs 40 px back: the held-out rows at a 19 px pitch (−12), the map head 8 px closer (−8) and the chart 20 px shorter (−20).</p>
+
+  <h2>4 &middot; D3 · two tiles under the figure</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">Full (Drug error)</div><div class="tiles" id="d3a"></div></div>
+    <div class="cand"><div class="sub">From scratch (Drug error)</div><div class="tiles" id="d3b"></div></div>
+  </div>
+  <p class="note">The cheapest: the counts beside Held out and Trained, no canvas height. Numbers without the mechanism, and below the figure where
+    the eye arrives last.</p>
+
+  <h2>To answer</h2>
+  <p class="q"><b>Which</b>D2 the two example cards (recommended: the only one that shows what "no label" means, on a real note, and answers both of
+    this week's misreadings in place) · D1 the pipeline line (lighter, quantities only) · D3 the tiles · none.</p>
+  <p class="q"><b>If D2: the height</b>take the 40 px from the rows' pitch, the map head and the chart (recommended) · or let the LoRA page run past 1,200.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s2: css("--surface-2"), grid: css("--grid"), surface: css("--surface"),
+  font: css("--font"), mono: css("--font-mono"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const T = (await import("../adapting/table.js")).TABLE;
+function setup(id) {
+  const cv = document.getElementById(id), w = +cv.dataset.w, h = +cv.dataset.h, d = devicePixelRatio || 1;
+  cv.width = w * d; cv.height = h * d; cv.style.width = w + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.textBaseline = "middle"; return { ctx, w, h };
+}
+const F = { cap: `600 ${C.sm} ${C.font}`, sm: `${C.sm} ${C.font}`, xs: `${C.xs} ${C.font}`, xsb: `600 ${C.xs} ${C.font}`, mono: `${C.sm} ${C.mono}` };
+function t(ctx, s, x, y, font, fill, align = "left") { ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.textAlign = "left"; return ctx.measureText(s).width; }
+function box(ctx, x, y, w, h, dashed) { ctx.save(); ctx.strokeStyle = dashed ? C.ink3 : C.ink2; if (dashed) ctx.setLineDash([3, 3]); ctx.strokeRect(x + 0.5, y + 0.5, w, h); ctx.restore(); }
+function arrow(ctx, x1, x2, y, label, dashed) {
+  ctx.save(); ctx.strokeStyle = dashed ? C.ink3 : C.ink2; if (dashed) ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2 - 5, y); ctx.stroke();
+  ctx.setLineDash([]); ctx.fillStyle = dashed ? C.ink3 : C.ink2; ctx.beginPath(); ctx.moveTo(x2, y); ctx.lineTo(x2 - 6, y - 3.5); ctx.lineTo(x2 - 6, y + 3.5); ctx.fill(); ctx.restore();
+  if (label) t(ctx, label, (x1 + x2) / 2, y - 8, F.xs, dashed ? C.ink3 : C.ink2, "center");
+}
+/* the held-out rows as the widget draws them, from y0 */
+function rows(ctx, w, y0, task, pitch = 22, header = true, way = "full") {
+  const L = { "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] }[task];
+  if (header) { t(ctx, `Four of the 1,000 held-out ${task === "influenza-host" ? "proteins" : "notes"}; training uses 1,024 others`, 12, y0, F.cap, C.ink1); t(ctx, "prediction", w - 12, y0, F.xs, C.ink3, "right"); }
+  const p = T.runs[task][way].pred.at(-1);
+  T.examples[task].forEach(([s, y], i) => {
+    const yy = y0 + 24 + i * pitch;
+    ctx.strokeStyle = C.ink3; ctx.strokeRect(12.5, yy - 9.5, 96, 19); t(ctx, `${y} ${L[y]}`, 60, yy, F.xs, C.ink1, "center");
+    t(ctx, task === "influenza-host" ? s.slice(0, 40) + "…" : s, 118, yy, task === "influenza-host" ? F.mono : F.sm, C.ink1);
+    const c = p[i] > 0.5 ? 1 : 0; t(ctx, `${L[c]} ${(c ? p[i] : 1 - p[i]).toFixed(2)} ${c === y ? "✓" : "✗"}`, w - 12, yy, F.xs, C.ink1, "right");
+  });
+}
+
+/* D1 */
+function d1(id, scratch) {
+  const { ctx, w } = setup(id), y = 20;
+  let x = 12;
+  const b1 = "20,000 unlabelled notes", w1 = ctx.measureText(b1).width;
+  ctx.font = F.xs; const W1 = ctx.measureText(b1).width + 12;
+  if (scratch) { box(ctx, x, y - 9, W1, 18, true); t(ctx, "no pretraining", x + W1 / 2, y, F.xs, C.ink3, "center"); }
+  else { box(ctx, x, y - 9, W1, 18); t(ctx, b1, x + 6, y, F.xs, C.ink1); }
+  x += W1; arrow(ctx, x + 2, x + 70, y, scratch ? "" : "masking", scratch); x += 72;
+  ctx.font = F.xsb; const b2 = scratch ? "random weights" : "pretrained weights", W2 = ctx.measureText("pretrained weights").width + 12;
+  box(ctx, x, y - 9, W2, 18); t(ctx, b2, x + W2 / 2, y, F.xsb, C.ink1, "center"); x += W2;
+  arrow(ctx, x + 2, x + 104, y, "1,024 labelled notes", false); x += 106;
+  ctx.font = F.xsb; const W3 = ctx.measureText("adapted").width + 16;
+  box(ctx, x, y - 9, W3, 18); t(ctx, scratch ? "trained" : "adapted", x + W3 / 2, y, F.xsb, C.ink1, "center");
+  rows(ctx, w, 48, "drug-error", 22, true, scratch ? "scratch" : "full");
+}
+d1("d1a", false); d1("d1b", true);
+
+/* D2 */
+function d2(id, scratch, task) {
+  const { ctx, w } = setup(id), prot = task === "influenza-host", noun = prot ? "proteins" : "notes";
+  const cw = (w - 36) / 2, y0 = 8, ch = 58, xs = [12, 24 + cw];
+  // card 1: pretraining
+  box(ctx, xs[0], y0, cw, ch, scratch);
+  if (scratch) {
+    t(ctx, "1 · Pretraining: none", xs[0] + 8, y0 + 12, F.xsb, C.ink3);
+    t(ctx, "starts from random weights", xs[0] + 8, y0 + 32, F.xs, C.ink3);
+  } else {
+    t(ctx, `1 · Pretraining: ${prot ? "22,813" : "20,000"} unlabelled ${noun}`, xs[0] + 8, y0 + 12, F.xsb, C.ink1);
+    if (prot) {
+      const seq = T.examples[task][0][0].slice(0, 22), k = 9;
+      const before = seq.slice(0, k), after = seq.slice(k + 1, 22);
+      let x = xs[0] + 8; x += t(ctx, before, x, y0 + 32, F.mono, C.ink1); x += t(ctx, "[MASK]", x, y0 + 32, `600 ${C.sm} ${C.mono}`, C.ink1); t(ctx, after + "…", x, y0 + 32, F.mono, C.ink1);
+      t(ctx, `target: the hidden residue, ${seq[k]}; no label`, xs[0] + 8, y0 + 48, F.xs, C.ink2);
+    } else {
+      let x = xs[0] + 8; x += t(ctx, "treated with ", x, y0 + 32, F.sm, C.ink1); x += t(ctx, "[MASK]", x, y0 + 32, `600 ${C.sm} ${C.font}`, C.ink1); t(ctx, " for chest pain", x, y0 + 32, F.sm, C.ink1);
+      t(ctx, "target: the hidden word, aspirin; no label", xs[0] + 8, y0 + 48, F.xs, C.ink2);
+    }
+  }
+  // card 2: training on labels
+  box(ctx, xs[1], y0, cw, ch);
+  t(ctx, `2 · Training: 1,024 labelled ${noun}`, xs[1] + 8, y0 + 12, F.xsb, C.ink1);
+  const L = { "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] }[task];
+  const [s, y] = T.examples[task][0];
+  if (prot) t(ctx, s.slice(0, 26) + "…", xs[1] + 8, y0 + 32, F.mono, C.ink1); else t(ctx, s, xs[1] + 8, y0 + 32, F.sm, C.ink1);
+  t(ctx, `target: its label, ${y} ${L[y]}`, xs[1] + 8, y0 + 48, F.xs, C.ink2);
+  arrow(ctx, xs[0] + cw + 1, xs[1] - 1, y0 + ch / 2, "", scratch);
+  // the held-out rows, their header shortened (the card says 1,024)
+  t(ctx, `Four of the 1,000 held-out ${noun}`, 12, y0 + ch + 18, F.cap, C.ink1); t(ctx, "prediction", w - 12, y0 + ch + 18, F.xs, C.ink3, "right");
+  rows(ctx, w, y0 + ch + 18, task, 22, false, scratch ? "scratch" : "full");
+}
+d2("d2a", false, "drug-error"); d2("d2b", true, "drug-error"); d2("d2c", false, "influenza-host");
+
+/* D3 */
+const tile = (v, n, l) => `<div><span>${l}</span><b>${v}</b><i>${n}</i></div>`;
+document.getElementById("d3a").innerHTML = tile("84%", "accuracy on 1,000 notes", "Held out") + tile("1,024", "notes, the same for every way", "Labelled") + tile("20,000", "notes, words masked", "Unlabelled") + tile("43,874", "parameters, of 43,874", "Trained");
+document.getElementById("d3b").innerHTML = tile("58%", "accuracy on 1,000 notes", "Held out") + tile("1,024", "notes, the same for every way", "Labelled") + tile("none", "no pretraining", "Unlabelled") + tile("43,874", "parameters, of 43,874", "Trained");
+</script>
+</body>
+</html>
