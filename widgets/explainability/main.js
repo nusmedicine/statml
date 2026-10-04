@@ -57,9 +57,9 @@ import { TABLE } from "./table.js";
 /* ================================================================== copy */
 
 const PAGES = [
-  { value: "attention", label: "Attention", detail: "The weights in one row of an attention matrix: how much the [CLS] token's query matches each token's key." },
+  { value: "attention", label: "Attention", detail: "The weights in one row of an attention matrix: how much the [CLS] token's query matches each token's key; the prediction is computed from [CLS]'s final vector." },
   /* two lines: "Integrated gradients" is wider than a third of the rail */
-  { value: "integrated-gradients", label: "Integrated", qual: "gradients", detail: "The gradient of the predicted class's logit, summed along a straight path from a baseline input to the input." },
+  { value: "integrated-gradients", label: "Integrated", qual: "gradients", detail: "The change from a baseline input to the input, times the gradient of the predicted class's logit averaged along the straight path between them." },
   { value: "occlusion", label: "Occlusion", detail: "A window of tokens replaced by [PAD], then the next window along, and the change in the predicted class's logit each time." },
 ];
 const WAYS = {
@@ -84,12 +84,13 @@ const UNIT = (task, n) => (PROTEIN(task) ? (n === 1 ? "residue" : "residues") : 
 
 const S = {
   title: "Deep Learning - Language: Explainability",
-  subtitle: "An attribution scores each token by how much it changed a model's prediction. Attention weights show how much one token's "
-    + "query matches each key, which is a different quantity. Integrated gradients sums the gradient along a path from a baseline to "
-    + "the input; occlusion replaces part of the input and measures the change. Each explains the model it is run on: two models can "
-    + "give the same note different attributions.",
+  /* the copy audit of 2026-10-05, his S2: the attribution methods first, attention as the contrast */
+  subtitle: "An attribution scores each token by how much it changed a model's prediction. Integrated gradients adds up gradients "
+    + "along a path from a baseline to the input; occlusion replaces a window of the input and measures the change. Attention weights "
+    + "measure how much one token's query matches another's key, a different quantity. Each is a statement about the model it is run "
+    + "on: two models can score the same input differently.",
   pageLabel: "Method", trainingLabel: "Training", taskLabel: "Task", exampleLabel: "Example",
-  blockLabel: "Block", blockDetail: "Block 1 takes the token and position vectors; block 2 takes block 1's output.",
+  blockLabel: "Block", blockDetail: "Block 1's input is the token and position vectors; block 2's is block 1's output.",
   headLabel: "Head", headDetail: "One head's weights, or the mean of the four heads'.",
   stepsLabel: "Steps", stepsDetail: "How many points along the path the gradient is taken at.",
   showLabel: "Show", showDetail: "Positive only keeps the attributions above zero and divides them by the largest.",
@@ -106,7 +107,7 @@ const S = {
   attHead: (b, h) => `Block ${b}, ${h === "mean" ? "the mean of the heads" : `head ${h}`}: a row a query, a column a key`,
   attHeadProt: (b, h) => `Block ${b}, ${h === "mean" ? "the mean of the heads" : `head ${h}`}, in bins of ${TABLE.bin} positions: a row a query, a column a key`,
   queryAxis: "query position", keyAxis: "key position",
-  igHead: "The predicted class's logit along the path",
+  igHead: "The predicted class's logit, f, along the path",
   alpha0: "α = 0: every token [PAD]", alpha1: (task) => `α = 1: the ${PROTEIN(task) ? "protein" : "note"}`,
   igSum: (k, s, sum) => `after ${k} of ${s} steps the bars sum to ${f2(sum)}`,
   igDone: (sum, d, gap) => `the bars sum to ${f2(sum)} · f(input) − f(baseline) = ${f2(d)} · gap ${gap.toFixed(3)}`,
@@ -114,14 +115,14 @@ const S = {
   occNone: "no window",
   occCount: (i, n, k, st, task) => `${i} of ${n} windows · ${k} ${UNIT(task, k)} each, every ${st}`,
   caption: {
-    attention: "The strip is the matrix's [CLS] row: the weights [CLS]'s query gives each key.",
-    "integrated-gradients": "The baseline sets every token to [PAD], [CLS] and [SEP] included; the prediction is read from [CLS]'s row.",
-    occlusion: (task) => `Windows cover ${UNIT(task, 2)} only, not [CLS] or [SEP]: the prediction is read from [CLS]'s row.`,
+    attention: "The bars above are the matrix's [CLS] row: the weight on each key when [CLS] is the query.",
+    "integrated-gradients": "The baseline sets every token to [PAD], [CLS] and [SEP] included; the prediction is computed from [CLS]'s final vector.",
+    occlusion: (task) => `Windows cover ${UNIT(task, 2)} only, not [CLS] or [SEP]: the prediction is computed from [CLS]'s final vector.`,
   },
   step: { attention: "Next key", "integrated-gradients": "Next step", occlusion: "Next window" },
   stepProt: { attention: "Next 50 keys" },
   stepTitle: {
-    attention: "Copy the next key's weight from the [CLS] row into the strip",
+    attention: "Show the next key's weight from the [CLS] row above its token",
     "integrated-gradients": "Take the gradient at the next point along the path and add it to the bars",
     occlusion: "Replace the next window by [PAD] and chart the logit",
   },
@@ -132,7 +133,7 @@ const S = {
   tileWin: "Windows", tileWinNote: (k, st, task) => `${k} ${UNIT(task, k)} each, every ${st}`,
   wait: "—",
   legend: {
-    up: "Raises the predicted class's logit", down: "Lowers it", att: "Attention weight", pos: "Positive attribution, scaled to the largest",
+    up: "Raises the predicted class's logit", down: "Lowers the predicted class's logit", att: "Attention weight", pos: "Positive attribution, scaled to the largest",
   },
   sum: (page, task, i) => `${{ attention: "Attention", "integrated-gradients": "Integrated gradients", occlusion: "Occlusion" }[page]} on held-out ${NOUN(task).slice(0, -1)} ${i}.`,
 };

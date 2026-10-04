@@ -98,7 +98,10 @@ const STRUCK = [/\bnever\b/i, /\byou\b/i, /\byour\b/i, /\bcarr(y|ies)\b/i, /\bre
   /\blesson\b/i, /\bnotebook\b/i, /\bcell \d/i, /\b\d\d-\d\b/, /\bwidget \d/i,
   /\bbeside\b/i, /\bnumbers\b/i, /\bcalled\b/i, /\bmoved?\b/i, /\bover \d/i,
   /* his rule from 85 (2026-10-04): a label fact is a fact about the data; a model's reason is not measured here */
-  /\bthe model uses\b/i, /\bdecided by\b/i, /\bthe model looks\b/i, /\bfocus(es)? on\b/i];
+  /\bthe model uses\b/i, /\bdecided by\b/i, /\bthe model looks\b/i, /\bfocus(es)? on\b/i,
+  /* the copy audit of 2026-10-05: "strip" is our word, a query that "gives" and a block that "takes" personify,
+     "read from [CLS]'s row" for its final vector, a legend entry that leans on the one before ("Lowers it") */
+  /\bstrip\b/i, /\bgives\b/i, /\btakes\b/i, /\bread from\b/i, /^Lowers it$/];
 for (const s of strings) for (const re of STRUCK) ok(!re.test(s), `struck word ${re} in "${s}"`);
 ok(strings.length > 30, `the sweep read ${strings.length} strings`);
 
