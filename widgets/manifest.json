@@ -1254,7 +1254,7 @@
     {
       "slug": "adapting",
       "title": "Deep Learning - Language: Training and Adapting",
-      "blurb": "Adapting a pretrained model trains a new head alone, every weight, or a low-rank update, unlike training from scratch.",
+      "blurb": "Training from random weights, or adapting a pretrained model: a new head alone, every weight, or a low-rank update.",
       "course": "PHM5005",
       "topics": [
         "transfer learning",

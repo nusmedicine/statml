@@ -23395,6 +23395,20 @@ word: **Deep Learning - Language: Training and Adapting** (he weighed
 "Pretraining and Adapting"; pretraining is not shown here, 84 shows it). Slug
 `adapting` kept.
 
+**SUBTITLE AND BLURB, 2026-10-04 (his picks S2, B1):** the subtitle in the
+title's order — from random weights, then adapting and its three ways, the
+head-alone sentence — plus "With enough labelled examples, training from scratch
+can match an adapted model; pretraining matters most when labels are few, or when
+the task rests on patterns seen far more often in the unlabelled data" (true on
+the page: from scratch 100% on Outcome and 98.5% on Influenza host, 55% on Drug
+error). Blurb "Training from random weights, or adapting a pretrained model: a
+new head alone, every weight, or a low-rank update." (115). The Task details
+take **83's words**: "synthetic clinical notes", "masked-word prediction",
+"masked amino-acid prediction, as ESM-2 is". HEIGHT: the longer subtitle puts the
+LoRA page at 1,246 px with the draft banner and **1,197 without it** (measured
+with the banner removed), so the shipped page fits the 900 × 1,200 frame, 3 px
+spare; record the states after the status flip.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

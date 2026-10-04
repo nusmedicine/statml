@@ -85,9 +85,9 @@ const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label,
    data and the model too, so it is Task; three names to a 300 px rail, so the buttons are short and the detail says
    what each label is. The link values are the buttons' words. */
 const TASKS = [
-  { value: "outcome", label: "Outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. A small BERT-style model, pretrained on generated clinical notes by hiding words; the same notes and model as Drug error, only the label differs." },
+  { value: "outcome", label: "Outcome", detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. A small BERT-style model, pretrained on synthetic clinical notes by masked-word prediction; the same notes and model as Drug error, only the label differs." },
   { value: "drug-error", label: "Drug error", detail: "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it. The same small BERT-style model as Outcome; every pretraining note paired a drug with a symptom it treats." },
-  { value: "influenza-host", label: "Influenza host", detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. A small BERT-style model, pretrained on HA proteins by hiding amino acids as ESM-2 is. Sequences from BV-BRC." },
+  { value: "influenza-host", label: "Influenza host", detail: "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise. A small BERT-style model, pretrained on HA proteins by masked amino-acid prediction, as ESM-2 is. Sequences from BV-BRC." },
 ];
 const LABELS = { outcome: ["negative", "positive"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
 /** the task's model: its shapes, counts, W_Q, starting weights and the positions a sequence reaches */
@@ -102,9 +102,11 @@ const TOTAL = (task, way) => { const t = MOD(task).trains; return t.backbone + 9
 
 const S = {
   title: "Deep Learning - Language: Training and Adapting",
-  subtitle: "A pretrained model is adapted to a task by adding a head and training on labelled examples. Transfer learning trains the "
-    + "head alone, full fine-tuning every weight, and LoRA a low-rank update added to frozen weights; training from scratch starts "
-    + "the same network from random weights. Training the head alone works only when the pretrained vectors already separate the classes.",
+  subtitle: "A network can be trained on labelled examples from random weights, or a pretrained one adapted by adding a head and training "
+    + "on the same examples. Transfer learning trains the head alone, full fine-tuning every weight, and LoRA a low-rank update added to "
+    + "frozen weights. Training the head alone works only when the pretrained vectors already separate the classes. With enough labelled "
+    + "examples, training from scratch can match an adapted model; pretraining matters most when labels are few, or when the task rests "
+    + "on patterns seen far more often in the unlabelled data.",
   pageLabel: "Training",
   taskLabel: "Task",
   step: "Train", stepTitle: (n) => `Train on the 1,024 labelled ${n}, 400 steps`,
