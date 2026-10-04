@@ -23454,6 +23454,12 @@ personification, written in the previous round). Drug error KEPT (his
 "simplify to outcome?"): the only task where the four ways differ. Shipped LoRA
 page 1,197.
 
+**THE TRAINING BUTTONS BY THEIR START, 2026-10-04 (his idea; PICKED G1,
+`_lab/adapting-training-groups-mock.html`):** heads **Random weights** over
+[From scratch] and **Pretrained weights** over [Transfer · Full · LoRA], core's
+`group` + `groupHeads` as Task's; the lone button **From scratch** (the chart's
+and tiles' name). No core change; switch probe clean at `h=1400`; LoRA page 1,197.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):

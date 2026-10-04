@@ -72,12 +72,15 @@ import { defineWidget } from "../core/index.js";
 import { TABLE } from "./table.js";
 
 const WAYS = {
-  scratch: { label: "Scratch", name: "From scratch", color: "reference", detail: "The same network from random weights: every weight trained." },
-  transfer: { label: "Transfer", name: "Transfer learning", color: "groupA", detail: "The pretrained backbone frozen; only a new head trained." },
-  full: { label: "Full", name: "Full fine-tuning", color: "groupB", detail: "Every weight trained, starting from the pretrained ones." },
-  lora: { label: "LoRA", name: "LoRA", color: "groupC", detail: "The backbone frozen; a low-rank update A Bᵀ added to the Q and V weights, and the head, trained." },
+  scratch: { label: "From scratch", group: "Random weights", name: "From scratch", color: "reference", detail: "The same network from random weights: every weight trained." },
+  transfer: { label: "Transfer", group: "Pretrained weights", name: "Transfer learning", color: "groupA", detail: "The pretrained backbone frozen; only a new head trained." },
+  full: { label: "Full", group: "Pretrained weights", name: "Full fine-tuning", color: "groupB", detail: "Every weight trained, starting from the pretrained ones." },
+  lora: { label: "LoRA", group: "Pretrained weights", name: "LoRA", color: "groupC", detail: "The backbone frozen; a low-rank update A Bᵀ added to the Q and V weights, and the head, trained." },
 };
-const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label, detail: w.detail }));
+/* THE WAYS BY THEIR START (2026-10-04, his "segment the training buttons? so training is from scratch, but
+   transfer/full/lora refer to pretrained"; picked G1, `_lab/adapting-training-groups-mock.html`): core's `group`
+   with `groupHeads`, the same form as Task, and the lone button named as the chart and the tiles name the way. */
+const PAGES = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label, group: w.group, detail: w.detail }));
 /* THE LABEL (round 4, his "finding asserted and wrong drug looks weird"; picked the clinical names): one kind
    of prediction, a note's class from its [CLS] vector, with the label set by one fact or the other. The pretrained
    [CLS] already separates clinical outcome (a probe on the frozen vectors 98%) and not prescribing error (61%),
@@ -504,7 +507,7 @@ defineWidget({
   height: ({ page }) => lay(page).height,
 
   params: {
-    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "scratch", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, groupHeads: true, default: "scratch", display: true },
     task: { type: "segmented", label: S.taskLabel, options: TASKS, groupHeads: true, default: "drug-error" },
     /* authoring escape hatch, first render only: 1 opens the page trained */
     shown: { type: "int", min: 0, max: 1, default: 0, hidden: true },
