@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 85 — which tasks share a model</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  .mrail .w-controls { margin-top: 0; padding-top: 0; border-top: 0; }
+  .mrail { width: 300px; box-sizing: border-box; border: 1px solid var(--grid); padding: var(--sp-2) var(--sp-3); background: var(--surface-1); }
+  /* M2's grouped buttons: two segmented groups on one row, each under its model's name */
+  .groups { display: flex; gap: 8px; }
+  .groups .g { display: flex; flex-direction: column; gap: 3px; }
+  .groups .g .cap { font-size: var(--fs-xs); color: var(--ink-3); }
+  .groups .g.notes { flex: 2; } .groups .g.prot { flex: 1; }
+  canvas { display: block; background: var(--surface); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 85 &middot; which tasks share a model &middot; mock</h1>
+  <p class="note">Your question: can the page show that <b>Outcome and Drug error share one pretrained model</b> (their own labelled notes each), and
+    that <b>Influenza host has its own</b> (its own data and model)? Three ways, each shown with Drug error selected and with Influenza host
+    selected, so the change on switching is in view. The rails are core's own controls at the rail's 300 px; the canvas strip is the top of the
+    widget's canvas at 549 px.</p>
+
+  <h2>M1 &middot; two controls: the data, then the label</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">notes, Drug error</div><div class="mrail" id="m1a"></div></div>
+    <div class="cand"><div class="sub">proteins (Label shows its one option)</div><div class="mrail" id="m1b"></div></div>
+  </div>
+  <p class="note">The structure says it: two labels hang under Clinical notes, one under HA proteins. Pure core (a <code>when</code> on the label
+    rows), no core change. Costs: the merge you asked for is undone; the link carries two values (<code>data=notes&amp;label=drug-error</code>);
+    a Label row with one button under proteins.</p>
+
+  <h2>M2 &middot; one control, its buttons grouped by model (recommended)</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">Drug error</div><div class="mrail" id="m2a"></div></div>
+    <div class="cand"><div class="sub">Influenza host</div><div class="mrail" id="m2b"></div></div>
+  </div>
+  <p class="note">Your merged Task kept, one click a task, one link value; the buttons sit in two groups, each under its model's name, so the
+    shared model is read before anything is clicked. Needs a small core addition: a <code>group</code> on segmented options (core's dropdown already
+    takes one), drawn as here. Every other widget unchanged, so one full fingerprint run.</p>
+
+  <h2>M3 &middot; the model named on the canvas, as a chip before the rows' header</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">Outcome</div><canvas id="c3a" data-w="549" data-h="34"></canvas></div>
+    <div class="cand"><div class="sub">Drug error</div><canvas id="c3b" data-w="549" data-h="34"></canvas></div>
+    <div class="cand"><div class="sub">Influenza host</div><canvas id="c3c" data-w="549" data-h="34"></canvas></div>
+  </div>
+  <p class="note">The same chip under Outcome and Drug error, a different one under Influenza host; no height spent (it shares the header's
+    line). Reads on the figure, not where the reader clicks; pairs with M2 or with the rail as it is.</p>
+
+  <h2>To answer</h2>
+  <p class="q"><b>Which</b>M2 grouped buttons (recommended: the grouping sits where the reader clicks, your merge kept) · M1 two controls ·
+    M3 the canvas chip alone · M2 and M3 together.</p>
+  <p class="q"><b>The group names</b>"Clinical notes model" and "Protein model" (recommended) · "Notes" and "Proteins" · "Synthetic notes" and "HA proteins".</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const seg = (items, on) => `<div class="w-seg" role="group">${items.map((l) => `<button type="button" class="w-seg-btn" aria-pressed="${l === on}">${l}</button>`).join("")}</div>`;
+const training = `<div class="w-field"><label><span>Training</span></label>${seg(["Scratch", "Transfer", "Full", "LoRA"], "Full")}<p class="w-detail">Every weight trained, starting from the pretrained ones.</p></div>`;
+const DET = {
+  "Drug error": "1 error when a drug is given for a symptom it does not treat, 0 no error when it treats it.",
+  "Influenza host": "1 human when the influenza A hemagglutinin (HA) came from a virus isolated from a person, 0 animal otherwise.",
+  notes: "A small BERT-style model, pretrained on synthetic clinical notes by masked-word prediction.",
+  proteins: "A small BERT-style model, pretrained on HA proteins by masked amino-acid prediction, as ESM-2 is. Sequences from BV-BRC.",
+};
+const field = (label, body, detail) => `<div class="w-field"><label><span>${label}</span></label>${body}${detail ? `<p class="w-detail">${detail}</p>` : ""}</div>`;
+const put = (id, html) => { document.getElementById(id).innerHTML = `<div class="w-controls">${training}${html}</div>`; };
+
+/* M1 */
+put("m1a", field("Data", seg(["Clinical notes", "HA proteins"], "Clinical notes"), DET.notes) + field("Label", seg(["Outcome", "Drug error"], "Drug error"), DET["Drug error"]));
+put("m1b", field("Data", seg(["Clinical notes", "HA proteins"], "HA proteins"), DET.proteins) + field("Label", seg(["Host"], "Host"), DET["Influenza host"]));
+
+/* M2 */
+const grouped = (on) => `<div class="groups"><div class="g notes"><span class="cap">Clinical notes model</span>${seg(["Outcome", "Drug error"], on)}</div>`
+  + `<div class="g prot"><span class="cap">Protein model</span>${seg(["Influenza host"], on)}</div></div>`;
+put("m2a", field("Task", grouped("Drug error"), `${DET["Drug error"]} ${DET.notes}`));
+put("m2b", field("Task", grouped("Influenza host"), `${DET["Influenza host"]} ${DET.proteins}`));
+
+/* M3 */
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s2: css("--surface-2"), grid: css("--grid"), font: css("--font"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+function chip(id, model, noun) {
+  const cv = document.getElementById(id), w = +cv.dataset.w, h = +cv.dataset.h, d = devicePixelRatio || 1;
+  cv.width = w * d; cv.height = h * d; cv.style.width = w + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.font = `600 ${C.xs} ${C.font}`; const tw = ctx.measureText(model).width, x = 12, y = 14;
+  ctx.fillStyle = C.s2; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.roundRect(x, y - 9, tw + 14, 18, 9); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = C.ink1; ctx.textBaseline = "middle"; ctx.fillText(model, x + 7, y);
+  ctx.font = `600 ${C.sm} ${C.font}`; ctx.fillText(`Four of the 1,000 held-out ${noun}; training uses 1,024 others`, x + tw + 24, y);
+  ctx.font = `${C.xs} ${C.font}`; ctx.fillStyle = C.ink3; ctx.textAlign = "right"; ctx.fillText("prediction", w - 12, y);
+}
+chip("c3a", "Clinical notes model", "notes"); chip("c3b", "Clinical notes model", "notes"); chip("c3c", "Protein model", "proteins");
+</script>
+</body>
+</html>
