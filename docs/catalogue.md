@@ -23434,6 +23434,26 @@ sweep 24 states clean; the switch probe flags the LoRA page only while the draft
 banner pushes it past the probe's 1,200 frame (clean at `?h=1400`; the probe now
 takes `h`); the shipped LoRA page 1,198.
 
+**THE SCRATCH GAP MEASURED, 2026-10-04** (`_lab/adapting-scratch-gap.py`, his
+"run the scratch gap measurement"; Drug error, 1,024 notes, three seeds): from
+scratch on [CLS] **58% at 400 steps, 86% at 1,600, 88% at 4,000**; on the mean
+57% / 89% at 400 / 1,600; full fine-tuning 81% / 90%. **Training speed, not
+missing knowledge**: pooling does not matter, and from scratch learns the pairs
+from the labelled notes given four times the steps. So the subtitle's last
+clause was wrong; **PICKED T1**: "With enough labelled examples and enough
+training, training from scratch comes close to an adapted model; pretraining
+matters most when either is short." The Task details say **why the two clinical
+labels differ** (his confusion — he read the notes model as "more aligned to
+outcome", Drug error's data as "incorrect", and from scratch on Outcome as
+trained on Drug error's notes; none of the three is so): Outcome "Decided by
+single words: a finding, and 'no' before it."; Drug error "Decided by the pair:
+every drug and every symptom appear under both labels." (checked: all ten drugs
+and five symptoms under both labels) and "pretrained on notes in which every drug
+was given for a symptom it treats" (the sweep caught "each labelled note gives",
+personification, written in the previous round). Drug error KEPT (his
+"simplify to outcome?"): the only task where the four ways differ. Shipped LoRA
+page 1,197.
+
 ### The open calls
 
 Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
