@@ -71,11 +71,13 @@ const WAYS = {
 const TRAINING = Object.entries(WAYS).map(([value, w]) => ({ value, label: w.label, group: w.group, detail: w.detail }));
 const DATA_NAME = { notes: "Clinical notes", proteins: "HA proteins" };
 const TASKS = [
-  { value: "outcome", label: "Outcome", group: DATA_NAME.notes, detail: "1 positive when the note asserts an abnormal finding, 0 negative otherwise. Synthetic notes." },
+  { value: "outcome", label: "Outcome", group: DATA_NAME.notes, detail: "1 abnormal when the note asserts an abnormal finding, 0 normal otherwise. Synthetic notes." },
   { value: "drug-error", label: "Drug error", group: DATA_NAME.notes, detail: "1 error when the drug does not treat the symptom, 0 no error when it does. Synthetic notes." },
   { value: "influenza-host", label: "Influenza host", group: DATA_NAME.proteins, detail: "1 human when the virus was isolated from a person, 0 animal. HA sequences from BV-BRC." },
 ];
-const LABELS = { outcome: ["negative", "positive"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
+/* OUTCOME'S WORDS (2026-10-05, his pick after "positive = positive outcome or yes for illness?"): the lesson's
+   clinical_outcome.csv has 1 = deteriorating, 0 = stable, so "positive" read as a good outcome; normal / abnormal says it */
+const LABELS = { outcome: ["normal", "abnormal"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
 const PROTEIN = (task) => TABLE.model[task] === "proteins";
 const NOUN = (task) => (PROTEIN(task) ? "proteins" : "notes");
 const UNIT = (task, n) => (PROTEIN(task) ? (n === 1 ? "residue" : "residues") : n === 1 ? "word" : "words");
