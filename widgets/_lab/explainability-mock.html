@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 87 — explainability, measured and mocked</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 var(--sp-1); }
+  p.note, ul.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); }
+  ul.note li { margin: 0 0 4px; }
+  p.note b, ul.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 549px; }
+  canvas { display: block; background: var(--surface); border: 1px solid var(--grid); }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); max-width: 1200px; }
+  table.m th, table.m td { border-bottom: 1px solid var(--grid); padding: 4px 10px 4px 0; text-align: left; vertical-align: top; color: var(--ink-2); }
+  table.m th { color: var(--ink-1); font-weight: 600; }
+  table.m td b { color: var(--ink-1); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 87 &middot; Deep Learning - Language: Explainability &middot; measured and mocked</h1>
+  <p class="note">Picked 2026-10-02: one widget, pages <b>Attention · Integrated gradients · Occlusion</b>, explaining <b>85's own models</b> on 85's
+    three tasks, as the lessons do (08-2 cells 66–76: Layer Integrated Gradients on the clinical transfer model, clipped to positive and scaled 0–1;
+    08-3 cells 79–89: occlusion on the adapted ESM-2, k 4, stride 2, [PAD], absolute values; 08-1 cell 20: attention weights as one source of
+    explanation). Every number below is from <code>_lab/explainability-measure.py</code> on 85's models rebuilt exactly (each one's held-out
+    accuracy equals 85's table to the tenth of a percent), 200 held-out notes or 30 held-out proteins a model.</p>
+
+  <h2>1 &middot; What the measurement found</h2>
+  <table class="m">
+    <tr><th>claim a page could make</th><th>measured</th><th>verdict</th></tr>
+    <tr><td><b>An attribution explains the model, not the label.</b> The same note, two of 85's models.</td>
+      <td>Drug error: the largest word is the drug or the symptom in 152 of 200 notes under Full (84%), and in 12 of 200 under Transfer (51%,
+        chance), where it is <b>"for"</b> in 115. On 85's four rows Transfer predicts "error" for all four, every word near zero.</td><td><b>holds</b>, the strongest stage</td></tr>
+    <tr><td><b>The model's cue need not be the clinical one.</b></td>
+      <td>Outcome (label 1 when any finding is asserted): the top word is <b>"with"</b> in 51–52 of 200 and <b>"from"</b> in 29–42 —
+        the frames the grammar asserts a finding in ("presented with …", "discharge from wound") — and a symptom word in 1–6 of 200.
+        True of this data: those frames do mark an asserted finding. A label fact, not a model reason, so the page says only what it measured.</td><td><b>holds</b>; copy needs care (your rule from 85)</td></tr>
+    <tr><td><b>Attention is not attribution.</b></td>
+      <td>The [CLS] row of the last block, mean of heads, against |IG| over the words: Spearman 0.15–0.52 at the last block, 0.00–0.43 at the first
+        (0.00: Transfer / Drug error); the same top word in 12–68% of notes. Drug error / Full: attention's top word is a drug in 93 of 200, IG's is a symptom or a drug about equally.
+        Proteins: 0.09 at the last block.</td><td><b>holds</b></td></tr>
+    <tr><td><b>The steps matter</b> (completeness: the attributions sum to f(input) − f(baseline)).</td>
+      <td>Median gap on Outcome / Full at 5 · 20 · 50 · 300 steps: <b>0.67 · 0.15 · 0.055 · 0.010</b> (logit units; the logit difference itself is
+        about 3–8). captum's default, and the lesson's, is 50.</td><td><b>holds</b></td></tr>
+    <tr><td><b>Clipping to positive hides words that push the other way.</b></td>
+      <td>A word pushing against the prediction by at least a tenth of the largest attribution: 179–200 of 200 notes on every model. On 85's
+        row "no chest pain reported" (Full, predicted no finding) <b>"pain" −1.06</b> pushes toward a finding; the lesson's clip shows it as 0.</td><td><b>holds</b></td></tr>
+    <tr><td><b>The baseline decides what [CLS] gets.</b></td>
+      <td>The lesson's baseline (every input id 0 = [PAD], [CLS] and [SEP] included) gives <b>[CLS] itself the largest attribution in 19–162 of
+        200 notes</b> (Drug error / Full: 162), because the classifier reads the [CLS] row. Keeping [CLS] and [SEP] and replacing only the words
+        moves the word ranking little (Spearman 0.77–0.98 with [PAD]) and lifts Drug error / Full's drug-and-symptom share from 0.36 to 0.51.</td><td><b>holds</b>; a control or a caption</td></tr>
+    <tr><td><b>Occlusion and IG agree.</b></td>
+      <td>Notes, one word occluded: Spearman with |IG| 0.40–0.81. <b>Proteins, k 4: 0.18</b>, k 8: 0.10, k 12: 0.08 (scratch model; the other three
+        in the log). The occluding token matters: [PAD] against [MASK] 0.65–0.84 on notes, 0.66 on proteins; against [UNK] 0.35.</td><td><b>partly</b>: on proteins the two methods rank residues differently</td></tr>
+  </table>
+  <p class="note"><b>Ruled out, so no draft says it:</b> that attention weights or attributions show the clinical reasoning; that an attribution of the
+    predicted class's logit is the decision (on Transfer / Drug error it correlates 0.37 with the attribution of the logit difference; 0.94–1.0
+    on the confident models — the lesson's <code>target=pred_id</code> is fine there).</p>
+
+  <h2>2 &middot; One answer strip, three ways of getting it</h2>
+  <p class="note">The lessons draw the answer two ways: bars per token (08-2 cell 74, 08-3 cell 87) and the heat behind the text (cells 76, 89). The
+    mock keeps both in one strip that sits <b>in the same place on every page</b>, with the page's mechanism under it. Signed: red toward the
+    prediction, blue against (75's occlusion ramp, <code>--c-value-high/low</code>). Attention is not signed, so it draws in ink.
+    Drug error / Full / 85's third row.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">Attention — the [CLS] row of block 2, mean of the four heads</div><canvas id="s-att" data-w="549" data-h="150"></canvas></div>
+    <div class="cand"><div class="sub">Integrated gradients — 50 steps, [PAD] baseline (the lesson's)</div><canvas id="s-ig" data-w="549" data-h="150"></canvas></div>
+    <div class="cand"><div class="sub">Occlusion — one word at a time, [PAD], signed</div><canvas id="s-occ" data-w="549" data-h="150"></canvas></div>
+  </div>
+
+  <h2>3 &middot; Integrated gradients: the path, and why the steps matter</h2>
+  <p class="note">The mechanism under the strip: the words' embeddings scaled from the baseline (α = 0) to the note (α = 1), the predicted class's
+    logit along the way, and the steps as a sum under the curve's slope. A press takes the next step; the bars grow as the gradients add up.
+    The completeness line prints the sum of the bars against f(x) − f(baseline). Outcome / Full / "managed with antibiotics for infection".</p>
+  <div class="row">
+    <div class="cand"><div class="sub">Steps 5</div><canvas id="p5" data-w="549" data-h="190"></canvas></div>
+    <div class="cand"><div class="sub">Steps 50</div><canvas id="p50" data-w="549" data-h="190"></canvas></div>
+  </div>
+
+  <h2>4 &middot; Signed against the lesson's clip</h2>
+  <p class="note">Outcome / Full / "no chest pain reported", predicted no finding. Left the signed attribution; right the lesson's display, positive
+    values only, divided by the largest. A <b>Show</b> control, Signed · Positive only.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">Signed</div><canvas id="c-signed" data-w="549" data-h="150"></canvas></div>
+    <div class="cand"><div class="sub">Positive only, scaled 0–1 (08-2 cell 72)</div><canvas id="c-clip" data-w="549" data-h="150"></canvas></div>
+  </div>
+
+  <h2>5 &middot; The same notes, two models</h2>
+  <p class="note">Drug error, 85's four held-out rows, Integrated gradients. 85's <b>Training</b> control decides which model is explained.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">Transfer (51% held out)</div><canvas id="m-tr" data-w="549" data-h="250"></canvas></div>
+    <div class="cand"><div class="sub">Full fine-tuning (84% held out)</div><canvas id="m-full" data-w="549" data-h="250"></canvas></div>
+  </div>
+
+  <h2>6 &middot; The baseline</h2>
+  <p class="note">Drug error / Full / "treated with salbutamol for nausea". Left the lesson's: every id 0 = [PAD]. Right: [CLS] and [SEP] kept, the words
+    replaced by [PAD].</p>
+  <div class="row">
+    <div class="cand"><div class="sub">Every token [PAD] (captum's default)</div><canvas id="b-all" data-w="549" data-h="150"></canvas></div>
+    <div class="cand"><div class="sub">Words [PAD], [CLS] and [SEP] kept</div><canvas id="b-keep" data-w="549" data-h="150"></canvas></div>
+  </div>
+
+  <h2>7 &middot; Occlusion on a protein</h2>
+  <p class="note" id="prot-note">Influenza host, 85's first held-out protein, the window k 4 · 8 · 12 (the lesson's "try 4, 8, 12"), stride k / 2, [PAD].
+    The residues as one strip, a column each (the letters cannot be read at 566 across 549 px; hover would name one). The first line slides the
+    window over <b>every</b> position as captum does in 08-3 cell 85, so its first window covers [CLS]; the next three leave [CLS] and [SEP] in
+    place. IG on the same protein last.</p>
+  <div class="row" id="prot-row"></div>
+
+  <h2>To answer</h2>
+  <p class="q"><b>Q1 · Pages</b>A · Attention · Integrated gradients · Occlusion, one answer strip in a fixed place, each page's mechanism under it
+    (recommended: the plan of 2026-10-02, and § 2 shows the three answers differ on one note) · B · the same three plus a fourth, Compare, the
+    three strips stacked · C · two pages, Integrated gradients · Occlusion, attention drawn as a second strip on the IG page.</p>
+  <p class="q"><b>Q2 · Which model</b>85's Training control, all four ways, default Transfer (recommended: the lesson's model, and § 5's contrast is one
+    click) · fixed to Full fine-tuning · fixed to Transfer.</p>
+  <p class="q"><b>Q3 · Integrated gradients' controls</b>Steps 5 · 20 · 50 · 300 and Show Signed · Positive only, the baseline the lesson's with a
+    caption (recommended) · the same plus a Baseline control · Steps only.</p>
+  <p class="q"><b>Q4 · Occlusion</b>both data: a word at a time on notes (Window 1 · 2), k 4 · 8 · 12 on proteins (recommended: the Task control stays
+    85's) · proteins only, as 08-3 (Occlusion disabled on the note tasks) · notes only.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s3: css("--surface-3"), grid: css("--grid"), surface: css("--surface"),
+  hi: css("--c-value-high"), lo: css("--c-value-low"), mark: css("--c-highlight"), font: css("--font"), mono: css("--font-mono"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const M = await (await fetch("explainability-mock-data.json")).json();
+const F = { cap: `600 ${C.sm} ${C.font}`, sm: `${C.sm} ${C.font}`, xs: `${C.xs} ${C.font}`, mono: `${C.xs} ${C.mono}` };
+function setup(cv) {
+  const w = +cv.dataset.w, h = +cv.dataset.h, d = devicePixelRatio || 1;
+  cv.width = w * d; cv.height = h * d; cv.style.width = w + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.textBaseline = "middle"; return { ctx, w, h };
+}
+const S = (id) => setup(document.getElementById(id));
+function t(ctx, s, x, y, font, fill, align = "left") { ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.textAlign = "left"; return ctx.measureText(s).width; }
+const rgb = (c) => { const x = document.createElement("canvas").getContext("2d"); x.fillStyle = c; const h = x.fillStyle; return h.startsWith("#") ? [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) : h.match(/\d+/g).slice(0, 3).map(Number); };
+const ramp = (u, to) => { const a = rgb(C.s3), b = rgb(to); u = Math.max(0, Math.min(1, u)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+const heat = (v, sc, signed) => (signed ? (v >= 0 ? ramp(v / sc, C.hi) : ramp(-v / sc, C.lo)) : ramp(v / sc, C.ink2));
+const LAB = { outcome: ["no finding", "finding"], "drug-error": ["no error", "error"], "influenza-host": ["animal", "human"] };
+
+/* the answer strip: tokens with the heat behind, bars under a zero line */
+function strip(ctx, w, y0, tokens, vals, { signed = true, title = "", pred = null, task = null, barH = 34 } = {}) {
+  if (title) t(ctx, title, 12, y0, F.cap, C.ink1);
+  if (pred) t(ctx, pred, w - 12, y0, F.xs, C.ink2, "right");
+  ctx.font = F.sm; const gap = 6, ws = tokens.map((s) => ctx.measureText(s).width + 10);
+  const tot = ws.reduce((a, b) => a + b, 0) + gap * (tokens.length - 1); let x = Math.max(12, (w - tot) / 2);
+  const sc = Math.max(1e-9, ...vals.map(Math.abs)), yT = y0 + 26, zero = yT + 18 + barH;
+  ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(12, zero + 0.5); ctx.lineTo(w - 12, zero + 0.5); ctx.stroke();
+  tokens.forEach((s, i) => {
+    const v = vals[i]; ctx.fillStyle = heat(signed ? v : Math.abs(v), sc, signed); ctx.fillRect(x, yT - 10, ws[i], 20);
+    t(ctx, s, x + ws[i] / 2, yT, F.sm, C.ink1, "center");
+    const bh = (Math.abs(v) / sc) * barH, cx = x + ws[i] / 2;
+    ctx.fillStyle = signed ? (v >= 0 ? C.hi : C.lo) : C.ink2;
+    if (signed && v < 0) ctx.fillRect(cx - 5, zero, 10, bh); else ctx.fillRect(cx - 5, zero - bh, 10, bh);
+    t(ctx, (signed ? (v >= 0 ? "+" : "−") : "") + Math.abs(v).toFixed(2), cx, signed && v < 0 ? zero + bh + 9 : zero + 9, F.mono, C.ink3, "center");
+    x += ws[i] + gap;
+  });
+  return zero + barH;
+}
+const row = (task, way, i) => M[task].ways[way].rows[i];
+const predText = (task, r) => { const p = Math.exp(r.logits[r.pred]) / r.logits.reduce((a, b) => a + Math.exp(b), 0); return `prediction ${LAB[task][r.pred]} ${p.toFixed(2)}`; };
+
+/* § 2 */
+{ const r = row("drug-error", "full", 2);
+  const att = r.att[1][0].map((_, j) => r.att[1].reduce((a, h) => a + h[j], 0) / r.att[1].length);
+  let c = S("s-att"); strip(c.ctx, c.w, 14, r.tokens, att, { signed: false, title: "Attention from [CLS]", pred: predText("drug-error", r) });
+  c = S("s-ig"); strip(c.ctx, c.w, 14, r.tokens, r.ig["50"].attr, { title: "Integrated gradients", pred: predText("drug-error", r) });
+  c = S("s-occ"); strip(c.ctx, c.w, 14, r.tokens, r.occ["1"], { title: "Occlusion", pred: predText("drug-error", r) }); }
+
+/* § 3 the path */
+function pathPanel(id, steps) {
+  const { ctx, w, h } = S(id), r = row("outcome", "full", 1), f = r.path, n = f.length;
+  const x0 = 46, x1 = w - 16, y0 = 16, y1 = 108, lo = Math.min(...f), hi = Math.max(...f);
+  const X = (a) => x0 + a * (x1 - x0), Y = (v) => y1 - ((v - lo) / (hi - lo || 1)) * (y1 - y0);
+  ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(x0, y1 + 0.5); ctx.lineTo(x1, y1 + 0.5); ctx.stroke();
+  t(ctx, "α = 0: every word [PAD]", x0, y1 + 12, F.xs, C.ink3); t(ctx, "α = 1: the note", x1, y1 + 12, F.xs, C.ink3, "right");
+  t(ctx, `logit of "${LAB.outcome[r.pred]}"`, 12, y0 - 6, F.xs, C.ink2);
+  // the steps: one tick a step, at the right end of each interval (the right Riemann sum the measurement uses)
+  ctx.strokeStyle = C.mark; for (let k = 1; k <= steps; k++) { const a = k / steps; ctx.beginPath(); ctx.moveTo(X(a), y1); ctx.lineTo(X(a), y1 - 6); ctx.stroke(); }
+  ctx.strokeStyle = C.ink1; ctx.lineWidth = 1.5; ctx.beginPath(); f.forEach((v, i) => { const a = i / (n - 1); i ? ctx.lineTo(X(a), Y(v)) : ctx.moveTo(X(a), Y(v)); }); ctx.stroke(); ctx.lineWidth = 1;
+  t(ctx, f[0].toFixed(2), x0 - 4, Y(f[0]), F.mono, C.ink3, "right"); t(ctx, f[n - 1].toFixed(2), x1, Y(f[n - 1]) - 9, F.mono, C.ink3, "right");
+  const a = r.ig[String(steps)].attr, sum = a.reduce((p, q) => p + q, 0);
+  t(ctx, `sum of the attributions ${sum.toFixed(2)}  ·  f(note) − f(baseline) ${(f[n - 1] - f[0]).toFixed(2)}  ·  gap ${Math.abs(r.ig[String(steps)].delta).toFixed(3)}`, 12, 140, F.xs, C.ink1);
+  ctx.font = F.sm; let x = 12; r.tokens.forEach((s, i) => { const ww = ctx.measureText(s).width + 10; ctx.fillStyle = heat(a[i], Math.max(...a.map(Math.abs)), true); ctx.fillRect(x, 160, ww, 20); t(ctx, s, x + ww / 2, 170, F.sm, C.ink1, "center"); x += ww + 6; });
+}
+pathPanel("p5", 5); pathPanel("p50", 50);
+
+/* § 4 */
+{ const r = row("outcome", "full", 3), a = r.ig["50"].attr, pos = a.map((v) => Math.max(0, v)), mx = Math.max(...pos);
+  let c = S("c-signed"); strip(c.ctx, c.w, 14, r.tokens, a, { title: "Integrated gradients", pred: predText("outcome", r) });
+  c = S("c-clip"); strip(c.ctx, c.w, 14, r.tokens, pos.map((v) => v / mx), { signed: false, title: "Integrated gradients, positive only", pred: predText("outcome", r) }); }
+
+/* § 5 */
+for (const [id, way] of [["m-tr", "transfer"], ["m-full", "full"]]) {
+  const { ctx, w } = S(id); const rows = M["drug-error"].ways[way].rows;
+  const sc = Math.max(...rows.flatMap((r) => r.ig["50"].attr.slice(1, -1).map(Math.abs)));
+  t(ctx, "Four held-out notes, one scale", 12, 14, F.cap, C.ink1); t(ctx, "label · prediction", w - 12, 14, F.xs, C.ink3, "right");
+  rows.forEach((r, i) => {
+    const y = 44 + i * 52, words = r.tokens.slice(1, -1), a = r.ig["50"].attr.slice(1, -1); ctx.font = F.sm; let x = 12;
+    words.forEach((s, j) => { const ww = ctx.measureText(s).width + 10; ctx.fillStyle = heat(a[j], sc, true); ctx.fillRect(x, y - 10, ww, 20); t(ctx, s, x + ww / 2, y, F.sm, C.ink1, "center");
+      t(ctx, (a[j] >= 0 ? "+" : "−") + Math.abs(a[j]).toFixed(2), x + ww / 2, y + 19, F.mono, C.ink3, "center"); x += ww + 6; });
+    const y_ = M["drug-error"].examples[i][1]; t(ctx, `${LAB["drug-error"][y_]} · ${LAB["drug-error"][r.pred]} ${y_ === r.pred ? "✓" : "✗"}`, w - 12, y, F.xs, C.ink1, "right");
+  });
+}
+
+/* § 6 */
+{ const r = row("drug-error", "full", 3);
+  let c = S("b-all"); strip(c.ctx, c.w, 14, r.tokens, r.ig["50"].attr, { title: "Integrated gradients", pred: predText("drug-error", r) });
+  c = S("b-keep"); strip(c.ctx, c.w, 14, r.tokens, r.ig["50-keep"].attr, { title: "Integrated gradients", pred: predText("drug-error", r) }); }
+
+/* § 7 proteins, when exported */
+if (M["influenza-host"]) {
+  const holder = document.getElementById("prot-row");
+  for (const way of ["transfer", "full"]) {
+    const r = M["influenza-host"].ways[way].rows[0], cv = document.createElement("canvas"); cv.dataset.w = 549; cv.dataset.h = 276;
+    const d = document.createElement("div"); d.className = "cand"; d.innerHTML = `<div class="sub">${way === "full" ? "Full fine-tuning" : "Transfer"} (${(M["influenza-host"].ways[way].acc * 100).toFixed(1)}% held out)</div>`; d.appendChild(cv); holder.appendChild(d);
+    const { ctx, w } = setup(cv); t(ctx, `Occlusion, the first held-out protein (${r.occ["4"].length - 2} residues)`, 12, 14, F.cap, C.ink1); t(ctx, predText("influenza-host", r), w - 12, 14, F.xs, C.ink2, "right");
+    const lines = [["k 4, every", r.occ["4"]], ["k 4", r.occ["4-inner"]], ["k 8", r.occ["8-inner"]], ["k 12", r.occ["12-inner"]], ["k 4, [MASK]", r.occ["4-mask"]], ["IG, 50 steps", r.ig["50"].attr]];
+    lines.forEach(([lab, v], li) => {
+      const y = 40 + li * 40, x0 = 92, x1 = w - 12, sc = Math.max(...v.map(Math.abs)), pitch = (x1 - x0) / v.length;
+      t(ctx, lab, 12, y, F.xs, C.ink2);
+      v.forEach((u, j) => { ctx.fillStyle = heat(u, sc, true); ctx.fillRect(x0 + j * pitch, y - 12, Math.max(1, pitch), 24); });
+    });
+  }
+} else document.getElementById("prot-note").textContent += " (Protein data not exported yet.)";
+</script>
+</body>
+</html>

@@ -1,0 +1,3521 @@
+{
+ "outcome": {
+  "scratch": {
+   "acc": 1.0,
+   "n": 200,
+   "correct": 200,
+   "delta_median": {
+    "5": 0.4282,
+    "20": 0.0902,
+    "50": 0.0366,
+    "300": 0.0059
+   },
+   "delta_p90": {
+    "5": 0.7941,
+    "20": 0.1801,
+    "50": 0.0766,
+    "300": 0.0127
+   },
+   "against": 182,
+   "against_rows": [
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.202
+      ],
+      [
+       "patient",
+       0.071
+      ],
+      [
+       "was",
+       0.076
+      ],
+      [
+       "with",
+       0.449
+      ],
+      [
+       "nausea",
+       -0.055
+      ],
+      [
+       "and",
+       0.17
+      ],
+      [
+       "breathlessness",
+       0.115
+      ],
+      [
+       ".",
+       0.065
+      ],
+      [
+       "patient",
+       0.179
+      ],
+      [
+       "recovered",
+       0.025
+      ],
+      [
+       "well",
+       -0.112
+      ],
+      [
+       ".",
+       0.079
+      ],
+      [
+       "patient",
+       0.136
+      ],
+      [
+       "deteriorated",
+       0.538
+      ],
+      [
+       "overnight",
+       -0.01
+      ],
+      [
+       "[SEP]",
+       -0.204
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       -0.064
+      ],
+      [
+       "patient",
+       0.805
+      ],
+      [
+       "deteriorated",
+       5.121
+      ],
+      [
+       "overnight",
+       1.56
+      ],
+      [
+       "[SEP]",
+       -1.87
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.932
+      ],
+      [
+       "managed",
+       -0.202
+      ],
+      [
+       "with",
+       2.62
+      ],
+      [
+       "antibiotics",
+       0.809
+      ],
+      [
+       "for",
+       1.807
+      ],
+      [
+       "infection",
+       0.301
+      ],
+      [
+       "[SEP]",
+       -0.564
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.315
+      ],
+      [
+       "managed",
+       -0.138
+      ],
+      [
+       "with",
+       0.701
+      ],
+      [
+       "salbutamol",
+       0.166
+      ],
+      [
+       "for",
+       0.517
+      ],
+      [
+       "breathlessness",
+       0.316
+      ],
+      [
+       ".",
+       0.099
+      ],
+      [
+       "patient",
+       0.393
+      ],
+      [
+       "presented",
+       0.166
+      ],
+      [
+       "with",
+       0.861
+      ],
+      [
+       "fever",
+       -0.037
+      ],
+      [
+       "[SEP]",
+       -0.334
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.283
+      ],
+      [
+       "managed",
+       -0.118
+      ],
+      [
+       "with",
+       0.594
+      ],
+      [
+       "nitrate",
+       0.216
+      ],
+      [
+       "for",
+       0.42
+      ],
+      [
+       "chest",
+       -0.202
+      ],
+      [
+       "pain",
+       0.078
+      ],
+      [
+       ".",
+       0.127
+      ],
+      [
+       "treated",
+       0.01
+      ],
+      [
+       "with",
+       0.726
+      ],
+      [
+       "oxygen",
+       0.068
+      ],
+      [
+       "for",
+       0.471
+      ],
+      [
+       "breathlessness",
+       0.24
+      ],
+      [
+       "[SEP]",
+       -0.361
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.474
+      ],
+      [
+       "patient",
+       0.083
+      ],
+      [
+       "presented",
+       0.058
+      ],
+      [
+       "with",
+       0.527
+      ],
+      [
+       "fever",
+       -0.033
+      ],
+      [
+       "and",
+       0.196
+      ],
+      [
+       "chest",
+       -0.05
+      ],
+      [
+       "pain",
+       0.064
+      ],
+      [
+       ".",
+       0.076
+      ],
+      [
+       "no",
+       -0.309
+      ],
+      [
+       "nausea",
+       -0.038
+      ],
+      [
+       "reported",
+       -0.09
+      ],
+      [
+       ".",
+       0.082
+      ],
+      [
+       "patient",
+       0.2
+      ],
+      [
+       "presented",
+       0.112
+      ],
+      [
+       "with",
+       0.559
+      ],
+      [
+       "fever",
+       -0.007
+      ],
+      [
+       "and",
+       0.183
+      ],
+      [
+       "breathlessness",
+       0.196
+      ],
+      [
+       "[SEP]",
+       -0.188
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.429,
+    0.518
+   ],
+   "att_top1": [
+    0.65,
+    0.675
+   ],
+   "att_special_median": [
+    0.116,
+    0.171
+   ],
+   "occ_spearman_median": {
+    "1": 0.636,
+    "2": 0.368
+   },
+   "occ_base_spearman_median": {
+    "3": 0.836,
+    "4": 0.829
+   },
+   "ig_vs_diff_median": 1.0,
+   "top_kind_ig": {
+    "[CLS]": 109,
+    "other": 42,
+    "with": 44,
+    "[SEP]": 5
+   },
+   "top_kind_att": {
+    "with": 113,
+    "other": 58,
+    "[CLS]": 21,
+    "no": 4,
+    ".": 2,
+    "symptom": 2
+   },
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "other": 97,
+      "with": 96,
+      "no": 3,
+      "symptom": 4
+     },
+     "delta_median": 0.0366,
+     "words_spearman_vs_allpad": 1.0
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "with": 93,
+      "other": 94,
+      "symptom": 6,
+      "drug": 5,
+      "no": 2
+     },
+     "delta_median": 0.0394,
+     "words_spearman_vs_allpad": 0.976
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "with": 98,
+      "other": 90,
+      "no": 5,
+      "symptom": 1,
+      "drug": 6
+     },
+     "delta_median": 0.0125,
+     "words_spearman_vs_allpad": 0.907
+    }
+   }
+  },
+  "transfer": {
+   "acc": 0.957,
+   "n": 200,
+   "correct": 195,
+   "delta_median": {
+    "5": 0.6534,
+    "20": 0.129,
+    "50": 0.0514,
+    "300": 0.0093
+   },
+   "delta_p90": {
+    "5": 1.3474,
+    "20": 0.3333,
+    "50": 0.1375,
+    "300": 0.0212
+   },
+   "against": 194,
+   "against_rows": [
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       3.559
+      ],
+      [
+       "patient",
+       0.639
+      ],
+      [
+       "was",
+       -0.338
+      ],
+      [
+       "with",
+       1.224
+      ],
+      [
+       "nausea",
+       -0.723
+      ],
+      [
+       "and",
+       0.566
+      ],
+      [
+       "breathlessness",
+       -0.505
+      ],
+      [
+       ".",
+       0.36
+      ],
+      [
+       "patient",
+       0.149
+      ],
+      [
+       "recovered",
+       -0.219
+      ],
+      [
+       "well",
+       -1.443
+      ],
+      [
+       ".",
+       0.122
+      ],
+      [
+       "patient",
+       0.228
+      ],
+      [
+       "deteriorated",
+       0.155
+      ],
+      [
+       "overnight",
+       0.373
+      ],
+      [
+       "[SEP]",
+       0.104
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.099
+      ],
+      [
+       "patient",
+       1.503
+      ],
+      [
+       "deteriorated",
+       0.669
+      ],
+      [
+       "overnight",
+       0.446
+      ],
+      [
+       "[SEP]",
+       -0.192
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       3.265
+      ],
+      [
+       "managed",
+       1.541
+      ],
+      [
+       "with",
+       2.329
+      ],
+      [
+       "antibiotics",
+       1.647
+      ],
+      [
+       "for",
+       -0.309
+      ],
+      [
+       "infection",
+       1.328
+      ],
+      [
+       "[SEP]",
+       -0.599
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       2.611
+      ],
+      [
+       "managed",
+       0.834
+      ],
+      [
+       "with",
+       1.171
+      ],
+      [
+       "salbutamol",
+       0.314
+      ],
+      [
+       "for",
+       0.171
+      ],
+      [
+       "breathlessness",
+       -0.001
+      ],
+      [
+       ".",
+       0.078
+      ],
+      [
+       "patient",
+       0.002
+      ],
+      [
+       "presented",
+       0.384
+      ],
+      [
+       "with",
+       0.821
+      ],
+      [
+       "fever",
+       0.026
+      ],
+      [
+       "[SEP]",
+       -0.362
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       2.364
+      ],
+      [
+       "managed",
+       0.616
+      ],
+      [
+       "with",
+       1.488
+      ],
+      [
+       "nitrate",
+       1.366
+      ],
+      [
+       "for",
+       0.035
+      ],
+      [
+       "chest",
+       0.169
+      ],
+      [
+       "pain",
+       -0.599
+      ],
+      [
+       ".",
+       0.35
+      ],
+      [
+       "treated",
+       0.265
+      ],
+      [
+       "with",
+       0.74
+      ],
+      [
+       "oxygen",
+       0.98
+      ],
+      [
+       "for",
+       -0.223
+      ],
+      [
+       "breathlessness",
+       -0.133
+      ],
+      [
+       "[SEP]",
+       -0.118
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       4.004
+      ],
+      [
+       "patient",
+       -0.512
+      ],
+      [
+       "presented",
+       0.031
+      ],
+      [
+       "with",
+       1.726
+      ],
+      [
+       "fever",
+       -0.703
+      ],
+      [
+       "and",
+       0.872
+      ],
+      [
+       "chest",
+       -0.743
+      ],
+      [
+       "pain",
+       -0.579
+      ],
+      [
+       ".",
+       0.061
+      ],
+      [
+       "no",
+       0.372
+      ],
+      [
+       "nausea",
+       0.297
+      ],
+      [
+       "reported",
+       -0.362
+      ],
+      [
+       ".",
+       0.605
+      ],
+      [
+       "patient",
+       0.285
+      ],
+      [
+       "presented",
+       -0.073
+      ],
+      [
+       "with",
+       0.568
+      ],
+      [
+       "fever",
+       -0.293
+      ],
+      [
+       "and",
+       0.326
+      ],
+      [
+       "breathlessness",
+       -0.009
+      ],
+      [
+       "[SEP]",
+       -0.041
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.382,
+    0.221
+   ],
+   "att_top1": [
+    0.22,
+    0.435
+   ],
+   "att_special_median": [
+    0.112,
+    0.186
+   ],
+   "occ_spearman_median": {
+    "1": 0.6,
+    "2": 0.464
+   },
+   "occ_base_spearman_median": {
+    "3": 0.714,
+    "4": 0.709
+   },
+   "ig_vs_diff_median": 0.971,
+   "top_kind_ig": {
+    "[CLS]": 134,
+    "other": 49,
+    "with": 14,
+    ".": 1,
+    "symptom": 2
+   },
+   "top_kind_att": {
+    "symptom": 15,
+    "other": 108,
+    "with": 49,
+    "[SEP]": 11,
+    "no": 10,
+    ".": 7
+   },
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "other": 111,
+      "with": 69,
+      "no": 6,
+      ".": 2,
+      "symptom": 5,
+      "drug": 7
+     },
+     "delta_median": 0.0514,
+     "words_spearman_vs_allpad": 1.0
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "with": 52,
+      "other": 113,
+      "drug": 11,
+      "no": 11,
+      ".": 7,
+      "symptom": 6
+     },
+     "delta_median": 0.0266,
+     "words_spearman_vs_allpad": 0.868
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "other": 155,
+      "drug": 8,
+      "with": 5,
+      "no": 22,
+      "symptom": 10
+     },
+     "delta_median": 0.0221,
+     "words_spearman_vs_allpad": 0.7
+    }
+   }
+  },
+  "full": {
+   "acc": 0.999,
+   "n": 200,
+   "correct": 200,
+   "delta_median": {
+    "5": 0.6704,
+    "20": 0.1549,
+    "50": 0.0549,
+    "300": 0.0103
+   },
+   "delta_p90": {
+    "5": 1.6771,
+    "20": 0.3288,
+    "50": 0.1366,
+    "300": 0.0225
+   },
+   "against": 179,
+   "against_rows": [
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.886
+      ],
+      [
+       "patient",
+       0.218
+      ],
+      [
+       "was",
+       -0.246
+      ],
+      [
+       "with",
+       1.537
+      ],
+      [
+       "nausea",
+       -0.094
+      ],
+      [
+       "and",
+       0.241
+      ],
+      [
+       "breathlessness",
+       -0.222
+      ],
+      [
+       ".",
+       0.651
+      ],
+      [
+       "patient",
+       0.251
+      ],
+      [
+       "recovered",
+       0.256
+      ],
+      [
+       "well",
+       -0.627
+      ],
+      [
+       ".",
+       -0.004
+      ],
+      [
+       "patient",
+       -0.276
+      ],
+      [
+       "deteriorated",
+       0.116
+      ],
+      [
+       "overnight",
+       0.216
+      ],
+      [
+       "[SEP]",
+       0.033
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       -0.503
+      ],
+      [
+       "patient",
+       3.42
+      ],
+      [
+       "deteriorated",
+       1.021
+      ],
+      [
+       "overnight",
+       1.323
+      ],
+      [
+       "[SEP]",
+       -0.718
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.283
+      ],
+      [
+       "managed",
+       1.048
+      ],
+      [
+       "with",
+       0.861
+      ],
+      [
+       "antibiotics",
+       0.847
+      ],
+      [
+       "for",
+       0.629
+      ],
+      [
+       "infection",
+       0.328
+      ],
+      [
+       "[SEP]",
+       -0.268
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.132
+      ],
+      [
+       "managed",
+       0.697
+      ],
+      [
+       "with",
+       0.018
+      ],
+      [
+       "salbutamol",
+       0.022
+      ],
+      [
+       "for",
+       0.246
+      ],
+      [
+       "breathlessness",
+       0.119
+      ],
+      [
+       ".",
+       0.211
+      ],
+      [
+       "patient",
+       0.611
+      ],
+      [
+       "presented",
+       -0.251
+      ],
+      [
+       "with",
+       0.735
+      ],
+      [
+       "fever",
+       -0.375
+      ],
+      [
+       "[SEP]",
+       -0.159
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.933
+      ],
+      [
+       "managed",
+       0.502
+      ],
+      [
+       "with",
+       0.214
+      ],
+      [
+       "nitrate",
+       0.259
+      ],
+      [
+       "for",
+       0.216
+      ],
+      [
+       "chest",
+       -0.102
+      ],
+      [
+       "pain",
+       -0.47
+      ],
+      [
+       ".",
+       0.63
+      ],
+      [
+       "treated",
+       0.102
+      ],
+      [
+       "with",
+       0.724
+      ],
+      [
+       "oxygen",
+       0.122
+      ],
+      [
+       "for",
+       -0.071
+      ],
+      [
+       "breathlessness",
+       -0.016
+      ],
+      [
+       "[SEP]",
+       0.002
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.88
+      ],
+      [
+       "patient",
+       0.33
+      ],
+      [
+       "presented",
+       -0.193
+      ],
+      [
+       "with",
+       1.488
+      ],
+      [
+       "fever",
+       -0.073
+      ],
+      [
+       "and",
+       0.231
+      ],
+      [
+       "chest",
+       -0.189
+      ],
+      [
+       "pain",
+       -0.445
+      ],
+      [
+       ".",
+       0.021
+      ],
+      [
+       "no",
+       -0.039
+      ],
+      [
+       "nausea",
+       0.036
+      ],
+      [
+       "reported",
+       -0.207
+      ],
+      [
+       ".",
+       0.033
+      ],
+      [
+       "patient",
+       -0.027
+      ],
+      [
+       "presented",
+       -0.047
+      ],
+      [
+       "with",
+       0.264
+      ],
+      [
+       "fever",
+       -0.13
+      ],
+      [
+       "and",
+       0.074
+      ],
+      [
+       "breathlessness",
+       0.012
+      ],
+      [
+       "[SEP]",
+       -0.026
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.286,
+    0.257
+   ],
+   "att_top1": [
+    0.35,
+    0.12
+   ],
+   "att_special_median": [
+    0.131,
+    0.146
+   ],
+   "occ_spearman_median": {
+    "1": 0.4,
+    "2": 0.319
+   },
+   "occ_base_spearman_median": {
+    "3": 0.664,
+    "4": 0.613
+   },
+   "ig_vs_diff_median": 0.943,
+   "top_kind_ig": {
+    "with": 35,
+    "other": 90,
+    "[CLS]": 65,
+    "symptom": 1,
+    "no": 6,
+    "drug": 3
+   },
+   "top_kind_att": {
+    "other": 120,
+    "with": 60,
+    "[SEP]": 15,
+    "symptom": 5
+   },
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "with": 49,
+      "other": 136,
+      "symptom": 1,
+      "no": 7,
+      "drug": 6,
+      ".": 1
+     },
+     "delta_median": 0.0549,
+     "words_spearman_vs_allpad": 1.0
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "with": 51,
+      "other": 128,
+      "symptom": 1,
+      "no": 7,
+      "drug": 13
+     },
+     "delta_median": 0.0593,
+     "words_spearman_vs_allpad": 0.886
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "with": 44,
+      "other": 138,
+      "no": 9,
+      ".": 2,
+      "drug": 4,
+      "symptom": 3
+     },
+     "delta_median": 0.02,
+     "words_spearman_vs_allpad": 0.571
+    }
+   }
+  },
+  "lora": {
+   "acc": 0.999,
+   "n": 200,
+   "correct": 200,
+   "delta_median": {
+    "5": 1.3072,
+    "20": 0.2832,
+    "50": 0.1131,
+    "300": 0.0185
+   },
+   "delta_p90": {
+    "5": 2.4141,
+    "20": 0.6027,
+    "50": 0.2468,
+    "300": 0.0409
+   },
+   "against": 186,
+   "against_rows": [
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.262
+      ],
+      [
+       "patient",
+       0.285
+      ],
+      [
+       "was",
+       -0.01
+      ],
+      [
+       "with",
+       1.209
+      ],
+      [
+       "nausea",
+       0.046
+      ],
+      [
+       "and",
+       0.216
+      ],
+      [
+       "breathlessness",
+       0.063
+      ],
+      [
+       ".",
+       0.603
+      ],
+      [
+       "patient",
+       0.114
+      ],
+      [
+       "recovered",
+       0.265
+      ],
+      [
+       "well",
+       -0.882
+      ],
+      [
+       ".",
+       0.151
+      ],
+      [
+       "patient",
+       -0.08
+      ],
+      [
+       "deteriorated",
+       0.367
+      ],
+      [
+       "overnight",
+       -0.007
+      ],
+      [
+       "[SEP]",
+       0.013
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.621
+      ],
+      [
+       "patient",
+       2.09
+      ],
+      [
+       "deteriorated",
+       3.186
+      ],
+      [
+       "overnight",
+       0.589
+      ],
+      [
+       "[SEP]",
+       -0.659
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.742
+      ],
+      [
+       "managed",
+       1.15
+      ],
+      [
+       "with",
+       1.532
+      ],
+      [
+       "antibiotics",
+       2.363
+      ],
+      [
+       "for",
+       0.541
+      ],
+      [
+       "infection",
+       0.833
+      ],
+      [
+       "[SEP]",
+       -1.213
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.576
+      ],
+      [
+       "managed",
+       0.684
+      ],
+      [
+       "with",
+       0.724
+      ],
+      [
+       "salbutamol",
+       0.1
+      ],
+      [
+       "for",
+       0.378
+      ],
+      [
+       "breathlessness",
+       0.393
+      ],
+      [
+       ".",
+       0.386
+      ],
+      [
+       "patient",
+       0.5
+      ],
+      [
+       "presented",
+       -0.042
+      ],
+      [
+       "with",
+       1.011
+      ],
+      [
+       "fever",
+       -0.544
+      ],
+      [
+       "[SEP]",
+       0.024
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       -0.284
+      ],
+      [
+       "managed",
+       0.738
+      ],
+      [
+       "with",
+       0.822
+      ],
+      [
+       "nitrate",
+       0.174
+      ],
+      [
+       "for",
+       0.523
+      ],
+      [
+       "chest",
+       0.042
+      ],
+      [
+       "pain",
+       -0.247
+      ],
+      [
+       ".",
+       0.845
+      ],
+      [
+       "treated",
+       -0.095
+      ],
+      [
+       "with",
+       0.769
+      ],
+      [
+       "oxygen",
+       0.026
+      ],
+      [
+       "for",
+       0.094
+      ],
+      [
+       "breathlessness",
+       0.071
+      ],
+      [
+       "[SEP]",
+       0.002
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       1.214
+      ],
+      [
+       "patient",
+       0.33
+      ],
+      [
+       "presented",
+       0.057
+      ],
+      [
+       "with",
+       1.75
+      ],
+      [
+       "fever",
+       -0.149
+      ],
+      [
+       "and",
+       0.299
+      ],
+      [
+       "chest",
+       -0.339
+      ],
+      [
+       "pain",
+       -0.09
+      ],
+      [
+       ".",
+       0.38
+      ],
+      [
+       "no",
+       -0.191
+      ],
+      [
+       "nausea",
+       -0.055
+      ],
+      [
+       "reported",
+       -0.321
+      ],
+      [
+       ".",
+       0.198
+      ],
+      [
+       "patient",
+       0.028
+      ],
+      [
+       "presented",
+       -0.095
+      ],
+      [
+       "with",
+       0.647
+      ],
+      [
+       "fever",
+       -0.315
+      ],
+      [
+       "and",
+       0.175
+      ],
+      [
+       "breathlessness",
+       0.12
+      ],
+      [
+       "[SEP]",
+       -0.048
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.214,
+    0.259
+   ],
+   "att_top1": [
+    0.465,
+    0.295
+   ],
+   "att_special_median": [
+    0.161,
+    0.124
+   ],
+   "occ_spearman_median": {
+    "1": 0.567,
+    "2": 0.45
+   },
+   "occ_base_spearman_median": {
+    "3": 0.75,
+    "4": 0.727
+   },
+   "ig_vs_diff_median": 0.972,
+   "top_kind_ig": {
+    "with": 49,
+    "other": 105,
+    "drug": 25,
+    ".": 1,
+    "[CLS]": 19,
+    "symptom": 1
+   },
+   "top_kind_att": {
+    "other": 157,
+    "with": 30,
+    "[SEP]": 13
+   },
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "with": 54,
+      "other": 117,
+      "drug": 27,
+      ".": 1,
+      "symptom": 1
+     },
+     "delta_median": 0.1131,
+     "words_spearman_vs_allpad": 1.0
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "with": 74,
+      "other": 113,
+      "drug": 10,
+      ".": 2,
+      "symptom": 1
+     },
+     "delta_median": 0.0696,
+     "words_spearman_vs_allpad": 0.912
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "other": 133,
+      "drug": 9,
+      "with": 53,
+      ".": 3,
+      "no": 1,
+      "symptom": 1
+     },
+     "delta_median": 0.0676,
+     "words_spearman_vs_allpad": 0.883
+    }
+   }
+  }
+ },
+ "drug-error": {
+  "scratch": {
+   "acc": 0.584,
+   "n": 200,
+   "correct": 127,
+   "delta_median": {
+    "5": 0.0309,
+    "20": 0.0084,
+    "50": 0.0033,
+    "300": 0.0005
+   },
+   "delta_p90": {
+    "5": 0.0685,
+    "20": 0.0195,
+    "50": 0.0078,
+    "300": 0.0014
+   },
+   "against": 189,
+   "against_rows": [
+    {
+     "pred": 1,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       -0.088
+      ],
+      [
+       "no",
+       -0.005
+      ],
+      [
+       "chest",
+       -0.013
+      ],
+      [
+       "pain",
+       0.515
+      ],
+      [
+       "on",
+       0.013
+      ],
+      [
+       "exam",
+       -0.024
+      ],
+      [
+       ".",
+       -0.064
+      ],
+      [
+       "managed",
+       -0.019
+      ],
+      [
+       "with",
+       0.079
+      ],
+      [
+       "antibiotics",
+       0.025
+      ],
+      [
+       "for",
+       0.012
+      ],
+      [
+       "infection",
+       0.008
+      ],
+      [
+       ".",
+       0.004
+      ],
+      [
+       "managed",
+       -0.026
+      ],
+      [
+       "with",
+       0.031
+      ],
+      [
+       "nitrate",
+       -0.105
+      ],
+      [
+       "for",
+       0.033
+      ],
+      [
+       "chest",
+       0.001
+      ],
+      [
+       "pain",
+       0.183
+      ],
+      [
+       "[SEP]",
+       0.016
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       -0.463
+      ],
+      [
+       "treated",
+       -0.005
+      ],
+      [
+       "with",
+       -0.05
+      ],
+      [
+       "ibuprofen",
+       0.129
+      ],
+      [
+       "for",
+       -0.033
+      ],
+      [
+       "fever",
+       0.183
+      ],
+      [
+       ".",
+       0.16
+      ],
+      [
+       "patient",
+       -0.042
+      ],
+      [
+       "deteriorated",
+       -0.024
+      ],
+      [
+       "overnight",
+       0.042
+      ],
+      [
+       "[SEP]",
+       -0.019
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       -0.495
+      ],
+      [
+       "treated",
+       -0.017
+      ],
+      [
+       "with",
+       -0.071
+      ],
+      [
+       "ibuprofen",
+       0.113
+      ],
+      [
+       "for",
+       -0.038
+      ],
+      [
+       "fever",
+       0.252
+      ],
+      [
+       "[SEP]",
+       0.216
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       -0.277
+      ],
+      [
+       "managed",
+       0.014
+      ],
+      [
+       "with",
+       -0.021
+      ],
+      [
+       "nitrate",
+       0.09
+      ],
+      [
+       "for",
+       -0.014
+      ],
+      [
+       "chest",
+       -0.065
+      ],
+      [
+       "pain",
+       -0.287
+      ],
+      [
+       ".",
+       0.03
+      ],
+      [
+       "ready",
+       -0.011
+      ],
+      [
+       "discharge",
+       0.057
+      ],
+      [
+       "home",
+       0.007
+      ],
+      [
+       "today",
+       0.005
+      ],
+      [
+       ".",
+       -0.012
+      ],
+      [
+       "managed",
+       0.008
+      ],
+      [
+       "with",
+       -0.031
+      ],
+      [
+       "aspirin",
+       0.049
+      ],
+      [
+       "for",
+       -0.033
+      ],
+      [
+       "chest",
+       -0.007
+      ],
+      [
+       "pain",
+       -0.063
+      ],
+      [
+       "[SEP]",
+       0.013
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       -0.395
+      ],
+      [
+       "treated",
+       -0.024
+      ],
+      [
+       "with",
+       -0.074
+      ],
+      [
+       "cefazolin",
+       0.135
+      ],
+      [
+       "for",
+       -0.038
+      ],
+      [
+       "infection",
+       -0.042
+      ],
+      [
+       "[SEP]",
+       0.267
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.005
+      ],
+      [
+       "managed",
+       0.044
+      ],
+      [
+       "with",
+       0.092
+      ],
+      [
+       "metoclopramide",
+       0.632
+      ],
+      [
+       "for",
+       0.006
+      ],
+      [
+       "fever",
+       -0.117
+      ],
+      [
+       "[SEP]",
+       -0.263
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.428,
+    0.248
+   ],
+   "att_top1": [
+    0.525,
+    0.145
+   ],
+   "att_special_median": [
+    0.162,
+    0.252
+   ],
+   "occ_spearman_median": {
+    "1": 0.812,
+    "2": 0.4
+   },
+   "occ_base_spearman_median": {
+    "3": 0.7,
+    "4": 0.818
+   },
+   "ig_vs_diff_median": 0.941,
+   "top_kind_ig": {
+    "symptom": 37,
+    "[CLS]": 89,
+    "drug": 38,
+    "[SEP]": 11,
+    "other": 20,
+    "with": 2,
+    ".": 3
+   },
+   "top_kind_att": {
+    "other": 66,
+    "symptom": 56,
+    ".": 29,
+    "[SEP]": 11,
+    "with": 21,
+    "drug": 11,
+    "no": 6
+   },
+   "pair_share_median": 0.239,
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "symptom": 71,
+      "drug": 70,
+      "other": 28,
+      ".": 27,
+      "with": 4
+     },
+     "delta_median": 0.0033,
+     "words_spearman_vs_allpad": 1.0,
+     "pair_share_median": 0.45
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "symptom": 57,
+      ".": 38,
+      "drug": 65,
+      "other": 31,
+      "with": 8,
+      "no": 1
+     },
+     "delta_median": 0.0036,
+     "words_spearman_vs_allpad": 0.952,
+     "pair_share_median": 0.426
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "symptom": 43,
+      ".": 51,
+      "drug": 80,
+      "other": 24,
+      "no": 1,
+      "with": 1
+     },
+     "delta_median": 0.004,
+     "words_spearman_vs_allpad": 0.9,
+     "pair_share_median": 0.387
+    }
+   }
+  },
+  "transfer": {
+   "acc": 0.514,
+   "n": 200,
+   "correct": 111,
+   "delta_median": {
+    "5": 0.0828,
+    "20": 0.0218,
+    "50": 0.0086,
+    "300": 0.0015
+   },
+   "delta_p90": {
+    "5": 0.1887,
+    "20": 0.056,
+    "50": 0.0247,
+    "300": 0.0037
+   },
+   "against": 200,
+   "against_rows": [
+    {
+     "pred": 1,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.29
+      ],
+      [
+       "no",
+       0.37
+      ],
+      [
+       "chest",
+       -0.044
+      ],
+      [
+       "pain",
+       -0.334
+      ],
+      [
+       "on",
+       0.059
+      ],
+      [
+       "exam",
+       -0.091
+      ],
+      [
+       ".",
+       -0.132
+      ],
+      [
+       "managed",
+       -0.053
+      ],
+      [
+       "with",
+       0.031
+      ],
+      [
+       "antibiotics",
+       -0.059
+      ],
+      [
+       "for",
+       -0.263
+      ],
+      [
+       "infection",
+       0.031
+      ],
+      [
+       ".",
+       -0.07
+      ],
+      [
+       "managed",
+       -0.016
+      ],
+      [
+       "with",
+       0.017
+      ],
+      [
+       "nitrate",
+       -0.213
+      ],
+      [
+       "for",
+       -0.136
+      ],
+      [
+       "chest",
+       0.046
+      ],
+      [
+       "pain",
+       -0.059
+      ],
+      [
+       "[SEP]",
+       -0.064
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.783
+      ],
+      [
+       "treated",
+       -0.038
+      ],
+      [
+       "with",
+       0.327
+      ],
+      [
+       "ibuprofen",
+       0.058
+      ],
+      [
+       "for",
+       -0.348
+      ],
+      [
+       "fever",
+       -0.174
+      ],
+      [
+       ".",
+       -0.019
+      ],
+      [
+       "patient",
+       -0.044
+      ],
+      [
+       "deteriorated",
+       -0.198
+      ],
+      [
+       "overnight",
+       0.064
+      ],
+      [
+       "[SEP]",
+       -0.396
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.519
+      ],
+      [
+       "treated",
+       0.091
+      ],
+      [
+       "with",
+       0.06
+      ],
+      [
+       "ibuprofen",
+       -0.182
+      ],
+      [
+       "for",
+       -0.458
+      ],
+      [
+       "fever",
+       -0.049
+      ],
+      [
+       "[SEP]",
+       -0.424
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.126
+      ],
+      [
+       "managed",
+       -0.007
+      ],
+      [
+       "with",
+       0.079
+      ],
+      [
+       "nitrate",
+       -0.162
+      ],
+      [
+       "for",
+       -0.306
+      ],
+      [
+       "chest",
+       0.138
+      ],
+      [
+       "pain",
+       -0.098
+      ],
+      [
+       ".",
+       -0.055
+      ],
+      [
+       "ready",
+       -0.016
+      ],
+      [
+       "discharge",
+       0.028
+      ],
+      [
+       "home",
+       0.103
+      ],
+      [
+       "today",
+       -0.124
+      ],
+      [
+       ".",
+       -0.078
+      ],
+      [
+       "managed",
+       0.006
+      ],
+      [
+       "with",
+       0.024
+      ],
+      [
+       "aspirin",
+       -0.089
+      ],
+      [
+       "for",
+       -0.086
+      ],
+      [
+       "chest",
+       0.02
+      ],
+      [
+       "pain",
+       -0.059
+      ],
+      [
+       "[SEP]",
+       -0.066
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.599
+      ],
+      [
+       "treated",
+       0.113
+      ],
+      [
+       "with",
+       0.178
+      ],
+      [
+       "cefazolin",
+       -0.269
+      ],
+      [
+       "for",
+       -0.46
+      ],
+      [
+       "infection",
+       0.001
+      ],
+      [
+       "[SEP]",
+       -0.481
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       0.457
+      ],
+      [
+       "managed",
+       0.051
+      ],
+      [
+       "with",
+       -0.064
+      ],
+      [
+       "metoclopramide",
+       -0.323
+      ],
+      [
+       "for",
+       -0.456
+      ],
+      [
+       "fever",
+       -0.006
+      ],
+      [
+       "[SEP]",
+       -0.35
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.0,
+    0.15
+   ],
+   "att_top1": [
+    0.155,
+    0.305
+   ],
+   "att_special_median": [
+    0.107,
+    0.175
+   ],
+   "occ_spearman_median": {
+    "1": 0.538,
+    "2": 0.4
+   },
+   "occ_base_spearman_median": {
+    "3": 0.654,
+    "4": 0.515
+   },
+   "ig_vs_diff_median": 0.371,
+   "top_kind_ig": {
+    "no": 2,
+    "[CLS]": 73,
+    "other": 81,
+    "[SEP]": 27,
+    "drug": 5,
+    "symptom": 6,
+    "with": 1,
+    ".": 5
+   },
+   "top_kind_att": {
+    "symptom": 7,
+    "other": 100,
+    "with": 79,
+    "[SEP]": 7,
+    ".": 5,
+    "no": 2
+   },
+   "pair_share_median": 0.111,
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "no": 2,
+      "other": 168,
+      "drug": 7,
+      "with": 8,
+      "symptom": 9,
+      ".": 6
+     },
+     "delta_median": 0.0086,
+     "words_spearman_vs_allpad": 1.0,
+     "pair_share_median": 0.149
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "no": 6,
+      "other": 178,
+      "drug": 5,
+      "symptom": 7,
+      ".": 3,
+      "with": 1
+     },
+     "delta_median": 0.0048,
+     "words_spearman_vs_allpad": 0.775,
+     "pair_share_median": 0.175
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "no": 6,
+      "symptom": 15,
+      "other": 117,
+      "with": 33,
+      ".": 20,
+      "drug": 9
+     },
+     "delta_median": 0.0053,
+     "words_spearman_vs_allpad": 0.44,
+     "pair_share_median": 0.162
+    }
+   }
+  },
+  "full": {
+   "acc": 0.837,
+   "n": 200,
+   "correct": 169,
+   "delta_median": {
+    "5": 0.2149,
+    "20": 0.0525,
+    "50": 0.0235,
+    "300": 0.0034
+   },
+   "delta_p90": {
+    "5": 0.6547,
+    "20": 0.141,
+    "50": 0.0599,
+    "300": 0.0097
+   },
+   "against": 200,
+   "against_rows": [
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.898
+      ],
+      [
+       "no",
+       -0.403
+      ],
+      [
+       "chest",
+       0.532
+      ],
+      [
+       "pain",
+       0.33
+      ],
+      [
+       "on",
+       -0.379
+      ],
+      [
+       "exam",
+       -0.189
+      ],
+      [
+       ".",
+       -0.075
+      ],
+      [
+       "managed",
+       -0.175
+      ],
+      [
+       "with",
+       0.37
+      ],
+      [
+       "antibiotics",
+       -0.178
+      ],
+      [
+       "for",
+       -0.724
+      ],
+      [
+       "infection",
+       0.008
+      ],
+      [
+       ".",
+       -0.031
+      ],
+      [
+       "managed",
+       -0.283
+      ],
+      [
+       "with",
+       0.063
+      ],
+      [
+       "nitrate",
+       1.404
+      ],
+      [
+       "for",
+       -0.201
+      ],
+      [
+       "chest",
+       0.131
+      ],
+      [
+       "pain",
+       -0.074
+      ],
+      [
+       "[SEP]",
+       -0.028
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       2.314
+      ],
+      [
+       "treated",
+       -0.262
+      ],
+      [
+       "with",
+       1.102
+      ],
+      [
+       "ibuprofen",
+       0.899
+      ],
+      [
+       "for",
+       -0.749
+      ],
+      [
+       "fever",
+       0.843
+      ],
+      [
+       ".",
+       0.05
+      ],
+      [
+       "patient",
+       -1.11
+      ],
+      [
+       "deteriorated",
+       0.148
+      ],
+      [
+       "overnight",
+       0.262
+      ],
+      [
+       "[SEP]",
+       -0.469
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       2.265
+      ],
+      [
+       "treated",
+       -0.083
+      ],
+      [
+       "with",
+       0.636
+      ],
+      [
+       "ibuprofen",
+       0.587
+      ],
+      [
+       "for",
+       -0.58
+      ],
+      [
+       "fever",
+       1.227
+      ],
+      [
+       "[SEP]",
+       0.384
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       1.329
+      ],
+      [
+       "managed",
+       -0.523
+      ],
+      [
+       "with",
+       1.12
+      ],
+      [
+       "nitrate",
+       -0.024
+      ],
+      [
+       "for",
+       -0.314
+      ],
+      [
+       "chest",
+       0.745
+      ],
+      [
+       "pain",
+       -0.769
+      ],
+      [
+       ".",
+       -0.176
+      ],
+      [
+       "ready",
+       0.117
+      ],
+      [
+       "discharge",
+       0.172
+      ],
+      [
+       "home",
+       0.468
+      ],
+      [
+       "today",
+       0.067
+      ],
+      [
+       ".",
+       0.021
+      ],
+      [
+       "managed",
+       -0.108
+      ],
+      [
+       "with",
+       -0.067
+      ],
+      [
+       "aspirin",
+       0.206
+      ],
+      [
+       "for",
+       -0.576
+      ],
+      [
+       "chest",
+       -0.11
+      ],
+      [
+       "pain",
+       -0.13
+      ],
+      [
+       "[SEP]",
+       0.045
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       2.422
+      ],
+      [
+       "treated",
+       -0.146
+      ],
+      [
+       "with",
+       0.537
+      ],
+      [
+       "cefazolin",
+       0.811
+      ],
+      [
+       "for",
+       -0.539
+      ],
+      [
+       "infection",
+       0.358
+      ],
+      [
+       "[SEP]",
+       0.603
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       -1.669
+      ],
+      [
+       "managed",
+       0.377
+      ],
+      [
+       "with",
+       -0.238
+      ],
+      [
+       "metoclopramide",
+       1.229
+      ],
+      [
+       "for",
+       -0.514
+      ],
+      [
+       "fever",
+       0.932
+      ],
+      [
+       "[SEP]",
+       -0.224
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.377,
+    0.297
+   ],
+   "att_top1": [
+    0.34,
+    0.26
+   ],
+   "att_special_median": [
+    0.095,
+    0.178
+   ],
+   "occ_spearman_median": {
+    "1": 0.553,
+    "2": 0.385
+   },
+   "occ_base_spearman_median": {
+    "3": 0.745,
+    "4": 0.6
+   },
+   "ig_vs_diff_median": 0.8,
+   "top_kind_ig": {
+    "drug": 19,
+    "[CLS]": 162,
+    "symptom": 17,
+    "other": 1,
+    "with": 1
+   },
+   "top_kind_att": {
+    "symptom": 5,
+    "other": 54,
+    "[CLS]": 17,
+    "drug": 93,
+    "with": 29,
+    "[SEP]": 2
+   },
+   "pair_share_median": 0.226,
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "drug": 60,
+      "other": 44,
+      "symptom": 69,
+      "with": 25,
+      "no": 2
+     },
+     "delta_median": 0.0235,
+     "words_spearman_vs_allpad": 1.0,
+     "pair_share_median": 0.362
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "drug": 70,
+      "symptom": 82,
+      "other": 32,
+      "no": 9,
+      "with": 7
+     },
+     "delta_median": 0.0169,
+     "words_spearman_vs_allpad": 0.862,
+     "pair_share_median": 0.512
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "drug": 65,
+      "symptom": 80,
+      "other": 37,
+      "with": 7,
+      "no": 9,
+      ".": 2
+     },
+     "delta_median": 0.0223,
+     "words_spearman_vs_allpad": 0.661,
+     "pair_share_median": 0.484
+    }
+   }
+  },
+  "lora": {
+   "acc": 0.816,
+   "n": 200,
+   "correct": 162,
+   "delta_median": {
+    "5": 0.568,
+    "20": 0.1515,
+    "50": 0.0603,
+    "300": 0.0105
+   },
+   "delta_p90": {
+    "5": 1.1741,
+    "20": 0.3293,
+    "50": 0.1277,
+    "300": 0.0205
+   },
+   "against": 200,
+   "against_rows": [
+    {
+     "pred": 1,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       -0.402
+      ],
+      [
+       "no",
+       0.268
+      ],
+      [
+       "chest",
+       -1.245
+      ],
+      [
+       "pain",
+       -0.277
+      ],
+      [
+       "on",
+       0.504
+      ],
+      [
+       "exam",
+       -0.386
+      ],
+      [
+       ".",
+       -0.063
+      ],
+      [
+       "managed",
+       0.058
+      ],
+      [
+       "with",
+       0.121
+      ],
+      [
+       "antibiotics",
+       -0.158
+      ],
+      [
+       "for",
+       0.013
+      ],
+      [
+       "infection",
+       -0.028
+      ],
+      [
+       ".",
+       -0.078
+      ],
+      [
+       "managed",
+       -0.035
+      ],
+      [
+       "with",
+       0.019
+      ],
+      [
+       "nitrate",
+       -0.38
+      ],
+      [
+       "for",
+       0.002
+      ],
+      [
+       "chest",
+       0.084
+      ],
+      [
+       "pain",
+       0.006
+      ],
+      [
+       "[SEP]",
+       -0.105
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.259
+      ],
+      [
+       "treated",
+       -0.719
+      ],
+      [
+       "with",
+       -0.899
+      ],
+      [
+       "ibuprofen",
+       -1.257
+      ],
+      [
+       "for",
+       -0.411
+      ],
+      [
+       "fever",
+       5.188
+      ],
+      [
+       ".",
+       -0.41
+      ],
+      [
+       "patient",
+       -1.294
+      ],
+      [
+       "deteriorated",
+       0.312
+      ],
+      [
+       "overnight",
+       0.597
+      ],
+      [
+       "[SEP]",
+       -0.051
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       0.878
+      ],
+      [
+       "treated",
+       -0.746
+      ],
+      [
+       "with",
+       -2.015
+      ],
+      [
+       "ibuprofen",
+       -2.219
+      ],
+      [
+       "for",
+       -0.438
+      ],
+      [
+       "fever",
+       7.778
+      ],
+      [
+       "[SEP]",
+       -0.052
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       -0.968
+      ],
+      [
+       "managed",
+       -0.601
+      ],
+      [
+       "with",
+       -0.403
+      ],
+      [
+       "nitrate",
+       0.276
+      ],
+      [
+       "for",
+       -0.308
+      ],
+      [
+       "chest",
+       2.72
+      ],
+      [
+       "pain",
+       0.167
+      ],
+      [
+       ".",
+       0.403
+      ],
+      [
+       "ready",
+       0.024
+      ],
+      [
+       "discharge",
+       0.104
+      ],
+      [
+       "home",
+       0.223
+      ],
+      [
+       "today",
+       -0.135
+      ],
+      [
+       ".",
+       0.297
+      ],
+      [
+       "managed",
+       0.029
+      ],
+      [
+       "with",
+       0.057
+      ],
+      [
+       "aspirin",
+       -0.051
+      ],
+      [
+       "for",
+       -0.551
+      ],
+      [
+       "chest",
+       -0.388
+      ],
+      [
+       "pain",
+       0.207
+      ],
+      [
+       "[SEP]",
+       0.295
+      ]
+     ]
+    },
+    {
+     "pred": 0,
+     "y": 0,
+     "toks": [
+      [
+       "[CLS]",
+       2.005
+      ],
+      [
+       "treated",
+       -0.498
+      ],
+      [
+       "with",
+       -0.512
+      ],
+      [
+       "cefazolin",
+       0.726
+      ],
+      [
+       "for",
+       -0.934
+      ],
+      [
+       "infection",
+       2.701
+      ],
+      [
+       "[SEP]",
+       0.351
+      ]
+     ]
+    },
+    {
+     "pred": 1,
+     "y": 1,
+     "toks": [
+      [
+       "[CLS]",
+       -0.892
+      ],
+      [
+       "managed",
+       0.371
+      ],
+      [
+       "with",
+       -0.062
+      ],
+      [
+       "metoclopramide",
+       -0.158
+      ],
+      [
+       "for",
+       -0.507
+      ],
+      [
+       "fever",
+       0.007
+      ],
+      [
+       "[SEP]",
+       -0.233
+      ]
+     ]
+    }
+   ],
+   "att_spearman_median": [
+    0.394,
+    0.345
+   ],
+   "att_top1": [
+    0.205,
+    0.24
+   ],
+   "att_special_median": [
+    0.078,
+    0.186
+   ],
+   "occ_spearman_median": {
+    "1": 0.5,
+    "2": 0.394
+   },
+   "occ_base_spearman_median": {
+    "3": 0.739,
+    "4": 0.509
+   },
+   "ig_vs_diff_median": 0.75,
+   "top_kind_ig": {
+    "symptom": 90,
+    "[CLS]": 44,
+    "with": 7,
+    "other": 41,
+    "drug": 17,
+    ".": 1
+   },
+   "top_kind_att": {
+    "symptom": 12,
+    "other": 103,
+    "drug": 72,
+    "with": 11,
+    ".": 1,
+    "[CLS]": 1
+   },
+   "pair_share_median": 0.266,
+   "baselines": {
+    "all-pad": {
+     "top_word_kind": {
+      "symptom": 92,
+      "other": 67,
+      "with": 9,
+      "drug": 30,
+      "no": 1,
+      ".": 1
+     },
+     "delta_median": 0.0603,
+     "words_spearman_vs_allpad": 1.0,
+     "pair_share_median": 0.337
+    },
+    "keep-special-pad": {
+     "top_word_kind": {
+      "symptom": 82,
+      "other": 71,
+      "drug": 37,
+      "with": 6,
+      ".": 4
+     },
+     "delta_median": 0.0352,
+     "words_spearman_vs_allpad": 0.783,
+     "pair_share_median": 0.4
+    },
+    "keep-special-mask": {
+     "top_word_kind": {
+      "symptom": 67,
+      "drug": 68,
+      "other": 49,
+      "with": 16
+     },
+     "delta_median": 0.0267,
+     "words_spearman_vs_allpad": 0.442,
+     "pair_share_median": 0.481
+    }
+   }
+  }
+ },
+ "inner": {
+  "transfer": {
+   "spearman_vs_ig": {
+    "4": 0.171,
+    "8": 0.094,
+    "12": 0.073
+   },
+   "top5": [
+    [
+     41,
+     42,
+     271,
+     469,
+     470
+    ],
+    [
+     49,
+     50,
+     51,
+     52,
+     54
+    ],
+    [
+     1,
+     41,
+     42,
+     271,
+     272
+    ],
+    [
+     1,
+     2,
+     41,
+     42,
+     271
+    ],
+    [
+     1,
+     2,
+     41,
+     42,
+     271
+    ],
+    [
+     41,
+     279,
+     280,
+     469,
+     470
+    ],
+    [
+     1,
+     205,
+     206,
+     497,
+     498
+    ],
+    [
+     1,
+     2,
+     41,
+     42,
+     272
+    ]
+   ],
+   "cls_window_over_rest_median": 2.95
+  },
+  "full": {
+   "spearman_vs_ig": {
+    "4": 0.153,
+    "8": 0.098,
+    "12": 0.087
+   },
+   "top5": [
+    [
+     91,
+     93,
+     94,
+     95,
+     96
+    ],
+    [
+     49,
+     51,
+     52,
+     435,
+     436
+    ],
+    [
+     92,
+     93,
+     94,
+     95,
+     96
+    ],
+    [
+     83,
+     84,
+     187,
+     188,
+     271
+    ],
+    [
+     91,
+     93,
+     94,
+     95,
+     96
+    ],
+    [
+     91,
+     92,
+     93,
+     94,
+     96
+    ],
+    [
+     205,
+     206,
+     493,
+     495,
+     496
+    ],
+    [
+     92,
+     93,
+     94,
+     95,
+     96
+    ]
+   ],
+   "cls_window_over_rest_median": 1.42
+  }
+ }
+}

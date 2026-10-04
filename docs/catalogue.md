@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; NEXT 87 explainability, measure first — § *Slot 85*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **MEASURED, MOCKED AND PICKED 2026-10-04** (three pages Attention · Integrated gradients · Occlusion on 85's models; NEXT its draft) — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -23528,6 +23528,96 @@ protein tile) and two interrupted (a page switch mid-press, a task switch
 mid-press) — three identical runs at DPR 1.25 visible, then a fourth reading 19/19
 MATCH; canvases 688 wide, the LoRA page 1,008 tall, no scrollbar. No core file
 changed, so no full-suite run was owed.
+
+### Slot 87 · `explainability` — MEASURED AND MOCKED 2026-10-04
+
+**Host:** 08-1 cell 20 (attention as one source of explanation; captum), 08-2
+cells 66–76 (Layer Integrated Gradients on the clinical transfer model: baseline
+captum's default, input ids 0 at every position; `target=pred_id`; summed over
+the embedding, **clipped to positive, scaled 0–1**; bars and the heat behind the
+tokens), 08-3 cells 79–89 (captum `Occlusion` on the adapted ESM-2: k 4, stride
+k // 2, baseline `PAD_IDX = 0`, the attention mask left at 1, **absolute
+values**). The pages picked 2026-10-02: Attention · Integrated gradients ·
+Occlusion, on 85's own models and tasks.
+
+**Measured** (`_lab/explainability-measure.py`, `.json`): 85's models rebuilt by
+executing `adapting-table.py` up to its main block, each one's held-out accuracy
+equal to 85's table; 200 held-out notes or 20–30 held-out proteins a model;
+IG on the token embedding exactly as the lesson's LIG, target the predicted
+class's logit.
+
+- **An attribution explains the model, not the label** — the strongest stage.
+  Drug error, the largest word (baseline keeping [CLS]/[SEP]): a drug or a
+  symptom in 152 of 200 notes under Full (84%), in 12 of 200 under Transfer
+  (51%, chance), where it is "for" in 115. On 85's four rows Transfer predicts
+  "error" for all four, every word near zero.
+- **The cue need not be the clinical one.** Outcome (1 when any finding is
+  asserted): the top word is "with" in 51–52 of 200 and "from" in 29–42 — the
+  grammar's frames for an asserted finding ("presented with …", "discharge from
+  wound") — a symptom word in 1–6 of 200. A fact about the data, so copy says
+  only what was measured ([[label-rule-not-model-reason]]).
+- **Attention is not attribution.** [CLS] row, mean of heads, against |IG| over
+  the words: Spearman 0.15–0.52 at the last block, 0.00–0.43 at the first; the
+  same top word in 12–68% of notes; proteins 0.09 at the last block.
+- **Steps:** completeness gap, Outcome / Full, median 0.67 · 0.15 · 0.055 ·
+  0.010 at 5 · 20 · 50 · 300 steps (captum's default 50).
+- **The clip:** a word pushing against the prediction by ≥ 10% of the largest
+  in 179–200 of 200 notes on every model; "no chest pain reported" (Full): "pain"
+  −1.06, shown as 0 by the lesson's clip.
+- **The baseline and [CLS]:** the lesson's all-[PAD] baseline replaces [CLS],
+  the row the classifier reads, so [CLS] takes the largest attribution in 19–162
+  of 200 notes (Drug error / Full 162). Keeping [CLS]/[SEP] moves the word
+  ranking little (Spearman 0.77–0.98) and lifts Drug error / Full's drug+symptom
+  share 0.36 → 0.51.
+- **Occlusion and [CLS], the same mechanism:** captum slides the window over
+  every position, so the first window covers [CLS]: on proteins its |change| is
+  **3.0×** the largest residue window's under Transfer, 1.4× under Full (median
+  of 20), and positions 0–3 are the top four in every protein measured on the
+  scratch model. With [CLS]/[SEP] left in place the peaks recur across proteins
+  (Transfer: residues ~41–42, 271, 469–470; Full: ~91–96). On
+  ESM-2 the lesson's `PAD_IDX = 0` is `<cls>` (finding told 2026-09-25).
+- **Occlusion against IG:** notes, a word at a time, 0.40–0.81; **proteins
+  0.15–0.18 (k 4) · 0.09–0.10 (k 8) · 0.07–0.09 (k 12)** (scratch, Transfer and
+  Full; [CLS] left in place for the last two) — the two methods rank residues
+  differently. [PAD] against [MASK] 0.65–0.84 on notes, 0.66 on proteins;
+  against [UNK] 0.35.
+- **Ruled out:** that attention or attribution shows the clinical reasoning; that
+  the predicted logit's attribution is the decision on an uncertain model
+  (Transfer / Drug error 0.37 against the logit difference's; 0.94–1.0 on the
+  confident models, so the lesson's `target=pred_id` is fine there).
+
+**Mock** `_lab/explainability-mock.html` (data `_lab/explainability-mock-data.json`,
+85's four held-out rows a task under every way): one answer strip (the lesson's
+heat behind the tokens over its bars, signed red/blue on `--c-value-high/low`,
+attention in ink) in a fixed place with each page's mechanism under it; IG's path
+(the logit from α 0 to 1, the steps as ticks, the completeness line); signed
+against the clip; Transfer against Full on Drug error; the two baselines; the
+protein occlusion lines. Four questions at its foot (pages, which model, IG's
+controls, occlusion's data).
+
+**PICKED 2026-10-04, eight answers, every one the recommendation:**
+
+1. **Pages** Attention · Integrated gradients · Occlusion, Attention first (08-1
+   cell 20's order); one answer strip in a fixed place, each page's mechanism
+   under it.
+2. **The model** is 85's **Training** control (From scratch · Transfer · Full ·
+   LoRA), default Transfer (the lesson's), beside 85's **Task** control (Outcome ·
+   Drug error · Influenza host).
+3. **Examples** are 85's four held-out rows a task (Example 1–4), so one note can
+   be followed across both widgets.
+4. **Attention:** Block 1 · 2 and Head Mean · 1–4 controls, default block 2 and
+   the mean; the strip is the [CLS] row, the attention matrix under it.
+5. **Integrated gradients:** Steps 5 · 20 · 50 · 300 with the completeness line;
+   Show Signed · Positive only; the lesson's baseline, with a caption on [CLS].
+6. **Occlusion** on both data: a word at a time on notes (Window 1 · 2), k 4 · 8 ·
+   12 on proteins; the windows cover words or residues only, never [CLS] or
+   [SEP], with one caption line saying the lesson's call also occludes [CLS],
+   which the classifier reads.
+
+Left to the draft as conventional: the signed ramp `--c-value-high/low` (75's),
+attention in ink, the attributions computed ahead into a generated `table.js`
+(no gradients in the browser), and the title and slug picked 2026-10-02. NEXT:
+the draft, on his word.
 
 ### The open calls
 
