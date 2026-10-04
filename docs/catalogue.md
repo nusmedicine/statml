@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **MEASURED, MOCKED AND PICKED 2026-10-04** (three pages Attention · Integrated gradients · Occlusion on 85's models; NEXT its draft) — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -23618,6 +23618,38 @@ Left to the draft as conventional: the signed ramp `--c-value-high/low` (75's),
 attention in ink, the attributions computed ahead into a generated `table.js`
 (no gradients in the browser), and the title and slug picked 2026-10-02. NEXT:
 the draft, on his word.
+
+**DRAFTED 2026-10-04** (e6ba29f): `widgets/explainability/` with a GENERATED
+`table.js` (3.1 MB) from `_lab/explainability-table.py`, which rebuilds 85's
+models and checks each accuracy against 85's table; `_lab/explainability-verify.mjs`
+in `npm test` (IG's gap is sum(attr) − (f(x) − f(b)) and shrinks with the steps,
+every attention row sums to 1, no occlusion window covers [CLS] or [SEP], the
+struck words). The strip's columns sit over the attention matrix's columns, so
+the strip is visibly the matrix's [CLS] row; attention on --c-magnitude as 83;
+the Method row's "Integrated / gradients" on two lines through core's `qual`
+(widget 54's verify guard names 87 as a deliberate opt-in).
+
+**Round 1, 2026-10-05:** his question "positive = positive outcome or yes for
+illness?" — his `clinical_outcome.csv` (downloaded on his leave) has 1 =
+deteriorating, 0 = stable, the same direction as the grammar; Outcome's labels
+became **normal · abnormal** in 87 and in shipped 85 (three 85 states rebaselined,
+px only). His question whether LIG includes [CLS]/[SEP]: yes, as the lesson's
+call does; captum's tutorial keeps them in the baseline (they then score exactly
+0); he kept the lesson's (option 1). Copy audit: ten rows, every one applied
+("strip" is ours; no query that gives or block that takes; the IG detail says
+change × averaged gradient; "computed from [CLS]'s final vector"; f named); the
+subtitle then went to his T1 — attention first, "a large weight need not mean
+that token changed the prediction", then the two attribution scores; blurb
+"Attention weights, then integrated gradients and occlusion: which tokens a
+prediction depended on."
+
+**SHIPPED AND PUSHED 2026-10-05** on his "tested ok, push both to gallery": status
+flipped first, then **18 states** — twelve settled (every page on notes and
+proteins, a head, positive only, 5 steps, window 2 and 8), four driven (a key in
+flight, IG's Play part way, the window mid-slide, a protein's Play), one hit (a
+click on the third row) and one interrupted (an Attention press cut by a switch
+to Occlusion) — three identical runs at DPR 1.25 visible, then 18/18 MATCH.
+The language arc's planned widgets are COMPLETE (83 · 84 · 85 · 87; 86 cut into 85).
 
 ### The open calls
 

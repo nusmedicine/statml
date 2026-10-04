@@ -1,5 +1,48 @@
 # Handover
 
+**2026-10-04 to 10-05: 87 `explainability` SHIPPED AND PUSHED (18 states) as "Deep
+Learning - Language: Explainability" — the record is the catalogue's § Slot 87,
+from *MEASURED AND MOCKED* to *SHIPPED AND PUSHED*.** PHM5005 08-1 cell 20, 08-2
+cells 66–76, 08-3 cells 79–89. Three pages under **Method** — Attention ·
+Integrated gradients · Occlusion — on 85's own models (its Training and Task
+controls) and its four held-out rows a task (Example 1–4, or a click on a row).
+Every page draws one answer strip in the same place (heat behind the tokens over
+signed bars) with its mechanism under it: the attention matrix with the strip as
+its [CLS] row (Block, Head); the predicted class's logit along IG's path, a press a
+step (Steps 5 · 20 · 50 · 300, Show Signed · Positive only); the logit with each
+occlusion window charted under the tokens (Window 1 · 2 words, 4 · 8 · 12
+residues). Also in this session: 85's Outcome labels became **normal · abnormal**
+(his CSV: 1 = deteriorating), pushed with 87.
+
+**Worth knowing before the next widget:**
+
+- **Measured first, and the measurement found the trap the page captions:** the
+  lesson's IG baseline (every id [PAD], [CLS] included) and captum's occlusion
+  (windows over every position) both replace [CLS], the vector the head reads, so
+  [CLS] takes the largest attribution in up to 162 of 200 notes and the [CLS]
+  window 1.4–3× any residue window. His picks: IG keeps the lesson's baseline with a
+  caption; occlusion windows cover words or residues only. Attention vs |IG|
+  Spearman 0.15–0.52; Drug error's attribution follows the MODEL (Full: drug or
+  symptom top in 152/200; Transfer at chance: "for" in 115).
+- **`widgets/explainability/table.js` (3.1 MB) is GENERATED** by
+  `_lab/explainability-table.py <influenza_ha.csv>` (about 5 min; it execs
+  `explainability-measure.py` in `lib` mode, which execs `adapting-table.py` up to
+  its main block). Regenerate after any change to 85's training or data. The HA
+  CSV and `_lab/protein-base.pt` are still outside the repository.
+- **Git Bash heredocs in this environment collapse backslashes**: a Python patch
+  written through `<<'EOF'` with `\n` or `\\b` came out wrong three times. Write a
+  script with the Write tool, or edit with Edit.
+- **`qual` on a segmented option** gives it a second line; widget 54's verify
+  guards that no other rail moved, and now names 87 as the one deliberate opt-in.
+- **"strip" is OUR word** (the audit's row 1); 87's verify strikes it with
+  "gives", "takes" and "read from".
+
+**SEVENTY-SIX WIDGETS IN THE MANIFEST — 75 on the gallery and `roc-auc`
+UNLISTED. THE LANGUAGE ARC IS COMPLETE (83 · 84 · 85 · 87).** NEXT: his call.
+Suggested notebook edits told to him: 08-2 cell 19's label as "0 =
+stable/improving, 1 = deteriorating"; 08-2 cell 72 could pass a [CLS]/[SEP]-kept
+baseline. Dev server this session :8011 (another chat held :8010).
+
 **2026-10-01 to 10-04: 85 `adapting` SHIPPED AND PUSHED (8160db8, 19 states, deploy green) as
 "Deep Learning - Language: Training and Adapting" — the record is the
 catalogue's § Slot 85, from *REPLANNED* to *SHIPPED AND PUSHED*.** PHM5005 08-1
