@@ -84,6 +84,7 @@ for (const task of TASKS) {
       ok(1 + (d.length - 1) * st + k <= L - 1, `${tag} k ${k}: the last window ends before [SEP]`);
     }
     ok(Math.abs(e.occ.f0 - e.logits[e.pred]) < 1e-3, `${tag}: occlusion starts from the predicted class's logit`);
+    ok(T.occBase === "[MASK]", `${tag}: the occluding token is [MASK], as the page says`);
   });
   for (let i = 1; i < T.steps.length; i++) ok(med(gaps[T.steps[i]]) < med(gaps[T.steps[i - 1]]), `${task}: the median gap shrinks from ${T.steps[i - 1]} to ${T.steps[i]} steps`);
 }

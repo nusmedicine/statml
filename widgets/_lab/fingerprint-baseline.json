@@ -11570,14 +11570,14 @@
       "$note": "explainability · Occlusion, Drug error, Transfer, a word at a time",
       "slug": "explainability",
       "state": "?theme=light&page=occlusion&shown=1",
-      "px": "429ffa93",
+      "px": "09cefcd2",
       "tx": "8a83202f"
     },
     {
       "$note": "explainability · Occlusion, Outcome, example 2, window 2",
       "slug": "explainability",
       "state": "?theme=light&page=occlusion&task=outcome&example=2&words=2&shown=1",
-      "px": "beb03498",
+      "px": "40af4c13",
       "tx": "4cf5cef8"
     },
     {
@@ -11598,15 +11598,22 @@
       "$note": "explainability · Occlusion on a protein, window 8",
       "slug": "explainability",
       "state": "?theme=light&page=occlusion&task=influenza-host&window=8&shown=1",
-      "px": "1d34f41d",
+      "px": "e56c4921",
       "tx": "954db639"
     },
     {
       "$note": "explainability · Occlusion on a protein before a press",
       "slug": "explainability",
       "state": "?theme=light&page=occlusion&task=influenza-host&shown=0",
-      "px": "3cd4c323",
+      "px": "f9c0f5ac",
       "tx": "eb82a139"
+    },
+    {
+      "$note": "explainability · Occlusion on a protein, Absolute: the lesson's np.abs",
+      "slug": "explainability",
+      "state": "?theme=light&page=occlusion&task=influenza-host&values=absolute&shown=1",
+      "px": "5df4336d",
+      "tx": "ff2abf5e"
     },
     {
       "$note": "explainability · DRIVEN - Attention: the first key's weight in flight from the [CLS] row",
@@ -11647,7 +11654,7 @@
         "frames": 6,
         "dt": 32
       },
-      "px": "d6a5383f",
+      "px": "435a6d46",
       "tx": "4314b844"
     },
     {
@@ -11659,7 +11666,7 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "7358091b",
+      "px": "e89f6540",
       "tx": "b761951c"
     },
     {
@@ -11694,7 +11701,7 @@
         "frames": 20,
         "dt": 32
       },
-      "px": "661e93c2",
+      "px": "c95f5070",
       "tx": "a51ad5b6"
     }
   ]

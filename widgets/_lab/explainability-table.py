@@ -30,7 +30,10 @@ class's logit, as 08-2 cell 72 and 08-3 cell 85 run it:
   path      the target logit at 51 points from alpha 0 (baseline) to 1 (input).
   occ       OCCLUSION, the windows over words or residues ONLY (his pick: never
             [CLS] or [SEP], captioned), stride k // 2 (08-3 cell 85), replaced by
-            [PAD] with the attention mask left at 1: `d` the target logit's drop
+            [MASK] with the attention mask left at 1 (2026-10-05, his: the updated
+            08-3 occludes with <mask>; both our models were pretrained with [MASK],
+            id 3, so the occluding token is one they have seen; the notes too, one
+            rule on the page; [PAD] and [MASK] maps correlated 0.66 on proteins): `d` the target logit's drop
             f(x) - f(x occluded) for each window, in order from position 1. The
             widget averages the windows covering a position, as captum does.
             Notes k 1 . 2, proteins k 4 . 8 . 12.
@@ -116,12 +119,13 @@ def one(model, mdl, ids, m):
     else:
         e["att"] = [[r4(b.att.last[0, h].flatten()) for h in range(b.att.last.shape[1])] for b in mdl.blocks]
     for k in WINDOWS[model]:
-        _, d = occlusion(mdl, ids, m, pred, k, X.PAD, True)
+        _, d = occlusion(mdl, ids, m, pred, k, X.MASK, True)
         e["occ"][str(k)] = r4(d)
     with torch.no_grad(): e["occ"]["f0"] = round(fwd(mdl, ids, m)[0, pred].item(), 4)
     return e
 
-T = {"steps": list(STEPS), "checks": CHECKS, "bin": BIN, "windows": {k: list(v) for k, v in WINDOWS.items()}, "model": {}, "examples": {}, "acc": {}, "rows": {}}
+T = {"steps": list(STEPS), "checks": CHECKS, "bin": BIN, "windows": {k: list(v) for k, v in WINDOWS.items()}, "occBase": "[MASK]",
+     "model": {}, "examples": {}, "acc": {}, "rows": {}}
 for task, (model, key) in G["TASKS"].items():
     if model == "proteins":
         G["EVERY"] = 10 ** 9   # 85's curve is its own table's business; skipping it leaves the model unchanged (no randomness)

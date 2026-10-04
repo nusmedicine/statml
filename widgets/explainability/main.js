@@ -18,9 +18,11 @@
                             f(input) − f(baseline) (measured: 0.67 · 0.15 · 0.055 ·
                             0.010 at 5 · 20 · 50 · 300 steps). Show Signed ·
                             Positive only (the lesson's clip, scaled 0–1).
-     OCCLUSION              a window replaced by [PAD] at a time, the logit with each
-                            window charted under the strip; a position's bar is the
-                            mean drop over the windows covering it (captum's rule).
+     OCCLUSION              a window replaced by [MASK] at a time (2026-10-05, his: the
+                            updated 08-3 occludes with <mask>; [PAD] until then), the
+                            logit with each window charted under the strip; a
+                            position's bar is the mean drop over the windows covering
+                            it (captum's rule). Show Signed · Absolute (the lesson's).
 
    WHAT IS EXPLAINED is 85's own models (his pick): its Training control (default
    Transfer, the lesson's model) and its Task control, on its four held-out rows a
@@ -60,7 +62,7 @@ const PAGES = [
   { value: "attention", label: "Attention", detail: "The weights in one row of an attention matrix: how much the [CLS] token's query matches each token's key; the prediction is computed from [CLS]'s final vector." },
   /* two lines: "Integrated gradients" is wider than a third of the rail */
   { value: "integrated-gradients", label: "Integrated", qual: "gradients", detail: "The change from a baseline input to the input, times the gradient of the predicted class's logit averaged along the straight path between them." },
-  { value: "occlusion", label: "Occlusion", detail: "A window of tokens replaced by [PAD], then the next window along, and the change in the predicted class's logit each time." },
+  { value: "occlusion", label: "Occlusion", detail: "A window of tokens replaced by [MASK], then the next window along, and the change in the predicted class's logit each time." },
 ];
 const WAYS = {
   scratch: { label: "From scratch", group: "Random weights", name: "From scratch", detail: "Trained from random weights on 1,024 labelled examples." },
@@ -96,12 +98,13 @@ const S = {
   showLabel: "Show", showDetail: "Positive only keeps the attributions above zero and divides them by the largest.",
   wordsLabel: "Window", wordsDetail: "How many words each window replaces; it moves by half a window, at least one word.",
   residuesLabel: "Window", residuesDetail: "How many residues each window replaces; it moves by half a window.",
+  valuesDetail: "Absolute keeps the size of each change and drops its sign.",
   rowsHead: (n) => `Four of the 1,000 held-out ${n}`,
   predHead: (way) => `prediction · ${WAYS[way].name}`,
   stripHead: {
     attention: (b, h) => `Attention from [CLS], block ${b}, ${h === "mean" ? "mean of the four heads" : `head ${h}`}`,
     "integrated-gradients": (s, pos) => `Integrated gradients, ${s} steps${pos ? ", positive only, scaled 0–1" : ""}`,
-    occlusion: (k, task) => `Occlusion, a window of ${k} ${UNIT(task, k)}`,
+    occlusion: (k, task, abs) => `Occlusion, a window of ${k} ${UNIT(task, k)}${abs ? ", absolute values" : ""}`,
   },
   predicted: (task, e) => `prediction ${LABELS[task][e.pred]} ${prob(e).toFixed(2)}`,
   attHead: (b, h) => `Block ${b}, ${h === "mean" ? "the mean of the heads" : `head ${h}`}: a row a query, a column a key`,
@@ -111,7 +114,7 @@ const S = {
   alpha0: "α = 0: every token [PAD]", alpha1: (task) => `α = 1: the ${PROTEIN(task) ? "protein" : "note"}`,
   igSum: (k, s, sum) => `after ${k} of ${s} steps the bars sum to ${f2(sum)}`,
   igDone: (sum, d, gap) => `the bars sum to ${f2(sum)} · f(input) − f(baseline) = ${f2(d)} · gap ${gap.toFixed(3)}`,
-  occHead: "The predicted class's logit with each window replaced by [PAD]",
+  occHead: "The predicted class's logit with each window replaced by [MASK]",
   occNone: "no window",
   occCount: (i, n, k, st, task) => `${i} of ${n} windows · ${k} ${UNIT(task, k)} each, every ${st}`,
   caption: {
@@ -124,7 +127,7 @@ const S = {
   stepTitle: {
     attention: "Show the next key's weight from the [CLS] row above its token",
     "integrated-gradients": "Take the gradient at the next point along the path and add it to the bars",
-    occlusion: "Replace the next window by [PAD] and chart the logit",
+    occlusion: "Replace the next window by [MASK] and chart the logit",
   },
   tilePred: "Prediction", tilePredNote: (n) => `this model, this ${n === "notes" ? "note" : "protein"}`,
   tileAcc: "Held out", tileAccNote: (n) => `accuracy on 1,000 ${n}`,
@@ -134,6 +137,7 @@ const S = {
   wait: "—",
   legend: {
     up: "Raises the predicted class's logit", down: "Lowers the predicted class's logit", att: "Attention weight", pos: "Positive attribution, scaled to the largest",
+    abs: "Size of the change in the predicted class's logit",
   },
   sum: (page, task, i) => `${{ attention: "Attention", "integrated-gradients": "Integrated gradients", occlusion: "Occlusion" }[page]} on held-out ${NOUN(task).slice(0, -1)} ${i}.`,
 };
@@ -467,14 +471,19 @@ defineWidget({
       when: { all: [{ param: "page", equals: "occlusion" }, { param: "task", oneOf: ["outcome", "drug-error"] }] } },
     window: { type: "segmented", label: S.residuesLabel, detail: S.residuesDetail, options: TABLE.windows.proteins.map((v) => ({ value: String(v), label: String(v) })), default: "4",
       when: { all: [{ param: "page", equals: "occlusion" }, { param: "task", equals: "influenza-host" }] } },
+    /* SIGNED OR ABSOLUTE (2026-10-05, his ask; Signed first, as IG's Show): the lesson takes np.abs of the map */
+    values: { type: "segmented", label: S.showLabel, detail: S.valuesDetail, options: [{ value: "signed", label: "Signed" }, { value: "absolute", label: "Absolute" }], default: "signed", display: true,
+      when: { param: "page", equals: "occlusion" } },
     /* authoring escape hatch, first render only: 1 opens every page finished */
     shown: { type: "int", min: 0, max: 1, default: 0, hidden: true },
   },
 
-  legend: ({ params: { page, show } }) => (page === "attention"
+  legend: ({ params: { page, show, values } }) => (page === "attention"
     ? [{ token: "magnitude", label: S.legend.att, mark: "bar" }]
     : page === "integrated-gradients" && show === "positive"
       ? [{ token: "value-high", label: S.legend.pos, mark: "bar" }]
+      : page === "occlusion" && values === "absolute"
+        ? [{ token: "value-high", label: S.legend.abs, mark: "bar" }]
       : [{ token: "value-high", label: S.legend.up, mark: "bar" }, { token: "value-low", label: S.legend.down, mark: "bar" }]),
 
   compute: ({ params }) => ({ task: params.task }),
@@ -539,7 +548,9 @@ defineWidget({
     } else {
       const fin = occValues(p, windows(p).length), vals = occValues(p, Math.floor(pos));
       const scale = Math.max(1e-9, ...inner(fin).map(Math.abs));
-      drawStrip(ctx, c, w, p, G, pos >= 1 ? Array.from(vals, (v, i) => (i === 0 || i === G.L - 1 ? 0 : v)) : null, { signed: true, scale, title: S.stripHead.occlusion(windowOf(p), p.task), e });
+      /* Absolute (2026-10-05, his ask): the size of each position's change, sign dropped, as the lesson's np.abs */
+      const abs = p.values === "absolute", show = (v) => (abs ? Math.abs(v) : v);
+      drawStrip(ctx, c, w, p, G, pos >= 1 ? Array.from(vals, (v, i) => (i === 0 || i === G.L - 1 ? 0 : show(v))) : null, { signed: true, scale, title: S.stripHead.occlusion(windowOf(p), p.task, abs), e });
       drawOcclusion(ctx, c, w, p, G, pos);
     }
     const capText = page === "occlusion" ? S.caption.occlusion(p.task) : S.caption[page];

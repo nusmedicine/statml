@@ -53,6 +53,7 @@ const STATES = {
     ...["1", "2", "3", "4"].map((e) => `?page=occlusion&example=${e}&words=2&shown=1`),
     ...["8", "12"].map((k) => `?page=occlusion&task=influenza-host&window=${k}&shown=1`),
     "?page=attention&block=1&head=3&shown=1", "?page=attention&task=outcome&example=2&shown=0",
+    "?page=occlusion&values=absolute&shown=1", "?page=occlusion&task=influenza-host&values=absolute&shown=1",
   ],
   /* widget 85's draft with the proteins (2026-10-03): every page under every task, before and after Train */
   "adapting": ["scratch", "transfer", "full", "lora"].flatMap((pg) => ["outcome", "drug-error", "influenza-host"].flatMap((t) =>
