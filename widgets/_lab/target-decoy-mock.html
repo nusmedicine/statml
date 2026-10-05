@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 88 — target-decoy, layout mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 8px; font-size: 11px; }
+  .rail .w { font-family: var(--font-mono); color: var(--ink-1); min-width: 120px; }
+  .rail .pg { padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.on { border-color: var(--c-highlight); }
+  .rail .n { color: var(--ink-3); margin-left: 6px; }
+  img.fig { max-width: 560px; border: 1px solid var(--grid); background: #fff; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 88 &middot; <code>target-decoy</code> &middot; Proteomics: Identification &middot; layout mock</h1>
+  <p class="note">
+    Picked on the arc mock: two pages, <b>Score &middot; Proteins</b>, a <i>True identity</i> Off &middot; On reveal, off by default. This mock
+    is the page itself at the widget's 550px, drawn from 01-1 cell 2 and its two figures (below). <b>Every number is computed on this
+    page</b> by <code>_lab/proteomics-arc-model.js</code>. Grey-ruled boxes in &sect;6 are your calls.
+  </p>
+  <div class="row">
+    <div class="cand"><h3>01-1 cell 2 &middot; proteomics-peptide.png</h3><img class="fig" src="figs/proteomics-peptide.png" alt="the lesson's target-decoy figure"></div>
+    <div class="cand"><h3>01-1 cell 2 &middot; proteomics-protein.png</h3><img class="fig" src="figs/proteomics-protein.png" alt="the lesson's protein inference figure"></div>
+  </div>
+
+  <h2>1 &middot; The score is computed, not drawn from a curve &mdash; measured</h2>
+  <p class="note">
+    The arc mock drew scores from two distributions. Your figure runs the real chain: a database of protein sequences concatenated with
+    their reversed sequences, each spectrum matched against every peptide of the right mass, target and decoy alike. So the search here
+    is that chain, small: 400 random proteins digested by trypsin (7&ndash;25 residues) are the targets; the same 400 reversed and
+    digested are the decoys; each spectrum comes from a peptide in the database (60%) or from a protein that is not, shows each of its
+    b and y fragment ions with a probability that varies spectrum to spectrum, among 120 noise peaks. The score is the number of the
+    candidate's fragment ions that land on a peak (&plusmn;0.5). The best candidate within &plusmn;0.5 Da of the precursor is the PSM.
+  </p>
+  <div class="row" id="measRow"></div>
+  <p class="rec">The decoys behave as the method needs: per score, the count of decoy PSMs tracks the count of wrong target PSMs (a
+    reversed protein has a target's composition), so D/T estimates the share wrong. And the claim the page makes holds: the list's
+    rate is not each match's.</p>
+
+  <h2>2 &middot; The Score page &mdash; three bands in your figure's order, two ways to draw the histogram</h2>
+  <p class="note">
+    Top: the database &mdash; the protein the current spectrum came from, around its peptide, and the same stretch reversed, as the
+    decoy database holds it. Middle: the current spectrum, peaks up; below it the fragment ions of the best target and the best decoy
+    candidate, a full tick where an ion lands on a peak. Bottom: every PSM so far, by its score, with the threshold. <b>A</b> overlays
+    targets and decoys, as your figure; <b>B</b> mirrors the decoys under the axis. Both after the whole search, True identity Off.
+  </p>
+  <div class="row" id="pageRow"></div>
+
+  <h2>3 &middot; True identity On, and what the threshold readout says</h2>
+  <p class="note">
+    Left: the targets split into correct and wrong &mdash; the one view a real search cannot have, so it is off by default. Right: the
+    two candidate ways to set the threshold; each prints the same two lines under the histogram &mdash; the estimate above the threshold,
+    and the decoy share in the score just at it, which is what a match AT the threshold is worth.
+  </p>
+  <div class="row" id="truthRow"></div>
+
+  <h2>4 &middot; The Search press</h2>
+  <p class="note">The widget opens empty. One press searches the spectra: the first ones slowly, each drawn in the middle band as it is
+    matched and dropped into its bin, then faster until all are in. Three frames of one press.</p>
+  <div class="row" id="pressRow"></div>
+
+  <h2>5 &middot; The Proteins page &mdash; your figure, a press a stage</h2>
+  <p class="note">Your figure's own case: proteins I&ndash;VI and peptides A&ndash;G, I {A, B}, II {B}, III {C, D, E}, IV {E, F}, V {F, G},
+    VI {F, G}. A press per stage, as the figure reads: the six proteins that match, the subsets eliminated (four protein groups), the
+    subsumables eliminated (three), the minimal set (I, III, V). The statuses are computed by the model's parsimony, which reproduces
+    your figure's groups.</p>
+  <div class="row" id="protRow"></div>
+
+  <h2>6 &middot; The calls</h2>
+  <p class="q"><b class="h">6.1 &middot; Where the score comes from</b>
+    <b>A &middot; the fragment-matching search above, every score computed (recommended: it is your figure's chain, and the decoy works for
+    the reason the lesson gives)</b> &nbsp;|&nbsp; B &middot; scores drawn from two curves, as the arc mock</p>
+  <p class="q"><b class="h">6.2 &middot; The histogram</b>
+    <b>A &middot; targets and decoys overlaid, as your figure (recommended: the overlap is the thing the decoys measure)</b> &nbsp;|&nbsp;
+    B &middot; decoys mirrored under the axis</p>
+  <p class="q"><b class="h">6.3 &middot; The threshold</b>
+    <b>A &middot; a <i>Threshold</i> slider in matched ions, the scores where the estimate reaches 1% and 5% marked on the axis (recommended: the
+    reader moves the line and reads D/T change)</b> &nbsp;|&nbsp; B &middot; an <i>FDR</i> control 1% &middot; 5% (the lesson's &ldquo;usually 1% to 5%&rdquo;), the
+    threshold found for it</p>
+  <p class="q"><b class="h">6.4 &middot; The middle band</b>
+    <b>A &middot; three bands always: the database and the current spectrum stay above the histogram after the search, showing the last
+    spectrum; hovering a bin shows one of its spectra (recommended)</b> &nbsp;|&nbsp; B &middot; the bands only while the search runs; after it the
+    histogram takes the page</p>
+  <p class="q"><b class="h">6.5 &middot; The data</b>
+    <b>A &middot; <i>Spectra from a peptide in the database</i> 30% &middot; 60% &middot; 90%, and Seed (recommended: measured in the arc &mdash; the list
+    stays at its rate while the threshold and the near-threshold share move)</b> &nbsp;|&nbsp; B &middot; Seed only</p>
+  <p class="q"><b class="h">6.6 &middot; The Proteins page</b>
+    <b>A &middot; your figure's case, a press a stage, nothing else to set (recommended)</b> &nbsp;|&nbsp; B &middot; the same, and a click on a
+    peptide marks it not identified, so the reader can see a group split or a subset appear</p>
+
+  <h2>7 &middot; The rail, as proposed</h2>
+  <div class="rail"><span class="w">Page</span><span class="pg on">Score</span><span class="pg">Proteins</span></div>
+  <div class="rail"><span class="w">Score &middot; The data</span><span class="pg">Spectra from a peptide in the database: 30% &middot; 60% &middot; 90%</span><span class="pg">Seed</span></div>
+  <div class="rail"><span class="w">Score &middot; The threshold</span><span class="pg">Threshold: matched ions &ge; 7</span><span class="pg">True identity: Off &middot; On</span><span class="n">display</span></div>
+  <div class="rail"><span class="w">Score &middot; buttons</span><span class="pg">Search</span><span class="pg">Reset</span></div>
+  <div class="rail"><span class="w">Proteins &middot; buttons</span><span class="pg">Step</span><span class="pg">Reset</span><span class="n">four presses, your figure's stages</span></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "./proteomics-arc-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function rrect(ctx, x, y, w, h, r, stroke, lw = 1) { ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const pct = (v, d = 1) => `${(100 * v).toFixed(d)}%`;
+const fmtN = (n) => n.toLocaleString();
+
+/* ------------------------------------------------------------- the data */
+const MAXS = 30;
+/* Scores are whole ions, so a threshold is a whole number: estimated FDR at t is
+   decoys / targets scoring t or more, and the 1% point is the lowest t from which
+   every higher threshold also estimates 1% or less (the q-value, on whole scores). */
+function estAt(psms, t) { let Tn = 0, Dn = 0, Wn = 0; for (const p of psms) if (Math.floor(p.score) >= t) { if (p.kind === "decoy") Dn += 1; else { Tn += 1; if (p.kind === "wrong") Wn += 1; } } return { Tn, Dn, Wn, est: Dn / Math.max(1, Tn), tru: Wn / Math.max(1, Tn) }; }
+function levelT(psms, level) { let t = MAXS + 1; for (let s = MAXS; s >= 0; s -= 1) { if (estAt(psms, s).est <= level) t = s; else break; } return t; }
+/* The default seed is a typical one: the seed in 1–20 whose true FDR at both marks
+   sits closest to its estimate (seed 1 reads 1.3% estimated against 3.3% true at its
+   1% mark — honest variation, and the wrong first impression). */
+const SEED = (() => {
+  let best = 1, bestErr = Infinity;
+  for (let s = 1; s <= 20; s += 1) {
+    const ps = M.simulateSpectraSearch(M.makeRng(s)).psms;
+    const a = estAt(ps, levelT(ps, 0.01)), b = estAt(ps, levelT(ps, 0.05));
+    const err = Math.abs(a.tru - a.est) / 0.01 + Math.abs(b.tru - b.est) / 0.05;
+    if (err < bestErr) { bestErr = err; best = s; }
+  }
+  return best;
+})();
+const SEARCH = M.simulateSpectraSearch(M.makeRng(SEED));
+const PSMS = SEARCH.psms;
+const T1 = levelT(PSMS, 0.01), T5 = levelT(PSMS, 0.05);
+function counts(psms) {
+  const c = Array.from({ length: MAXS + 1 }, () => ({ correct: 0, wrong: 0, decoy: 0 }));
+  for (const p of psms) c[Math.min(MAXS, Math.floor(p.score))][p.kind] += 1;
+  return c;
+}
+const above = estAt;
+// the example spectrum: a correct PSM with a middling score, from a protein in the database
+const EX = PSMS[PSMS.length - 1]; // the last spectrum searched stays in the middle band
+
+/* ----------------------------------------------------------- drawing */
+function drawDatabase(ctx, y0, psm) {
+  label(ctx, "The database", 12, y0 + 12, { colour: T.ink1, weight: "600" });
+  // where the best TARGET candidate sits: the search knows its candidates, not the spectrum's source
+  const pep = psm.bestT ? psm.bestT.p : psm.peptide;
+  const prot = SEARCH.prot.find((x) => x.includes(pep));
+  const at = prot.indexOf(pep);
+  const win = 56;
+  const s0 = Math.max(0, Math.min(prot.length - win, at - Math.floor((win - psm.source.length) / 2)));
+  const stretch = prot.slice(s0, s0 + win);
+  const rev = [...stretch].reverse().join("");
+  const cw = 7.0, x0 = 120;
+  const drawSeq = (seq, y, hiFrom, hiLen, col) => {
+    [...seq].forEach((ch, i) => label(ctx, ch, x0 + i * cw, y, { mono: true, size: 11, colour: i >= hiFrom && i < hiFrom + hiLen ? col : T.ink3, weight: i >= hiFrom && i < hiFrom + hiLen ? "700" : "" }));
+  };
+  label(ctx, "target", x0 - 10, y0 + 32, { align: "right", size: 10, colour: T.empirical, weight: "600" });
+  drawSeq(stretch, y0 + 32, at - s0, pep.length, T.empirical);
+  label(ctx, "decoy, reversed", x0 - 10, y0 + 50, { align: "right", size: 10, colour: T.ink3, weight: "600" });
+  drawSeq(rev, y0 + 50, win - (at - s0) - pep.length, pep.length, T.ink1);
+  label(ctx, `${fmtN(SEARCH.targets)} target peptides · ${fmtN(SEARCH.decoys)} decoy peptides, searched together`, x0, y0 + 68, { size: 10, colour: T.ink3 });
+}
+function drawSpectrum(ctx, y0, psm, h = 150) {
+  label(ctx, "The spectrum, and its best target and decoy", 12, y0 + 12, { colour: T.ink1, weight: "600" });
+  const x0 = 120, w = W - 136, lo = 100, hi = 2000;
+  const sx = (m) => x0 + ((m - lo) / (hi - lo)) * w;
+  const base = y0 + 70;
+  // peak heights: a fixed pseudo-intensity per peak (the score ignores intensity)
+  psm.peaks.forEach((m, i) => { const ht = 12 + ((Math.sin(i * 12.9898 + m) * 43758.5453) % 1 + 1) % 1 * 40; line(ctx, sx(m), base, sx(m), base - ht, T.ink3, 1); });
+  line(ctx, x0, base, x0 + w, base, T.axis);
+  const ladder = (pep, y, col, name, n) => {
+    const { b, y: yy } = M.fragments(pep);
+    for (const m of [...b, ...yy]) {
+      const hit = psm.peaks.some((p) => Math.abs(p - m) <= 0.5);
+      line(ctx, sx(m), y, sx(m), y + (hit ? 16 : 6), hit ? col : wash(col === T.ink3 ? T.reference : col, 0.45), hit ? 2 : 1);
+    }
+    label(ctx, `${name}`, x0 - 10, y + 9, { align: "right", size: 10, colour: col, weight: "600" });
+    label(ctx, `${pep} · ${n} ions on a peak`, x0 + w, y + 28, { align: "right", size: 10, mono: true, colour: col });
+  };
+  if (psm.bestT) ladder(psm.bestT.p, base + 8, T.empirical, "best target", Math.floor(psm.bestT.score));
+  if (psm.bestD) ladder(psm.bestD.p, base + 46, T.ink3, "best decoy", Math.floor(psm.bestD.score));
+  else label(ctx, "no decoy peptide within the precursor window", x0, base + 58, { size: 10, colour: T.ink3 });
+  label(ctx, "m/z", x0 + w, base + 70, { align: "right", size: 10, colour: T.ink3 });
+  label(ctx, "peaks", x0 - 10, base - 8, { align: "right", size: 10, colour: T.ink3, weight: "600" });
+}
+function drawHistogram(ctx, y0, psms, { style = "overlay", truth = false, thr = T1, h = 220, marks = true, readout = true } = {}) {
+  const x0 = 56, w = W - 76, base = style === "mirror" ? y0 + h * 0.62 : y0 + h - 30;
+  const c = counts(psms);
+  // one scale for the whole search, so bars do not rescale as the pile grows
+  const all = counts(PSMS);
+  const top = Math.max(...all.map((b) => b.correct + b.wrong), ...all.map((b) => b.decoy), 1);
+  const up = style === "mirror" ? h * 0.55 : h - 50;
+  const sh = (n) => (n > 0 ? Math.max(2, (n / top) * up) : 0); // one PSM still shows
+  const bw = w / (MAXS + 1);
+  const bx = (s) => x0 + s * bw;
+  label(ctx, "Every PSM, by its score", 12, y0 + 12, { colour: T.ink1, weight: "600" });
+  c.forEach((b, s) => {
+    const x = bx(s) + 1, ww = bw - 2;
+    const tgt = b.correct + b.wrong;
+    if (truth) {
+      rect(ctx, x, base - sh(b.wrong), ww, sh(b.wrong), T.extreme);
+      rect(ctx, x, base - sh(tgt), ww, sh(b.correct), T.empirical);
+    } else rect(ctx, x, base - sh(tgt), ww, sh(tgt), T.empirical);
+    if (style === "mirror") rect(ctx, x, base, ww, sh(b.decoy), T.reference);
+  });
+  if (style === "overlay") {
+    // the decoys as a filled outline over the targets, as the figure's decoy curve
+    ctx.save(); ctx.beginPath(); ctx.moveTo(bx(0), base);
+    c.forEach((b, s) => { ctx.lineTo(bx(s), base - sh(b.decoy)); ctx.lineTo(bx(s + 1), base - sh(b.decoy)); });
+    ctx.lineTo(bx(MAXS + 1), base); ctx.closePath();
+    ctx.fillStyle = wash(T.reference, truth ? 0.15 : 0.35); ctx.fill();
+    ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.6; ctx.stroke(); ctx.restore();
+  }
+  line(ctx, x0, base, x0 + w, base, T.axis);
+  for (let s = 0; s <= MAXS; s += 5) label(ctx, String(s), bx(s) + bw / 2, (style === "mirror" ? y0 + h + 4 : base + 14), { align: "center", size: 10, colour: T.ink3 });
+  label(ctx, "score: fragment ions on a peak", x0 + w / 2, (style === "mirror" ? y0 + h + 18 : base + 28), { align: "center", size: 10, colour: T.ink3 });
+  if (marks) {
+    for (const [t, name] of [[T1, "≤ 1%"], [T5, "≤ 5%"]]) {
+      const x = bx(t);
+      line(ctx, x, y0 + 30, x, style === "mirror" ? y0 + h - 6 : base, T.ink3, 1, [3, 3]);
+      // 5% always sits left of 1%: label each away from the other
+      label(ctx, name, name === "≤ 5%" ? x - 3 : x + 3, y0 + 27, { align: name === "≤ 5%" ? "right" : "left", size: 10, colour: T.ink2 });
+    }
+  }
+  const tx = bx(thr);
+  line(ctx, tx, y0 + 22, tx, style === "mirror" ? y0 + h - 6 : base, T.highlight, 2);
+  label(ctx, "targets", x0 + w - 4, y0 + 30, { align: "right", colour: T.empirical, weight: "600", size: 10 });
+  label(ctx, "decoys", x0 + w - 4, y0 + 44, { align: "right", colour: T.ink3, weight: "600", size: 10 });
+  if (truth) { label(ctx, "correct", x0 + w - 60, y0 + 30, { align: "right", colour: T.empirical, size: 10 }); label(ctx, "wrong", x0 + w - 104, y0 + 30, { align: "right", colour: T.extreme, size: 10 }); }
+  if (readout) {
+    const a = above(psms, thr);
+    const bin = c[thr];
+    const ry = y0 + h + (style === "mirror" ? 40 : 16);
+    label(ctx, `score ≥ ${thr}: ${fmtN(a.Tn)} targets, ${a.Dn} decoys → estimated FDR ${pct(a.Dn / Math.max(1, a.Tn))}${truth ? ` (true ${pct(a.Wn / Math.max(1, a.Tn))})` : ""}`, 12, ry, { colour: T.ink1, size: 11, weight: "600" });
+    label(ctx, `score = ${thr} exactly: ${bin.decoy} decoys for ${bin.correct + bin.wrong} targets → about ${pct(bin.decoy / Math.max(1, bin.correct + bin.wrong), 0)} of these matches are wrong${truth ? ` (true ${pct(bin.wrong / Math.max(1, bin.correct + bin.wrong), 0)})` : ""}`, 12, ry + 17, { colour: T.extreme, size: 11 });
+  }
+}
+function drawPage(rowId, title, sub, opts, psms = PSMS, current = EX) {
+  const box = cand(rowId, title, sub);
+  const H = opts.style === "mirror" ? 620 : 600;
+  const ctx = canvasIn(box, W, H);
+  drawDatabase(ctx, 6, current);
+  line(ctx, 12, 86, W - 12, 86, T.grid);
+  drawSpectrum(ctx, 92, current);
+  line(ctx, 12, 268, W - 12, 268, T.grid);
+  drawHistogram(ctx, 274, psms, { h: 270, ...opts });
+}
+
+/* ========================================================= 1 measured */
+{
+  const res = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => { const r = M.simulateSpectraSearch(M.makeRng(s)); const rows = M.fdrCurve(r.psms); return { n: r.psms.length, a1: M.acceptAt(rows, 0.01), a5: M.acceptAt(rows, 0.05) }; });
+  const m = (fn) => res.reduce((s, x) => s + fn(x), 0) / res.length;
+  const t = el("table");
+  t.innerHTML = `<tr><th>10 seeds, 3,000 spectra each</th><th>accepted</th><th>score threshold</th><th>realised FDR (range)</th><th>wrong among the last 10% accepted</th></tr>`
+    + [["q ≤ 1%", "a1"], ["q ≤ 5%", "a5"]].map(([n, k]) => `<tr><td>${n}</td><td>${fmtN(Math.round(m((x) => x[k].accepted)))} of ${fmtN(Math.round(m((x) => x.n)))}</td><td>${m((x) => Math.ceil(x[k].threshold - 0.01)).toFixed(1)} ions</td><td>${pct(m((x) => x[k].trueFdr))} (${pct(Math.min(...res.map((x) => x[k].trueFdr)))}–${pct(Math.max(...res.map((x) => x[k].trueFdr)))})</td><td>${pct(m((x) => x[k].tailRate))}</td></tr>`).join("");
+  document.getElementById("measRow").appendChild(t);
+  const c = counts(PSMS);
+  const t2 = el("table");
+  t2.innerHTML = `<tr><th>seed ${SEED}, score</th>${c.slice(1, 11).map((_, i) => `<th>${i + 1}</th>`).join("")}</tr>`
+    + `<tr><td>wrong targets</td>${c.slice(1, 11).map((b) => `<td>${b.wrong}</td>`).join("")}</tr>`
+    + `<tr><td>decoys</td>${c.slice(1, 11).map((b) => `<td>${b.decoy}</td>`).join("")}</tr>`
+    + `<tr><td>correct targets</td>${c.slice(1, 11).map((b) => `<td>${b.correct}</td>`).join("")}</tr>`;
+  document.getElementById("measRow").appendChild(t2);
+}
+
+/* ========================================================== 2 the page */
+drawPage("pageRow", "A · overlaid, as your figure", `seed ${SEED} · ${fmtN(PSMS.length)} spectra searched · threshold at the score where the estimate reaches 1%`, { style: "overlay" });
+drawPage("pageRow", "B · decoys mirrored under the axis", `the same search, the same threshold`, { style: "mirror" });
+
+/* ====================================================== 3 truth, threshold */
+{
+  const box = cand("truthRow", "True identity On · overlaid", "the targets split into correct and wrong; the decoys do not change");
+  const ctx = canvasIn(box, W, 330);
+  drawHistogram(ctx, 6, PSMS, { truth: true, h: 270 });
+
+  const box2 = cand("truthRow", "The threshold · two ways to set it", "the histogram at the 5% point, True identity Off");
+  const ctx2 = canvasIn(box2, W, 420);
+  drawHistogram(ctx2, 6, PSMS, { thr: T5, h: 270 });
+  label(ctx2, "A · Threshold, matched ions ≥", 12, 352, { colour: T.ink1, weight: "600" });
+  [3, 4, 5, 6, 7, 8, 9, 10].forEach((v, i) => { const x = 200 + i * 30; rect(ctx2, x, 340, 26, 18, v === T5 ? wash(T.highlight, 0.25) : T.surface2, v === T5 ? T.highlight : T.grid); label(ctx2, String(v), x + 13, 353, { align: "center", size: 11, colour: T.ink1 }); });
+  label(ctx2, "a slider in the widget; 1% and 5% are marks on the axis", 200, 372, { size: 10, colour: T.ink3 });
+  label(ctx2, "B · FDR", 12, 398, { colour: T.ink1, weight: "600" });
+  ["1%", "5%"].forEach((v, i) => { const x = 200 + i * 40; rect(ctx2, x, 386, 36, 18, i === 1 ? wash(T.highlight, 0.25) : T.surface2, i === 1 ? T.highlight : T.grid); label(ctx2, v, x + 18, 399, { align: "center", size: 11, colour: T.ink1 }); });
+  label(ctx2, `the threshold found: ≥ ${T5}`, 290, 399, { size: 10, colour: T.ink3 });
+}
+
+/* ============================================================ 4 the press */
+{
+  const order = PSMS; // the search order is the spectra's order
+  for (const [n, note] of [[1, "the first spectrum: matched slowly, its ions ticking onto peaks, then dropped into its bin"], [40, "forty in: still slow enough to read each one"], [order.length, "all in: the last spectrum stays in the middle band"]]) {
+    const sub = order.slice(0, n);
+    const cur = sub[sub.length - 1];
+    drawPage("pressRow", `${fmtN(n)} of ${fmtN(order.length)}`, note, { style: "overlay", readout: n === order.length }, sub, cur);
+  }
+}
+
+/* ======================================================= 5 the proteins */
+{
+  const proteins = [
+    { id: "I", peptides: ["A", "B"] }, { id: "II", peptides: ["B"] }, { id: "III", peptides: ["C", "D", "E"] },
+    { id: "IV", peptides: ["E", "F"] }, { id: "V", peptides: ["F", "G"] }, { id: "VI", peptides: ["F", "G"] },
+  ];
+  const peps = ["A", "B", "C", "D", "E", "F", "G"];
+  const g = M.inferProteins(proteins, peps);
+  const groupOf = (id) => g.find((x) => x.ids.includes(id));
+  const stages = [
+    ["1 · 6 proteins match the identified peptides", () => true, null],
+    ["2 · eliminate subset proteins: 4 protein groups", (id) => !groupOf(id).subset, "subset"],
+    ["3 · eliminate subsets and subsumables: 3 protein groups", (id) => !groupOf(id).subset && !groupOf(id).subsumable, "subsumable"],
+    ["4 · the minimal set: 3 proteins account for every peptide", (id) => ["I", "III", "V"].includes(id), "minimal"],
+  ];
+  const px = (i) => 70 + i * 82, qx = (i) => 40 + i * 78;
+  stages.forEach(([title, keep, kind], k) => {
+    const box = cand("protRow", title, k === 0 ? "circles: proteins in the reference proteome · squares: peptides identified" : k === 1 ? "II's only peptide, B, is in I: II explains nothing I does not" : k === 2 ? "IV has no peptide of its own: E is III's, F is V's and VI's" : "V and VI share every peptide and stay one group; one of them is enough");
+    const ctx = canvasIn(box, W, 330);
+    const yP = 60, yQ = 170;
+    proteins.forEach((p, i) => p.peptides.forEach((q) => { if (keep(p.id)) line(ctx, px(i), yP + 18, qx(peps.indexOf(q)) + 14, yQ, T.ink3, 1.2); else line(ctx, px(i), yP + 18, qx(peps.indexOf(q)) + 14, yQ, T.grid, 1, [3, 3]); }));
+    proteins.forEach((p, i) => {
+      const on = keep(p.id);
+      dot(ctx, px(i), yP, 18, on ? wash(T.empirical, 0.25) : T.surface2, on ? T.empirical : T.axis, on ? 2.5 : 1);
+      label(ctx, p.id, px(i), yP + 4, { align: "center", colour: on ? T.ink1 : T.ink3, weight: "600" });
+    });
+    peps.forEach((q, i) => { rect(ctx, qx(i), yQ, 28, 28, T.surface2, T.ink2); label(ctx, q, qx(i) + 14, yQ + 18, { align: "center", colour: T.ink1, weight: "600" }); });
+    // the groups, as your figure's right half
+    if (k >= 1 && k <= 2) {
+      const groups = g.filter((x) => !x.subset && (k === 1 || !x.subsumable));
+      let x = 30;
+      label(ctx, "protein groups", 20, 222, { size: 10, colour: T.ink3, weight: "600" });
+      groups.forEach((G, n) => {
+        const w = 40 + G.ids.length * 38;
+        rrect(ctx, x, 244, w, 56, 8, T.axis);
+        label(ctx, `PG ${n + 1}`, x + w / 2, 240, { align: "center", size: 10, colour: T.ink3 });
+        G.ids.forEach((id, j) => { dot(ctx, x + 38 + j * 38, 272, 15, wash(T.empirical, 0.25), T.empirical, 2); label(ctx, id, x + 38 + j * 38, 276, { align: "center", colour: T.ink1, weight: "600", size: 11 }); });
+        x += w + 16;
+      });
+    }
+    if (k === 3) label(ctx, "minimal set: I · III · V — VI cannot be told from V by these peptides", 20, 270, { colour: T.ink1, size: 11 });
+  });
+}
+</script>
+</body>
+</html>
