@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); NEXT 88's layout mock** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); 88's layout mocked and picked (six calls, all the recommendation); NEXT 88's draft** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -21113,8 +21113,48 @@ moderated t matches the table's `limma_t_statistic` to 1e-10 (d0 = 3.09, s0 =
 | 5.10 | colours | **as drawn** (§ 5.10 of the mock) |
 
 91's Run order (Random · Grouped) and Correction (None · Median · QC-LOESS)
-were in its recommendation and not asked separately. NEXT: 88 `target-decoy`,
-its own layout mock (the page, the rail, the press) before the draft.
+were in its recommendation and not asked separately. 
+### Slot 88 · `target-decoy` — Proteomics: Identification
+
+#### LAYOUT MOCKED AND PICKED 2026-10-05 — `_lab/target-decoy-mock.html`
+
+**01-1's two figures decided it** (extracted to `_lab/figs/proteomics-peptide.png`
+and `proteomics-protein.png`). The PSM figure is a chain — protein sequences
+concatenated with their reversed sequences, spectra matched, target and decoy
+PSMs, a histogram with the FDR threshold — so the score is no longer drawn from
+two curves: `simulateSpectraSearch` in `_lab/proteomics-arc-model.js` runs the
+chain small (400 random proteins digested by trypsin, 7–25 residues; the decoys
+the same proteins reversed and digested; a spectrum's b and y ions each shown
+with a per-spectrum probability 0.08–0.7 among 120 noise peaks; candidates
+within ±0.5 Da of the precursor; the score is the candidate's ions on a peak,
+±0.5). 0.35 s a seed. **Measured, 10 seeds:** per score the decoy PSMs track the
+wrong target PSMs (score ≥ 7: 271 decoys, 284 wrong targets — a reversed
+protein has a target's composition); q ≤ 1% accepts 1,074 of 2,970 at realised
+1.2% (0.5–2.2%); q ≤ 5% accepts 1,372 at 5.4%, and the last tenth accepted is
+27.4% wrong. The high-scoring wrong targets are mostly spectra whose peptide is
+not in the database (35 of 39 on seed 1). Scores are whole ions, so the 1% and
+5% points are whole thresholds (the lowest score from which every higher one
+estimates at most that level) — on seed 12 the "≤ 5%" mark is 7, which
+estimates 2.6%. Seed 1 reads 1.3% estimated against 3.3% true at its 1% mark;
+the mock's default is the most typical of seeds 1–20 (seed 12, 0.9% and 0.9%).
+The Proteins page is the protein figure's own case — I {A, B}, II {B}, III {C,
+D, E}, IV {E, F}, V {F, G}, VI {F, G} — and `inferProteins` reproduces its groups.
+
+**His six picks, all the recommendation:**
+
+| call | pick |
+|---|---|
+| the score | **the fragment-matching search**, every score computed |
+| the histogram | **overlaid, as his figure**: targets filled, decoys an outline over them (with True identity On the outline sits on the wrong bars) |
+| the threshold | **a Threshold slider in matched ions**, ≤ 1% and ≤ 5% marked as dashed lines |
+| the bands | **three always** — the database (where the best TARGET candidate sits, and the same stretch reversed), the current spectrum with its best target's and best decoy's ions, the histogram; the last spectrum stays after the search; hovering a bin shows one of its spectra |
+| the data | ***Spectra from a peptide in the database* 30% · 60% · 90%, and Seed** |
+| the Proteins page | **his figure, a press a stage** (6 proteins → 4 groups → 3 → the minimal set I · III · V), nothing else to set |
+
+With the arc's picks: pages Score · Proteins; *True identity* Off · On, off by
+default; the readout prints the estimate above the threshold and the decoy share
+AT it ("about N% of these matches are wrong"). One Search press, the first
+spectra slow and each drawn in the middle band, then faster. NEXT: the draft.
 
 ---
 
