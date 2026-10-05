@@ -1286,6 +1286,21 @@
       ],
       "arc": 87,
       "status": "shipped"
+    },
+    {
+      "slug": "target-decoy",
+      "title": "Proteomics: Identification",
+      "blurb": "Decoy matches above a score threshold estimate the wrong target matches above it; peptides map to the fewest proteins.",
+      "course": "PHM5003",
+      "topics": [
+        "proteomics",
+        "peptide identification",
+        "target-decoy",
+        "false discovery rate",
+        "protein inference"
+      ],
+      "arc": 88,
+      "status": "draft"
     }
   ]
 }

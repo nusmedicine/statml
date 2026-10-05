@@ -146,50 +146,9 @@ export function acceptAt(rows, level = 0.01) {
   };
 }
 
-/**
- * Protein inference by parsimony, the three rules 01-1 cell 2 lists:
- * proteins with identical peptide sets become one group; a protein whose
- * peptides are a subset of another's is dropped; a protein with no unique
- * peptide that is not a subset is subsumable, and dropped here (one of the
- * choices the lesson says differs by algorithm). Then the minimal set: greedy
- * cover of the observed peptides, largest new coverage first.
- */
-export function inferProteins(proteins, observed) {
-  const obs = new Set(observed);
-  const sets = proteins.map((p) => ({ id: p.id, peps: p.peptides.filter((x) => obs.has(x)) }))
-    .filter((p) => p.peps.length);
-  const key = (p) => [...p.peps].sort().join(",");
-  const groups = new Map();
-  for (const p of sets) {
-    const k = key(p);
-    if (!groups.has(k)) groups.set(k, { ids: [], peps: new Set(p.peps) });
-    groups.get(k).ids.push(p.id);
-  }
-  const g = [...groups.values()];
-  const isSubset = (a, b) => a !== b && [...a.peps].every((x) => b.peps.has(x)) && a.peps.size < b.peps.size;
-  for (const a of g) a.subset = g.some((b) => isSubset(a, b));
-  const count = new Map();
-  for (const a of g) for (const x of a.peps) count.set(x, (count.get(x) || 0) + 1);
-  for (const a of g) a.unique = [...a.peps].some((x) => count.get(x) === 1);
-  for (const a of g) a.subsumable = !a.subset && !a.unique;
-  // greedy minimal cover from the candidates that survive the rules
-  const left = new Set(observed);
-  const chosen = [];
-  const pool = g.filter((a) => !a.subset);
-  while (left.size) {
-    let best = null, bestN = 0;
-    for (const a of pool) {
-      if (chosen.includes(a)) continue;
-      const nn = [...a.peps].filter((x) => left.has(x)).length;
-      if (nn > bestN || (nn === bestN && best && a.unique && !best.unique)) { best = a; bestN = nn; }
-    }
-    if (!best) break;
-    chosen.push(best);
-    for (const x of best.peps) left.delete(x);
-  }
-  for (const a of g) a.reported = chosen.includes(a);
-  return g;
-}
+/* Protein inference by parsimony: widget 88's engine (01-1 cell 2's three rules). */
+import { inferProteins } from "../target-decoy/engine.js";
+export { inferProteins };
 
 /**
  * A simulated proteome in families: each family a canonical protein and
@@ -613,107 +572,7 @@ export function scoreRun(run, Y) {
 
 /* ============================================ A2 · a search from fragment masses */
 
-/* Monoisotopic residue masses (Da); C carbamidomethylated, as most searches fix it. */
-export const RESIDUE = {
-  G: 57.02146, A: 71.03711, S: 87.03203, P: 97.05276, V: 99.06841, T: 101.04768, C: 160.03065, L: 113.08406,
-  I: 113.08406, N: 114.04293, D: 115.02694, Q: 128.05858, K: 128.09496, E: 129.04259, M: 131.04049,
-  H: 137.05891, F: 147.06841, R: 156.10111, Y: 163.06333, W: 186.07931,
-};
-const WATER = 18.01056, PROTON = 1.00728;
-/* Amino-acid frequencies in vertebrate proteins (percent), close enough for a toy proteome. */
-const AA_FREQ = { A: 7.4, R: 4.2, N: 4.4, D: 5.9, C: 3.3, Q: 3.7, E: 5.8, G: 7.4, H: 2.9, I: 3.8, L: 7.6, K: 7.2,
-  M: 1.8, F: 4.0, P: 5.0, S: 8.1, T: 6.2, W: 1.3, Y: 3.3, V: 6.8 };
-function aaDraw(rng) {
-  const tot = Object.values(AA_FREQ).reduce((s, v) => s + v, 0);
-  let u = rng.next() * tot;
-  for (const [a, w] of Object.entries(AA_FREQ)) { u -= w; if (u <= 0) return a; }
-  return "A";
-}
-export function randomProtein(rng, len) { let s = "M"; for (let i = 1; i < len; i += 1) s += aaDraw(rng); return s; }
-/** Trypsin: cut after K or R, not before P; keep peptides of 7–25 residues. */
-export function digest(seq, { min = 7, max = 25 } = {}) {
-  const out = [];
-  let start = 0;
-  for (let i = 0; i < seq.length; i += 1) {
-    if ((seq[i] === "K" || seq[i] === "R") && seq[i + 1] !== "P") {
-      const p = seq.slice(start, i + 1);
-      if (p.length >= min && p.length <= max) out.push(p);
-      start = i + 1;
-    }
-  }
-  const last = seq.slice(start);
-  if (last.length >= min && last.length <= max) out.push(last);
-  return out;
-}
-export const peptideMass = (p) => [...p].reduce((s, a) => s + RESIDUE[a], 0) + WATER;
-/** Singly charged b and y ions. */
-export function fragments(p) {
-  const b = [], y = [];
-  let s = 0;
-  for (let i = 0; i < p.length - 1; i += 1) { s += RESIDUE[p[i]]; b.push(s + PROTON); }
-  s = 0;
-  for (let i = p.length - 1; i > 0; i -= 1) { s += RESIDUE[p[i]]; y.push(s + WATER + PROTON); }
-  return { b, y };
-}
-/** How many of a peptide's b and y ions land within `tol` of a peak. */
-export function matchCount(peaks, p, tol) {
-  const { b, y } = fragments(p);
-  let n = 0;
-  for (const m of [...b, ...y]) {
-    let lo = 0, hi = peaks.length - 1;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (peaks[mid] < m - tol) lo = mid + 1; else hi = mid; }
-    if (Math.abs(peaks[lo] - m) <= tol) n += 1;
-  }
-  return n;
-}
-
-/**
- * A database search from first principles. A random proteome is the target
- * database; the decoy database is every protein reversed (01-1's figure),
- * digested the same way, so a decoy peptide has a target's composition and
- * mass range and is never the answer. Each spectrum comes from one peptide —
- * in the database or from a protein that is not — and shows each of its
- * fragments with a probability that varies spectrum to spectrum (its
- * quality), among noise peaks. The search scores every target and decoy
- * peptide within the precursor window by matched fragments and keeps the best.
- */
-export function simulateSpectraSearch(rng, {
-  proteins = 400, absentProteins = 300, spectra = 3000, inDb = 0.6, window = 0.5, tol = 0.5,
-  noise = 120, qualityLo = 0.08, qualityHi = 0.7,
-} = {}) {
-  const prot = Array.from({ length: proteins }, () => randomProtein(rng, 150 + Math.floor(rng.next() * 450)));
-  const absent = Array.from({ length: absentProteins }, () => randomProtein(rng, 150 + Math.floor(rng.next() * 450)));
-  const tPeps = [...new Set(prot.flatMap((s) => digest(s)))];
-  const dPeps = [...new Set(prot.flatMap((s) => digest([...s].reverse().join(""))))].filter((p) => !tPeps.includes(p));
-  const aPeps = [...new Set(absent.flatMap((s) => digest(s)))];
-  const db = [...tPeps.map((p) => ({ p, decoy: false })), ...dPeps.map((p) => ({ p, decoy: true }))]
-    .map((e) => ({ ...e, m: peptideMass(e.p) })).sort((a, b) => a.m - b.m);
-  const masses = db.map((e) => e.m);
-  const psms = [];
-  for (let s = 0; s < spectra; s += 1) {
-    const inDatabase = rng.next() < inDb;
-    const src = inDatabase ? tPeps[Math.floor(rng.next() * tPeps.length)] : aPeps[Math.floor(rng.next() * aPeps.length)];
-    const q = rng.uniform(qualityLo, qualityHi);
-    const { b, y } = fragments(src);
-    const peaks = [];
-    for (const m of [...b, ...y]) if (rng.next() < q) peaks.push(m + rng.normal(0, 0.1));
-    for (let k = 0; k < noise; k += 1) peaks.push(rng.uniform(100, 2000));
-    peaks.sort((u, v) => u - v);
-    const M0 = peptideMass(src);
-    let lo = 0, hi = masses.length;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (masses[mid] < M0 - window) lo = mid + 1; else hi = mid; }
-    let best = null, bestT = null, bestD = null, nCand = 0;
-    for (let i = lo; i < masses.length && masses[i] <= M0 + window; i += 1) {
-      nCand += 1;
-      const sc = matchCount(peaks, db[i].p, tol) + rng.next() * 1e-3; // a hair of jitter breaks ties at random
-      const e = { score: sc, ...db[i] };
-      if (!best || sc > best.score) best = e;
-      if (db[i].decoy) { if (!bestD || sc > bestD.score) bestD = e; } else if (!bestT || sc > bestT.score) bestT = e;
-    }
-    if (!best) continue;
-    const kind = best.decoy ? "decoy" : best.p === src ? "correct" : "wrong";
-    psms.push({ score: best.score, kind, hasCorrect: inDatabase, peptide: best.p, source: src, quality: q, peaks, candidates: nCand,
-      mass: M0, bestT, bestD, protein: inDatabase ? prot.findIndex((x) => x.includes(src)) : -1 });
-  }
-  return { psms, prot, targets: tPeps.length, decoys: dPeps.length, absent: aPeps.length };
-}
+/* Moved into widget 88's engine when the draft was built (2026-10-05), so the
+   mock, this measurement and the widget run one search. */
+export { RESIDUE, digest, peptideMass, fragments, matchCount, randomProtein, search as simulateSpectraSearch }
+  from "../target-decoy/engine.js";

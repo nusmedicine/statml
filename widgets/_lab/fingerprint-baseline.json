@@ -11703,6 +11703,20 @@
       },
       "px": "c95f5070",
       "tx": "a51ad5b6"
+    },
+    {
+      "$note": "target-decoy · DRAFT placeholder: the opening Score page",
+      "slug": "target-decoy",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "target-decoy · DRAFT placeholder: the Proteins page, every stage",
+      "slug": "target-decoy",
+      "state": "?theme=light&page=proteins&shown=4",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }
