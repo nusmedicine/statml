@@ -1,5 +1,27 @@
 # Handover
 
+**2026-10-05 (later): THE PROTEOMICS AND METABOLOMICS ARC (PHM5003 09) PICKED,
+MEASURED AND MOCKED — the record is the catalogue's § *The proteomics and
+metabolomics arc*.** Four slots in the lessons' order: 88 `target-decoy`
+(*Proteomics: Identification*, Score · Proteins) → 89 `imputation`
+(*Proteomics: Imputation*, Missing · Imputing) → 90 `limma` (*Proteomics:
+Differential Expression*, Variance · Test) → 91 `qc-drift` (*Metabolomics: QC
+and Drift*, Drift · Correction, simulated). All ten mock calls were the
+recommendation. NEXT: **88's own layout mock**, then its draft.
+
+- **One module for all four:** `_lab/proteomics-arc-model.js`, run over seeds by
+  `_lab/proteomics-arc-measure.mjs` (about 20 s; reads the lesson's two
+  `Results_differential_*.tsv` from the 09 folder and writes the UNTRACKED
+  `proteomics-arc-measure.json`), imported by `_lab/proteomics-arc-mock.html`.
+  Its `fitFDist` reproduces the lesson's limma t to 1e-10 — 90's engine starts
+  from it. The random forest is missForest as tidyproteomics orients it
+  (samples are the variables), about 3 s on 600 × 22 in the browser.
+- **Notebook findings told to him** (catalogue, same section): 01-4 cell 9's
+  "shrinkage" reading of limma's fold change; the t-test table is Welch on
+  unlogged abundances; 01-3 cell 41's MAR example; 02-4's signed-rank naming.
+  **Still owed as a note:** the lesson's 64 proteins missing in ≥ 9 of 11 cancer
+  come out of the forest at median log2FC +0.13, 37 of them higher in cancer.
+
 **2026-10-04 to 10-05: 87 `explainability` SHIPPED AND PUSHED (18 states) as "Deep
 Learning - Language: Explainability" — the record is the catalogue's § Slot 87,
 from *MEASURED AND MOCKED* to *SHIPPED AND PUSHED*.** PHM5005 08-1 cell 20, 08-2
