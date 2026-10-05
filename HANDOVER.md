@@ -7,7 +7,7 @@ metabolomics arc*.** Four slots in the lessons' order: 88 `target-decoy`
 (*Proteomics: Imputation*, Missing · Imputing) → 90 `limma` (*Proteomics:
 Differential Expression*, Variance · Test) → 91 `qc-drift` (*Metabolomics: QC
 and Drift*, Drift · Correction, simulated). All ten mock calls were the
-recommendation. 88's layout MOCKED AND PICKED the same day (`_lab/target-decoy-mock.html`: scores from a fragment-matching search, his figures as the spec, six calls all the recommendation). NEXT: **88's draft**.
+recommendation. 88's layout MOCKED AND PICKED the same day (`_lab/target-decoy-mock.html`: scores from a fragment-matching search, his figures as the spec, six calls all the recommendation). **88 DRAFT committed (486fbb6)** at `/widgets/target-decoy/`, status draft. NEXT: his review rounds on 88.
 
 - **One module for all four:** `_lab/proteomics-arc-model.js`, run over seeds by
   `_lab/proteomics-arc-measure.mjs` (about 20 s; reads the lesson's two
