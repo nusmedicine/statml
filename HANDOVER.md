@@ -608,7 +608,7 @@ gallery and the lab page carry the line written out, and `check` asserts all
 three agree and fails an `attribution` that restates the common line. Placed
 in the row, not on a line of its own, because it then adds no height to any of
 the 77 pages (measured in the 900 × 1200 frame) — a line of its own would
-have put a scrollbar on two default pages. Full suite MATCH after it.
+have put a scrollbar on two default pages. Full suite MATCH after it. PUSHED ALONE on his "tested ok" (652e766, deploy run 37418259906 green), cherry-picked onto origin/main so 88's draft and the arc planning stayed local.
 
 **From 81 `cell-markers` (2026-09-25):** **`role: "page"`** on the field
 that says which part of the widget is on screen (params.js documents it;
