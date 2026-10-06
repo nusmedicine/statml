@@ -1290,7 +1290,7 @@
     {
       "slug": "target-decoy",
       "title": "Proteomics: Identification",
-      "blurb": "Decoy matches above a score threshold estimate the wrong target matches above it; peptides map to the fewest proteins.",
+      "blurb": "Target-decoy search estimates the false discovery rate of accepted matches; parsimony infers the fewest proteins.",
       "course": "PHM5003",
       "topics": [
         "proteomics",

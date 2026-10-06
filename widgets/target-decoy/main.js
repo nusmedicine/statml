@@ -199,12 +199,12 @@ function drawSpectrum(ctx, colors, w, L, psm, phase, caption, truth) {
       rule(ctx, colors, sx(m), yy, sx(m), yy + (hit ? 16 : 6), colour, hit ? 2 : 1);
       ctx.restore();
     });
-    txt(ctx, colors, `${e.p} · ${hits} ion${hits === 1 ? "" : "s"} on a peak`, x1, yy + 30, { size: "fsXs", colour, align: "right", mono: true });
+    txt(ctx, colors, `${e.p} · ${hits} matched ion${hits === 1 ? "" : "s"}`, x1, yy + 30, { size: "fsXs", colour, align: "right", mono: true });
   };
   ladder(psm.bestT, base + 8, colors.empirical, "best target");
   ladder(psm.bestD, base + 48, colors.ink3, "best decoy");
   if (phase >= 1) {
-    const kind = truth ? (psm.kind === "decoy" ? "a decoy" : psm.kind === "correct" ? "the spectrum's own peptide" : "a wrong target") : psm.kind === "decoy" ? "a decoy" : "a target";
+    const kind = truth ? (psm.kind === "decoy" ? "a decoy" : psm.kind === "correct" ? "a correct target" : "an incorrect target") : psm.kind === "decoy" ? "a decoy" : "a target";
     txt(ctx, colors, `PSM: the higher of the two, ${kind}, score ${psm.ions}`, x0, base + 96, { size: "fsXs", colour: truth && psm.kind === "wrong" ? colors.extreme : colors.ink1, weight: "600" });
   }
 }
@@ -212,7 +212,7 @@ const h0 = (L) => L.sp.h;
 
 function drawHistogram(ctx, colors, w, L, state, params, k, yMax, falling) {
   const H = L.hist, bw = binW(L);
-  const truth = params.truth === "on";
+  const truth = params.identity === "on";
   txt(ctx, colors, "Every PSM, by its score", 12, H.y + 12, { colour: colors.ink1, weight: "600" });
   const c = binCounts(state.psms, k, MAXS);
   const sh = (n) => (n > 0 ? Math.max(1.5, (n / yMax) * (H.base - H.top)) : 0);
@@ -259,7 +259,7 @@ function drawHistogram(ctx, colors, w, L, state, params, k, yMax, falling) {
   }
   rule(ctx, colors, H.x0, H.base, H.x1, H.base, colors.axis);
   for (let s = 0; s <= MAXS; s += 5) txt(ctx, colors, s === MAXS ? `${MAXS}+` : String(s), binX(L, s) + bw / 2, H.base + 15, { size: "fsXs", colour: colors.ink3, align: "center" });
-  txt(ctx, colors, "score: fragment ions on a peak", (H.x0 + H.x1) / 2, H.base + 32, { size: "fsXs", colour: colors.ink3, align: "center" });
+  txt(ctx, colors, "score: matched fragment ions", (H.x0 + H.x1) / 2, H.base + 32, { size: "fsXs", colour: colors.ink3, align: "center" });
   // the 1% and 5% points of the search so far, then the reader's threshold
   if (k > 0 && !falling) {
     const t1 = levelThreshold(c, 0.01), t5 = levelThreshold(c, 0.05);
@@ -310,7 +310,7 @@ function drawScore(ctx, colors, w, params, state, anim, pointer) {
   }
   drawDatabase(ctx, colors, w, L, state, psm);
   rule(ctx, colors, 12, L.sp.y - 6, w - 12, L.sp.y - 6, colors.grid);
-  drawSpectrum(ctx, colors, w, L, psm, phase, caption, params.truth === "on");
+  drawSpectrum(ctx, colors, w, L, psm, phase, caption, params.identity === "on");
   rule(ctx, colors, 12, L.hist.y - 6, w - 12, L.hist.y - 6, colors.grid);
   drawHistogram(ctx, colors, w, L, state, params, k, yMax, falling);
 }
@@ -377,7 +377,7 @@ function drawProteins(ctx, colors, w, params, anim) {
     "A line joins a protein to each identified peptide its sequence contains.",
     "II is eliminated: its one peptide, B, is also in I. V and VI share every peptide: one group.",
     "IV is eliminated: it has no peptide of its own; E is in III, F in V and VI.",
-    "I, III and V explain every peptide. VI cannot be told from V by these peptides.",
+    "I, III and V account for every peptide. VI is indistinguishable from V on these peptides.",
   ][n];
   txt(ctx, colors, note, 12, H_PROT - 18, { colour: colors.ink2 });
 }
@@ -387,10 +387,10 @@ defineWidget({
   slug: "target-decoy",
   title: "Proteomics: Identification",
   subtitle:
-    "A database search scores each spectrum against every peptide of the right mass, in the target proteins and in "
-    + "the same proteins reversed: the decoys. A spectrum with no correct match is as likely to score best against a "
-    + "decoy as against a wrong target, so the decoys above a score threshold estimate the wrong targets above it, the "
-    + "false discovery rate of the accepted list. The accepted peptides are then explained by the fewest proteins.",
+    "Each spectrum is matched to the best-scoring peptide among the target proteins and the same proteins reversed, "
+    + "the decoys. The number of decoy matches above a score threshold estimates the number of incorrect target matches "
+    + "above it, which gives the false discovery rate of the accepted list as a whole. Protein inference then reports "
+    + "the smallest set of proteins that accounts for the accepted peptides.",
   layout: "side",
   status: "draft",
   height: (p) => (p.page === "proteins" ? H_PROT : H_SCORE),
@@ -401,22 +401,22 @@ defineWidget({
       options: [{ value: "score", label: "Score" }, { value: "proteins", label: "Proteins" }],
     },
     dataSec: { type: "section", label: "The data", when: { param: "page", equals: "score" } },
-    inDb: {
+    database: {
       type: "segmented", label: "Spectra from a peptide in the database", when: { param: "page", equals: "score" },
-      detail: "the share of spectra whose peptide is in the target database; the rest come from proteins that are not, and have no correct match",
-      options: [{ value: "0.3", label: "30%" }, { value: "0.6", label: "60%" }, { value: "0.9", label: "90%" }],
-      default: "0.6",
+      detail: "the share of spectra whose peptide is in the target database; the rest are from proteins not in it, so have no correct match",
+      options: [{ value: "30", label: "30%" }, { value: "60", label: "60%" }, { value: "90", label: "90%" }],
+      default: "60",
     },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 12, when: { param: "page", equals: "score" } },
     thrSec: { type: "section", label: "The threshold", when: { param: "page", equals: "score" } },
     threshold: {
-      type: "int", label: "Threshold, fragment ions on a peak", min: 1, max: 20, default: 8, display: true,
+      type: "int", label: "Threshold, matched fragment ions", min: 1, max: 20, default: 8, display: true,
       when: { param: "page", equals: "score" },
       detail: "a PSM scoring at or above it is accepted",
     },
-    truth: {
+    identity: {
       type: "segmented", label: "True identity", display: true, default: "off", when: { param: "page", equals: "score" },
-      detail: "whether each target PSM is the spectrum's own peptide: known in a simulation, not in a real search",
+      detail: "whether each target PSM is the spectrum's own peptide: known in a simulation, unknown for measured spectra",
       options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }],
     },
     /* authoring escape hatch, first render only: spectra searched (Score) or stages taken (Proteins) */
@@ -430,19 +430,19 @@ defineWidget({
       { token: "ink-2", label: "A peptide identified", mark: "bar" },
     ]
     : [
-      ...(params.truth === "on"
-        ? [{ token: "empirical", label: "Target PSMs: the spectrum's own peptide", mark: "bar" },
-          { token: "extreme", label: "Target PSMs: a wrong peptide", mark: "bar" }]
+      ...(params.identity === "on"
+        ? [{ token: "empirical", label: "Target PSMs, correct", mark: "bar" },
+          { token: "extreme", label: "Target PSMs, incorrect", mark: "bar" }]
         : [{ token: "empirical", label: "Target PSMs", mark: "bar" }]),
-      { token: "ink-2", label: "Decoy PSMs, drawn over the targets", mark: "line" },
+      { token: "ink-2", label: "Decoy PSMs", mark: "line" },
       { token: "highlight", label: "The threshold", mark: "line" },
-      { token: "ink-3", label: "Where the estimated FDR of the accepted list reaches 1% and 5%", mark: "dash" },
+      { token: "ink-3", label: "The lowest thresholds with an estimated FDR of at most 1% and 5%", mark: "dash" },
     ]),
 
   /* Pure and seeded: the whole search, whichever page is showing. A page is a
      display parameter, so switching keeps the search and its histogram. */
   compute: ({ params, rng }) => {
-    const res = search(rng, { inDb: Number(params.inDb) });
+    const res = search(rng, { inDb: Number(params.database) / 100 });
     return { ...res, end: schedule(res.psms.length) };
   },
 
@@ -452,7 +452,7 @@ defineWidget({
       p0: "Match proteins", p1: "Eliminate subsets", p2: "Eliminate subsumables", p3: "Minimal set", pdone: "Step",
     }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      search: "Match every spectrum against the target and decoy peptides of its precursor mass, and place each PSM by its score",
+      search: "Match every spectrum against the target and decoy peptides of its precursor mass, and add each PSM to the histogram at its score",
       searching: "Finish the search at once",
       searched: "Run the same search again from the first spectrum",
       p0: "Join each identified peptide to every protein in the reference proteome that contains it",
@@ -515,21 +515,21 @@ defineWidget({
     }
     const N = state.psms.length;
     const k = anim ? anim.k : Math.min(N, Number(params.shown) || 0);
-    const truth = params.truth === "on";
+    const truth = params.identity === "on";
     if (k === 0) {
       return [
-        { label: "Spectra searched", value: `0 of ${n0(N)}`, note: `${pct(Number(params.inDb), 0)} come from a peptide in the database` },
-        { label: "PSMs at or above the threshold", value: "–", note: "the estimated FDR is decoys ÷ targets above the threshold" },
-        { label: "PSMs exactly at the threshold", value: "–", note: "the decoy share among the matches at the threshold itself" },
+        { label: "Spectra searched", value: `0 of ${n0(N)}`, note: `${params.database}% are from a peptide in the database` },
+        { label: "PSMs at or above the threshold", value: "–", note: "the estimated FDR is decoys ÷ targets at or above the threshold" },
+        { label: "Local FDR at the threshold", value: "–", note: "decoys ÷ targets among the PSMs scoring exactly the threshold" },
       ];
     }
     const c = binCounts(state.psms, k, MAXS);
     const t = params.threshold, a = aboveFrom(c, t), b = c[Math.min(MAXS, t)];
     const bt = b.correct + b.wrong;
     return [
-      { label: "Spectra searched", value: `${n0(k)} of ${n0(N)}`, note: `${pct(Number(params.inDb), 0)} come from a peptide in the database; the others have no correct match` },
-      { label: `PSMs at or above ${t} ions`, value: `${n0(a.T)} target${a.T === 1 ? "" : "s"} · ${n0(a.D)} decoy${a.D === 1 ? "" : "s"}`, note: `estimated FDR ${pct(a.est)}, decoys ÷ targets${truth ? `; true ${pct(a.tru)}, ${n0(a.W)} wrong targets` : ""}` },
-      { label: `PSMs at exactly ${t} ions`, value: bt ? `${n0(b.decoy)} decoy${b.decoy === 1 ? "" : "s"} for ${n0(bt)} target${bt === 1 ? "" : "s"}` : "no targets", note: bt ? `about ${pct(b.decoy / bt, 0)} of the target matches at the threshold are wrong${truth ? `; true ${pct(b.wrong / bt, 0)}` : ""}` : "no target PSM scores exactly this" },
+      { label: "Spectra searched", value: `${n0(k)} of ${n0(N)}`, note: `${params.database}% are from a peptide in the database; the rest have no correct match in it` },
+      { label: `PSMs scoring ${t} or more`, value: `${n0(a.T)} target${a.T === 1 ? "" : "s"} · ${n0(a.D)} decoy${a.D === 1 ? "" : "s"}`, note: `estimated FDR ${pct(a.est)}, decoys ÷ targets${truth ? `; true ${pct(a.tru)}, ${n0(a.W)} incorrect target${a.W === 1 ? "" : "s"}` : ""}` },
+      { label: `Local FDR at ${t}`, value: bt ? pct(b.decoy / bt, 0) : "–", note: bt ? `decoys ÷ targets among the PSMs scoring exactly ${t}: ${n0(b.decoy)} for ${n0(bt)}; at ${t} or more, ${pct(a.est)}${truth ? `; true ${pct(b.wrong / bt, 0)}` : ""}` : `no target PSM scores exactly ${t}` },
     ];
   },
 });

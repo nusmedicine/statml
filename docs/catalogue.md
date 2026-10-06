@@ -21171,6 +21171,27 @@ masses against PEPTIDE's published values, trypsin's rules, the decoys
 counting the wrong targets over seeds 1–10, the default threshold as the
 default search's 1% point, 01-1's protein figure. NEXT: his review rounds.
 
+#### Copy audit, 2026-10-06 — his picks, every one the recommendation
+
+All 175 reader-facing strings (84 canvas, 91 DOM, from
+`_lab/target-decoy-copy-sweep.html`) through the register, coined-vocabulary,
+personification, outcome-commentary and URL passes and the claudisms.ai
+banlist (292 terms: one hit, "real"; zero after). Applied: the score's unit
+**matched fragment ions** (was "ions on a peak", ours); target PSMs
+**correct / incorrect** (was the spectrum's own peptide / wrong); the third tile
+named **Local FDR at t** (decoys ÷ targets among the PSMs scoring exactly t,
+beside the list's rate); readout labels "PSMs scoring t or more" (and the plural
+bug "1 ions"); "are from" for "come from"; the legend's "The lowest thresholds
+with an estimated FDR of at most 1% and 5%" and "Decoy PSMs"; "unknown for
+measured spectra"; "indistinguishable", "account for" (his figure's words);
+the Search tooltip; the link's names **`database=60`** and **`identity=on`**
+(were `inDb=0.6`, `truth=on`; the draft had no pasted links). Subtitle S2
+(the methods register: matched to the best-scoring peptide, the number of decoy
+matches estimates the number of incorrect target matches, the list as a whole,
+protein inference reports the smallest set); blurb B1, *Target-decoy search
+estimates the false discovery rate of accepted matches; parsimony infers the
+fewest proteins.* The verify's struck-word sweep carries this audit's words.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

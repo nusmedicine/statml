@@ -97,7 +97,7 @@ section("§5 the widget's defaults");
   const n0 = checks;
   const src = readFileSync(join(here, "../target-decoy/main.js"), "utf8");
   const def = (name) => Number((src.match(new RegExp(`\\n    ${name}: \\{[^]*?default: (\\d+)`)) || [])[1]);
-  const inDb = Number((src.match(/inDb: \{[^]*?default: "([\d.]+)"/) || [])[1]);
+  const inDb = Number((src.match(/database: \{[^]*?default: "(\d+)"/) || [])[1]) / 100;
   const seed = def("seed"), thr = def("threshold");
   assert(seed === 12 && thr === 8 && inDb === 0.6, `defaults read: seed ${seed}, threshold ${thr}, inDb ${inDb}`);
   const r = search(makeRng(seed), { inDb });
@@ -131,7 +131,10 @@ section("§7 the copy");
   const n0 = checks;
   const src = readFileSync(join(here, "../target-decoy/main.js"), "utf8").replace(/\/\*[^]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const strings = [...src.matchAll(/(["`])((?:\\.|(?!\1)[^\\])*?)\1/g)].map((m) => m[2]).filter((s) => /[a-z] [a-z]/i.test(s));
-  const struck = /\b(you|your|never|notebook|lesson|cell \d|strip|walk|card|rung|deal|deck)\b/i;
+  /* the register list every verify carries, then the words 88's copy audit struck
+     (2026-10-06): "on a peak" for matched ions, "wrong" for incorrect, "come from",
+     "real", "told from", "explain", "drawn over" */
+  const struck = /\b(you|your|never|notebook|lesson|cell \d|strip|walk|card|rung|deal|deck|on a peak|wrong|comes? from|real|told from|explains?|drawn over|carr(y|ies)|chose|waits?|reach(es)?)\b/i;
   for (const s of strings) assert(!struck.test(s), `no struck word in "${s.slice(0, 70)}"`);
   console.log(`  ${checks - n0} checks over ${strings.length} strings`);
 }
