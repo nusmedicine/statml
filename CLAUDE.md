@@ -205,6 +205,8 @@ widgets/core/       the scaffold — everything a widget does not have to write
   canvas.js         plot primitives; mark specs are fixed here
   controls.js       controls generated from the parameter spec
   params.js         URL <-> typed values; param types and what each is for
+  attribution.js    the line at the foot of every widget page; `attribution`
+                    replaces it per widget, `credit` adds a source after it
   torch.js          what PyTorch prints (torchPrint, sizeText, num), the output-size
                     rules, torch's error strings, the default initialiser bounds
   rng.js  stats.js  env.js

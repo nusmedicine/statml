@@ -130,7 +130,13 @@ defineWidget({
 ```
 
 Then add `index.html` (a 12-line copy of `widgets/clt/index.html`) and an entry
-in `manifest.json`. `compute` and `draw` are kept apart so the statistics stay
+in `manifest.json`.
+
+Every widget page ends with the attribution at the right of the Copy link row,
+the common line from `widgets/core/attribution.js`. A widget overrides it in
+`defineWidget`: `attribution: "…"` replaces the line, `credit: "…"` keeps it
+and names a source after it (`· Data: …`). The gallery and `lab/index.html`
+carry the same line written out; `npm run check` keeps the three equal. `compute` and `draw` are kept apart so the statistics stay
 testable and the presentation stays swappable.
 
 ### Animation

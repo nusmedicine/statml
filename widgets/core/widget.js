@@ -127,6 +127,7 @@
 
 import { resolveParams, syncUrl, toQuery, optionKeys } from "./params.js";
 import { buildControls, buildActions, gatingParams, fieldShowing } from "./controls.js";
+import { attributionLine } from "./attribution.js";
 import { createCanvas, hitTest } from "./canvas.js";
 import { makeRng } from "./rng.js";
 import {
@@ -183,6 +184,10 @@ export function defineWidget(config) {
        keeps a few hundred rows of empty canvas and the toggle saves nothing that
        a reader can see. Numbers stay numbers, so nothing existing changes. */
     height = 380,
+    /* Who made it, at the end of the Copy link row: `attribution` replaces the
+       common line in attribution.js, `credit` names a source after it. */
+    attribution,
+    credit,
     params: spec = {},
     legend = [],
     /* What the Reset button says and promises. A widget whose Reset does
@@ -1324,6 +1329,13 @@ export function defineWidget(config) {
     ].filter(Boolean),
     { withFlash: true }
   );
+  /* After the buttons, because buildActions empties the row it builds. Its
+     margin-left: auto pushes it to the row's right end, where it adds no
+     height: measured on every widget in the harness frame. */
+  const credits = document.createElement("span");
+  credits.className = "w-attrib";
+  credits.textContent = attributionLine({ attribution, credit });
+  dom.utility.appendChild(credits);
 
   const actions = { ...drive, ...util };
 

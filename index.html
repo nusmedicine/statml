@@ -27,6 +27,9 @@
   .g-card:hover { border-color: var(--axis); }
   .g-card h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
   .g-card p { margin: var(--sp-1) 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+  /* the attribution every widget page carries, written out because this page
+     cannot import widgets/core/attribution.js; scripts/check.mjs keeps them equal */
+  .g-attrib { margin: var(--sp-2) 0 0; color: var(--ink-3); font-size: var(--fs-xs); text-align: right; }
   .g-note {
     margin: var(--sp-5) 0 0; padding-top: var(--sp-3); border-top: 1px solid var(--grid);
     color: var(--ink-3); font-size: var(--fs-sm);
@@ -45,6 +48,7 @@
     Every widget keeps its state in the URL — tune one, press
     <code>Copy link</code>, and it reopens exactly as you left it.
   </p>
+  <p class="g-attrib">Kenneth Ban, NUS Medicine</p>
 </main>
 
 <script type="module">

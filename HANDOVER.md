@@ -578,6 +578,16 @@ design with him before briefing.
 
 ## Core doors widgets have added
 
+**Attribution (2026-10-06, his ask, `_lab/attribution-mock.html`):** every
+widget page shows *Kenneth Ban, NUS Medicine* at the right end of the Copy
+link row, from `widgets/core/attribution.js`; `defineWidget` takes
+`attribution` (replaces the line) and `credit` (adds `· …` after it). The
+gallery and the lab page carry the line written out, and `check` asserts all
+three agree and fails an `attribution` that restates the common line. Placed
+in the row, not on a line of its own, because it then adds no height to any of
+the 77 pages (measured in the 900 × 1200 frame) — a line of its own would
+have put a scrollbar on two default pages. Full suite MATCH after it.
+
 **From 81 `cell-markers` (2026-09-25):** **`role: "page"`** on the field
 that says which part of the widget is on screen (params.js documents it;
 widget.js's Reset reads it), and Reset returning the controls on screen to

@@ -1731,6 +1731,16 @@ p.w-text-hint { max-width: none; text-align: left; }
   font-size: var(--fs-sm);
 }
 
+/* The attribution, at the right end of the Copy link row (attribution.js). On a
+   narrow screen the row wraps and it takes the next line, still right-aligned. */
+.w-attrib {
+  margin-left: auto;
+  align-self: center;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
 /* --- table view: nothing is gated behind the figure --------------------- */
 .w-table-wrap {
   margin: var(--sp-3) 0 0;

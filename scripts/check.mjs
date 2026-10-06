@@ -411,6 +411,36 @@ const { PUBLIC_DIR } = await mod("scripts/site.mjs");
 }
 
 {
+  /* THE ATTRIBUTION, written once in core and twice out of it. The gallery and
+     the lab page cannot import widgets/core/attribution.js, so they carry the
+     text, and this keeps all three equal. A widget's own `attribution` replaces
+     the line and `credit` adds a source after it: both are short single-line
+     strings, and an `attribution` that only restates the common line is a copy
+     that will drift, so it fails. */
+  const { ATTRIBUTION } = await mod("widgets/core/attribution.js");
+  for (const page of ["index.html", join("lab", "index.html")]) {
+    const html = await readFile(join(root, page), "utf8");
+    const m = html.match(/<p class="g-attrib">([^<]*)<\/p>/);
+    if (!m) fail(`${page}: no attribution line (<p class="g-attrib">)`);
+    else if (m[1] !== ATTRIBUTION) fail(`${page}: attribution "${m[1]}" but core's is "${ATTRIBUTION}"`);
+  }
+  let own = 0;
+  for (const w of manifest.widgets) {
+    const src = await readFile(join(root, "widgets", w.slug, "main.js"), "utf8");
+    for (const key of ["attribution", "credit"]) {
+      // a top-level defineWidget field: two spaces in, then the key and a quoted string
+      const hit = src.match(new RegExp("\\n {2}" + key + ":\\s*([\"'`])([^]*?)\\1"));
+      if (!hit) continue;
+      own += 1;
+      const text = hit[2];
+      if (!text.trim() || text.length > 90 || text.includes("\n")) fail(`"${w.slug}": ${key} must be one short line (${text.length} characters)`);
+      if (key === "attribution" && text === ATTRIBUTION) fail(`"${w.slug}": attribution restates the common line — drop the field`);
+    }
+  }
+  ok(`attribution: "${ATTRIBUTION}" in core, the gallery and the lab page; ${own} widget override(s)`);
+}
+
+{
   /* The site is served from a /statml/ subpath, so a leading slash resolves to
      the domain root: it works in dev and 404s in production, and nothing catches
      it before a deploy. This became possible the moment the site stopped living
