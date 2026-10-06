@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · attribution on every widget — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-0, var(--surface-2)); }
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code, pre { font-family: var(--font-mono); font-size: 0.92em; }
+  pre { background: var(--surface-2); border: 1px solid var(--grid); padding: var(--sp-3); max-width: 112ch; overflow-x: auto; color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .arm { width: 780px; }
+  .arm .w-root { margin: 0; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .stub { height: 70px; border: 1px dashed var(--grid); border-radius: 4px; color: var(--ink-3); font-size: var(--fs-xs);
+          display: flex; align-items: center; justify-content: center; }
+  #meas { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap; padding: var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid); max-width: 130ch; }
+  .themes { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  .themes button { margin-right: 6px; }
+
+  /* ---- the candidates, written as core would write them -------------------- */
+  /* A · the end of the utility row: pushed right, the row's height unchanged */
+  .w-attrib { margin-left: auto; color: var(--ink-3); font-size: var(--fs-xs); white-space: nowrap; }
+  /* B · its own line under the row */
+  .w-attrib--line { display: block; margin: var(--sp-2) 0 0; color: var(--ink-3); font-size: var(--fs-xs); text-align: center; }
+  /* C · a byline under the title */
+  .w-byline { margin: 2px 0 0; color: var(--ink-3); font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Attribution on every widget &middot; mock</h1>
+  <p class="note">
+    Your ask (2026-10-06): an attribution on every widget, reading <b>Kenneth Ban, NUS Medicine</b>, with a common one and
+    per-widget overrides. Below, the bottom of a real widget page drawn with core's own classes (<code>.w-root</code>,
+    <code>.w-utility</code>, <code>.w-btn</code>), so the type, colour and spacing are what core would produce. &sect;4 measures
+    every widget in the 900 &times; 1200 harness frame. Grey-ruled boxes in &sect;5 are your calls.
+  </p>
+  <div class="themes">Theme: <button class="w-btn" id="tLight">Light</button><button class="w-btn" id="tDark">Dark</button></div>
+
+  <h2>1 &middot; Where it sits</h2>
+  <div class="row">
+    <div class="arm">
+      <h3>A &middot; the end of the Copy link row, right-aligned</h3>
+      <div class="w-root" data-layout="side">
+        <div class="stub">&hellip; the figure, the legend, the readout &hellip;</div>
+        <div class="w-utility">
+          <button class="w-btn" type="button">Copy link</button><span class="w-flash"></span>
+          <span class="w-attrib">Kenneth Ban, NUS Medicine</span>
+        </div>
+      </div>
+    </div>
+    <div class="arm">
+      <h3>B &middot; its own line under the row</h3>
+      <div class="w-root" data-layout="side">
+        <div class="stub">&hellip; the figure, the legend, the readout &hellip;</div>
+        <div class="w-utility">
+          <button class="w-btn" type="button">Copy link</button><span class="w-flash"></span>
+        </div>
+        <span class="w-attrib--line">Kenneth Ban, NUS Medicine</span>
+      </div>
+    </div>
+    <div class="arm">
+      <h3>C &middot; a byline under the title</h3>
+      <div class="w-root" data-layout="side">
+        <header>
+          <div class="w-heading">
+            <h1 class="w-title">Proteomics: Identification</h1>
+            <p class="w-byline">Kenneth Ban, NUS Medicine</p>
+            <p class="w-subtitle">A database search scores each spectrum against every peptide of the right mass, in the target proteins and in the same proteins reversed: the decoys.</p>
+          </div>
+        </header>
+        <div class="stub" style="margin-top: var(--sp-3)">&hellip; the rail and the figure &hellip;</div>
+      </div>
+    </div>
+  </div>
+  <p class="rec"><b>A, recommended.</b> The row has room to its right on every widget (it holds Copy link, and Save PNG or Table on a
+    few), so the line adds no height to any page: no page moves, no scrollbar appears in the harness frame, and no fingerprint
+    state can change (&sect;4 measures it). It sits where a page's credits are looked for, below the work, and stays quiet beside
+    the controls. B costs a line on every page; C puts the credit above the figure, where the reader is reading the subtitle.</p>
+
+  <h2>2 &middot; The wording</h2>
+  <div class="row">
+    <div class="arm">
+      <h3>1 &middot; as you wrote it</h3>
+      <div class="w-root"><div class="w-utility" style="margin:0"><button class="w-btn" type="button">Copy link</button><span class="w-flash"></span><span class="w-attrib">Kenneth Ban, NUS Medicine</span></div></div>
+    </div>
+    <div class="arm">
+      <h3>2 &middot; with a copyright sign and year</h3>
+      <div class="w-root"><div class="w-utility" style="margin:0"><button class="w-btn" type="button">Copy link</button><span class="w-flash"></span><span class="w-attrib">&copy; 2026 Kenneth Ban, NUS Medicine</span></div></div>
+    </div>
+    <div class="arm">
+      <h3>3 &middot; with &ldquo;By&rdquo;</h3>
+      <div class="w-root"><div class="w-utility" style="margin:0"><button class="w-btn" type="button">Copy link</button><span class="w-flash"></span><span class="w-attrib">By Kenneth Ban, NUS Medicine</span></div></div>
+    </div>
+  </div>
+  <p class="note">The repository carries no licence yet, deliberately (prd &sect;8: all rights reserved until the arc is ready to
+    spread, then CC-BY-4.0 for prose and figures, MIT for code). Wording 2 states that position on the page; under CC-BY later, the
+    same line becomes the credit the licence asks reusers to keep.</p>
+
+  <h2>3 &middot; Common, and per widget</h2>
+  <p class="note">It belongs in core: every widget page is built by one function, <code>buildShell</code> in
+    <code>widgets/core/widget.js</code>, and the Copy link row is made there for all 77. One constant there is the common
+    attribution; a widget overrides it through <code>defineWidget</code>, the door every per-widget setting already uses (the
+    manifest is for gallery cards and nothing else, so the widget page does not read it). Two forms of override, both shown:</p>
+  <div class="row">
+    <div class="arm">
+      <h3>the common line (76 widgets today: no field)</h3>
+      <div class="w-root"><div class="w-utility" style="margin:0"><button class="w-btn" type="button">Copy link</button><span class="w-flash"></span><span class="w-attrib">Kenneth Ban, NUS Medicine</span></div></div>
+    </div>
+    <div class="arm">
+      <h3><code>attribution: "&hellip;"</code> replaces it</h3>
+      <div class="w-root"><div class="w-utility" style="margin:0"><button class="w-btn" type="button">Copy link</button><span class="w-flash"></span><span class="w-attrib">Kenneth Ban and A. Colleague, NUS Medicine</span></div></div>
+    </div>
+    <div class="arm">
+      <h3><code>credit: "&hellip;"</code> adds to it</h3>
+      <div class="w-root"><div class="w-utility" style="margin:0"><button class="w-btn" type="button">Copy link</button><span class="w-flash"></span><span class="w-attrib">Kenneth Ban, NUS Medicine &middot; Data: MetaboLights MTBLS6038</span></div></div>
+    </div>
+  </div>
+<pre>// widgets/core/widget.js — the one common line
+export const ATTRIBUTION = "Kenneth Ban, NUS Medicine";
+
+// a widget, only when it differs
+defineWidget({
+  slug: "…",
+  attribution: "Kenneth Ban and A. Colleague, NUS Medicine",   // replaces the common line
+  credit: "Data: MetaboLights MTBLS6038",                      // or adds a source after it
+  …
+});</pre>
+  <p class="rec"><b>Both forms, recommended.</b> <code>attribution</code> replaces the line for a widget someone else wrote or
+    co-wrote; <code>credit</code> keeps the common line and names a source after it &mdash; the case the collection already has
+    (85's HA proteins from BV-BRC, 70's look-alike signature references in place of COSMIC's, 91's metabolite names from
+    MTBLS6038). A replace-only override would make every widget that cites a source restate the common line, and the restated
+    copies drift. No widget sets either today; the draft would add the core field and nothing else. <code>check</code> can assert
+    that both are short strings and that no widget restates the common line in <code>attribution</code>.</p>
+
+  <h2>4 &middot; What it costs each page, measured</h2>
+  <p class="note">Every widget in the manifest at its default state in a 900 &times; 1200 frame (the fingerprint harness's), with
+    A's line put into the real Copy link row: does the row get taller, does the page? And for B, which pages sit within the
+    line's height of the frame, where a new line would bring a scrollbar and narrow the canvas (the scrollbar flake).</p>
+  <div id="meas">measuring&hellip;</div>
+
+  <h2>5 &middot; The calls</h2>
+  <p class="q"><b class="h">5.1 &middot; Where</b> <b>A &middot; the end of the Copy link row (recommended)</b> &nbsp;|&nbsp; B &middot; its own line below &nbsp;|&nbsp; C &middot; a byline under the title</p>
+  <p class="q"><b class="h">5.2 &middot; The wording</b> <b>1 &middot; Kenneth Ban, NUS Medicine (recommended: your words)</b> &nbsp;|&nbsp; 2 &middot; &copy; 2026 Kenneth Ban, NUS Medicine &nbsp;|&nbsp; 3 &middot; By Kenneth Ban, NUS Medicine</p>
+  <p class="q"><b class="h">5.3 &middot; Overrides</b> <b>A &middot; both, <code>attribution</code> replaces and <code>credit</code> adds a source (recommended)</b> &nbsp;|&nbsp; B &middot; <code>attribution</code> only</p>
+  <p class="q"><b class="h">5.4 &middot; The gallery and the lab page</b> <b>A &middot; the same line at the foot of the gallery and of /lab/ (recommended; both are single HTML files that cannot import core, so the text is written there once each and <code>check</code> asserts it matches core's)</b> &nbsp;|&nbsp; B &middot; the widgets only</p>
+</main>
+
+<script type="module">
+document.getElementById("tLight").onclick = () => { document.documentElement.dataset.theme = "light"; };
+document.getElementById("tDark").onclick = () => { document.documentElement.dataset.theme = "dark"; };
+
+const out = document.getElementById("meas");
+const manifest = await fetch("../manifest.json").then((r) => r.json());
+const list = (Array.isArray(manifest) ? manifest : manifest.widgets).map((w) => w.slug);
+const rows = [];
+let grew = 0, near = [];
+for (const slug of list) {
+  const f = document.createElement("iframe");
+  f.style.cssText = "width:900px;height:1200px;position:fixed;left:-3000px;top:0;border:0";
+  f.src = `../${slug}/?theme=light`;
+  document.body.appendChild(f);
+  await new Promise((r) => { f.onload = r; setTimeout(r, 8000); });
+  await new Promise((r) => setTimeout(r, 400));
+  const d = f.contentDocument;
+  const u = d?.querySelector(".w-utility");
+  if (!u) { rows.push(`${slug.padEnd(26)} no utility row found`); f.remove(); continue; }
+  /* the content's own bottom, not scrollHeight, which never reads less than the frame */
+  const bottom = () => Math.ceil(d.querySelector(".w-root").getBoundingClientRect().bottom + f.contentWindow.scrollY);
+  const before = { row: u.getBoundingClientRect().height, page: bottom() };
+  const s = d.createElement("span");
+  s.textContent = "Kenneth Ban, NUS Medicine";
+  s.style.cssText = "margin-left:auto;color:var(--ink-3);font-size:var(--fs-xs);white-space:nowrap";
+  u.appendChild(s);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const after = { row: u.getBoundingClientRect().height, page: bottom() };
+  if (after.row !== before.row || after.page !== before.page) grew += 1;
+  if (before.page + 16 <= 1200 && before.page + 16 > 1200 - 24) near.push(`${slug} (${before.page}px)`);
+  rows.push(`${slug.padEnd(26)} row ${before.row.toFixed(0)} → ${after.row.toFixed(0)} px · page ${before.page} → ${after.page} px${after.row !== before.row || after.page !== before.page ? "   ← CHANGED" : ""}`);
+  out.textContent = `measuring ${rows.length} of ${list.length}…\n` + rows.join("\n");
+  f.remove();
+}
+out.textContent = `A: ${list.length} widgets, ${grew} with a taller row or page once the line is in the row.\n`
+  + `B: ${near.length} default pages within 24px of the 1,200px frame (the root's bottom plus the body's margin), where a line of their own would bring a scrollbar: ${near.join(", ") || "none"} (default states only; the harness holds 1,200+ states, some taller).\n\n`
+  + rows.join("\n");
+</script>
+</body>
+</html>
