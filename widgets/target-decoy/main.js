@@ -1,4 +1,4 @@
-/* target-decoy — slot 88, "Proteomics: Identification". DRAFT 2026-10-05.
+/* target-decoy — slot 88, "Proteomics: Identification". SHIPPED 2026-10-07.
  *
  * Planned in the catalogue's § The proteomics and metabolomics arc and
  * § Slot 88: measured in `_lab/proteomics-arc-measure.mjs`, mocked in
@@ -392,7 +392,7 @@ defineWidget({
     + "above it, which gives the false discovery rate of the accepted list as a whole. Protein inference then reports "
     + "the smallest set of proteins that accounts for the accepted peptides.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: (p) => (p.page === "proteins" ? H_PROT : H_SCORE),
 
   params: {
