@@ -1,26 +1,81 @@
 # Handover
 
-**2026-10-05 (later): THE PROTEOMICS AND METABOLOMICS ARC (PHM5003 09) PICKED,
-MEASURED AND MOCKED — the record is the catalogue's § *The proteomics and
-metabolomics arc*.** Four slots in the lessons' order: 88 `target-decoy`
-(*Proteomics: Identification*, Score · Proteins) → 89 `imputation`
-(*Proteomics: Imputation*, Missing · Imputing) → 90 `limma` (*Proteomics:
-Differential Expression*, Variance · Test) → 91 `qc-drift` (*Metabolomics: QC
-and Drift*, Drift · Correction, simulated). All ten mock calls were the
-recommendation. 88's layout MOCKED AND PICKED the same day (`_lab/target-decoy-mock.html`: scores from a fragment-matching search, his figures as the spec, six calls all the recommendation). **88 DRAFT committed (486fbb6)** at `/widgets/target-decoy/`, status draft. NEXT: his review rounds on 88.
+**2026-10-05 to 10-07: THE PROTEOMICS AND METABOLOMICS ARC (PHM5003 09) PICKED,
+MEASURED AND MOCKED; 88 `target-decoy` SHIPPED AND PUSHED (00ae5f3, 22 states,
+deploy run 37509963167 green) as "Proteomics: Identification"; THE ATTRIBUTION
+in core, PUSHED (652e766) — the records are the catalogue's § *The proteomics and
+metabolomics arc* and § *Slot 88*.** Four slots in the lessons' order: **88
+`target-decoy` SHIPPED** → **89 `imputation` NEXT** (*Proteomics: Imputation*,
+Missing · Imputing) → 90 `limma` (*Proteomics: Differential Expression*,
+Variance · Test) → 91 `qc-drift` (*Metabolomics: QC and Drift*, Drift ·
+Correction, simulated). Every call so far — ten on the arc mock, six on 88's
+layout, the copy audit's six — was the recommendation.
 
-- **One module for all four:** `_lab/proteomics-arc-model.js`, run over seeds by
-  `_lab/proteomics-arc-measure.mjs` (about 20 s; reads the lesson's two
-  `Results_differential_*.tsv` from the 09 folder and writes the UNTRACKED
-  `proteomics-arc-measure.json`), imported by `_lab/proteomics-arc-mock.html`.
-  Its `fitFDist` reproduces the lesson's limma t to 1e-10 — 90's engine starts
-  from it. The random forest is missForest as tidyproteomics orients it
-  (samples are the variables), about 3 s on 600 × 22 in the browser.
-- **Notebook findings told to him** (catalogue, same section): 01-4 cell 9's
-  "shrinkage" reading of limma's fold change; the t-test table is Welch on
-  unlogged abundances; 01-3 cell 41's MAR example; 02-4's signed-rank naming.
-  **Still owed as a note:** the lesson's 64 proteins missing in ≥ 9 of 11 cancer
-  come out of the forest at median log2FC +0.13, 37 of them higher in cancer.
+**88 as shipped.** Score: one Search press runs a fragment-matching search
+(`widgets/target-decoy/engine.js`: 400 random proteins digested by trypsin,
+decoys their reversal as 01-1's figure draws it, b/y ions among noise; the
+score is matched fragment ions) — three spectra read slowly in the database and
+spectrum bands, then the histogram fills, targets filled and the decoys an
+outline over them; Threshold slider (whole ions) with the ≤ 1% and ≤ 5% points;
+True identity Off · On; the readout puts the list's estimated FDR beside the
+**Local FDR** at the threshold (default: 0.9% against 4%). Proteins: his
+protein figure's own case, I–VI and A–G, a press a stage. Link names
+`database=`, `identity=`, `threshold=`, `page=`. `_lab/target-decoy-verify.mjs`
+(125 checks) in `npm test`.
+
+**The attribution (his ask 2026-10-06):** *Kenneth Ban, NUS Medicine* at the
+right end of every widget's Copy link row, from `widgets/core/attribution.js`;
+`defineWidget` takes `attribution` (replaces) and `credit` (adds a source
+after it); the gallery and the lab page carry the line written out and `check`
+keeps the three equal. Full suite 1,216/1,216 MATCH after it. It was pushed
+ALONE by cherry-picking onto origin/main in a worktree outside Dropbox, then
+rebasing local main — the pattern for "push only this" when other work sits
+under it.
+
+**NEXT: 89 `imputation` — its own layout mock first, from 01-3's figures.**
+They are extracted to `_lab/figs/` (`proteomics-01-3-cell*-output.png`, the
+two copies of `tidyprot-recommend-01-3-cell31/41.png`). Picked on the arc mock:
+pages **Missing · Imputing**; methods **Minimum · Low draw · kNN · Random
+forest + Measured only**; a **Minimum measured** filter (any · at least half of a
+group); simulated only, the lesson's 64 proteins to him as a note. Start from
+`_lab/proteomics-arc-model.js` (`simulateMatrix`, `imputeMin`, `imputeLowDraw`,
+`imputeKnn`, `imputeForest` as missForest with samples as variables,
+`scoreImputation`) and the catalogue's numbers (kNN bias +1.13 and FDR 26%, the
+forest +0.71 and 5.1%, an absence of 6 log2 read as 1.8 / 2.6 / 4.1 / 4.7;
+the filter takes kNN to 4.6%). **Two things to measure before the mock:**
+tidyproteomics' recommendation table imputes *BETWEEN* or *WITHIN* groups while
+01-3 cell 42 runs `method = 'matrix'` — measure what the orientation does to an
+absence; and the forest's run time in the browser at the widget's size (about
+3 s at 600 × 22). **Owed to him as a notebook note** (with 89, as picked): 64
+proteins measured in all 11 healthy and missing in ≥ 9 of 11 cancer come out of
+the forest at median log2FC +0.13, 37 higher in cancer, SD 0.13 against 0.41.
+
+**Worth knowing before the next widget:**
+
+- **Copy-audit tooling for this arc:** `_lab/target-decoy-copy-sweep.html`
+  (canvas, DOM and `[title]` strings across states — copy it and change STATES
+  and the path), the claudisms list fetched to the scratchpad and scanned by
+  string literal (one hit in 88: "real"), and the verify's struck-word sweep.
+- **A whole-number score has no exact 5% threshold**: the marks are "the lowest
+  thresholds with an estimated FDR of at most 1% and 5%" (88's 5% point
+  estimates 2.6%). And pick a **typical default seed** by measurement (88's seed
+  1 read 1.3% estimated against 3.3% true; seed 12 is the default).
+- **`scrollHeight` never reads below the frame's height** — measure a page by
+  its root's bottom (the attribution mock's first count was wrong for that).
+- **A `sed` on the baseline matched other widgets' states** (117 failures);
+  edit baseline states only through a node script that filters by slug.
+- **Git Bash heredocs still eat backslashes** (twice more here): write any
+  script with a regex through the Write tool.
+- **Recording states**: status flip first, states written with `"0"` by a
+  slug-filtered script, `fingerprint.html?only=<slug>` three times (capture
+  `latest` by overriding `navigator.clipboard.writeText` and clicking Copy new
+  baseline), hashes written back by script, one MATCH pass. 88 took minutes.
+
+**SEVENTY-SEVEN WIDGETS IN THE MANIFEST — 76 on the gallery and `roc-auc`
+UNLISTED.** Untracked and safe to leave: as before, plus
+`_lab/proteomics-arc-measure.json` (numbers derived from the lesson's tables)
+and the new `_lab/figs/*01-3*`, `*02-3*` extractions (commit them with 89's
+mock). Dev server :8010. **SESSION CLOSED 2026-10-07.**
 
 **2026-10-04 to 10-05: 87 `explainability` SHIPPED AND PUSHED (18 states) as "Deep
 Learning - Language: Explainability" — the record is the catalogue's § Slot 87,
