@@ -1,5 +1,55 @@
 # Handover
 
+**2026-10-08, late: NO WIDGET CHANGES — the 02-3 metabolomics notebook,
+reviewed with tidymass installed and run. 93 `ms-features` is still NEXT.** The
+90 fix (c3e84b7) and the previous handover (1c1bfde) are pushed; `main` matches
+`origin`. Kenneth has already rewritten his 02-3 normalization cell from this
+work.
+
+**The deliverable:** `widgets/_lab/qc-drift-notebook-suggestions.md`
+(untracked, like the other `*-notebook-suggestions.md`): the cells he pastes into
+02-3, every one run in R 4.5.2 on the lesson's own `tidymass_data.rda` through
+02-4, the QC example on a simulated run with QCs, and a sources table.
+
+**What the data is, and what was wrong.** MTBLS6038 is a **targeted** assay
+(26 organic acids, MRM, standard curves, LOD at S/N 3; MetaboLights protocols). A
+0 is the depositors' "not detected", in their own MAF file. 10 acids are 0 in
+every sample, so 72 of 179 samples had median 0 and median normalization divided
+cancer by divisors 1.54 log2 lower than hyperplasia: 02-4 found 12, 10 up. **The
+fix is one filter**, `mutate_variable_zero_freq()` + `filter(zero_freq < 1)` →
+16 acids, 0 zero medians, divisor shift −0.12, 02-4 finds 4 (3-hydroxy-3-
+methylglutaric ↑, ethylmalonic ↑, pyroglutamic ↓, phenyllactic ↓). Zeros stay as
+they are (no NA, no imputation). Then outlier samples (`detect_outlier` in one
+pipe to ids; 2 flagged, removing them changes nothing). His cell 10 now carries
+the run (randomized order, pooled QCs) before the corrections, a 2×2 table (QC ×
+batches: `median` / `median` + `integrate_data("subject_median")` / `loess` /
+`loess` + `integrate_data("qc_median")`), and three formulas — median and
+integrate checked against tidymass output to 0 difference, LOESS from source.
+One fix flagged in his rewrite (`normalize_data(method = "subject_median")` must
+be `integrate_data`), and 02-4 cell 0's "signed-rank" (it runs rank-sum).
+
+**How it went, and the lesson.** I offered four pipelines in a row (zeros → NA,
+50% per-group filter, minimum imputation, PQN, a factor plot) before reading the
+study's protocol. He: "what the fuck is going on… tidymass was supposed to
+simplify things… did you pull it out of your ass?" **Find out what the data is
+first, start from the smallest change that fixes the measured problem, and give
+every threshold's source the first time it appears.** Memory
+`simplify-before-adding-options` carries it. Also: "instead of median" was wrong
+as a general rule (drift correction then normalization is published, Gagnebin
+2017, urine); the notebook keeps the simple 2×2.
+
+**Tooling that now exists:** tidymass components (massdataset, masscleaner,
+massqc, massstat; not the `tidymass` meta-package) in the session scratchpad's
+`rlib`, run with `C:/Program Files/R/R-4.5.2/bin/Rscript.exe` (not on PATH).
+`normalize_data` with `loess`/`svr` hangs on Windows with the default
+`threads = 4`; pass `threads = 1`. R scripts that plot write `Rplots.pdf` in
+the working directory — delete it.
+
+**Open from before:** widget 91's Span 0.3 · 0.75 vs tidymass's own 0.5–0.9
+(offered, undecided).
+
+---
+
 **2026-10-07 to 10-08: 90 `limma` SHIPPED AND PUSHED (e750764, 19 states, deploy
 run 37644492075 green) as "Proteomics: Differential Expression"; 91 `qc-drift`
 SHIPPED AND PUSHED (71ba4a6, 17 states, deploy run 37656397213 green) as
@@ -7,9 +57,8 @@ SHIPPED AND PUSHED (71ba4a6, 17 states, deploy run 37656397213 green) as
 TWELVE WIDGETS; 93 `ms-features` PICKED — the records are the catalogue's § *Slot
 90* and § *Slot 91*.** The arc: 88 ✅ → 89 ✅ → **90 `limma` ✅** → **91 `qc-drift`
 ✅** → **93 `ms-features` NEXT** (picked 2026-10-08 on his word, "add 93"; 92
-`rank-test` stays unpicked). **LOCAL, NOT PUSHED:** c3e84b7 (90 fix, below) and
-this handover — he said "fix 90, then write handover and close"; push when he
-says tested ok.
+`rank-test` stays unpicked). c3e84b7 (90 fix, below) and that handover (1c1bfde) were pushed
+on his tested ok (deploy 37659102784 green).
 
 **90 as shipped.** Step: **Shrinkage · Test**; Replicates 3 · 5 · 11 (default 3;
 the simulation draws 11 + 11 per protein and n reads the first n, so the same
