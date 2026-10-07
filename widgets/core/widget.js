@@ -897,7 +897,19 @@ export function defineWidget(config) {
       stopAnim();
       // Clicking step again means "get on with it": finish the unit in flight
       // rather than swallowing the click, so repeated clicking stays responsive.
-      if (mode === "step" && wasStepping) fastForward();
+      if (mode === "step" && wasStepping) {
+        fastForward();
+        /* A click that FINISHES the animation stops on the finished figure.
+           Without this the Replay below took the same click as a request to
+           start over, so a widget whose whole animation is one press (88's
+           Search) went back to its first spectrum when pressed mid-search —
+           the button's title says "Finish the search at once" (2026-10-07). */
+        if (anim.done === true) {
+          paint();
+          updateAnimButtons();
+          return;
+        }
+      }
     }
 
     /* `=== true`, not truthy. `anim.done` is a FLAG meaning "nothing left to
