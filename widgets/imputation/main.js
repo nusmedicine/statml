@@ -429,7 +429,7 @@ defineWidget({
 
   params: {
     page: {
-      role: "page", type: "segmented", label: "Page", display: true, default: "missing",
+      role: "page", type: "segmented", label: "Step", display: true, default: "missing",
       options: [{ value: "missing", label: "Missing" }, { value: "imputing", label: "Imputing" }],
     },
     dataSec: { type: "section", label: "The data" },
