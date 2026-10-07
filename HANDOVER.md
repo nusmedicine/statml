@@ -1,5 +1,85 @@
 # Handover
 
+**2026-10-07 to 10-08: 90 `limma` SHIPPED AND PUSHED (e750764, 19 states, deploy
+run 37644492075 green) as "Proteomics: Differential Expression"; 91 `qc-drift`
+SHIPPED AND PUSHED (71ba4a6, 17 states, deploy run 37656397213 green) as
+"Metabolomics: QC and Drift", WITH THE PAGE CONTROL RENAMED "Page" → "Step" ON
+TWELVE WIDGETS; 93 `ms-features` PICKED — the records are the catalogue's § *Slot
+90* and § *Slot 91*.** The arc: 88 ✅ → 89 ✅ → **90 `limma` ✅** → **91 `qc-drift`
+✅** → **93 `ms-features` NEXT** (picked 2026-10-08 on his word, "add 93"; 92
+`rank-test` stays unpicked). **LOCAL, NOT PUSHED:** c3e84b7 (90 fix, below) and
+this handover — he said "fix 90, then write handover and close"; push when he
+says tested ok.
+
+**90 as shipped.** Step: **Shrinkage · Test**; Replicates 3 · 5 · 11 (default 3;
+the simulation draws 11 + 11 per protein and n reads the first n, so the same
+proteins and truth at every setting); 1,337 proteins on the lesson's fitted prior
+(d0 3, s0 0.33), default seed 9. Shrinkage: a histogram of every protein's own SD
+with the fitted prior's curve and s0, the shrunk SDs as an outline; under it the
+example protein's **likelihood × prior = posterior** on the same log-SD axis
+(his pick C, 78's right-hand panel — exact: each is a scaled inverse χ² over ln σ²
+peaking at its scale, so the posterior peaks at the shrunk SD); presses **Compute
+SDs · Fit the prior · Shrink**. Test: 01-4 cell 14's volcano with a **Statistic**
+control Ordinary t · Moderated t; a change moves every protein vertically (the
+log2FC is the same in both — cell 9's correction as motion). One word for the
+variance, **shrink** (the shrunk SD); the **moderated t** keeps limma's name.
+MathML card per stage. `_lab/limma-verify.mjs` 1,341 checks.
+
+**91 as shipped.** Step: **Drift · Correction**; 02-4's Prostatic hyperplasia vs
+Prostate cancer, 52 + 52, 26 metabolites with MTBLS6038's names, simulated (no
+QCs in the lesson); Run order **Grouped by default** (his ask) · Random; a pooled
+QC every 5 · 10; seed 84. Drift: one metabolite against injection order, under it
+every metabolite's QCs centred with their per-injection median bold (the one curve
+median normalization removes); **Inject**. Correction: Median (02-3's choice,
+default) · QC-LOESS with Span 0.3 · 0.75 — None is the page before the press;
+**Correct** draws the curve then moves every value by it; below, all 26 log2FCs in
+rows None · Median · QC-LOESS, **a row filling in only once its correction has been
+applied** (his "gives the punchline away"). The test is 02-4's Wilcoxon rank-sum
+with BH and the median fold change. Over 100 seeds, grouped: none 16.6 false calls
+of 22, median 16.1, QC-LOESS 0.3 0.41; random none 0.18. `_lab/qc-drift-verify.mjs`
+145 checks.
+
+**The rename.** Kenneth on 90: "Page — should it be something else? we used
+step/stage for other widgets… we forgot about this the previous few widgets". The
+page control now reads **Step** on 56 57 67 69 70 72 73 75 78 79 88 89 (and 90,
+91); 78's finished press reads "Shrink every gene", 88's "Minimal set", not
+"Step". Full suite 1,268/1,275, the 7 DIFFERs hidden-pane artifacts (38/38 MATCH
+re-run alone). Memory `name-the-page-control`.
+
+**Worth knowing before 93:**
+
+- **A page with a press on BOTH pages needs 89's `halt`.** 90's `rebuild` (p = 1)
+  is only safe when the other page has no press; 91's ship's INTERRUPTED state
+  caught Correct starting unasked after a mid-Inject page switch. And end a press
+  only on a PAGE change: 90 ended it on any display change (fixed in c3e84b7,
+  unpushed). `_lab/switch-probe.html?only=<slug>` checks it.
+- **Writing an `_lab/*.html` opens it in a new pane tab and fronts it, and
+  `tabs_create` fronted too** — either hides a running suite (px-only DIFFERs).
+  During a suite write no lab HTML and open no tab.
+- **Explain a mock arm by its moments.** 91's Correction arm B first drew only the
+  moment before the press, and he asked why A (before and after) wasn't the pick;
+  redrawn as the press's two moments, he took B.
+- **For 93, from the lesson's own files:** MTBLS6038's MAF has 26 metabolites with
+  m/z and RT; three isomer pairs share a formula (ethylmalonic / glutaric C5H8O4,
+  maleic / fumaric C4H4O4, adipic / 3-methylglutaric C6H10O4), their reported m/z
+  differing only by measurement error (0.02–0.12) and RT by 0.2–1.3 min;
+  ethylmalonic acid is 02-4's top hit. 02-3's `massqc_report` mz–RT plot
+  (`_lab/figs/metabolomics-02-3-massqc-mz_rt_plot.png`) shows only 8 of 26 and
+  labels RT "second" when the values are minutes — check why before using it.
+  `pdftoppm` (MiKTeX) renders the report's PDFs.
+- **Told to him (notebook):** MTBLS6038 records no run order — 02-2 cell 5 builds
+  `injection.order` from the file's row order, which runs in 12 cohort blocks;
+  02-3's RSD is over subjects (no QCs). With 26 metabolites a sample's median
+  carries its own biology, so the median adds false calls in a random order.
+- **Copy rules held:** subtitles lead with the data ("Protein abundances…",
+  "Metabolite abundances…") and leave the degrees of freedom to the card; struck
+  in this pass: agency verbs (give, becomes, track, finds), our words (beat, drift
+  left, own SDs), two words for one operation. Each verify carries the sweep.
+
+**EIGHTY WIDGETS IN THE MANIFEST — 79 on the gallery and `roc-auc`
+UNLISTED.** Untracked and safe to leave: as below, plus the session's scratch.
+Dev server :8010 (another chat's). **SESSION CLOSED 2026-10-08.**
+
 **2026-10-07: 89 `imputation` SHIPPED AND PUSHED (4826ea8, 18 states, deploy run
 37632079783 green) as "Proteomics: Imputation"; A CORE FIX PUSHED ALONE FIRST
 (875975f) — the records are the catalogue's § *Slot 89* (from *MEASURED, MOCKED AND
