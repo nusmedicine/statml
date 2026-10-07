@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); 88's layout mocked and picked (six calls, all the recommendation); 88 SHIPPED AND PUSHED 2026-10-07 (00ae5f3, 22 states); 89 `imputation` MOCKED AND PICKED 2026-10-07 (nine calls, all the recommendation), DRAFT built** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); 88's layout mocked and picked (six calls, all the recommendation); 88 SHIPPED AND PUSHED 2026-10-07 (00ae5f3, 22 states); 89 `imputation` SHIPPED AND PUSHED 2026-10-07 (18 states; Missing · Imputing, five methods and Mixed grouped by assumption, a filter, the two steps as a tree, every method's significant proteins side by side); NEXT 90 `limma`** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -21293,6 +21293,38 @@ Mixed's detail states its 20%; "hole" → "missing value" in every reader-facing
 is regenerated at the four levels (`"50"` reuses the old `"half"` stream, so those values are
 unchanged). A diagram of the two steps with live counts is MOCKED (`_lab/imputation-diagram-mock.html`),
 not built.
+
+#### Rounds 3 and 4, 2026-10-07 — the diagram, the conclusion, the copy
+
+- **The two steps as a tree** above the Imputing matrix (b11adca; mocked in
+  `_lab/imputation-diagram-mock.html`, all recommendations): every protein → step 1, the filter
+  (kept / removed) → step 2, the method; Mixed splits into Minimum (MNAR) and Random forest
+  (MAR); the counts follow Keep and Method. +132 px.
+- **What imputation does to the conclusion** (5f94d27; `_lab/imputation-test-mock.html`): one
+  bar per method at the page foot, its significant proteins at adjusted p < 0.05, the method on
+  screen outlined; True values On splits each into true and false positives with the FDR, and a
+  dashed outline marks every protein that truly differs. Fills after Impute. True positives are
+  ink, not blue, because blue is a measured value on this page. +228 px (page 890 px).
+- **The copy audit** (73b7e95), eleven rows, all the recommendation: the subtitle without
+  personification and with the filter step; the blurb (it still said four methods); significant /
+  true positives / false positives; "truly differ" for "real" (the claudisms hit); have for hold;
+  three method details plain; The example protein. The verify sweeps every reader-facing string
+  for the struck words.
+- **The notebook** (his edit, from `_lab/imputation-notebook-suggestions.md`): cell 42's random
+  forest stays; "In practice" after it; two functions, `filter_proteins(data, keep_prop = 0.5)` and
+  `impute_mixed(m, mnar_prop = 0.2, ...)`, run as written on the lesson data (1,030 kept, 168 given
+  the minimum, no NA). The folder's `data/rds/proteins.rds` is 01-3's FINISHED object (cell 50's
+  `save_local()` overwrote 01-2's), so 01-3 fails at cell 7 if run from it — told to him.
+
+#### SHIPPED AND PUSHED 2026-10-07
+
+On his "tested ok, ship it and push". Status flipped first; 18 fingerprint states — 14 settled
+(Missing at 0 and 22 samples, True values, seed 7; Imputing before and after Impute; Mixed,
+kNN at Any on the two-sample protein, Minimum on the scattered one, Measured only, Low draw at
+70%, Mixed at 100%, the protein removed by the filter; dark), 2 driven (Measure and Impute about
+nine samples in), 1 hit (row 123) and 1 interrupted (Measure, then Imputing: opens unfilled, the
+same hashes as the unfilled page) — three identical runs at DPR 1.25, then 18/18 MATCH; the
+verify 325 checks in `npm test`. 77 widgets on the gallery. NEXT: 90 `limma`.
 
 ---
 

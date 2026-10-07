@@ -11906,6 +11906,162 @@
       },
       "px": "578626c5",
       "tx": "5bef3f55"
+    },
+    {
+      "$note": "imputation · the opening Missing page, nothing measured",
+      "slug": "imputation",
+      "state": "?theme=light&shown=0",
+      "px": "54d74cec",
+      "tx": "2f9a1d5c"
+    },
+    {
+      "$note": "imputation · Missing, every sample measured: missing values at the bottom, the share scatter, the per-sample bars",
+      "slug": "imputation",
+      "state": "?theme=light&shown=1",
+      "px": "d876d16a",
+      "tx": "d780e12c"
+    },
+    {
+      "$note": "imputation · Missing, True values On: the detection curve and the true level of the missing values",
+      "slug": "imputation",
+      "state": "?theme=light&shown=1&truth=on",
+      "px": "3360c2fc",
+      "tx": "9bdd2101"
+    },
+    {
+      "$note": "imputation · Missing, seed 7",
+      "slug": "imputation",
+      "state": "?theme=light&seed=7&shown=1",
+      "px": "1cddfef4",
+      "tx": "f76da516"
+    },
+    {
+      "$note": "imputation · Imputing before the press: the tree, the missing values, the comparison panel waiting",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&shown=0",
+      "px": "b709beea",
+      "tx": "3d86d6ac"
+    },
+    {
+      "$note": "imputation · Imputing, the defaults (keep 50%, random forest) after Impute",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&shown=1",
+      "px": "1461984e",
+      "tx": "969a83fd"
+    },
+    {
+      "$note": "imputation · Mixed, True values On: the tree split in two, the absent protein near +5.8",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&method=mixed&shown=1&truth=on",
+      "px": "4835443d",
+      "tx": "14a2afb3"
+    },
+    {
+      "$note": "imputation · kNN with no filter: the two-sample protein significant, kNN's false positives",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&keep=any&method=knn&protein=measured-in-two-samples&shown=1&truth=on",
+      "px": "e262e551",
+      "tx": "2f92702a"
+    },
+    {
+      "$note": "imputation · Minimum on the scattered-missing-values protein",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&method=minimum&protein=scattered-missing-values&shown=1&truth=on",
+      "px": "6af175e4",
+      "tx": "b56c2ae9"
+    },
+    {
+      "$note": "imputation · Measured only: the tree gives how many can be tested",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&method=measured-only&shown=1",
+      "px": "36cc4813",
+      "tx": "1b1ec3b2"
+    },
+    {
+      "$note": "imputation · Low draw at keep 70%",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&keep=70&method=low-draw&shown=1",
+      "px": "da49db20",
+      "tx": "e7e2f581"
+    },
+    {
+      "$note": "imputation · keep 100%, Mixed: 262 kept, 20 given the minimum",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&keep=100&method=mixed&shown=1&truth=on",
+      "px": "d60ad746",
+      "tx": "c6ded540"
+    },
+    {
+      "$note": "imputation · the two-sample protein removed by the filter",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing&protein=measured-in-two-samples&shown=1",
+      "px": "983db329",
+      "tx": "7698a82a"
+    },
+    {
+      "$note": "imputation · dark: Mixed, True values On",
+      "slug": "imputation",
+      "state": "?theme=dark&page=imputing&method=mixed&shown=1&truth=on",
+      "px": "a88a5030",
+      "tx": "14a2afb3"
+    },
+    {
+      "$note": "imputation · DRIVEN: Measure, about nine samples in",
+      "slug": "imputation",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "7ea76b18",
+      "tx": "2f9a1d5c"
+    },
+    {
+      "$note": "imputation · DRIVEN: Impute, about nine samples filled",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "f6c924ac",
+      "tx": "3d86d6ac"
+    },
+    {
+      "$note": "imputation · HIT: a click on row 123 of the unfilled matrix marks that protein",
+      "slug": "imputation",
+      "state": "?theme=light&page=imputing",
+      "drive": {
+        "hit": [
+          150,
+          276
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "5348ea3a",
+      "tx": "3d86d6ac"
+    },
+    {
+      "$note": "imputation · INTERRUPTED: Measure, 5 frames in, then Imputing: the press finishes, Imputing opens unfilled",
+      "slug": "imputation",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "imputing"
+        },
+        "frames": 10
+      },
+      "px": "b709beea",
+      "tx": "3d86d6ac"
     }
   ]
 }

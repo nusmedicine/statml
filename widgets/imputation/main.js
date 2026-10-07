@@ -1,4 +1,4 @@
-/* imputation — slot 89, "Proteomics: Imputation". DRAFT 2026-10-07.
+/* imputation — slot 89, "Proteomics: Imputation". SHIPPED 2026-10-07.
  *
  * Planned in the catalogue's § The proteomics and metabolomics arc and
  * § Slot 89: measured in `_lab/proteomics-arc-measure.mjs`, mocked in
@@ -424,7 +424,7 @@ defineWidget({
     + "protein by protein (mixed). Proteins measured in too few samples are usually removed first, and the list of "
     + "significant proteins differs with the assumption.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: (p) => (p.page === "imputing" ? H_IMPUTING : H_MISSING),
 
   params: {
