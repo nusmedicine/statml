@@ -1,4 +1,4 @@
-/* qc-drift — slot 91, "Metabolomics: QC and Drift". DRAFT 2026-10-08.
+/* qc-drift — slot 91, "Metabolomics: QC and Drift". SHIPPED 2026-10-08.
  *
  * Planned in the catalogue's § The proteomics and metabolomics arc and
  * § Slot 91: measured in `_lab/proteomics-arc-measure.mjs`, mocked in
@@ -256,7 +256,7 @@ defineWidget({
     + "to its median removes only the drift all metabolites share. In a run made in group order, drift is confounded with "
     + "the group difference.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: (p) => (p.page === "correction" ? H_CORR : H_DRIFT),
 
   params: {
@@ -367,6 +367,7 @@ defineWidget({
         return anim.cor.t < 1;
       }
       const page = params.page;
+      if (anim.halt) { anim.halt = false; settle(anim, page); return false; }
       if (anim.p >= 1) {
         if ((anim.n[page] ?? 0) >= STAGES[page]) { settle(anim, page); return false; }
         anim.n[page] += 1; anim.p = 0; anim.page = page;
@@ -383,8 +384,15 @@ defineWidget({
         // an ease only once the correction has been applied; before the press there is nothing to move
         if (anim.n.correction >= 1 && anim.p >= 1) { anim.easing = true; anim.applied[k] = true; } else { anim.cor.from = k; anim.cor.t = 1; }
       }
-      /* a page switch mid-press finishes the press where it was (the 2026-09-20 sweep) */
-      if (anim.p < 1) anim.p = 1;
+      /* A page switch mid-press finishes that press and stops the loop, so the
+         other page's press is never taken unasked (memory mid-press-page-switch:
+         both pages here have a press, which 90's Test page did not, and the
+         ship's interrupted state caught Correct starting after an Inject).
+         Any other display change leaves the press running. */
+      if (params.page !== anim.page && anim.p < 1) {
+        if (anim.page === "correction") anim.applied[k] = true;
+        anim.p = 1; anim.halt = true;
+      }
       anim.page = params.page;
       settle(anim, params.page);
     },

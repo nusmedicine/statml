@@ -12242,6 +12242,168 @@
       },
       "px": "5e113e19",
       "tx": "c75de775"
+    },
+    {
+      "$note": "qc-drift · the opening Drift page, nothing injected, grouped",
+      "slug": "qc-drift",
+      "state": "?theme=light&shown=0",
+      "px": "f71f666b",
+      "tx": "fbc4f4be"
+    },
+    {
+      "$note": "qc-drift · Drift, every injection made: the U-shaped example over the 26 QC traces and their median",
+      "slug": "qc-drift",
+      "state": "?theme=light&shown=1",
+      "px": "6681e14d",
+      "tx": "bb75ac42"
+    },
+    {
+      "$note": "qc-drift · Drift, True values On: the true drift",
+      "slug": "qc-drift",
+      "state": "?theme=light&shown=1&truth=on",
+      "px": "2b1301a5",
+      "tx": "bff18830"
+    },
+    {
+      "$note": "qc-drift · Drift, random order",
+      "slug": "qc-drift",
+      "state": "?theme=light&order=random&shown=1",
+      "px": "744d92d2",
+      "tx": "15f8e240"
+    },
+    {
+      "$note": "qc-drift · Drift, a QC every 10, Ethylmalonic acid",
+      "slug": "qc-drift",
+      "state": "?theme=light&qc=10&metabolite=ethylmalonic-acid&shown=1",
+      "px": "29fe6030",
+      "tx": "69f19680"
+    },
+    {
+      "$note": "qc-drift · Correction before the press: as measured, the None row",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction&shown=0",
+      "px": "31c96b2f",
+      "tx": "e6c66589"
+    },
+    {
+      "$note": "qc-drift · Correction after Median: 20 of 26 still called",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction&shown=1",
+      "px": "96c7e6e1",
+      "tx": "11d17a66"
+    },
+    {
+      "$note": "qc-drift · Correction after QC-LOESS 0.3, True values On",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction&correction=qc-loess&shown=1&truth=on",
+      "px": "3d4d108d",
+      "tx": "6e8259d9"
+    },
+    {
+      "$note": "qc-drift · Correction after QC-LOESS 0.75, True values On",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction&correction=qc-loess&span=0.75&shown=1&truth=on",
+      "px": "642bb7e0",
+      "tx": "36f4c351"
+    },
+    {
+      "$note": "qc-drift · Correction, random order, QC-LOESS",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction&order=random&correction=qc-loess&shown=1",
+      "px": "348abb0b",
+      "tx": "f9dcdfe9"
+    },
+    {
+      "$note": "qc-drift · dark: Drift, True values On",
+      "slug": "qc-drift",
+      "state": "?theme=dark&shown=1&truth=on",
+      "px": "dfc23eb6",
+      "tx": "bff18830"
+    },
+    {
+      "$note": "qc-drift · dark: Correction after QC-LOESS, True values On",
+      "slug": "qc-drift",
+      "state": "?theme=dark&page=correction&correction=qc-loess&shown=1&truth=on",
+      "px": "ac99b6ec",
+      "tx": "6e8259d9"
+    },
+    {
+      "$note": "qc-drift · DRIVEN: Inject, about 28 injections in",
+      "slug": "qc-drift",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "b01522ec",
+      "tx": "70ff9cff"
+    },
+    {
+      "$note": "qc-drift · DRIVEN: Correct with Median, the values mid-move",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "9c0793d1",
+      "tx": "e6c66589"
+    },
+    {
+      "$note": "qc-drift · DRIVEN: after Correct, Correction to QC-LOESS, mid-ease; its row appears",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction&truth=on",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 70
+          }
+        ],
+        "set": {
+          "correction": "qc-loess"
+        },
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "b2d538e6",
+      "tx": "6e8259d9"
+    },
+    {
+      "$note": "qc-drift · HIT: a click on Fumaric acid's dot in the None row selects it",
+      "slug": "qc-drift",
+      "state": "?theme=light&page=correction",
+      "drive": {
+        "hit": [
+          433,
+          300
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "dc972e01",
+      "tx": "6e0b038e"
+    },
+    {
+      "$note": "qc-drift · INTERRUPTED: Inject, 5 frames in, then Correction: the press finishes, Correction opens",
+      "slug": "qc-drift",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "correction"
+        },
+        "frames": 10
+      },
+      "px": "31c96b2f",
+      "tx": "e6c66589"
     }
   ]
 }
