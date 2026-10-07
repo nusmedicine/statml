@@ -1068,7 +1068,7 @@ export const STRINGS = {
     + "a cohort's counts into signatures and their exposures; the number of signatures is chosen by how consistently "
     + "repeated factorizations group the tumors, and cosine similarity compares each signature with reference signatures.",
 
-  pageLabel: "Page",
+  pageLabel: "Step",
   pageDetail: "one tumor's mutations, the cohort factorized, the number of signatures chosen by the agreement between "
     + "10 runs, or each signature compared with the references",
   tumorSection: "The tumor",
