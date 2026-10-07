@@ -12062,6 +12062,186 @@
       },
       "px": "b709beea",
       "tx": "3d86d6ac"
+    },
+    {
+      "$note": "limma · the opening Shrinkage page, nothing computed",
+      "slug": "limma",
+      "state": "?theme=light&shown=0",
+      "px": "2b6fe3d1",
+      "tx": "98d55b49"
+    },
+    {
+      "$note": "limma · Compute SDs: the histogram of own SDs, the protein's likelihood",
+      "slug": "limma",
+      "state": "?theme=light&shown=1",
+      "px": "25f43341",
+      "tx": "2817560c"
+    },
+    {
+      "$note": "limma · Fit the prior: the curve and s0, the prior below",
+      "slug": "limma",
+      "state": "?theme=light&shown=2",
+      "px": "efb30103",
+      "tx": "09719d6e"
+    },
+    {
+      "$note": "limma · Shrink: the outline narrowed, the posterior at the shrunk SD",
+      "slug": "limma",
+      "state": "?theme=light&shown=3",
+      "px": "da1bc3b6",
+      "tx": "82e6b784"
+    },
+    {
+      "$note": "limma · Shrink, True values On: the true SD beside the posterior",
+      "slug": "limma",
+      "state": "?theme=light&shown=3&truth=on",
+      "px": "869807b2",
+      "tx": "fe52ecd1"
+    },
+    {
+      "$note": "limma · Typical, True values On",
+      "slug": "limma",
+      "state": "?theme=light&shown=3&protein=typical&truth=on",
+      "px": "77cde994",
+      "tx": "5c81e139"
+    },
+    {
+      "$note": "limma · Large SD: lowered toward s0",
+      "slug": "limma",
+      "state": "?theme=light&shown=3&protein=large-sd",
+      "px": "b7d0a998",
+      "tx": "6a9e921c"
+    },
+    {
+      "$note": "limma · 11 replicates, True values On: the posterior on the likelihood",
+      "slug": "limma",
+      "state": "?theme=light&reps=11&shown=3&truth=on",
+      "px": "02385153",
+      "tx": "e9201cf0"
+    },
+    {
+      "$note": "limma · 5 replicates, seed 12",
+      "slug": "limma",
+      "state": "?theme=light&reps=5&seed=12&shown=3",
+      "px": "46deb10b",
+      "tx": "f85b7900"
+    },
+    {
+      "$note": "limma · Test, ordinary t",
+      "slug": "limma",
+      "state": "?theme=light&page=test&shown=0",
+      "px": "5e113e19",
+      "tx": "c75de775"
+    },
+    {
+      "$note": "limma · Test, moderated t, True values On",
+      "slug": "limma",
+      "state": "?theme=light&page=test&stat=moderated&truth=on&shown=0",
+      "px": "96296895",
+      "tx": "92acfebb"
+    },
+    {
+      "$note": "limma · Test, moderated t at 11 replicates, True values On",
+      "slug": "limma",
+      "state": "?theme=light&page=test&reps=11&stat=moderated&truth=on&shown=0",
+      "px": "04a53ef3",
+      "tx": "f22933c3"
+    },
+    {
+      "$note": "limma · dark: Shrink, True values On",
+      "slug": "limma",
+      "state": "?theme=dark&shown=3&truth=on",
+      "px": "9ec481ec",
+      "tx": "fe52ecd1"
+    },
+    {
+      "$note": "limma · dark: Test, moderated t, True values On",
+      "slug": "limma",
+      "state": "?theme=dark&page=test&stat=moderated&truth=on&shown=0",
+      "px": "e6a14944",
+      "tx": "92acfebb"
+    },
+    {
+      "$note": "limma · DRIVEN: Compute SDs, the bars half grown",
+      "slug": "limma",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "c844e790",
+      "tx": "2817560c"
+    },
+    {
+      "$note": "limma · DRIVEN: Shrink from step 2, the outline and the posterior mid-move",
+      "slug": "limma",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "289589df",
+      "tx": "82e6b784"
+    },
+    {
+      "$note": "limma · DRIVEN: Statistic to moderated t, the dots mid-move",
+      "slug": "limma",
+      "state": "?theme=light&page=test&truth=on",
+      "drive": {
+        "set": {
+          "stat": "moderated"
+        },
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "f3f551d1",
+      "tx": "92acfebb"
+    },
+    {
+      "$note": "limma · HIT: a click on protein 476's point of the volcano marks it",
+      "slug": "limma",
+      "state": "?theme=light&page=test",
+      "drive": {
+        "hit": [
+          150,
+          344
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "e1c3fc10",
+      "tx": "6dcc43fe"
+    },
+    {
+      "$note": "limma · INTERRUPTED: Compute SDs, 5 frames in, then Test: the press finishes, Test opens",
+      "slug": "limma",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "test"
+        },
+        "frames": 10
+      },
+      "px": "5e113e19",
+      "tx": "c75de775"
     }
   ]
 }

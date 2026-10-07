@@ -1,4 +1,4 @@
-/* limma — slot 90, "Proteomics: Differential Expression". DRAFT 2026-10-07.
+/* limma — slot 90, "Proteomics: Differential Expression". SHIPPED 2026-10-07.
  *
  * Planned in the catalogue's § The proteomics and metabolomics arc and
  * § Slot 90: measured in `_lab/proteomics-arc-measure.mjs`, mocked in
@@ -310,7 +310,7 @@ defineWidget({
     + "variance estimate is imprecise, so limma shrinks it toward a prior variance fitted across all proteins by empirical "
     + "Bayes and tests with a moderated t-statistic. The log2 fold change is not shrunk.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: (p) => (p.page === "test" ? H_TEST : H_SHRINKAGE),
 
   params: {
