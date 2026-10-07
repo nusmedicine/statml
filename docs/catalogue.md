@@ -21459,6 +21459,34 @@ identical runs at DPR 1.25, then 19/19 MATCH; the verify 1,341 checks in `npm
 test`. 78 widgets on the gallery. NEXT: the docketed "Page" rename, then 91
 `qc-drift`.
 
+
+### Slot 91 · `qc-drift` — Metabolomics: QC and Drift
+
+#### MEASURED, MOCKED AND PICKED 2026-10-08 — `_lab/qc-drift-mock.html`
+
+His 02-1 figure (Full MS / DDA) and three of 02-3's `massqc_report` figures
+rendered to `_lab/figs/metabolomics-*` (pdftoppm). Measured at 02-4's design,
+52 hyperplasia vs 52 cancer, 26 metabolites, 4 truly different, 100 seeds,
+false calls of 22: random order none 0.34, median 1.39, QC-LOESS 0.3 0.22,
+0.75 0.24; grouped none 16.6, median 16.0, LOESS 0.3 0.46, 0.75 2.99 (QC every
+10: 0.98 and 5.26). At span 0.3 the QC RSD (4.5%) reads below the drift-free
+floor (5.4%): a tight curve absorbs the QCs' own noise, so the drift left in
+the study samples is the honest readout beside it.
+
+**His seven calls, all the recommendation** (8.2 after a redraw: the mock's
+arm B first showed only the moment before the press, so the drift never looked
+removed — redrawn as the press's two moments): Drift page B (the metabolite
+against injection order; below, every metabolite's QCs centred, the
+per-injection median bold — the one curve median normalization removes);
+Correction page B (the metabolite with the curve, then every value moved by
+it; below, all 26 differences in rows None · Median · QC-LOESS); 02-4's groups,
+Prostatic hyperplasia vs Prostate cancer, 52 + 52; Random by default; Inject
+and Correct presses; the example the null metabolite with the most drift, a
+dropdown of all 26 and a click; colours as drawn. **Told to him:** MTBLS6038
+records no run order and 02-2 cell 5 builds `injection.order` from the file's
+row order, which runs in 12 cohort blocks; 02-3's `massqc_report` RSD is over
+subjects (no QCs).
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

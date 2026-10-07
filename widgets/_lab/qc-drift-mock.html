@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 91 — qc-drift, layout mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  tr.on td { background: var(--surface-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 8px; font-size: 11px; }
+  .rail .w { font-family: var(--font-mono); color: var(--ink-1); min-width: 150px; }
+  .rail .pg { padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.on { border-color: var(--c-highlight); }
+  .rail .n { color: var(--ink-3); margin-left: 6px; }
+  img.fig { max-width: 420px; border: 1px solid var(--grid); background: #fff; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 91 &middot; <code>qc-drift</code> &middot; Metabolomics: QC and Drift &middot; layout mock</h1>
+  <p class="note">
+    Picked on the arc mock (2026-10-05): two pages, <b>Drift &middot; Correction</b>, under a control named <b>Step</b> (the rule from 90);
+    <b>Run order</b> Random &middot; Grouped; <b>Correction</b> None &middot; Median &middot; QC-LOESS; <b>Span</b> 0.3 &middot; 0.75; <b>QC every</b>
+    5 &middot; 10; a drift-left readout beside the QC RSD; simulated, because MTBLS6038 has no QCs. The misconception: per-sample
+    normalization corrects instrument drift &mdash; each metabolite drifts its own way along the injection order, only a curve through
+    pooled QCs follows it, and a run made in group order turns drift into a difference. This mock draws each page at the widget's 550px.
+    <b>Every number is computed on this page</b> by <code>_lab/proteomics-arc-model.js</code> part D. Blue-ruled boxes in &sect;8 are your calls.
+  </p>
+  <div class="row">
+    <div class="cand"><h3>02-1 cell 1 &middot; the instrument's output</h3><img class="fig" src="figs/metabolomics-02-1-25dc53a3-fff9-40b6-8d6c-34e6882abbf2.png" alt="Full MS and DDA acquisition"></div>
+    <div class="cand"><h3>02-3 cell 9 &middot; massqc_report: per-sample boxplots</h3><img class="fig" src="figs/metabolomics-02-3-massqc-sample_box.png" alt="intensity boxplots for the first 30 samples"></div>
+    <div class="cand"><h3>02-3 cell 9 &middot; massqc_report: RSD per metabolite</h3><img class="fig" src="figs/metabolomics-02-3-massqc-variable_rsd.png" alt="RSD per variable over all subject samples"></div>
+  </div>
+
+  <h2>1 &middot; Measured before the mock, at 02-4's design: 52 hyperplasia vs 52 cancer</h2>
+  <p class="note">26 metabolites with the lesson's names; 4 truly different by &plusmn;0.6 log2 (two up, two down); every metabolite drifts by a
+    shared fall plus a slope and a bend of its own; a pooled QC first, after every 5th study sample, and last. 100 seeds, Welch t on
+    log2, BH &lt; 0.05. <b>Drift left</b> is what the correction leaves in the study samples, against their drift-free values.</p>
+  <table>
+    <tr><th>QC every 5 (22 QCs in 126 injections)</th><th>random: false / 22</th><th>grouped: false / 22</th><th>grouped: true / 4</th><th>QC RSD</th><th>drift left, log2</th></tr>
+    <tr><td>None</td><td>0.34</td><td>16.61</td><td>3.43</td><td>17.6%</td><td>0.245</td></tr>
+    <tr><td>Median normalization (02-3 cell 11)</td><td>1.39</td><td>15.98</td><td>3.46</td><td>15.8%</td><td>0.284</td></tr>
+    <tr class="on"><td>QC-LOESS, span 0.3</td><td>0.22</td><td>0.46</td><td>4.00</td><td>4.5%</td><td>0.036</td></tr>
+    <tr><td>QC-LOESS, span 0.75</td><td>0.24</td><td>2.99</td><td>4.00</td><td>7.3%</td><td>0.079</td></tr>
+    <tr><td>the drift removed exactly (the floor)</td><td>0.23</td><td>0.21</td><td>4.00</td><td>5.4%</td><td>0</td></tr>
+  </table>
+  <p class="rec">The arc's findings hold at 52 + 52. <b>In a random order drift costs little</b> (0.34 false calls); <b>in group order it is
+    16.6 of 22</b>, and the median leaves 16.0 because it removes only what every metabolite shares. One new point for the readout: at span
+    0.3 the <b>QC RSD (4.5%) reads below the drift-free floor (5.4%)</b> &mdash; a tight curve absorbs the QCs' own noise &mdash; so the QC RSD
+    flatters a tight span and only the drift left in the study samples says how much was removed. With a QC every 10th injection: span
+    0.3 0.98 false calls, 0.75 5.26.</p>
+  <p class="note"><b>For your notebook (not the widget).</b> MTBLS6038 records no run order: 02-2 cell 5 builds <code>injection.order</code> from
+    the sample file's row order, and the file lists the samples in 12 blocks by cohort (24 cancer, 29 hyperplasia, 1 cancer, 12 healthy,
+    10 prostatitis, &hellip;). If that were the run order, the comparison in 02-4 would be the grouped case above. And 02-3's
+    <code>massqc_report</code> RSD is computed over the subject samples, since there are no QCs, so it measures biology plus drift, not
+    the instrument.</p>
+
+  <h2>2 &middot; The Drift page &mdash; what drifts, and what a per-sample median can remove</h2>
+  <p class="note">Run order <b>Grouped</b>, no correction, the default seed below. The example metabolite is the null one with the most drift.</p>
+  <div class="row" id="driftRow"></div>
+  <p class="rec"><b>B recommended.</b> Its lower panel is the misconception drawn: every metabolite's QCs drift their own way, and the bold
+    line is the per-injection median, the one curve median normalization removes &mdash; the spread around it is what remains. A carries your
+    02-3 boxplots, which show the medians but not that metabolites differ; C's RSD bars are a number, not a picture of why.</p>
+
+  <h2>3 &middot; The Correction page &mdash; the curve through the QCs, and what each correction does to the test</h2>
+  <p class="note">The same run, the example metabolite, Correction <b>QC-LOESS</b> at span 0.3.</p>
+  <div class="row" id="corrRow"></div>
+  <p class="rec"><b>B recommended.</b> The upper panel is the correction for one metabolite; the lower is all 26 at once, one row per
+    correction, so None and Median can be seen calling the drifted nulls different while QC-LOESS returns them to 0 &mdash; as 89's foot set
+    every method side by side. C puts the 100-seed summary in the widget, which is the arc's evidence rather than the reader's run.</p>
+
+  <h2>4 &middot; The rail, as recommended</h2>
+  <div class="rail"><span class="w">Step</span><span class="pg on">Drift</span><span class="pg">Correction</span></div>
+  <div class="rail"><span class="w">The data</span><span class="pg">Run order: Random &middot; Grouped</span><span class="pg">QC every: 5 &middot; 10</span><span class="pg">Seed</span><span class="n">data</span></div>
+  <div class="rail"><span class="w">Correction</span><span class="pg">None &middot; Median &middot; QC-LOESS</span><span class="pg">Span: 0.3 &middot; 0.75 (QC-LOESS only)</span><span class="n">display, on Correction</span></div>
+  <div class="rail"><span class="w">Show</span><span class="pg">Metabolite: 26 names, or a click on a trace</span><span class="pg">True values: Off &middot; On (the true drift)</span><span class="n">display</span></div>
+  <div class="rail"><span class="w">Buttons</span><span class="pg">Inject</span><span class="pg">Correct</span><span class="pg">Reset</span><span class="n">Inject on Drift (the run, one injection a beat); Correct on Correction (the curve, then the values move)</span></div>
+  <p class="note">Readout: the example metabolite's cancer &minus; hyperplasia difference and adjusted p; its QC RSD; the drift left; and the
+    count of metabolites called different (with True values On, true and false positives).</p>
+
+  <h2>8 &middot; Your calls</h2>
+  <p class="q"><b class="h">8.1 &middot; The Drift page</b> A &middot; one metabolite, and 02-3's per-sample boxplots &nbsp;|&nbsp; <b>B &middot; one
+    metabolite, and every metabolite's QCs with their per-injection median (recommended)</b> &nbsp;|&nbsp; C &middot; one metabolite, and the QC RSD
+    of each</p>
+  <p class="q"><b class="h">8.2 &middot; The Correction page</b> A &middot; one metabolite before and after &nbsp;|&nbsp; <b>B &middot; one metabolite
+    corrected, and all 26 differences under each correction (recommended)</b> &nbsp;|&nbsp; C &middot; one metabolite corrected, and false calls over
+    100 seeds</p>
+  <p class="q"><b class="h">8.3 &middot; The groups</b> <b>A &middot; 02-4's comparison: Prostatic hyperplasia vs Prostate cancer, 52 + 52
+    (recommended)</b> &nbsp;|&nbsp; B &middot; A and B, 40 + 40 as the arc mock</p>
+  <p class="q"><b class="h">8.4 &middot; Default run order</b> <b>A &middot; Random (recommended)</b>: the drift is visible and the test is fine;
+    Grouped is one click, and the reader makes the damage &nbsp;|&nbsp; B &middot; Grouped: the damage on arrival</p>
+  <p class="q"><b class="h">8.5 &middot; The presses</b> <b>A &middot; Inject (the run, one injection a beat, as 89's Measure) and Correct (the
+    curve drawn through the QCs, then every value moves to its corrected place) (recommended)</b> &nbsp;|&nbsp; B &middot; no presses: both pages
+    drawn at once</p>
+  <p class="q"><b class="h">8.6 &middot; The example metabolite</b> <b>A &middot; the null metabolite with the most drift by default; a Metabolite
+    dropdown of all 26, and a click on its trace (recommended)</b> &nbsp;|&nbsp; B &middot; a dropdown only</p>
+  <p class="q"><b class="h">8.7 &middot; Colours</b> <b>A &middot; as drawn (recommended)</b>: hyperplasia <code>--c-group-a</code>, cancer
+    <code>--c-group-b</code>, a pooled QC a square in <code>--c-reference</code> (the fixed benchmark every sample is judged against), the LOESS
+    curve <code>--c-smoothed</code>, the true drift dashed <code>--c-theory</code>, the per-injection median <code>--c-highlight</code>, called
+    different <code>--c-extreme</code> &nbsp;|&nbsp; B &middot; say which to change</p>
+  <p class="note"><b>Left to the draft, conventional:</b> the engine draws every metabolite's drift before the run order, so switching Random
+    and Grouped reorders the same samples instead of drawing a new run (the arc model shuffles first); a typical default seed measured
+    over seeds.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "./proteomics-arc-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const GROUP = { A: "Prostatic hyperplasia", B: "Prostate cancer" };
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const b = el("div", "cand"); b.style.width = `${w}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(b, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; b.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.5, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const f = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+const sg = (x, d = 2) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(d)}`;
+const pFmt = (p) => (p < 1e-3 ? p.toExponential(1) : p.toFixed(3));
+
+/* a typical seed for the grouped run: nearest the 100-seed means of false calls, uncorrected and at QC-LOESS 0.3 */
+const OPT = { order: "grouped", perGroup: 52, qcEvery: 5 };
+let SEED = 1, best = Infinity;
+for (let s = 1; s <= 30; s += 1) {
+  const run = M.simulateRun(M.makeRng(s), OPT);
+  const a = M.scoreRun(run, run.X).fp, b = M.scoreRun(run, M.correctQcLoess(run, 0.3)).fp;
+  const d = Math.abs(a - 16.6) / 16.6 + Math.abs(b - 0.46);
+  if (d < best) { best = d; SEED = s; }
+}
+const run = M.simulateRun(M.makeRng(SEED), OPT);
+const { inj, mets, X, drift, N } = run;
+const qcIdx = inj.map((s, i) => (s.kind === "QC" ? i : -1)).filter((i) => i >= 0);
+const raw = M.scoreRun(run, X);
+const EX = mets.map((mt, k) => [k, Math.max(...drift[k]) - Math.min(...drift[k])]).filter(([k]) => !mets[k].real).sort((a, b) => b[1] - a[1])[0][0];
+const Ymed = M.correctMedian(run), Ylo = M.correctQcLoess(run, 0.3);
+const S = { None: raw, Median: M.scoreRun(run, Ymed), "QC-LOESS": M.scoreRun(run, Ylo) };
+const groupMean = (Y, m, g) => M.mean(inj.map((s, i) => (s.kind === g ? Y[m][i] : NaN)).filter((v) => !Number.isNaN(v)));
+
+/* one metabolite against injection order */
+function scatter(ctx, Y, m, x0, y0, w, h, { curve = null, truth = false, title = "", lo = null, hi = null, sc = raw } = {}) {
+  const vals = Y[m];
+  const L = lo ?? Math.min(...vals) - 0.2, H = hi ?? Math.max(...vals) + 0.2;
+  const sx = (i) => x0 + (i / (N - 1)) * w, sy = (v) => y0 + h - ((v - L) / (H - L)) * h;
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis); line(ctx, x0, y0, x0, y0 + h, T.axis);
+  for (const t of [0, 25, 50, 75, 100, 125]) if (t < N) { line(ctx, sx(t), y0 + h, sx(t), y0 + h + 4, T.axis); label(ctx, String(t + 1), sx(t), y0 + h + 15, { align: "center", size: 10, colour: T.ink3 }); }
+  for (let v = Math.ceil(L * 2) / 2; v <= H; v += 0.5) if (Math.abs(v * 2 - Math.round(v * 2)) < 1e-9 && Number.isInteger(v)) { line(ctx, x0 - 4, sy(v), x0, sy(v), T.axis); label(ctx, String(v), x0 - 6, sy(v) + 3, { align: "right", size: 10, colour: T.ink3 }); }
+  if (truth) polyline(ctx, inj.map((_, i) => sx(i)), inj.map((_, i) => sy(mets[m].base + drift[m][i])), T.theory, 1.5, [4, 3]);
+  vals.forEach((v, i) => { if (inj[i].kind !== "QC") dot(ctx, sx(i), sy(v), 2.4, inj[i].kind === "A" ? T.groupA : T.groupB); });
+  vals.forEach((v, i) => { if (inj[i].kind === "QC") rect(ctx, sx(i) - 3.5, sy(v) - 3.5, 7, 7, T.reference); });
+  if (curve) polyline(ctx, inj.map((_, i) => sx(i)), curve.map(sy), T.smoothed, 2.2);
+  label(ctx, title, x0 + 4, y0 - 6, { colour: T.ink1, weight: "600", size: 11 });
+  const d = groupMean(Y, m, "B") - groupMean(Y, m, "A");
+  label(ctx, `cancer − hyperplasia ${sg(d)} log2 · adjusted p ${pFmt(sc.padj[m])}`, x0 + w, y0 - 6, { align: "right", size: 10, mono: true, colour: sc.padj[m] < 0.05 ? T.extreme : T.ink2 });
+  return { sx, sy, L, H };
+}
+const axisNote = (ctx, x0, w, y) => label(ctx, "injection order →", x0 + w / 2, y, { align: "center", size: 10, colour: T.ink3 });
+function key(ctx, x, y) {
+  label(ctx, "hyperplasia", x, y, { size: 10, colour: T.groupA, weight: "600" });
+  label(ctx, "cancer", x + 70, y, { size: 10, colour: T.groupB, weight: "600" });
+  rect(ctx, x + 115, y - 8, 7, 7, T.reference); label(ctx, "pooled QC", x + 126, y, { size: 10, colour: T.ink2 });
+}
+
+/* ------------------------------------------------ §2 Drift */
+const lo = Math.min(...X[EX]) - 0.2, hi = Math.max(...X[EX]) + 0.2;
+{
+  const b = cand("driftRow", "A · the metabolite, and 02-3's per-sample boxplots", `seed ${SEED} · grouped · ${mets[EX].name} (not different) · ${N} injections, ${qcIdx.length} QCs\nbelow: each study sample's 26 values, median and quartiles`);
+  const ctx = canvasIn(b, W, 420);
+  scatter(ctx, X, EX, 50, 30, W - 70, 190, { title: mets[EX].name, lo, hi });
+  key(ctx, 50, 248);
+  const y0 = 270, h = 110, x0 = 50, w = W - 70;
+  const sx = (i) => x0 + (i / (N - 1)) * w;
+  const all = X.flat(), L = M.quantile(all, 0.05), H = M.quantile(all, 0.95), sy = (v) => y0 + h - ((Math.min(H, Math.max(L, v)) - L) / (H - L)) * h;
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  inj.forEach((s, i) => {
+    if (s.kind === "QC") return;
+    const col = X.map((r) => r[i]);
+    const q1 = M.quantile(col, 0.25), q3 = M.quantile(col, 0.75), md = M.median(col);
+    rect(ctx, sx(i) - 1.2, sy(q3), 2.4, sy(q1) - sy(q3), wash(s.kind === "A" ? T.groupA : T.groupB, 0.45));
+    line(ctx, sx(i) - 1.6, sy(md), sx(i) + 1.6, sy(md), T.ink1, 1.5);
+  });
+  label(ctx, "each sample's 26 metabolites: median and quartiles", x0 + 4, y0 - 4, { size: 10, colour: T.ink2 });
+  axisNote(ctx, x0, w, y0 + h + 22);
+}
+{
+  const b = cand("driftRow", "B · the metabolite, and every metabolite's QCs", `seed ${SEED} · grouped · thin: each metabolite's QC values, centred on its own mean\nbold: the median across metabolites at each injection — what median normalization removes`);
+  const ctx = canvasIn(b, W, 420);
+  scatter(ctx, X, EX, 50, 30, W - 70, 190, { title: mets[EX].name, lo, hi });
+  key(ctx, 50, 248);
+  const y0 = 272, h = 110, x0 = 50, w = W - 70;
+  const sx = (i) => x0 + (i / (N - 1)) * w;
+  const centred = X.map((r) => { const m = M.mean(qcIdx.map((i) => r[i])); return qcIdx.map((i) => r[i] - m); });
+  const medAll = inj.map((_, i) => M.median(X.map((r) => r[i])));
+  const medC = (() => { const m = M.mean(qcIdx.map((i) => medAll[i])); return qcIdx.map((i) => medAll[i] - m); })();
+  const L = -1.2, H = 1.2, sy = (v) => y0 + h - ((Math.min(H, Math.max(L, v)) - L) / (H - L)) * h;
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis); line(ctx, x0, y0, x0, y0 + h, T.axis);
+  [-1, 0, 1].forEach((v) => label(ctx, String(v).replace("-", "−"), x0 - 6, sy(v) + 3, { align: "right", size: 10, colour: T.ink3 }));
+  centred.forEach((c, m) => polyline(ctx, qcIdx.map(sx), c.map(sy), m === EX ? T.ink1 : wash(T.ink3, 0.45), m === EX ? 1.6 : 1));
+  polyline(ctx, qcIdx.map(sx), medC.map(sy), T.highlight, 3);
+  label(ctx, "each metabolite's QCs, centred (log2)", x0 + 4, y0 - 6, { size: 10, colour: T.ink2 });
+  label(ctx, "median across metabolites", x0 + w - 4, y0 - 6, { size: 10, colour: T.highlight, weight: "600", align: "right" });
+  axisNote(ctx, x0, w, y0 + h + 22);
+}
+{
+  const b = cand("driftRow", "C · the metabolite, and the QC RSD of each", `seed ${SEED} · grouped · bars: each metabolite's RSD over the ${qcIdx.length} QCs, linear scale\nthe pooled QC is one material, so its spread is the instrument`);
+  const ctx = canvasIn(b, W, 420);
+  scatter(ctx, X, EX, 50, 30, W - 70, 190, { title: mets[EX].name, lo, hi });
+  key(ctx, 50, 248);
+  const y0 = 272, h = 110, x0 = 50, w = W - 70;
+  const order = raw.rsd.map((v, k) => [v, k]).sort((a, b) => b[0] - a[0]);
+  const top = Math.max(0.4, order[0][0] * 1.1), bw = w / order.length;
+  const sy = (v) => y0 + h - (v / top) * h;
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis); line(ctx, x0, y0, x0, y0 + h, T.axis);
+  [0, 0.2, 0.4].forEach((v) => label(ctx, `${v * 100}%`, x0 - 6, sy(v) + 3, { align: "right", size: 10, colour: T.ink3 }));
+  order.forEach(([v, k], j) => rect(ctx, x0 + j * bw + 1, sy(v), bw - 2, y0 + h - sy(v), k === EX ? T.ink1 : wash(T.ink3, 0.6)));
+  label(ctx, "QC RSD per metabolite, highest first", x0 + 4, y0 - 6, { size: 10, colour: T.ink2 });
+}
+
+/* ------------------------------------------------ §3 Correction */
+const fitEx = M.loess(qcIdx, qcIdx.map((i) => X[EX][i]), inj.map((_, i) => i), 0.3);
+const loC = Math.min(...X[EX], ...Ylo[EX]) - 0.2, hiC = Math.max(...X[EX], ...Ylo[EX]) + 0.2;
+{
+  const b = cand("corrRow", "A · the metabolite before and after", `seed ${SEED} · grouped · QC-LOESS, span 0.3\nabove: as measured, the curve through the QCs; below: the curve removed`);
+  const ctx = canvasIn(b, W, 420);
+  scatter(ctx, X, EX, 50, 30, W - 70, 150, { curve: fitEx, title: "as measured", lo: loC, hi: hiC });
+  scatter(ctx, Ylo, EX, 50, 225, W - 70, 150, { title: "after QC-LOESS", lo: loC, hi: hiC, sc: S["QC-LOESS"] });
+  axisNote(ctx, 50, W - 70, 412);
+}
+function strips(ctx, x0, y0, w) {
+  const rows = [["None", X, S.None], ["Median", Ymed, S.Median], ["QC-LOESS", Ylo, S["QC-LOESS"]]];
+  const qx = (v) => x0 + 70 + ((Math.max(-1.5, Math.min(1.5, v)) + 1.5) / 3) * (w - 80);
+  label(ctx, "all 26 metabolites: cancer − hyperplasia, log2", x0 + 4, y0 - 6, { size: 10, colour: T.ink2 });
+  rows.forEach(([name, Y, sc], r) => {
+    const y = y0 + 14 + r * 30;
+    label(ctx, name, x0 + 62, y + 4, { size: 10, colour: T.ink1, weight: "600", align: "right" });
+    line(ctx, qx(-1.5), y, qx(1.5), y, T.grid);
+    line(ctx, qx(0), y - 9, qx(0), y + 9, T.axis);
+    mets.forEach((mt, k) => {
+      const d = groupMean(Y, k, "B") - groupMean(Y, k, "A");
+      if (mt.real) line(ctx, qx(mt.fc), y - 9, qx(mt.fc), y + 9, T.reference, 1.5);
+      dot(ctx, qx(d), y, 3.2, sc.padj[k] < 0.05 ? T.extreme : wash(T.ink3, 0.7), k === EX ? T.ink1 : null, 1.5);
+    });
+    label(ctx, `${sc.fp + sc.tp} called · ${sc.fp} not different`, x0 + w - 4, y - 10, { size: 10, colour: T.ink2, align: "right" });
+  });
+  [-1, 0, 1].forEach((v) => label(ctx, String(v).replace("-", "−"), qx(v), y0 + 14 + 3 * 30 - 4, { align: "center", size: 10, colour: T.ink3 }));
+}
+{
+  const b = cand("corrRow", "B · the metabolite corrected, and all 26 under each correction", `seed ${SEED} · grouped · QC-LOESS, span 0.3 · below, red: adjusted p < 0.05\ntick: a true difference (True values On) · ringed: ${mets[EX].name}`);
+  b.appendChild(el("p", "sub", "1 · Correct pressed: the curve is drawn through the QCs"));
+  const c1 = canvasIn(b, W, 230);
+  scatter(c1, X, EX, 50, 30, W - 70, 170, { curve: fitEx, title: "as measured", lo: loC, hi: hiC });
+  b.appendChild(el("p", "sub", "2 · every value then moves by the curve: the drift removed\nbelow: the test for all 26 metabolites, one row per correction"));
+  const ctx = canvasIn(b, W, 420);
+  scatter(ctx, Ylo, EX, 50, 30, W - 70, 170, { title: "after QC-LOESS", lo: loC, hi: hiC, sc: S["QC-LOESS"] });
+  axisNote(ctx, 50, W - 70, 236);
+  strips(ctx, 20, 272, W - 40);
+}
+{
+  const b = cand("corrRow", "C · the metabolite corrected, and false calls over 100 seeds", `the arc's measurement at 52 + 52 · bars: null metabolites called different per run, of 22`);
+  const ctx = canvasIn(b, W, 420);
+  scatter(ctx, Ylo, EX, 50, 30, W - 70, 170, { title: "after QC-LOESS", lo: loC, hi: hiC, sc: S["QC-LOESS"] });
+  const bars = [["None", 0.34, 16.61], ["Median", 1.39, 15.98], ["LOESS 0.3", 0.22, 0.46], ["LOESS 0.75", 0.24, 2.99]];
+  const x0 = 60, y0 = 260, h = 120, w = W - 90, gw = w / bars.length, sy = (v) => y0 + h - (v / 22) * h;
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  bars.forEach(([n, r, g], k) => {
+    rect(ctx, x0 + k * gw + 8, sy(r), 18, y0 + h - sy(r), T.ink3);
+    rect(ctx, x0 + k * gw + 30, sy(g), 18, y0 + h - sy(g), T.extreme);
+    label(ctx, n, x0 + k * gw + 28, y0 + h + 14, { align: "center", size: 10 });
+  });
+  label(ctx, "grey: random order · red: grouped", x0, y0 - 6, { size: 10, colour: T.ink2 });
+}
+</script>
+</body>
+</html>
