@@ -63,14 +63,15 @@ for (let s = 1; s <= FOREST_SEEDS; s += 1) {
   assert(!kept.has(ex.few) && kept.has(ex.absent) && kept.has(ex.scattered), `seed ${s}: the filter removes the two-sample protein only`);
 }
 
-section("§4 the claims, over the seeds");
+section("§4 the claims, over the seeds (mixed included)");
 {
-  const acc = { min: [], knn: [], forest: [], knnHalf: [] };
+  const acc = { min: [], knn: [], forest: [], knnHalf: [], mixed: [] };
   for (let s = 1; s <= FOREST_SEEDS; s += 1) {
     const sim = sims[s], all = sim.obs.map((r, p) => p);
     acc.min.push(E.score(sim, all, E.imputeMin(sim.obs)));
     acc.knn.push(E.score(sim, all, E.imputeKnn(sim.obs)));
     acc.forest.push(E.score(sim, all, E.fillFromHoles(sim.obs, FOREST[s].any)));
+    acc.mixed.push(E.score(sim, all, E.imputeMixed(sim.obs, E.imputeMin(sim.obs), E.fillFromHoles(sim.obs, FOREST[s].any))));
     const half = E.keepRows(sim.obs, "half");
     acc.knnHalf.push(E.score(sim, half, E.imputeKnn(half.map((p) => sim.obs[p]))));
   }
@@ -80,6 +81,9 @@ section("§4 the claims, over the seeds");
   assert(g("min", "absentFc") > g("forest", "absentFc") && g("forest", "absentFc") > g("knn", "absentFc"), "an absence: the minimum keeps most, then the forest, then kNN");
   assert(g("knn", "fdr") > 2 * g("forest", "fdr") && g("knn", "fdr") > 0.15, "kNN makes the most false calls");
   assert(g("knnHalf", "fdr") < g("knn", "fdr") / 2, "the filter cuts kNN's false discovery rate by more than half");
+  console.log(`  mixed (minimum + forest, by protein): absence ${g("mixed", "absentFc").toFixed(2)}, FDR ${(100 * g("mixed", "fdr")).toFixed(1)}%, true ${g("mixed", "tp").toFixed(1)} (minimum ${g("min", "tp").toFixed(1)}, forest ${g("forest", "tp").toFixed(1)}, kNN ${g("knn", "tp").toFixed(1)})`);
+  assert(g("mixed", "absentFc") > 4 && g("mixed", "fdr") < g("forest", "fdr"), "mixed keeps an absence and makes fewer false calls than the forest");
+  assert(["min", "knn", "forest"].every((k) => g("mixed", "tp") > g(k, "tp")), "mixed finds more true differences than any single method");
   assert(g("knn", "bias") > 0.5 && g("forest", "bias") > 0.3 && g("min", "bias") < -0.5, "kNN and the forest fill above the truth, the minimum below");
 }
 

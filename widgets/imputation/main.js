@@ -37,19 +37,21 @@ const LO = 17, HI = 31;                // the log2 axis every panel shares
    the choice of assumption, and the dropdown is where the reader makes it. */
 const MNAR = "MNAR: the value fell below the detection limit";
 const MAR = "MAR: the value is like the measured values";
+const MIXED = "Mixed: by protein";
 const METHODS = [
-  { value: "measured", label: "Measured only", group: "No imputation", detail: "no value filled; a protein is tested where both groups hold 2 values or more" },
-  { value: "min", label: "Minimum", group: MNAR, detail: "each sample's lowest measured value" },
-  { value: "lowdraw", label: "Low draw", group: MNAR, detail: "a random draw around each sample's 1% quantile, spread by the median protein SD" },
+  { value: "measured-only", label: "Measured only", group: "No imputation", detail: "no value filled; a protein is tested where both groups hold 2 values or more" },
+  { value: "minimum", label: "Minimum", group: MNAR, detail: "each sample's lowest measured value" },
+  { value: "low-draw", label: "Low draw", group: MNAR, detail: "a random draw around each sample's 1% quantile, spread by the median protein SD" },
   { value: "knn", label: "kNN", group: MAR, detail: "the mean of the 10 proteins whose measured values are nearest, in that sample" },
-  { value: "forest", label: "Random forest", group: MAR, detail: "for each sample, a regression forest on the other samples' values, repeated until the filled values settle (missForest)" },
+  { value: "random-forest", label: "Random forest", group: MAR, detail: "for each sample, a regression forest on the other samples' values, repeated until the filled values settle (missForest)" },
+  { value: "mixed", label: "Mixed", group: MIXED, detail: `a protein measured in at most ${E.MIXED_CUT} of 11 samples of a group: the Minimum in all its holes; every other protein: the Random forest` },
 ];
 const EXAMPLES = [
-  { value: "absent", label: "Absent in healthy", group: "Example proteins" },
-  { value: "few", label: "Measured in two samples", group: "Example proteins" },
-  { value: "scattered", label: "Scattered holes", group: "Example proteins" },
+  { value: "absent-in-healthy", key: "absent", label: "Absent in healthy", group: "Example proteins" },
+  { value: "measured-in-two-samples", key: "few", label: "Measured in two samples", group: "Example proteins" },
+  { value: "scattered-holes", key: "scattered", label: "Scattered holes", group: "Example proteins" },
 ];
-const ROW_OPTIONS = Array.from({ length: E.PROTEINS }, (_, i) => ({ value: `r${i + 1}`, label: `Row ${i + 1}`, group: "Rows of the matrix, most abundant first" }));
+const ROW_OPTIONS = Array.from({ length: E.PROTEINS }, (_, i) => ({ value: `row-${i + 1}`, label: `Row ${i + 1}`, group: "Rows of the matrix, most abundant first" }));
 const n0 = (v) => v.toLocaleString("en-US");
 const pct = (v, d = 1) => `${(100 * v).toFixed(d)}%`;
 const sg = (x, d = 1) => (Number.isFinite(x) ? `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(d)}` : "–");
@@ -241,7 +243,7 @@ function drawImputing(ctx, colors, w, params, state, anim) {
   const ik = anim ? anim.ik : (Number(params.shown) > 0 ? N : 0);
   const fillTo = Math.floor(ik);
   const { sim, order, rows } = state;
-  const m = params.method, F = m === "measured" ? null : state.filled[m];
+  const m = params.method, F = m === "measured-only" ? null : state.filled[m];
   const truth = params.truth === "on";
   const mk = resolveMarked(params, state);
   drawMatrix(ctx, colors, sim, order.map((p) => p), {
@@ -300,12 +302,12 @@ function resolveMarked(params, state) {
   const ex = EXAMPLES.find((e) => e.value === v);
   const seen = (id) => `${E.seenIn(state.sim.obs[id], 0, NA)} of ${NA} cancer and ${E.seenIn(state.sim.obs[id], NA, N)} of ${NA} healthy measured`;
   if (ex) {
-    const id = state.examples[v];
+    const id = state.examples[ex.key];
     const row = state.order.indexOf(id);
     if (row < 0) return { row: -1, title: `${ex.label}: removed by the Minimum measured filter`, missing: seen(id), id };
     return { row, id, i: state.rowOf[id], title: `${ex.label}, row ${row + 1}: ${seen(id)}` };
   }
-  const row = Math.min(state.order.length, Number(String(v).slice(1)) || 1) - 1;
+  const row = Math.min(state.order.length, Number(String(v).replace("row-", "")) || 1) - 1;
   const id = state.order[row];
   return { row, id, i: state.rowOf[id], title: `Row ${row + 1}: ${seen(id)}` };
 }
@@ -315,10 +317,11 @@ defineWidget({
   slug: "imputation",
   title: "Proteomics: Imputation",
   subtitle:
-    "A mass spectrometer misses a protein most often where its abundance is low, so the holes in a protein matrix "
-    + "are not at random. Imputation puts an estimate in each hole before the test: a sample's minimum, a low random "
-    + "draw, the mean of the nearest proteins (kNN), or a regression forest. Each estimate changes what the test finds, "
-    + "and testing only the measured values is the comparison for all four.",
+    "A mass spectrometer misses a protein most often where its abundance is low, so many holes in a protein matrix "
+    + "are missing not at random (MNAR). The data cannot show why any one value is missing, so every imputation method "
+    + "is an assumption: that the value fell below the detection limit (a minimum, a low random draw), that it is like "
+    + "the measured values (MAR: kNN, a random forest), or one or the other by protein (mixed). Each assumption changes "
+    + "what the test finds; testing only the measured values is the comparison.",
   layout: "side",
   status: "draft",
   height: (p) => (p.page === "imputing" ? H_IMPUTING : H_MISSING),
@@ -341,12 +344,12 @@ defineWidget({
     seed: { type: "int", label: "Seed", min: 1, max: FOREST_SEEDS, default: TYPICAL_SEED },
     methodSec: { type: "section", label: "Imputation", when: { param: "page", equals: "imputing" } },
     method: {
-      type: "select", label: "Method", display: true, default: "forest", when: { param: "page", equals: "imputing" },
+      type: "select", label: "Method", display: true, default: "random-forest", when: { param: "page", equals: "imputing" },
       detail: "what goes in each hole before the test",
       options: METHODS,
     },
     protein: {
-      type: "select", label: "Example protein", display: true, default: "absent", when: { param: "page", equals: "imputing" },
+      type: "select", label: "Example protein", display: true, default: "absent-in-healthy", when: { param: "page", equals: "imputing" },
       detail: "the protein drawn under the matrix; a click on a row of the matrix marks that row",
       options: [...EXAMPLES, ...ROW_OPTIONS],
     },
@@ -387,16 +390,17 @@ defineWidget({
     const rowOf = {}; rows.forEach((p, i) => { rowOf[p] = i; });
     const order = E.abundanceOrder(sim.obs, rows);
     const filled = {
-      min: E.imputeMin(obs),
-      lowdraw: E.imputeLowDraw(obs, rng),
+      minimum: E.imputeMin(obs),
+      "low-draw": E.imputeLowDraw(obs, rng),
       knn: E.imputeKnn(obs),
-      forest: E.fillFromHoles(obs, FOREST[params.seed][params.filter]),
+      "random-forest": E.fillFromHoles(obs, FOREST[params.seed][params.filter]),
     };
-    const scores = { measured: E.score(sim, rows, obs) };
+    filled.mixed = E.imputeMixed(obs, filled.minimum, filled["random-forest"]);
+    const scores = { "measured-only": E.score(sim, rows, obs) };
     for (const [k, F] of Object.entries(filled)) scores[k] = E.score(sim, rows, F);
     // the examples are chosen on the unfiltered matrix, so the filter can be seen to remove one
     const knnAll = params.filter === "any" ? scores.knn : E.score(sim, all, E.imputeKnn(sim.obs));
-    const minAll = params.filter === "any" ? scores.min : E.score(sim, all, E.imputeMin(sim.obs));
+    const minAll = params.filter === "any" ? scores.minimum : E.score(sim, all, E.imputeMin(sim.obs));
     const examples = E.pickExamples(sim, knnAll.padj, minAll.fc);
     const measuredBins = bins(obs.flat().filter((v) => !isNa(v)), NB);
     const truthBins = bins(rows.flatMap((p) => sim.obs[p].map((v, j) => (isNa(v) ? sim.truth[p][j] : NaN)).filter((v) => !isNa(v))), NB);
@@ -458,7 +462,7 @@ defineWidget({
     if (params.page !== "imputing" || !state) return [];
     fitTo(w);
     const P = state.order.length, rh = M.h / P;
-    return state.order.map((_, i) => ({ x: M.x0, y: rowY(i, P), w: M.w, h: rh, set: { protein: `r${i + 1}` }, label: `Row ${i + 1}` }));
+    return state.order.map((_, i) => ({ x: M.x0, y: rowY(i, P), w: M.w, h: rh, set: { protein: `row-${i + 1}` }, label: `Row ${i + 1}` }));
   },
 
   draw: ({ ctx, colors, w, params, state, anim }) => {
@@ -488,10 +492,10 @@ defineWidget({
     }
     const m = params.method, s = state.scores[m];
     const ik = anim ? anim.ik : (Number(params.shown) > 0 ? N : 0);
-    const ready = m === "measured" || ik >= N;
+    const ready = m === "measured-only" || ik >= N;
     const mk = resolveMarked(params, state);
     const kept = state.rows.length;
-    const imputed = m === "measured"
+    const imputed = m === "measured-only"
       ? { label: "Values imputed", value: "none", note: `${n0(s.tested)} of ${n0(kept)} proteins hold 2 values or more in both groups` }
       : { label: "Values imputed", value: ready ? n0(state.holesKept) : "–", note: ready ? (truth ? `imputed − true: mean ${sg(s.bias, 2)} log2` : `in ${n0(kept)} proteins`) : "Impute fills the holes" };
     const called = ready
@@ -501,7 +505,7 @@ defineWidget({
     let marked;
     if (mk.row < 0) marked = { label: "The marked protein", value: "removed", note: "by the Minimum measured filter" };
     else {
-      const showF = m === "measured" || ready;
+      const showF = m === "measured-only" || ready;
       const i = mk.i, fc = s.fc[i], p = s.p[i];
       const tru = truth ? `; true log2FC ${sg(state.sim.meta[mk.id].fc)}` : "";
       marked = !showF

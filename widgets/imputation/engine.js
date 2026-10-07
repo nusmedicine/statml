@@ -235,6 +235,24 @@ export function imputeForest(M, rng, { maxIter = 4, trees = 40 } = {}) {
   }
   return cur;
 }
+/**
+ * Mixed, by protein (as DEP's impute(fun = "mixed") classifies): a protein
+ * measured in at most `cut` of the 11 samples of a group is taken as below
+ * the detection limit, and every one of its holes gets the MNAR fill; every
+ * other protein gets the MAR fill. Measured 2026-10-07 over 20 seeds with the
+ * Minimum and the forest: an absence reads 4.72, FDR 7.6%, 89.8 of 110 true
+ * differences found, more than any single method. Deciding per GROUP instead
+ * fails (FDR 21–32%): a protein with no real difference near the limit gets a
+ * low fill in one group and a fill from the measured range in the other.
+ */
+export const MIXED_CUT = 2;
+export function imputeMixed(M, mnar, mar, cut = MIXED_CUT) {
+  return M.map((r, p) => {
+    const below = Math.min(seenIn(r, 0, NA), seenIn(r, NA, N)) <= cut;
+    return r.map((v, j) => (isNa(v) ? (below ? mnar[p][j] : mar[p][j]) : v));
+  });
+}
+
 /** The rng the table generator gives the forest: one stream per seed and filter, apart from the page's. */
 export const forestSeed = (seed, filter) => 7919 * seed + (filter === "half" ? 2 : 1);
 
