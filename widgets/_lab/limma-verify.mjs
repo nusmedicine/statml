@@ -129,7 +129,8 @@ section("§6 the copy: no struck word in a reader-facing string (the audit of 20
   const src = readFileSync(new URL("../limma/main.js", import.meta.url), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "").replace(/\s\/\/ .*$/gm, "");
   const strings = [...src.matchAll(/"([^"\n]{3,})"|`([^`\n]{3,})`/g)].map((m) => m[1] || m[2]);
-  const struck = /\b(finds?|worth|counts for|says|predicts?|pulled|unreliable|marks|you|your|never|carr(y|ies)|compares|reach(es)?|sits?|stands?|waits?|chose|gives|takes|real)\b/i;
+  // "moderated SD" and "Moderate": one word for the variance, shrink (his round 2); the t keeps limma's "moderated"
+  const struck = /\b(finds?|worth|counts for|says|predicts?|pulled|unreliable|marks|moderated SDs?|moderated variance|moderate|you|your|never|carr(y|ies)|compares|reach(es)?|sits?|stands?|waits?|chose|gives|takes|real)\b/i;
   const visible = strings.map((s) => s.replace(/\$\{[^}]*\}/g, "")).filter((s) => / /.test(s.trim()));
   for (const s of visible) assert(!struck.test(s), `struck word in "${s.slice(0, 80)}"`);
   const card = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8")).widgets.find((w) => w.slug === "limma");

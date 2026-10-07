@@ -21420,6 +21420,25 @@ to the engine so `_lab/limma-verify.mjs` (1,341 checks, in `npm test`) checks
 the examples on 200 seeds, the posterior's peak at the moderated SD, and the
 struck words.
 
+#### Round 2, 2026-10-07 — Step, Compute SDs, Shrink (all the recommendation)
+
+His three words: the page control "Page" → **Step** (Shrinkage · Test are
+limma's two steps, as 74's Tokenize · Encode · Position; 83 and 59 say Step,
+84 Architecture, 85 Training, 87 Method); the first press "Own SDs" →
+**Compute SDs**; "moderate or shrink?" → **one word for the variance,
+shrink**: the third press **Shrink** (also its finished label, so no button
+reads "Step" under a control called Step), the **shrunk SD** in the legend,
+canvas, readout and card notes; the **moderated t** keeps limma's name, its
+card note saying limma calls it so. The verify strikes "moderated SD",
+"moderated variance" and "Moderate".
+
+**Docketed, his call: the 12 other widgets whose page control reads "Page"**
+(56 hardy-weinberg, 57 gwas, 67 tumor-heterogeneity, 69 driver-genes, 70
+mutational-signatures, 72 signal-windows, 73 signal-cnn-lstm, 75
+sequence-cnn-lstm, 78 deseq2, 79 cell-qc, 88 target-decoy, 89 imputation) —
+after 90 ships, one commit a widget, a name for each from its pages in a table
+for him to pick. The rail is not hashed, so no baseline moves.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

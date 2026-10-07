@@ -6,14 +6,17 @@
  * all the recommendation. The misconception is 01-4 cell 9's: limma's log2FC
  * is not shrunk — limma shrinks each protein's VARIANCE toward a prior fitted
  * across all proteins, which changes the t and so the p-value.
- *   1. two pages, Shrinkage · Test (named Variance on the mock; his round 1); Replicates 3 · 5 · 11 per group, default 3;
+ *   1. two pages, Shrinkage · Test under a control named Step (named Variance on the mock;
+ *      his rounds 1 and 2); one word for what happens to the variance, shrink:
+ *      the shrunk SD, the Shrink press; the moderated t keeps limma's name;
+ *      Replicates 3 · 5 · 11 per group, default 3;
  *   2. simulated: 1,337 proteins (01-4's count) whose true variances follow
  *      the lesson's fitted prior, about 10% truly different;
  *   3. Shrinkage: a histogram of every protein's own SD, the fitted prior's
- *      curve and s0, the moderated SDs as an outline; one protein below, its
- *      values in two ink rows (no group colours: --c-prior shares a slot with
- *      --c-group-b), its own, prior and moderated SD as bars, and limma's
- *      weighted average written out; a Step press of three steps;
+ *      curve and s0, the shrunk SDs as an outline; one protein below as 78's
+ *      likelihood × prior = posterior on the same log-SD axis (his round 1,
+ *      pick C); no group colours (--c-prior shares a slot with --c-group-b);
+ *      limma's weighted average in the MathML card; three Step presses;
  *   4. Test: 01-4 cell 14's volcano, a Statistic control Ordinary t ·
  *      Moderated t; a change moves every protein straight up or down, because
  *      the log2FC is the same in both tests — cell 9's correction as motion;
@@ -30,7 +33,7 @@ const P = E.PROTEINS;
 const REPS = ["3", "5", "11"];
 const TYPICAL_SEED = 9;                // measured over 40 seeds (scratch limma-seed.mjs): nearest the mean at 3, 5 and 11
 const H_SHRINKAGE = 456, H_TEST = 480;
-const STEP_MS = [700, 1, 1400];        // own SDs grow in · the prior appears · every SD moves to its moderated value
+const STEP_MS = [700, 1, 1400];        // own SDs grow in · the prior appears · every SD moves to its shrunk value
 const EASE_MS = 900;                   // a Statistic change: the dots move vertically
 const U0 = -2, U1 = Math.log10(2.5), NBINS = 48;   // log10 SD: 0.01 to 2.5 log2
 const FC_LIM = 2.5;
@@ -130,7 +133,7 @@ function drawShrinkage(ctx, colors, w, params, state, anim) {
     const away = own > state.s0 ? -6 : 6;     // on the side away from the example protein's lines
     txt(ctx, colors, `prior: s0 = ${f3(state.s0)}, d0 = ${state.d0.toFixed(1)}`, sx(state.s0) + away, H.top + 10, { size: "fsXs", colour: colors.prior, weight: "600", align: away < 0 ? "right" : "left" });
   }
-  // stage 3: every SD moves to its moderated value; the outline is the moving histogram
+  // stage 3: every SD moves to its shrunk value; the outline is the moving histogram
   if (s >= 3) {
     const k = s === 3 ? e : 1;
     const moving = k >= 1 ? state.modCounts : counts(state.ownSd.map((o, i) => o ** (1 - k) * state.modSd[i] ** k));
@@ -145,7 +148,7 @@ function drawShrinkage(ctx, colors, w, params, state, anim) {
   }
   if (s >= 1) {
     txt(ctx, colors, "own SD", H.x0 + 8, H.top + 10, { size: "fsXs", colour: colors.empirical, weight: "600" });
-    if (s >= 3) txt(ctx, colors, "moderated SD", H.x0 + 8, H.top + 24, { size: "fsXs", colour: colors.posterior, weight: "600" });
+    if (s >= 3) txt(ctx, colors, "shrunk SD", H.x0 + 8, H.top + 24, { size: "fsXs", colour: colors.posterior, weight: "600" });
   }
 
   /* the protein walked through: its likelihood, the prior and their product,
@@ -173,7 +176,7 @@ function drawShrinkage(ctx, colors, w, params, state, anim) {
   curve(state.df, own, colors.empirical, 2);
   if (s >= 2) { curve(state.d0, state.s0, colors.prior, 2); keys.push([`× prior ${f3(state.s0)} · ${state.d0.toFixed(1)} df`, colors.prior]); }
   if (s >= 3) {
-    // the posterior leaves from where the likelihood is and lands at the moderated SD
+    // the posterior leaves from where the likelihood is and lands at the shrunk SD
     const k = s === 3 ? e : 1;
     curve(state.df + k * state.d0, own ** (1 - k) * mod ** k, colors.posterior, 2.5);
     keys.push([`= posterior ${f3(mod)} · ${(state.df + state.d0).toFixed(1)} df`, colors.posterior]);
@@ -214,7 +217,7 @@ const FORMULAS = {
   shrinkage3: {
     math: `<math><mrow><msup>${STILDE}<mn>2</mn></msup><mo>=</mo><mfrac><mrow>${D0}${S0SQ}<mo>+</mo><mi>d</mi><msup><mi>s</mi><mn>2</mn></msup></mrow><mrow>${D0}<mo>+</mo><mi>d</mi></mrow></mfrac></mrow></math>`,
     plain: "s̃² = (d0 s0² + d s²) / (d0 + d)",
-    note: "the moderated variance: the prior's and the protein's own, averaged with their degrees of freedom as weights, and the peak of the posterior, likelihood × prior; with few replicates d is small and the prior has more weight",
+    note: "the shrunk variance: the prior's and the protein's own, averaged with their degrees of freedom as weights, and the peak of the posterior, likelihood × prior; with few replicates d is small and the prior has more weight",
   },
   ordinary: {
     math: `<math><mrow><mi>t</mi><mo>=</mo><mfrac><mrow>${BAR("y", "c")}<mo>−</mo>${BAR("y", "h")}</mrow><mrow><mi>s</mi>${ROOT}</mrow></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mtext> degrees of freedom</mtext></mrow></math>`,
@@ -224,7 +227,7 @@ const FORMULAS = {
   moderated: {
     math: `<math><mrow><mover><mi>t</mi><mo>~</mo></mover><mo>=</mo><mfrac><mrow>${BAR("y", "c")}<mo>−</mo>${BAR("y", "h")}</mrow><mrow>${STILDE}${ROOT}</mrow></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mo>+</mo>${D0}<mtext> degrees of freedom</mtext></mrow></math>`,
     plain: "t̃ = (ȳc − ȳh) / ( s̃ √(1/n + 1/n) ),   d + d0 degrees of freedom",
-    note: "the same numerator, the log2 fold change; the denominator has the moderated SD, and the t has d + d0 degrees of freedom",
+    note: "the same numerator, the log2 fold change; the denominator has the shrunk SD, and the t has d + d0 degrees of freedom; limma calls this t moderated",
   },
 };
 let mathHost = null, mathKey = null;
@@ -313,7 +316,7 @@ defineWidget({
 
   params: {
     page: {
-      role: "page", type: "segmented", label: "Page", display: true, default: "shrinkage",
+      role: "page", type: "segmented", label: "Step", display: true, default: "shrinkage",
       options: [{ value: "shrinkage", label: "Shrinkage" }, { value: "test", label: "Test" }],
     },
     dataSec: { type: "section", label: "The data" },
@@ -326,7 +329,7 @@ defineWidget({
     testSec: { type: "section", label: "The test", when: { param: "page", equals: "test" } },
     stat: {
       type: "segmented", label: "Statistic", display: true, default: "ordinary", when: { param: "page", equals: "test" },
-      detail: "the t's denominator: the protein's own SD, or limma's moderated SD",
+      detail: "the t's denominator: the protein's own SD, or its shrunk SD",
       options: [{ value: "ordinary", label: "Ordinary t" }, { value: "moderated", label: "Moderated t" }],
     },
     showSec: { type: "section", label: "Show" },
@@ -353,7 +356,7 @@ defineWidget({
     : [
       { token: "empirical", label: "A protein's own SD, from its replicates; below, the example protein's likelihood", mark: "bar" },
       { token: "prior", label: "The prior fitted across all proteins: the distribution of own SDs it implies, and s0", mark: "line" },
-      { token: "posterior", label: "The moderated SD; below, the posterior, likelihood × prior", mark: "line" },
+      { token: "posterior", label: "The shrunk SD; below, the posterior, likelihood × prior", mark: "line" },
       ...(params.truth === "on" ? [{ token: "reference", label: "The example protein's true SD", mark: "dash" }] : []),
     ]),
 
@@ -397,11 +400,11 @@ defineWidget({
      page has nothing to step (`inert`). A Statistic change asks core for an
      ease; a change flipped back mid-ease starts from where the picture is. */
   animation: {
-    stepLabel: { anim: "labelAt", labels: { s0: "Own SDs", s1: "Fit the prior", s2: "Moderate", done: "Step" }, default: "Step" },
+    stepLabel: { anim: "labelAt", labels: { s0: "Compute SDs", s1: "Fit the prior", s2: "Shrink", done: "Shrink" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
       s0: "Compute each protein's SD from its own replicates",
       s1: "Fit a prior to every protein's SD: its SD, s0, and its degrees of freedom, d0",
-      s2: "Replace each protein's SD by the average of its own and the prior's, with their degrees of freedom as weights",
+      s2: "Shrink each protein's SD toward s0: the average of its own and the prior's, with their degrees of freedom as weights",
       done: "Every step of this page has been taken",
     }, default: "Step through this page" },
     runLabel: null,
@@ -482,7 +485,7 @@ defineWidget({
     return [
       { label: "Each protein's own SD", value: s >= 1 ? `median ${f3(state.medianOwn)}` : "–", note: `from ${state.n} + ${state.n} values: ${state.df} degrees of freedom` },
       { label: "The prior, across all proteins", value: s >= 2 ? `s0 ${f3(state.s0)}, d0 ${state.d0.toFixed(1)}` : "–", note: "the prior's SD, s0, and its degrees of freedom, d0" },
-      { label: `Protein ${mk.id + 1}'s SD`, value: s >= 3 ? `${f3(own)} → ${f3(mod)}` : s >= 1 ? f3(own) : "–", note: s >= 3 ? `weights ${state.df} : ${state.d0.toFixed(1)}${tsd}` : `own SD, then moderated SD${tsd}` },
+      { label: `Protein ${mk.id + 1}'s SD`, value: s >= 3 ? `${f3(own)} → ${f3(mod)}` : s >= 1 ? f3(own) : "–", note: s >= 3 ? `weights ${state.df} : ${state.d0.toFixed(1)}${tsd}` : `own SD, then shrunk SD${tsd}` },
     ];
   },
 });
