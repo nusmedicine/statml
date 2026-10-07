@@ -548,7 +548,7 @@ export const STRINGS = {
     "One allele frequency predicts three genotype frequencies; pooled populations and "
     + "miscalled genotypes deviate from it.",
 
-  pageLabel: "Page",
+  pageLabel: "Step",
   pageDetail: "one SNP, or 2,000 SNPs",
   dataSection: "The data",
 
