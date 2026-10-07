@@ -31,12 +31,18 @@ const isNa = Number.isNaN;
 const H_MISSING = 610, H_IMPUTING = 530;
 const COL_MS = 140;                    // one sample a beat: 22 samples in about three seconds
 const LO = 17, HI = 31;                // the log2 axis every panel shares
+/* Grouped by the assumption each method makes about a hole, in the terms 01-3
+   cell 41 teaches (his call 2026-10-07: "yes to grouping"). Under a detection
+   limit the data cannot say which assumption holds, so the choice of method IS
+   the choice of assumption, and the dropdown is where the reader makes it. */
+const MNAR = "MNAR: the value fell below the detection limit";
+const MAR = "MAR: the value is like the measured values";
 const METHODS = [
-  { value: "measured", label: "Measured only", detail: "no value filled; a protein is tested where both groups hold 2 values or more" },
-  { value: "min", label: "Minimum", detail: "each sample's lowest measured value" },
-  { value: "lowdraw", label: "Low draw", detail: "a random draw around each sample's 1% quantile, spread by the median protein SD" },
-  { value: "knn", label: "kNN", detail: "the mean of the 10 proteins whose measured values are nearest, in that sample" },
-  { value: "forest", label: "Random forest", detail: "for each sample, a regression forest on the other samples' values, repeated until the filled values settle (missForest)" },
+  { value: "measured", label: "Measured only", group: "No imputation", detail: "no value filled; a protein is tested where both groups hold 2 values or more" },
+  { value: "min", label: "Minimum", group: MNAR, detail: "each sample's lowest measured value" },
+  { value: "lowdraw", label: "Low draw", group: MNAR, detail: "a random draw around each sample's 1% quantile, spread by the median protein SD" },
+  { value: "knn", label: "kNN", group: MAR, detail: "the mean of the 10 proteins whose measured values are nearest, in that sample" },
+  { value: "forest", label: "Random forest", group: MAR, detail: "for each sample, a regression forest on the other samples' values, repeated until the filled values settle (missForest)" },
 ];
 const EXAMPLES = [
   { value: "absent", label: "Absent in healthy", group: "Example proteins" },
