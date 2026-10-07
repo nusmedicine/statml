@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); 88's layout mocked and picked (six calls, all the recommendation); 88 SHIPPED AND PUSHED 2026-10-07 (00ae5f3, 22 states); NEXT 89 `imputation`, its layout mock** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); 88's layout mocked and picked (six calls, all the recommendation); 88 SHIPPED AND PUSHED 2026-10-07 (00ae5f3, 22 states); 89 `imputation` MOCKED AND PICKED 2026-10-07 (nine calls, all the recommendation), DRAFT built** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -21204,6 +21204,63 @@ mid-fall) and 2 interrupted (a page switch mid-press each way, each hashing as
 the other page's settled state) — three identical runs at DPR 1.25, then 22/22
 MATCH; `check` and `npm test` (39 scripts) read alone before the push. Live,
 76 widgets on the gallery. NEXT: 89 `imputation`, its layout mock.
+
+### Slot 89 · `imputation` — Proteomics: Imputation
+
+#### MEASURED, MOCKED AND PICKED 2026-10-07 — `_lab/imputation-mock.html`
+
+**Two measurements the handover asked for, before the mock.**
+
+- **The recommendation table (01-3 cells 31 and 41) and cell 42 come from two
+  versions of tidyproteomics.** Read from its source on GitHub: before
+  2023-05, `impute()` took `method = c('within', 'between')` — *within* filled
+  a hole from its SAMPLE's values (so "Minimum WITHIN" is each sample's
+  minimum, the widget's Minimum), *between* from the PROTEIN's values — and
+  `"randomforest"` forced *between* and passed missForest the matrix
+  TRANSPOSED, proteins as the variables. 1.x (`method = 'matrix'`, cell 42)
+  passes it untransposed: samples as the variables, the orientation the arc
+  measured. Measured (600 proteins, 5 seeds): an absence of 6 log2 reads 2.63
+  in the lesson's orientation and 1.42 in the old one; true calls 71.2 and
+  57.8 of 109; the protein's own minimum ("Minimum BETWEEN") reads 2.61.
+- **The forest's run time**: 2.1 s (20 trees) and 4.3 s (40) at 600 proteins,
+  0.8 s at 300; trees change nothing the page shows; the forest's absence
+  grows with the matrix (1.7 at 200 proteins, 2.6 at 600), so shrinking it to
+  run live would change the lesson.
+
+**His nine calls, every one the recommendation:** the Missing page as the
+matrix (proteins by measured mean × 11 + 11, a hole in `--c-unknown`), the
+share-missing scatter and his cell 24 bars; the Imputing page as the same
+matrix filled in `--c-highlight`, a histogram of measured and imputed values,
+one protein under it; Measure and Impute presses, a sample a beat, a Method
+change after Impute switching at once; the forest computed ahead (seeds 1–20 ×
+both filters); True values Off · On, off; an Example protein control (Absent
+in healthy · Measured in two samples · Scattered holes) and a click on a row;
+the readout for the method on screen; the lesson's orientation only, the
+version change a notebook note; the colours as drawn. Both notebook notes (the
+version change; the 64 proteins owed since the arc mock) told to him in chat.
+
+#### DRAFT 2026-10-07
+
+`widgets/imputation/` — `engine.js` (the arc model's part B, lifted
+unchanged: the same random stream, so seed s here is seed s there),
+`forest-table.js` (622 KB, GENERATED by `_lab/imputation-table.mjs`, about 3
+min; regenerate after any change to the simulation or the forest),
+`main.js`. Typical seed by the generator's measure: **2** (every number
+nearest its median over the 20 seeds). `_lab/imputation-verify.mjs` (147
+checks, in `npm test`): the table against the engine with one entry rerun
+live, the examples on every seed, the claims over 20 seeds — an absence reads
+4.91 (minimum), 2.41 (forest), 1.69 (kNN); FDR 1.6%, 9.5%, 26.4%, kNN
+filtered 4.8%. **Over 20 seeds the forest's FDR is 9.5%, not the arc's 5.1%
+over 5** (2–12% by seed).
+
+Built details not in the mock: Method is a dropdown (five segments
+truncated); the Example protein dropdown carries the three examples and then
+every row, so a row click is one parameter through a real option; the matrix
+widens with the canvas (190–280 px); each reading of the matrix is painted
+once into an offscreen image and a frame copies its columns; `anim.done` is
+never set, because core's Replay re-inits the whole anim and would empty the
+other page — a press after the end starts that page over, and a press
+mid-run finishes it (core's fast-forward is recognised by its 400 ms step).
 
 ---
 

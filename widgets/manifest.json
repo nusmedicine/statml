@@ -1301,6 +1301,21 @@
       ],
       "arc": 88,
       "status": "shipped"
+    },
+    {
+      "slug": "imputation",
+      "title": "Proteomics: Imputation",
+      "blurb": "Missing proteomic values fall below a detection limit; four imputation methods each change the test that follows.",
+      "course": "PHM5003",
+      "topics": [
+        "proteomics",
+        "missing data",
+        "imputation",
+        "detection limit",
+        "differential expression"
+      ],
+      "arc": 89,
+      "status": "draft"
     }
   ]
 }
