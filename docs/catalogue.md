@@ -21262,6 +21262,38 @@ never set, because core's Replay re-inits the whole anim and would empty the
 other page — a press after the end starts that page over, and a press
 mid-run finishes it (core's fast-forward is recognised by its 400 ms step).
 
+#### Round 2, 2026-10-07 — grouped by assumption, Mixed, and the filter realigned with the notebook
+
+His calls, in order: the Method dropdown **grouped by the assumption each method makes** (MNAR · MAR, in
+01-3 cell 41's terms; be20643); **Mixed** added as Minimum + Random forest, decided per protein (per group
+fails: FDR 21–32%, measured); link values renamed to control words before any reaches the notebook
+(0583fb2). Core fix pushed alone the same day (875975f, deploy green): a step press that finishes the
+animation stops there (88's Search restarted on a mid-search press).
+
+**The notebook plan** (`_lab/imputation-notebook-suggestions.md`, CURRENT PLAN): cell 42's random forest
+stays (01-4 and 01-5's GSEA keep their results); an "In practice" note; one optional, TESTED function
+`impute_mixed(data, keep_prop = 0.5, mnar_prop = 0.2)` — step 1 filters (via an annotation + `subset()`,
+because tidyproteomics' `subset()` takes only `column op value`), step 2 imputes (missForest called
+directly: with missForest 1.6.1 the `parallelize = "variables"` mode of `impute.randomforest()` put every
+imputed value near 31.8 log2 on Windows). tidyproteomics has no mixed imputation and no missing-value
+filter; its own workflow imputes a knock-out with the minimum. DEP was removed from Bioconductor in
+3.23; the note points to MSnbase's vignette §8.1 instead (dropped later for simplicity).
+
+**One language for both thresholds** — the proportion of a group's samples in which the protein was
+measured: the filter keeps a protein measured in at least 50 / 70 / 100% of one group; Mixed gives the
+minimum to a protein measured in at most 20% of a group. Measured (`_lab/imputation-filter-measure.mjs`,
+`imputation-two-step-measure.mjs`, `imputation-mnar-prop.mjs`, 20 seeds): any filter fixes kNN (26% →
+4–5%), 50% and 70% alike, 100% keeps 249 of 600 and finds half the real differences; Mixed's 0 / 0.2 /
+0.4 change nothing the page shows (so no control for it). On the lesson's data: filter 50/70/100% keeps
+1,030 / 917 / 722 proteins, of which 168 / 115 / 64 get the minimum.
+
+**In the widget:** the filter control is now *Keep proteins measured in at least*: Any · 50% · 70% ·
+100% (link `keep=`, default 50%), in the Imputation section before Method, applied to every method;
+Mixed's detail states its 20%; "hole" → "missing value" in every reader-facing string. The forest table
+is regenerated at the four levels (`"50"` reuses the old `"half"` stream, so those values are
+unchanged). A diagram of the two steps with live counts is MOCKED (`_lab/imputation-diagram-mock.html`),
+not built.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

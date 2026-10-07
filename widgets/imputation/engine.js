@@ -96,9 +96,16 @@ export function simulateMatrix(rng, {
 }
 
 export const seenIn = (r, a = 0, b = N) => { let n = 0; for (let j = a; j < b; j += 1) if (!isNa(r[j])) n += 1; return n; };
-/** The Minimum measured filter: `half` keeps a protein measured in at least half of one group (6 of 11). */
-export function keepRows(obs, filter) {
-  return obs.map((r, p) => p).filter((p) => filter !== "half" || Math.max(seenIn(obs[p], 0, NA), seenIn(obs[p], NA, N)) >= Math.ceil(NA / 2));
+/**
+ * The filter before imputing (his call 2026-10-07): keep a protein measured in at
+ * least `keep` percent of the samples of one group — "any", "50" (6 of 11), "70"
+ * (8 of 11) or "100". The notebook's `keep_prop`, said the same way.
+ */
+export const KEEP_LEVELS = ["any", "50", "70", "100"];
+export function keepRows(obs, keep) {
+  if (keep === "any") return obs.map((r, p) => p);
+  const need = Math.ceil((Number(keep) / 100) * NA - 1e-9);
+  return obs.map((r, p) => p).filter((p) => Math.max(seenIn(obs[p], 0, NA), seenIn(obs[p], NA, N)) >= need);
 }
 /** Rows by measured mean, most abundant first — the order every matrix on the page is drawn in. */
 export function abundanceOrder(obs, rows) {
@@ -254,7 +261,7 @@ export function imputeMixed(M, mnar, mar, cut = MIXED_CUT) {
 }
 
 /** The rng the table generator gives the forest: one stream per seed and filter, apart from the page's. */
-export const forestSeed = (seed, filter) => 7919 * seed + (filter === "half" ? 2 : 1);
+export const forestSeed = (seed, keep) => 7919 * seed + 1 + KEEP_LEVELS.indexOf(keep);   // "50" is the old "half": same stream
 
 /** Put a table's hole values back into the matrix (holes in row-major order over `obs`). */
 export function fillFromHoles(obs, holes) {

@@ -29,13 +29,13 @@ for (let s = 1; s <= FOREST_SEEDS; s += 1) sims[s] = E.simulateMatrix(makeRng(s)
 section("§1 the forest table");
 {
   assert(TYPICAL_SEED >= 1 && TYPICAL_SEED <= FOREST_SEEDS, `the typical seed ${TYPICAL_SEED} is in 1–${FOREST_SEEDS}`);
-  for (let s = 1; s <= FOREST_SEEDS; s += 1) for (const filter of ["any", "half"]) {
+  for (let s = 1; s <= FOREST_SEEDS; s += 1) for (const filter of E.KEEP_LEVELS) {
     const obs = E.keepRows(sims[s].obs, filter).map((p) => sims[s].obs[p]);
     const holes = obs.flat().filter(isNa).length;
     assert(FOREST[s]?.[filter]?.length === holes, `seed ${s} ${filter}: ${FOREST[s]?.[filter]?.length} table values for ${holes} holes`);
   }
   // one entry live: the smaller matrix, so the check costs about 3 s
-  const s = TYPICAL_SEED, filter = "half";
+  const s = TYPICAL_SEED, filter = "50";
   const obs = E.keepRows(sims[s].obs, filter).map((p) => sims[s].obs[p]);
   const live = E.holesOf(E.imputeForest(obs, makeRng(E.forestSeed(s, filter))), obs);
   const diff = live.reduce((m, v, i) => Math.max(m, Math.abs(v - FOREST[s][filter][i])), 0);
@@ -56,11 +56,11 @@ for (let s = 1; s <= FOREST_SEEDS; s += 1) {
   const knn = E.score(sim, all, E.imputeKnn(sim.obs));
   const min = E.score(sim, all, E.imputeMin(sim.obs));
   const ex = E.pickExamples(sim, knn.padj, min.fc);
-  const kept = new Set(E.keepRows(sim.obs, "half"));
+  const kept = new Set(E.keepRows(sim.obs, "50"));
   assert(sim.meta[ex.absent]?.kind === "absent", `seed ${s}: an absent-in-healthy protein`);
   assert(ex.few !== undefined && sim.meta[ex.few].kind === "null" && E.seenIn(sim.obs[ex.few]) <= 4, `seed ${s}: a no-difference protein measured in ${ex.few === undefined ? "?" : E.seenIn(sim.obs[ex.few])} samples`);
   assert(ex.scattered !== undefined, `seed ${s}: a scattered-holes protein`);
-  assert(!kept.has(ex.few) && kept.has(ex.absent) && kept.has(ex.scattered), `seed ${s}: the filter removes the two-sample protein only`);
+  assert(!kept.has(ex.few) && kept.has(ex.absent) && kept.has(ex.scattered), `seed ${s}: the 50% filter removes the two-sample protein only`);
 }
 
 section("§4 the claims, over the seeds (mixed included)");
@@ -72,7 +72,7 @@ section("§4 the claims, over the seeds (mixed included)");
     acc.knn.push(E.score(sim, all, E.imputeKnn(sim.obs)));
     acc.forest.push(E.score(sim, all, E.fillFromHoles(sim.obs, FOREST[s].any)));
     acc.mixed.push(E.score(sim, all, E.imputeMixed(sim.obs, E.imputeMin(sim.obs), E.fillFromHoles(sim.obs, FOREST[s].any))));
-    const half = E.keepRows(sim.obs, "half");
+    const half = E.keepRows(sim.obs, "50");
     acc.knnHalf.push(E.score(sim, half, E.imputeKnn(half.map((p) => sim.obs[p]))));
   }
   const g = (k, f) => E.mean(acc[k].map((x) => x[f]).filter(Number.isFinite));

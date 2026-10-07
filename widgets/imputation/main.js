@@ -44,12 +44,12 @@ const METHODS = [
   { value: "low-draw", label: "Low draw", group: MNAR, detail: "a random draw around each sample's 1% quantile, spread by the median protein SD" },
   { value: "knn", label: "kNN", group: MAR, detail: "the mean of the 10 proteins whose measured values are nearest, in that sample" },
   { value: "random-forest", label: "Random forest", group: MAR, detail: "for each sample, a regression forest on the other samples' values, repeated until the filled values settle (missForest)" },
-  { value: "mixed", label: "Mixed", group: MIXED, detail: `a protein measured in at most ${E.MIXED_CUT} of 11 samples of a group: the Minimum in all its holes; every other protein: the Random forest` },
+  { value: "mixed", label: "Mixed", group: MIXED, detail: "a protein measured in at most 20% of the samples of a group (2 of 11): the Minimum for its missing values; every other protein: the Random forest" },
 ];
 const EXAMPLES = [
   { value: "absent-in-healthy", key: "absent", label: "Absent in healthy", group: "Example proteins" },
   { value: "measured-in-two-samples", key: "few", label: "Measured in two samples", group: "Example proteins" },
-  { value: "scattered-holes", key: "scattered", label: "Scattered holes", group: "Example proteins" },
+  { value: "scattered-missing-values", key: "scattered", label: "Scattered missing values", group: "Example proteins" },
 ];
 const ROW_OPTIONS = Array.from({ length: E.PROTEINS }, (_, i) => ({ value: `row-${i + 1}`, label: `Row ${i + 1}`, group: "Rows of the matrix, most abundant first" }));
 const n0 = (v) => v.toLocaleString("en-US");
@@ -304,7 +304,7 @@ function resolveMarked(params, state) {
   if (ex) {
     const id = state.examples[ex.key];
     const row = state.order.indexOf(id);
-    if (row < 0) return { row: -1, title: `${ex.label}: removed by the Minimum measured filter`, missing: seen(id), id };
+    if (row < 0) return { row: -1, title: `${ex.label}: removed by the filter`, missing: seen(id), id };
     return { row, id, i: state.rowOf[id], title: `${ex.label}, row ${row + 1}: ${seen(id)}` };
   }
   const row = Math.min(state.order.length, Number(String(v).replace("row-", "")) || 1) - 1;
@@ -317,7 +317,7 @@ defineWidget({
   slug: "imputation",
   title: "Proteomics: Imputation",
   subtitle:
-    "A mass spectrometer misses a protein most often where its abundance is low, so many holes in a protein matrix "
+    "A mass spectrometer misses a protein most often where its abundance is low, so many missing values in a protein matrix "
     + "are missing not at random (MNAR). The data cannot show why any one value is missing, so every imputation method "
     + "is an assumption: that the value fell below the detection limit (a minimum, a low random draw), that it is like "
     + "the measured values (MAR: kNN, a random forest), or one or the other by protein (mixed). Each assumption changes "
@@ -332,20 +332,24 @@ defineWidget({
       options: [{ value: "missing", label: "Missing" }, { value: "imputing", label: "Imputing" }],
     },
     dataSec: { type: "section", label: "The data" },
-    filter: {
-      type: "segmented", label: "Minimum measured", when: { param: "page", equals: "imputing" },
-      detail: "the proteins kept for imputing and testing",
-      options: [
-        { value: "any", label: "Any", detail: "every protein measured in at least one sample" },
-        { value: "half", label: "Half of a group", detail: "measured in at least 6 of the 11 samples of one group" },
-      ],
-      default: "any",
-    },
     seed: { type: "int", label: "Seed", min: 1, max: FOREST_SEEDS, default: TYPICAL_SEED },
     methodSec: { type: "section", label: "Imputation", when: { param: "page", equals: "imputing" } },
+    /* Step 1, the filter — the notebook's keep_prop, said the same way (his call
+       2026-10-07). Applies to every method, as filtering does in practice. */
+    keep: {
+      type: "segmented", label: "Keep proteins measured in at least", when: { param: "page", equals: "imputing" },
+      detail: "of the samples of one group; the others are removed before imputing",
+      options: [
+        { value: "any", label: "Any", detail: "one sample: every protein in the table is kept" },
+        { value: "50", label: "50%", detail: "6 of 11" },
+        { value: "70", label: "70%", detail: "8 of 11" },
+        { value: "100", label: "100%", detail: "all 11" },
+      ],
+      default: "50",
+    },
     method: {
       type: "select", label: "Method", display: true, default: "random-forest", when: { param: "page", equals: "imputing" },
-      detail: "what goes in each hole before the test",
+      detail: "what fills each missing value before the test",
       options: METHODS,
     },
     protein: {
@@ -355,7 +359,7 @@ defineWidget({
     },
     truth: {
       type: "segmented", label: "True values", display: true, default: "off",
-      detail: "the values behind the holes: known in a simulation, unknown in a measured data set",
+      detail: "the values that were not measured: known in a simulation, unknown in a measured data set",
       options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }],
     },
     /* authoring escape hatch, first render only: 1 = the page's press finished */
@@ -366,8 +370,8 @@ defineWidget({
     ? [
       { token: "empirical", label: "A measured value", mark: "bar" },
       { token: "highlight", label: "An imputed value", mark: "bar" },
-      { token: "unknown", label: "A hole", mark: "bar" },
-      ...(params.truth === "on" ? [{ token: "reference", label: "The true value behind a hole", mark: "dash" }] : []),
+      { token: "unknown", label: "A missing value", mark: "bar" },
+      ...(params.truth === "on" ? [{ token: "reference", label: "The true value of a missing value", mark: "dash" }] : []),
     ]
     : [
       { token: "empirical", label: "A measured value", mark: "bar" },
@@ -385,7 +389,7 @@ defineWidget({
     const sim = E.simulateMatrix(rng);
     const all = sim.obs.map((r, p) => p);
     const fullOrder = E.abundanceOrder(sim.obs, all);
-    const rows = E.keepRows(sim.obs, params.filter);
+    const rows = E.keepRows(sim.obs, params.keep);
     const obs = rows.map((p) => sim.obs[p]);
     const rowOf = {}; rows.forEach((p, i) => { rowOf[p] = i; });
     const order = E.abundanceOrder(sim.obs, rows);
@@ -393,14 +397,14 @@ defineWidget({
       minimum: E.imputeMin(obs),
       "low-draw": E.imputeLowDraw(obs, rng),
       knn: E.imputeKnn(obs),
-      "random-forest": E.fillFromHoles(obs, FOREST[params.seed][params.filter]),
+      "random-forest": E.fillFromHoles(obs, FOREST[params.seed][params.keep]),
     };
     filled.mixed = E.imputeMixed(obs, filled.minimum, filled["random-forest"]);
     const scores = { "measured-only": E.score(sim, rows, obs) };
     for (const [k, F] of Object.entries(filled)) scores[k] = E.score(sim, rows, F);
     // the examples are chosen on the unfiltered matrix, so the filter can be seen to remove one
-    const knnAll = params.filter === "any" ? scores.knn : E.score(sim, all, E.imputeKnn(sim.obs));
-    const minAll = params.filter === "any" ? scores.minimum : E.score(sim, all, E.imputeMin(sim.obs));
+    const knnAll = params.keep === "any" ? scores.knn : E.score(sim, all, E.imputeKnn(sim.obs));
+    const minAll = params.keep === "any" ? scores.minimum : E.score(sim, all, E.imputeMin(sim.obs));
     const examples = E.pickExamples(sim, knnAll.padj, minAll.fc);
     const measuredBins = bins(obs.flat().filter((v) => !isNa(v)), NB);
     const truthBins = bins(rows.flatMap((p) => sim.obs[p].map((v, j) => (isNa(v) ? sim.truth[p][j] : NaN)).filter((v) => !isNa(v))), NB);
@@ -428,7 +432,7 @@ defineWidget({
       m0: "Measure the 22 samples one at a time; a value under the detection limit is likely to be missed",
       mrun: "Finish measuring at once",
       mdone: "Measure the same samples again from the first",
-      i0: "Fill the holes of each sample in turn with the chosen method",
+      i0: "Fill the missing values of each sample in turn with the chosen method",
       irun: "Finish imputing at once",
       idone: "Impute again from the first sample",
     }, default: "Step through this page" },
@@ -497,19 +501,19 @@ defineWidget({
     const kept = state.rows.length;
     const imputed = m === "measured-only"
       ? { label: "Values imputed", value: "none", note: `${n0(s.tested)} of ${n0(kept)} proteins hold 2 values or more in both groups` }
-      : { label: "Values imputed", value: ready ? n0(state.holesKept) : "–", note: ready ? (truth ? `imputed − true: mean ${sg(s.bias, 2)} log2` : `in ${n0(kept)} proteins`) : "Impute fills the holes" };
+      : { label: "Values imputed", value: ready ? n0(state.holesKept) : "–", note: ready ? (truth ? `imputed − true: mean ${sg(s.bias, 2)} log2` : `in ${n0(kept)} proteins`) : "Impute fills the missing values" };
     const called = ready
       ? { label: "Proteins called, adjusted p < 0.05", value: `${n0(s.called)} of ${n0(s.tested)}`,
         note: `Welch t-test on log2, Benjamini–Hochberg${truth ? `; ${n0(s.fp)} with no real difference (FDR ${pct(s.fdr)})` : ""}` }
       : { label: "Proteins called, adjusted p < 0.05", value: "–", note: "Welch t-test on log2, Benjamini–Hochberg" };
     let marked;
-    if (mk.row < 0) marked = { label: "The marked protein", value: "removed", note: "by the Minimum measured filter" };
+    if (mk.row < 0) marked = { label: "The marked protein", value: "removed", note: "by the filter before imputing" };
     else {
       const showF = m === "measured-only" || ready;
       const i = mk.i, fc = s.fc[i], p = s.p[i];
       const tru = truth ? `; true log2FC ${sg(state.sim.meta[mk.id].fc)}` : "";
       marked = !showF
-        ? { label: "The marked protein", value: "–", note: `log2FC once its holes are filled${tru}` }
+        ? { label: "The marked protein", value: "–", note: `log2FC once its missing values are filled${tru}` }
         : Number.isFinite(p)
           ? { label: "The marked protein", value: `log2FC ${sg(fc)}`, note: `p ${pFmt(p)}${tru}` }
           : { label: "The marked protein", value: "not tested", note: `fewer than 2 values in a group${tru}` };
