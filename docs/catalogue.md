@@ -21503,6 +21503,16 @@ Median (02-3's choice, the default) and QC-LOESS. Default seed 84. The
 formula card: the QC RSD on Drift; median normalization and QC-LOESS on
 Correction. Status draft.
 
+#### Round 1, 2026-10-08
+
+(1) **Run order Grouped by default** (his ask): the problem on screen when the
+page opens; randomizing the injection order, with QCs throughout, is the
+practice that prevents it, one click away. (2) "I try median but the graph
+already computes loess — it gives the punchline away": after a Median press all
+three rows of the 26 appeared. **A row now fills in only for a correction the
+reader has applied** on this run (None from the start; Median after its press;
+QC-LOESS once chosen), kept in `anim.applied` as display state.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

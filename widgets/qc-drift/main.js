@@ -19,7 +19,9 @@
  *      rows None · Median · QC-LOESS. "None" is the page before the press, so
  *      the Correction control offers Median (02-3's choice, the default) and
  *      QC-LOESS with its span;
- *   5. Run order Random (default) · Grouped and QC every 5 · 10 are data;
+ *   5. Run order Grouped (default, his round 1: the problem on screen at once;
+ *      randomizing is the practice that prevents it) · Random and QC every
+ *      5 · 10 are data;
  *      the example metabolite is the one not truly different with the most
  *      drift, any of the 26 from a dropdown, or a click;
  *   6. True values Off · On: the true drift, the true differences, and the
@@ -152,6 +154,11 @@ function drawDrift(ctx, colors, w, params, state, anim) {
 }
 
 /* ------------------------------------------------------------ the Correction page */
+/* The corrections the reader has applied on this run: a row of the 26 fills in
+   only for those, so the QC-LOESS row is not there to read before QC-LOESS has
+   been chosen (his round 1, 2026-10-08). Display state, kept in anim. */
+const appliedOf = (anim, params) => (anim ? anim.applied : Number(params.shown) > 0 && params.page === "correction" ? { [corrKey(params)]: true } : {});
+
 function drawCorrection(ctx, colors, w, params, state, anim) {
   const L = corrLayout(w), { run } = state, m = resolveMet(params, state);
   const { s, p } = stageOf("correction", params, anim);
@@ -175,13 +182,13 @@ function drawCorrection(ctx, colors, w, params, state, anim) {
   txt(ctx, colors, "injection order", (X0 + w - RIGHT) / 2, L.axis, { size: "fsXs", colour: colors.ink3, align: "center" });
 
   // all 26: cancer − hyperplasia under each correction; the corrections' rows appear when the press lands
-  const S = L.strips;
+  const S = L.strips, applied = appliedOf(anim, params);
   txt(ctx, colors, "All 26 metabolites: cancer − hyperplasia, log2 (medians)", 12, S.top - 14, { colour: colors.ink1, weight: "600" });
   const rowKeys = { none: "none", median: "median", "qc-loess": `qc-loess-${params.span}` };
   const rowName = { none: "None", median: "Median", "qc-loess": "QC-LOESS" };
   ROWS.forEach((r, k) => {
     const y = S.top + 10 + k * S.step;
-    const shown = r === "none" || (s >= 1 && moved >= 1);
+    const shown = r === "none" || (applied[rowKeys[r]] && !(rowKeys[r] === to && moved < 1));
     const sel = s >= 1 && moved >= 1 && rowKeys[r] === to;
     txt(ctx, colors, rowName[r], S.x0 + 88, y + 4, { size: "fsXs", colour: shown ? colors.ink1 : colors.ink3, weight: sel ? "700" : "500", align: "right" });
     rule(ctx, stripX(S, -1.5), y, stripX(S, 1.5), y, colors.grid);
@@ -259,7 +266,7 @@ defineWidget({
     },
     dataSec: { type: "section", label: "The run" },
     order: {
-      type: "segmented", label: "Run order", default: "random",
+      type: "segmented", label: "Run order", default: "grouped",
       detail: "the sequence of the study samples between the QCs",
       options: [{ value: "random", label: "Random" }, { value: "grouped", label: "Grouped", detail: "all hyperplasia samples, then all cancer samples" }],
     },
@@ -348,8 +355,8 @@ defineWidget({
     runLabel: null,
     init: ({ params, fromScratch }) => {
       const k = corrKey(params);
-      const anim = { n: { drift: 0, correction: 0 }, p: 1, page: params.page, cor: { from: k, to: k, t: 1 }, easing: false };
-      if (!fromScratch && Number(params.shown) > 0) anim.n[params.page] = 1;
+      const anim = { n: { drift: 0, correction: 0 }, p: 1, page: params.page, cor: { from: k, to: k, t: 1 }, easing: false, applied: {} };
+      if (!fromScratch && Number(params.shown) > 0) { anim.n[params.page] = 1; if (params.page === "correction") anim.applied[k] = true; }
       settle(anim, params.page);
       return anim;
     },
@@ -365,7 +372,7 @@ defineWidget({
         anim.n[page] += 1; anim.p = 0; anim.page = page;
       }
       anim.p = Math.min(1, anim.p + dt / stageMs(page, state));
-      if (anim.p >= 1) { settle(anim, page); return false; }
+      if (anim.p >= 1) { if (page === "correction") anim.applied[corrKey(params)] = true; settle(anim, page); return false; }
       return true;
     },
     rebuild: (anim, { params }) => {
@@ -374,7 +381,7 @@ defineWidget({
         anim.cor.from = anim.cor.t < 0.5 ? anim.cor.from : anim.cor.to;
         anim.cor.to = k; anim.cor.t = 0;
         // an ease only once the correction has been applied; before the press there is nothing to move
-        if (anim.n.correction >= 1 && anim.p >= 1) anim.easing = true; else { anim.cor.from = k; anim.cor.t = 1; }
+        if (anim.n.correction >= 1 && anim.p >= 1) { anim.easing = true; anim.applied[k] = true; } else { anim.cor.from = k; anim.cor.t = 1; }
       }
       /* a page switch mid-press finishes the press where it was (the 2026-09-20 sweep) */
       if (anim.p < 1) anim.p = 1;
@@ -395,10 +402,9 @@ defineWidget({
       return run.mets.flatMap((_, k) => run.qcIdx.map((i) => ({ x: sx(i) - 4, y: sy(state.qcCentred[k][i]) - 4, w: 8, h: 8, set: { metabolite: slugOf(E.METABOLITES[k]) }, label: E.METABOLITES[k] })));
     }
     const S = corrLayout(w).strips;
-    const done = (anim ? anim.n.correction : Number(params.shown) || 0) >= 1;
     const rowKeys = { none: "none", median: "median", "qc-loess": `qc-loess-${params.span}` };
     return ROWS.flatMap((r, k) => {
-      if (r !== "none" && !done) return [];
+      if (r !== "none" && !appliedOf(anim, params)[rowKeys[r]]) return [];
       const y = S.top + 10 + k * S.step, sc = state.scores[rowKeys[r]];
       return run.mets.map((_, j) => ({ x: stripX(S, sc.fc[j]) - 4, y: y - 5, w: 8, h: 10, set: { metabolite: slugOf(E.METABOLITES[j]) }, label: E.METABOLITES[j] }));
     });
