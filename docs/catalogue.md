@@ -21018,7 +21018,7 @@ included) and the MTBLS6038 metabolite table (26 organic acids).
 | 90 | `limma` | 01-4 cells 0, 3–9 | limma shrinks the fold change (cell 9 says so) — it shrinks the variance toward a prior fitted across all proteins | **picked** |
 | 91 | `qc-drift` | 02-1 cells 0, 2; 02-3 cell 10 | per-sample normalization corrects instrument drift — each metabolite drifts its own way along the injection order, and only a curve through the pooled QCs follows it; run in group order, drift becomes a difference | **picked, simulated** (the lesson's data has no QCs) |
 | 92 | `rank-test` | 02-4 cells 0, 11–12 | the Wilcoxon test compares medians | **not picked**; a page of 5 `permutation-test` if ever |
-| 93 | `ms-features` | 02-1 cell 3 | an m/z match is an identification — MTBLS6038 holds three isomer pairs (glutaric/ethylmalonic C5H8O4 at RT 2.11/3.39, fumaric/maleic C4H4O4 at 2.2/1.78, adipic/3-methylglutaric C6H10O4 at 3.48/3.68), and ethylmalonic acid is 02-4's top hit | **not picked** |
+| 93 | `ms-features` | 02-1 cell 3 | an m/z match is an identification — MTBLS6038 holds three isomer pairs (glutaric/ethylmalonic C5H8O4 at RT 2.11/3.39, fumaric/maleic C4H4O4 at 2.2/1.78, adipic/3-methylglutaric C6H10O4 at 3.48/3.68), and ethylmalonic acid is 02-4's top hit | **PICKED 2026-10-08** on his word ("add 93"), after 90 shipped; built on the lesson's own m/z and RT, after 91 |
 
 Left out on purpose: contaminant filtering (string matching), the Venn and
 Euler plots (a page of 89 if anything: detected in one group only), and
@@ -21438,6 +21438,13 @@ mutational-signatures, 72 signal-windows, 73 signal-cnn-lstm, 75
 sequence-cnn-lstm, 78 deseq2, 79 cell-qc, 88 target-decoy, 89 imputation) —
 after 90 ships, one commit a widget, a name for each from its pages in a table
 for him to pick. The rail is not hashed, so no baseline moves.
+
+**Done 2026-10-08, all twelve his pick (Step for every one):** one commit a
+widget (85bb086 … 469321b), `check` and `npm test` passing before each; 78's
+finished press reads "Shrink every gene" and 88's Proteins press "Minimal set"
+instead of "Step". The full suite: 1,268/1,275 MATCH; the 7 DIFFERs
+(count-normalization 1, cell-qc 6) were px-only, run while the pane was hidden,
+and all 38 of those widgets' states MATCH re-run alone in front.
 
 #### SHIPPED AND PUSHED 2026-10-07
 
