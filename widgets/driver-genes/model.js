@@ -653,7 +653,7 @@ export const STRINGS = {
     + "oncogene and not the suppressor. Across a cohort the p-values are then corrected for the number of genes "
     + "tested.",
 
-  pageLabel: "Page",
+  pageLabel: "Step",
   pageDetail: "one gene through the five steps, or a cohort from the table to the calls",
   geneSection: "The gene",
   geneLabel: "Gene",
