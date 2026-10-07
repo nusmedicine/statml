@@ -913,7 +913,7 @@ export const STRINGS = {
     + "cancer cell fraction is estimated from the reads, and the fractions of mutation clusters across "
     + "samples of one tumor determine its clonal tree.",
 
-  pageLabel: "Page",
+  pageLabel: "Step",
   pageDetail: "one mutation's VAF, a tumor's VAFs together, the cancer cell fraction inferred from them, or several samples of one patient",
   sampleSection: "The sample",
   purityLabel: "Tumor purity",
