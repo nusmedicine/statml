@@ -89,7 +89,7 @@ const S = {
     + "a sample. A 1D convolution detects a shape wherever it occurs; an LSTM carries a state along "
     + "the fragment and one summary of its outputs reaches the linear layer. Occlusion scores each "
     + "window by how far the prediction moves without it, whichever model is asked.",
-  pageLabel: "Page",
+  pageLabel: "Step",
   fragSection: "The fragment",
   copiesLabel: "Ectopic beats",
   copiesDetail: "how many beats of the fragment are wide ectopic complexes; 0 is the other class, sinus rhythm — the models are trained the same way",
