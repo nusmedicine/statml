@@ -1298,7 +1298,7 @@ export const STRINGS = {
   blurb:
     "Every SNP is tested against the trait; ancestry confounds every test, and the mixed model adjusts for it.",
 
-  pageLabel: "Page",
+  pageLabel: "Step",
   pageDetail: "the cohort, or the association test",
   dataSection: "The data",
 
