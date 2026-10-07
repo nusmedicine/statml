@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 89 — imputation, layout mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  tr.on td { background: var(--surface-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 8px; font-size: 11px; }
+  .rail .w { font-family: var(--font-mono); color: var(--ink-1); min-width: 150px; }
+  .rail .pg { padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.on { border-color: var(--c-highlight); }
+  .rail .n { color: var(--ink-3); margin-left: 6px; }
+  img.fig { max-width: 420px; border: 1px solid var(--grid); background: #fff; }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 89 &middot; <code>imputation</code> &middot; Proteomics: Imputation &middot; layout mock</h1>
+  <p class="note">
+    Picked on the arc mock: two pages, <b>Missing &middot; Imputing</b>; methods <b>Minimum &middot; Low draw &middot; kNN &middot; Random
+    forest</b>, judged against <b>Measured only</b>; a <b>Minimum measured</b> filter (any &middot; at least half of a group); simulated only.
+    This mock draws each page at the widget's 550px from 01-3 cells 24&ndash;30 and 41&ndash;42 and its figures (below). <b>Every number is
+    computed on this page</b> by <code>_lab/proteomics-arc-model.js</code> (600 proteins, 11 cancer vs 11 healthy, seed 1). Blue-ruled boxes
+    in &sect;8 are your calls. <span id="status">computing the four imputations, twice (any, and the filter) &mdash; the forest takes a few seconds&hellip;</span>
+  </p>
+  <div class="row">
+    <div class="cand"><h3>01-3 cell 24 &middot; plot_counts()</h3><img class="fig" src="figs/proteomics-01-3-cell24-output.png" alt="protein counts per sample"></div>
+    <div class="cand"><h3>01-3 cell 26 &middot; plot_quantrank()</h3><img class="fig" src="figs/proteomics-01-3-cell26-output.png" alt="quantitation rank plot"></div>
+    <div class="cand"><h3>01-3 cells 31 and 41 &middot; tidyproteomics' recommendations</h3><img class="fig" src="figs/tidyprot-recommend-01-3-cell41.png" alt="tidyproteomics' recommendation table"></div>
+  </div>
+
+  <h2>1 &middot; Measured before the mock &mdash; what &ldquo;BETWEEN&rdquo; meant, and the forest's run time</h2>
+  <p class="note">
+    <b>The table's BETWEEN/WITHIN and cell 42's <code>method = 'matrix'</code> come from two versions of tidyproteomics.</b> Read from its
+    source on GitHub: before May 2023, <code>impute()</code> took <code>method = c('within', 'between')</code> &mdash; <i>within</i> filled a hole
+    with a function of its <b>sample's</b> values (Minimum WITHIN: each sample's minimum), <i>between</i> with a function of the
+    <b>protein's</b> values across samples; and <code>"randomforest"</code> forced <i>between</i> and passed missForest the matrix
+    <b>transposed</b>, so proteins were the variables. Since 1.x, <code>method</code> is <code>row &middot; column &middot; matrix</code> and
+    <code>impute.randomforest</code> passes the matrix as it is, so <b>samples are the variables</b> &mdash; the orientation the arc mock
+    measured. So &ldquo;Randomforest BETWEEN&rdquo; in the table is the old orientation; the lesson runs the new one. Measured on the
+    arc's matrix (600 proteins, 5 seeds, 17 absent-in-healthy proteins a seed, true log2FC 6):
+  </p>
+  <div class="row" id="orientTable"></div>
+  <p class="rec">The lesson's orientation is the gentler of the two: the old one shrinks an absence from 6 to 1.4 and finds 58 of 109
+    true differences against 71. Recommended: <b>the widget runs the lesson's orientation and says nothing of the other</b>; the version
+    change goes to you as a notebook note (cell 41 shows a table written for the old <code>impute()</code>). Also: the table's
+    &ldquo;Minimum WITHIN&rdquo; is each sample's minimum, which is the widget's <b>Minimum</b>.</p>
+  <p class="note"><b>The forest's run time.</b> Samples as variables, 5 seeds, in Node (this page runs the forest twice, 600 and 470 proteins, in about 9&nbsp;s, which is what these rows predict):</p>
+  <div class="row" id="timeTable"></div>
+  <p class="rec">A seed change would freeze the page for 2&ndash;4&nbsp;s at the arc's 600 proteins; trees 20 against 40 changes nothing
+    the page shows. And the forest gets <i>better</i> at an absence with more proteins (1.7 at 200, 2.6 at 600), so shrinking the matrix
+    to run it live changes the lesson. &sect;8.4 asks.</p>
+
+  <h2>2 &middot; The Missing page &mdash; where the holes are</h2>
+  <p class="note">
+    <b>A</b>: the matrix itself, proteins sorted by their measured mean (most abundant at the top), 11 cancer then 11 healthy, a hole in
+    <code>--c-unknown</code>; beside it each protein's share missing against its measured mean; under both, your cell 24 figure &mdash;
+    proteins measured per sample, the missing ones stacked above. <b>B</b>: your figure and the scatter only, no matrix. Both after the
+    Measure press (&sect;3), True values Off.
+  </p>
+  <div class="row" id="missRow"></div>
+  <p class="rec">Recommended <b>A</b>: the holes collect at the bottom of the matrix, which is the detection limit drawn by the data
+    itself, before any curve is fitted; and the Imputing page fills the same matrix, so the reader sees each hole filled where it was.</p>
+
+  <h2>3 &middot; The Measure press &mdash; a sample a beat</h2>
+  <p class="note">The page opens with an empty matrix: 600 rows, 22 columns, nothing in them. One press measures the samples in order,
+    one column a beat: its values land in the column, the ones under the detection limit stay holes, its bar rises under it, and the
+    scatter fills when the last sample is in. Three frames of one press (after 3, 14, 22 samples).</p>
+  <div class="row" id="pressRow"></div>
+
+  <h2>4 &middot; The Imputing page &mdash; one method at a time</h2>
+  <p class="note">
+    <b>A</b>: the same matrix, its holes filled in <code>--c-highlight</code> (a value's shade is its level, measured or imputed); right,
+    where the imputed values land among the measured ones (histogram, counts); under it one protein, its 11 + 11 values, the imputed
+    ones as rings. <b>B</b>: the histogram and the protein only. Both after the Impute press, Random forest, True values Off.
+    Left of A: kNN, for the shape of the difference.
+  </p>
+  <div class="row" id="impRow"></div>
+
+  <h2>5 &middot; True values Off &middot; On &mdash; the one view a real data set cannot have</h2>
+  <p class="note">On adds the values that were really there: a dashed outline under the histogram (the true values behind the holes),
+    grey ticks on the protein's row, the detection limit's curve on the Missing page's scatter, and the false calls in the readout. Off
+    by default, as 88's True identity and 25's True values.</p>
+  <div class="row" id="truthRow"></div>
+
+  <h2>6 &middot; The example protein &mdash; three kinds, each method failing on one</h2>
+  <p class="note">Each method's weak case is a different protein, so the strip under the histogram follows an <b>Example protein</b>
+    control: <b>Absent in healthy</b> (the forest and kNN shrink it), <b>Measured in two samples</b> (kNN profiles it from neighbours
+    found on two values and calls it), <b>Scattered holes</b> (no difference; the minimum adds low values and spread). Clicking a row of
+    the matrix picks any protein. Here every method on each of the three, seed 1:</p>
+  <div class="row" id="protRow"></div>
+
+  <h2>7 &middot; The test each method feeds &mdash; the readout</h2>
+  <p class="note"><b>A</b>: one line for the method on screen, the truth-only part when True values is On. <b>B</b>: all five arms in a
+    table, the current one shaded &mdash; always on screen. The numbers below are seed 1, both filters.</p>
+  <div class="row" id="readRow"></div>
+  <div class="row" id="scoreTable"></div>
+
+  <h2>8 &middot; The calls</h2>
+  <p class="q"><b class="h">8.1 &middot; The Missing page</b>
+    <b>A &middot; the matrix, the share-missing scatter, and your cell 24 bars under them (recommended)</b> &nbsp;|&nbsp; B &middot; your bars and the scatter, no matrix</p>
+  <p class="q"><b class="h">8.2 &middot; The Imputing page</b>
+    <b>A &middot; the filled matrix, the histogram, one protein (recommended: the same matrix on both pages)</b> &nbsp;|&nbsp; B &middot; the histogram and the protein, as the arc mock</p>
+  <p class="q"><b class="h">8.3 &middot; The presses</b>
+    <b>A &middot; Measure on the Missing page and Impute on the Imputing page, each a sample a beat; a Method change after Impute switches the filled values at once (recommended)</b> &nbsp;|&nbsp;
+    B &middot; Measure only; the Imputing page opens filled</p>
+  <p class="q"><b class="h">8.4 &middot; The forest's run time</b>
+    <b>A &middot; computed ahead in a table, seeds 1&ndash;20 &times; the two filters (about 1 MB; regenerate after an engine change; the verify reruns one entry live), the other three live (recommended)</b> &nbsp;|&nbsp;
+    B &middot; live at 300 proteins and 20 trees (0.8&nbsp;s a seed change; the forest's absence reads 2.0, not 2.6)</p>
+  <p class="q"><b class="h">8.5 &middot; True values</b>
+    <b>A &middot; Off &middot; On, off by default, on both pages (recommended)</b> &nbsp;|&nbsp; B &middot; always on</p>
+  <p class="q"><b class="h">8.6 &middot; The example protein</b>
+    <b>A &middot; an <i>Example protein</i> control (Absent in healthy &middot; Measured in two samples &middot; Scattered holes), and a click on a matrix row (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the absent protein only</p>
+  <p class="q"><b class="h">8.7 &middot; The readout</b>
+    <b>A &middot; one line for the method on screen (recommended: the reader compares by switching, and the matrix moves with it)</b> &nbsp;|&nbsp;
+    B &middot; the five-row table</p>
+  <p class="q"><b class="h">8.8 &middot; The forest's orientation</b>
+    <b>A &middot; the lesson's only; the version change as a notebook note (recommended)</b> &nbsp;|&nbsp; B &middot; a second forest arm, proteins as variables</p>
+  <p class="q"><b class="h">8.9 &middot; Colours, as drawn</b>
+    measured values a ramp of <code>--c-empirical</code>, imputed a ramp of <code>--c-highlight</code>, a hole <code>--c-unknown</code>, the true
+    values <code>--c-reference</code> dashed, the detection curve <code>--c-theory</code>, cancer and healthy <code>--c-group-a/b</code>. Any to change?</p>
+
+  <h2>9 &middot; The rail, as proposed</h2>
+  <div class="rail"><span class="w">Page</span><span class="pg on">Missing</span><span class="pg">Imputing</span></div>
+  <div class="rail"><span class="w">The data</span><span class="pg">Minimum measured: Any &middot; Half of a group</span><span class="pg">Seed</span><span class="n">Imputing only for the filter</span></div>
+  <div class="rail"><span class="w">Imputing &middot; Method</span><span class="pg">Measured only</span><span class="pg">Minimum</span><span class="pg">Low draw</span><span class="pg">kNN</span><span class="pg on">Random forest</span><span class="n">display</span></div>
+  <div class="rail"><span class="w">Show</span><span class="pg">Example protein: Absent in healthy &middot; Measured in two samples &middot; Scattered holes</span><span class="pg">True values: Off &middot; On</span><span class="n">display</span></div>
+  <div class="rail"><span class="w">Buttons</span><span class="pg">Measure</span><span class="pg">Impute</span><span class="pg">Reset</span><span class="n">Measure on Missing, Impute on Imputing</span></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "./proteomics-arc-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const NA = 11;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const mix = (a, b, t) => { const p = rgb(a), q = rgb(b); return `rgb(${p.map((v, i) => Math.round(v + (q[i] - v) * t)).join(",")})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function xTicks(ctx, sx, y, ticks, fmt = String) { for (const t of ticks) { line(ctx, sx(t), y, sx(t), y + 4, T.axis); label(ctx, fmt(t), sx(t), y + 15, { align: "center", size: 10, colour: T.ink3 }); } }
+function yTicks(ctx, sy, x, ticks, fmt = String) { for (const t of ticks) { line(ctx, x - 4, sy(t), x, sy(t), T.axis); label(ctx, fmt(t), x - 6, sy(t) + 3, { align: "right", size: 10, colour: T.ink3 }); } }
+const f = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+const sg = (x, d = 1) => (Number.isFinite(x) ? `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(d)}` : "—");
+const pct = (v, d = 1) => `${(100 * v).toFixed(d)}%`;
+function bins(values, lo, hi, n) { const c = new Array(n).fill(0); for (const v of values) { const k = Math.floor(((v - lo) / (hi - lo)) * n); if (k >= 0 && k < n) c[k] += 1; } return c; }
+function table(rowId, head, rows, on = -1) {
+  const t = el("table"); const tr = el("tr"); head.forEach((h) => tr.appendChild(el("th", null, h))); t.appendChild(tr);
+  rows.forEach((r, i) => { const x = el("tr", i === on ? "on" : null); r.forEach((v) => x.appendChild(el("td", null, v))); t.appendChild(x); });
+  document.getElementById(rowId).appendChild(t);
+}
+const isNa = Number.isNaN;
+
+/* ------------------------------------------------- §1 the two measurements */
+table("orientTable", ["5 seeds, 600 proteins", "absence log2FC (true 6)", "bias", "true calls / 109", "false calls", "FDR"], [
+  ["Minimum WITHIN (each sample's minimum; the widget's Minimum)", "4.70", "−1.14", "81.2", "0.8", "1.0%"],
+  ["Minimum BETWEEN (the protein's own minimum)", "2.61", "+0.14", "80.8", "2.2", "2.7%"],
+  ["Random forest, samples as variables (01-3 cell 42, tidyproteomics 1.x)", "2.63", "+0.71", "71.2", "4.0", "5.1%"],
+  ["Random forest, proteins as variables (the table's BETWEEN, before 2023-05)", "1.42", "+0.73", "57.8", "2.2", "3.8%"],
+]);
+table("timeTable", ["proteins", "trees", "time a run", "absence log2FC", "bias", "FDR", "true calls"], [
+  ["150", "20", "0.27 s", "1.66", "+0.99", "3.3%", "19.4 / 30"],
+  ["200", "20", "0.44 s", "1.86", "+0.91", "4.8%", "25.2 / 39"],
+  ["300", "20", "0.83 s", "2.03", "+0.84", "3.1%", "36.0 / 58"],
+  ["600", "20", "2.13 s", "2.52", "+0.72", "5.5%", "70.4 / 109"],
+  ["600", "40", "4.32 s", "2.63", "+0.71", "5.1%", "71.2 / 109"],
+]);
+
+/* ------------------------------------------------------------- the data */
+const SEED = 1;
+const sim0 = M.simulateMatrix(M.makeRng(SEED));
+const P0 = sim0.obs.length;
+const subset = (sim, keep) => ({ truth: keep.map((p) => sim.truth[p]), obs: keep.map((p) => sim.obs[p]), meta: keep.map((p) => sim.meta[p]), nA: sim.nA, nB: sim.nB, rows: keep });
+const nSeen = (r, a, b) => r.slice(a, b).filter((v) => !isNa(v)).length;
+const keepHalf = sim0.obs.map((r, p) => p).filter((p) => Math.max(nSeen(sim0.obs[p], 0, NA), nSeen(sim0.obs[p], NA, 2 * NA)) >= 6);
+const SIMS = { any: subset(sim0, sim0.obs.map((r, p) => p)), half: subset(sim0, keepHalf) };
+const METHODS = ["Measured only", "Minimum", "Low draw", "kNN", "Random forest"];
+const LO = 17, HI = 31;
+
+/* measured only: test a protein where both groups have two values or more */
+function scoreMeasured(sim) {
+  const ps = sim.obs.map((r) => {
+    const a = r.slice(0, NA).filter((v) => !isNa(v)), b = r.slice(NA).filter((v) => !isNa(v));
+    return a.length >= 2 && b.length >= 2 ? M.welch(a, b).p : NaN;
+  });
+  const idx = ps.map((p, i) => i).filter((i) => !isNa(ps[i]));
+  const adj = M.bh(idx.map((i) => ps[i]));
+  const padj = ps.map(() => NaN); idx.forEach((i, k) => { padj[i] = adj[k]; });
+  let tp = 0, fp = 0;
+  sim.meta.forEach((m, p) => { if (padj[p] < 0.05) { if (m.kind === "null") fp += 1; else tp += 1; } });
+  const fc = sim.obs.map((r) => { const a = r.slice(0, NA).filter((v) => !isNa(v)), b = r.slice(NA).filter((v) => !isNa(v)); return a.length && b.length ? M.mean(a) - M.mean(b) : NaN; });
+  const on = sim.meta.map((m, p) => (m.kind === "onoff" ? fc[p] : NaN)).filter((v) => !isNa(v));
+  return { tp, fp, fdr: fp / Math.max(1, tp + fp), padj, fc, untestable: ps.length - idx.length, tested: idx.length, bias: NaN, onoffFc: on.length ? M.mean(on) : NaN, onoffN: on.length };
+}
+function impute(sim, name, s) {
+  if (name === "Minimum") return M.imputeMin(sim.obs);
+  if (name === "Low draw") return M.imputeLowDraw(sim.obs, M.makeRng(1000 + s));
+  if (name === "kNN") return M.imputeKnn(sim.obs, 10);
+  return M.imputeForest(sim.obs, M.makeRng(2000 + s));
+}
+
+/* ------------------------------------------------------------ drawing */
+const shade = (v, colour) => mix(T.surface1, colour, 0.14 + 0.86 * Math.max(0, Math.min(1, (v - LO) / (HI - LO))));
+/* the matrix: rows in `order`, columns 0..21; `upTo` samples measured; F the filled matrix or null */
+function drawMatrix(ctx, x0, y0, w, h, sim, order, { upTo = 22, F = null, pick = -1 } = {}) {
+  const cw = (w - 6) / 22, rh = h / order.length;
+  label(ctx, "cancer", x0 + 5.5 * cw, y0 - 6, { align: "center", size: 10, weight: "600", colour: T.groupA });
+  label(ctx, "healthy", x0 + 6 + 16.5 * cw, y0 - 6, { align: "center", size: 10, weight: "600", colour: T.groupB });
+  for (let j = 0; j < 22; j += 1) {
+    const x = x0 + j * cw + (j >= NA ? 6 : 0);
+    rect(ctx, x, y0, cw, h, T.surface2);
+    if (j >= upTo) continue;
+    order.forEach((p, i) => {
+      const v = sim.obs[p][j];
+      const y = y0 + i * rh;
+      let c;
+      if (!isNa(v)) c = shade(v, T.empirical);
+      else if (F && !isNa(F[p][j])) c = shade(F[p][j], T.highlight);
+      else c = wash(T.unknown, 0.55);
+      ctx.fillStyle = c; ctx.fillRect(x, y, cw - 0.6, rh + 0.35);
+    });
+  }
+  if (pick >= 0) { const i = order.indexOf(pick); if (i >= 0) { const y = y0 + i * rh; line(ctx, x0 - 6, y + rh / 2, x0 - 1, y + rh / 2, T.ink1, 2); line(ctx, x0 + w + 1, y + rh / 2, x0 + w + 6, y + rh / 2, T.ink1, 2); } }
+  label(ctx, "most abundant", x0 - 4, y0 + 10, { align: "right", size: 9, colour: T.ink3 });
+  label(ctx, "least", x0 - 4, y0 + h, { align: "right", size: 9, colour: T.ink3 });
+}
+/* your cell 24 figure: proteins measured per sample, the missing ones above */
+function drawCounts(ctx, x0, y0, w, h, sim, upTo = 22) {
+  const P = sim.obs.length, cw = (w - 6) / 22;
+  const sy = (n) => y0 + h - (n / P) * h;
+  for (let j = 0; j < upTo; j += 1) {
+    const x = x0 + j * cw + (j >= NA ? 6 : 0);
+    const n = sim.obs.filter((r) => !isNa(r[j])).length;
+    rect(ctx, x + 0.5, sy(P), cw - 1.5, sy(n) - sy(P), wash(T.unknown, 0.3));
+    rect(ctx, x + 0.5, sy(n), cw - 1.5, y0 + h - sy(n), j < NA ? T.groupA : T.groupB);
+  }
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  yTicks(ctx, sy, x0, [0, Math.round(P / 2), P]);
+  if (upTo >= 22) {
+    for (const [a, b, colour] of [[0, NA, T.groupA], [NA, 22, T.groupB]]) {
+      const ns = []; for (let j = a; j < b; j += 1) ns.push(sim.obs.filter((r) => !isNa(r[j])).length);
+      label(ctx, `${Math.round(M.mean(ns))} ± ${Math.round(Math.sqrt(M.variance(ns)))} measured`, x0 + ((a + b) / 2) * cw + (a ? 6 : 0), sy(P) - 5, { align: "center", size: 10, mono: true, colour: T.ink1 });
+    }
+  }
+  label(ctx, "proteins per sample", x0 - 34, y0 - 24, { size: 10, colour: T.ink3 });
+}
+/* each protein's share missing against its measured mean (truth: the detection curve) */
+function drawShare(ctx, x0, y0, w, h, sim, { truth = false } = {}) {
+  const sx = (v) => x0 + ((v - 18) / (30 - 18)) * w, sy = (s) => y0 + h - s * h;
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis); line(ctx, x0, y0, x0, y0 + h, T.axis);
+  sim.obs.forEach((r) => {
+    const seen = r.filter((v) => !isNa(v));
+    const s = 1 - seen.length / r.length;
+    dot(ctx, sx(M.mean(seen)), sy(s), 1.9, wash(T.empirical, 0.55));
+  });
+  if (truth) {
+    const xs = [], ys = [];
+    for (let v = 18; v <= 30; v += 0.1) { xs.push(sx(v)); ys.push(sy(1 / (1 + Math.exp((v - 23.3) / 0.5)) + 0.02)); }
+    polyline(ctx, xs, ys, T.theory, 2);
+    label(ctx, "chance a value is missing", sx(24.2), sy(0.62), { size: 10, colour: T.theory });
+  }
+  xTicks(ctx, sx, y0 + h, [18, 21, 24, 27, 30]);
+  yTicks(ctx, sy, x0, [0, 0.5, 1], (v) => pct(v, 0));
+  label(ctx, "measured mean, log2", x0 + w / 2, y0 + h + 30, { align: "center", size: 10, colour: T.ink3 });
+  label(ctx, "share of 22 missing", x0, y0 - 8, { size: 10, colour: T.ink3 });
+}
+/* where the values go: measured (outline), imputed (filled), truth behind the holes (dashed) */
+function drawHist(ctx, x0, y0, w, h, sim, F, { truth = false } = {}) {
+  const nb = 42, bw = w / nb;
+  const meas = sim.obs.flat().filter((v) => !isNa(v));
+  const holes = []; sim.obs.forEach((r, p) => r.forEach((v, j) => { if (isNa(v)) holes.push([p, j]); }));
+  const bm = bins(meas, LO, HI, nb), bt = bins(holes.map(([p, j]) => sim.truth[p][j]), LO, HI, nb);
+  const bi = F ? bins(holes.map(([p, j]) => F[p][j]).filter((v) => !isNa(v)), LO, HI, nb) : null;
+  const top = Math.max(...bm, ...bt, ...(bi || [0]).map((v) => Math.min(v, 1.6 * Math.max(...bm))));
+  const sh = (c) => (Math.min(c, top) / top) * h;
+  if (bi) bi.forEach((c, i) => rect(ctx, x0 + i * bw + 0.5, y0 + h - sh(c), bw - 1, sh(c), T.highlight));
+  const xs = [x0], ys = [y0 + h]; bm.forEach((c, i) => { xs.push(x0 + i * bw, x0 + (i + 1) * bw); ys.push(y0 + h - sh(c), y0 + h - sh(c)); }); xs.push(x0 + w); ys.push(y0 + h);
+  polyline(ctx, xs, ys, T.empirical, 1.5);
+  if (truth) { const xt = [x0], yt = [y0 + h]; bt.forEach((c, i) => { xt.push(x0 + i * bw, x0 + (i + 1) * bw); yt.push(y0 + h - sh(c), y0 + h - sh(c)); }); xt.push(x0 + w); yt.push(y0 + h); polyline(ctx, xt, yt, T.reference, 1.4, [4, 3]); }
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  const sx = (v) => x0 + ((v - LO) / (HI - LO)) * w;
+  xTicks(ctx, sx, y0 + h, [18, 21, 24, 27, 30]);
+  label(ctx, "log2 abundance", x0 + w / 2, y0 + h + 30, { align: "center", size: 10, colour: T.ink3 });
+  // the key sits above the plot, one row, so it never lands on a bar
+  let lx = x0;
+  const key = (txt, colour, kind) => { if (kind === "fill") rect(ctx, lx, y0 - 16, 10, 8, colour); else line(ctx, lx, y0 - 12, lx + 10, y0 - 12, colour, 1.5, kind === "dash" ? [3, 2] : null); label(ctx, txt, lx + 14, y0 - 8, { size: 10, colour: T.ink2 }); ctx.save(); ctx.font = `10px ${T.font}`; lx += 26 + ctx.measureText(txt).width; ctx.restore(); };
+  key("measured", T.empirical, "line"); if (F) key("imputed", T.highlight, "fill"); if (truth) key("really there", T.reference, "dash");
+}
+/* one protein's 22 values: cancer row, healthy row; imputed values as rings */
+function drawProtein(ctx, x0, y0, w, sim, F, p, { truth = false, name = "", lo = null, hi = null } = {}) {
+  const obs = sim.obs[p];
+  const vals = [...sim.truth[p], ...(F ? F[p] : obs).filter((v) => !isNa(v))];
+  const l = lo ?? Math.floor(Math.min(...vals)) - 0.5, hh = hi ?? Math.ceil(Math.max(...vals)) + 0.5;
+  const qx = (v) => x0 + ((v - l) / (hh - l)) * w;
+  [[0, NA, T.groupA, "cancer"], [NA, 22, T.groupB, "healthy"]].forEach(([a, b, colour, g], k) => {
+    const y = y0 + 12 + k * 22;
+    line(ctx, x0, y, x0 + w, y, T.grid);
+    label(ctx, g, x0 - 6, y + 4, { align: "right", size: 10, colour, weight: "600" });
+    for (let j = a; j < b; j += 1) {
+      if (truth && isNa(obs[j])) line(ctx, qx(sim.truth[p][j]), y - 7, qx(sim.truth[p][j]), y + 7, T.reference, 1.3, [2, 2]);
+      if (!isNa(obs[j])) dot(ctx, qx(obs[j]), y, 3.4, colour);
+      else if (F && !isNa(F[p][j])) dot(ctx, qx(F[p][j]), y, 3.4, T.surface1, T.highlight, 1.8);
+    }
+  });
+  const R = F || obs;
+  const a = R[p] ? null : null;
+  const ca = (F ? F[p] : obs).slice(0, NA).filter((v) => !isNa(v)), cb = (F ? F[p] : obs).slice(NA).filter((v) => !isNa(v));
+  const txt = ca.length >= 2 && cb.length >= 2 ? `log2FC ${sg(M.mean(ca) - M.mean(cb))}   p ${M.welch(ca, cb).p.toExponential(1)}` : "fewer than 2 values in a group: not tested";
+  label(ctx, txt, x0 + w, y0 - 2, { align: "right", size: 10, mono: true, colour: T.ink1 });
+  if (name) label(ctx, name, x0 - 6, y0 - 2, { align: "right", size: 10, colour: T.ink1, weight: "600" });
+  return { l, hh, qx };
+}
+
+/* ------------------------------------------------------- the pages */
+const status = document.getElementById("status");
+setTimeout(() => {
+  const t0 = performance.now();
+  const FILLED = { any: {}, half: {} };
+  for (const k of ["any", "half"]) for (const m of METHODS.slice(1)) FILLED[k][m] = impute(SIMS[k], m, SEED);
+  const SC = { any: {}, half: {} };
+  for (const k of ["any", "half"]) { SC[k]["Measured only"] = scoreMeasured(SIMS[k]); for (const m of METHODS.slice(1)) SC[k][m] = M.scoreImputation(SIMS[k], FILLED[k][m]); }
+  status.textContent = `computed in ${((performance.now() - t0) / 1000).toFixed(1)} s on this page.`;
+  const sim = SIMS.any;
+  const order = sim.obs.map((r, p) => p).sort((a, b) => M.mean(sim.obs[b].filter((v) => !isNa(v))) - M.mean(sim.obs[a].filter((v) => !isNa(v))));
+  const holesN = sim.obs.flat().filter(isNa).length;
+
+  /* the three example proteins */
+  const absent = sim.meta.map((m, p) => p).filter((p) => sim.meta[p].kind === "onoff").sort((a, b) => nSeen(sim.obs[a], NA, 22) - nSeen(sim.obs[b], NA, 22) || nSeen(sim.obs[b], 0, NA) - nSeen(sim.obs[a], 0, NA))[0];
+  const knnFalse = sim.meta.map((m, p) => p).filter((p) => sim.meta[p].kind === "null" && SC.any.kNN.padj[p] < 0.05);
+  const twoSeen = (knnFalse.length ? knnFalse : sim.meta.map((m, p) => p).filter((p) => sim.meta[p].kind === "null"))
+    .sort((a, b) => Math.abs(nSeen(sim.obs[a], 0, 22) - 2) - Math.abs(nSeen(sim.obs[b], 0, 22) - 2))[0];
+  const scattered = sim.meta.map((m, p) => p).filter((p) => { const m = 22 - nSeen(sim.obs[p], 0, 22); return sim.meta[p].kind === "null" && m >= 4 && m <= 7 && nSeen(sim.obs[p], 0, NA) <= 9 && nSeen(sim.obs[p], NA, 22) <= 9; })
+    .sort((a, b) => (SC.any.Minimum.padj[a] - SC.any["Measured only"].padj[a] || 0) - (SC.any.Minimum.padj[b] - SC.any["Measured only"].padj[b] || 0))[0];
+  const EXAMPLES = [["Absent in healthy", absent], ["Measured in two samples", twoSeen], ["Scattered holes", scattered]];
+
+  /* §2 Missing page */
+  {
+    const box = cand("missRow", "A · Missing — the matrix, the share missing, your cell 24 bars", `seed ${SEED} · ${P0} proteins × 22 samples · ${holesN.toLocaleString()} missing (${pct(holesN / (P0 * 22))})`);
+    const ctx = canvasIn(box, W, 600);
+    drawMatrix(ctx, 92, 26, 200, 380, sim, order);
+    drawShare(ctx, 352, 46, 180, 200, sim);
+    drawCounts(ctx, 92, 452, 200, 110, sim);
+    label(ctx, "a hole", 352, 300, { size: 10, colour: T.ink2 }); rect(ctx, 392, 291, 12, 10, wash(T.unknown, 0.55));
+    label(ctx, "measured, by level", 352, 316, { size: 10, colour: T.ink2 });
+    for (let i = 0; i < 6; i += 1) rect(ctx, 352 + i * 14, 322, 13, 10, shade(LO + (i / 5) * (HI - LO), T.empirical));
+    const box2 = cand("missRow", "B · Missing — your cell 24 bars and the scatter, no matrix", "the same data, the same press");
+    const c2 = canvasIn(box2, W, 420);
+    drawCounts(c2, 92, 40, 420, 150, sim);
+    drawShare(c2, 92, 240, 420, 130, sim);
+  }
+  /* §3 the press */
+  for (const up of [3, 14, 22]) {
+    const box = cand("pressRow", `Measure · after ${up} sample${up === 1 ? "" : "s"}`, up < 22 ? "a column a beat; its bar under it" : "done: the scatter fills", 360);
+    const ctx = canvasIn(box, 360, 560);
+    drawMatrix(ctx, 92, 26, 200, 380, sim, order, { upTo: up });
+    drawCounts(ctx, 92, 440, 200, 100, sim, up);
+  }
+  /* §4 Imputing page */
+  const impA = (rowId, method, truth = false, ex = absent, title = null) => {
+    const F = FILLED.any[method] || null;
+    const s = SC.any[method];
+    const box = cand(rowId, title || `A · Imputing — ${method}`, `the filled matrix · where the values go · one protein (${EXAMPLES.find((e) => e[1] === ex)[0]})`);
+    const ctx = canvasIn(box, W, 600);
+    drawMatrix(ctx, 92, 26, 200, 380, sim, order, { F, pick: ex });
+    drawHist(ctx, 330, 50, 205, 300, sim, F, { truth });
+    label(ctx, "the marked row", 92, 438, { size: 10, colour: T.ink3 });
+    drawProtein(ctx, 92, 452, 443, sim, F, ex, { truth, lo: LO, hi: HI });
+    const line1 = method === "Measured only" ? `Tested ${s.tested} of ${P0}; ${s.untestable} have fewer than 2 values in a group.` : `Imputed ${holesN.toLocaleString()} values; all ${P0} proteins tested.`;
+    const called = s.tp + s.fp;
+    const line2 = `Called at adjusted p < 0.05: ${called}.` + (truth ? `  Not different: ${s.fp} (FDR ${pct(s.fdr)}).` : "");
+    const line3 = truth ? `Absent in healthy, true log2FC 6: mean ${f(s.onoffFc, 1)}` + (method === "Measured only" ? ` (the ${s.onoffN} testable)` : "") + (Number.isFinite(s.bias) ? ` · imputed − true ${sg(s.bias, 2)} log2` : "") : "";
+    label(ctx, line1, 20, 536, { size: 11, colour: T.ink1 }); label(ctx, line2, 20, 554, { size: 11, colour: T.ink1 }); if (line3) label(ctx, line3, 20, 572, { size: 11, colour: T.ink1 });
+    return ctx;
+  };
+  impA("impRow", "Random forest");
+  {
+    const F = FILLED.any["Random forest"];
+    const box = cand("impRow", "B · Imputing — Random forest, no matrix", "where the values go · one protein");
+    const ctx = canvasIn(box, W, 420);
+    drawHist(ctx, 70, 40, 460, 190, sim, F);
+    drawProtein(ctx, 92, 300, 438, sim, F, absent, { lo: LO, hi: HI });
+  }
+  impA("impRow", "kNN", false, absent, "A · Imputing — kNN, for comparison");
+
+  /* §5 truth on */
+  const tc = impA("truthRow", "Random forest", true, absent, "A · Imputing — Random forest, True values On");
+  {
+    const box = cand("truthRow", "Missing — True values On", "the scatter gains the detection limit's curve", 260);
+    const ctx = canvasIn(box, 260, 300);
+    drawShare(ctx, 56, 30, 190, 210, sim, { truth: true });
+  }
+
+  /* §6 the example proteins, every method */
+  for (const [name, p] of EXAMPLES) {
+    const box = cand("protRow", name, `protein ${p + 1} · ${sim.meta[p].kind === "null" ? "no real difference" : `true log2FC ${f(sim.meta[p].fc, 1)}`} · measured ${nSeen(sim.obs[p], 0, NA)} of 11 cancer, ${nSeen(sim.obs[p], NA, 22)} of 11 healthy · truth ticks shown`, 420);
+    const ctx = canvasIn(box, 420, 5 * 70 + 10);
+    const vals = [...sim.truth[p], ...METHODS.slice(1).flatMap((m) => FILLED.any[m][p])];
+    const lo = Math.floor(Math.min(...vals)) - 0.5, hi = Math.ceil(Math.max(...vals)) + 0.5;
+    METHODS.forEach((m, k) => {
+      const geo = drawProtein(ctx, 120, 22 + k * 70, 285, sim, FILLED.any[m] || null, p, { truth: true, name: m, lo, hi });
+      if (k === 4) xTicks(ctx, geo.qx, 22 + k * 70 + 52, Array.from({ length: Math.floor(hi) - Math.ceil(lo) + 1 }, (_, i) => Math.ceil(lo) + i).filter((v) => v % 2 === 0));
+    });
+  }
+
+  /* §7 readout arms */
+  {
+    const box = cand("readRow", "A · the readout, one line a method", "Random forest, True values Off then On", W);
+    const ctx = canvasIn(box, W, 120);
+    const s = SC.any["Random forest"];
+    label(ctx, `Imputed ${holesN.toLocaleString()} values; all ${P0} proteins tested.`, 14, 22, { colour: T.ink1 });
+    label(ctx, `Called at adjusted p < 0.05: ${s.tp + s.fp}.`, 14, 40, { colour: T.ink1 });
+    line(ctx, 14, 56, W - 14, 56, T.grid);
+    label(ctx, `Called at adjusted p < 0.05: ${s.tp + s.fp}.  Not different: ${s.fp} (FDR ${pct(s.fdr)}).`, 14, 78, { colour: T.ink1 });
+    label(ctx, `Absent in healthy, true log2FC 6: mean ${f(s.onoffFc, 1)} · imputed − true ${sg(s.bias, 2)} log2`, 14, 96, { colour: T.ink1 });
+  }
+  table("scoreTable", [`B · seed ${SEED}`, "filter", "tested", "called", "not different", "FDR", "true found / real", "absence log2FC (true 6)", "imputed − true"],
+    ["any", "half"].flatMap((k) => METHODS.map((m) => { const s = SC[k][m]; return [m, k === "any" ? "Any" : "Half of a group", String(m === "Measured only" ? s.tested : SIMS[k].obs.length), String(s.tp + s.fp), String(s.fp), pct(s.fdr), `${s.tp} / ${SIMS[k].meta.filter((x) => x.kind !== "null").length}`, f(s.onoffFc, 1), Number.isFinite(s.bias) ? sg(s.bias, 2) : "—"]; })), 4);
+}, 40);
+</script>
+</body>
+</html>
