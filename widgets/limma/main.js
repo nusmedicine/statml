@@ -306,10 +306,9 @@ defineWidget({
   slug: "limma",
   title: "Proteomics: Differential Expression",
   subtitle:
-    "Protein abundances are compared on the log2 scale, one t-test per protein. With few replicates each protein's own "
+    "Protein abundances are compared on the log2 scale with one t-test per protein. With few replicates each protein's "
     + "variance estimate is imprecise, so limma shrinks it toward a prior variance fitted across all proteins by empirical "
-    + "Bayes, and tests with a moderated t-statistic whose degrees of freedom include the prior's. The log2 fold change, "
-    + "the difference of mean log2 abundances, is not shrunk.",
+    + "Bayes and tests with a moderated t-statistic. The log2 fold change is not shrunk.",
   layout: "side",
   status: "draft",
   height: (p) => (p.page === "test" ? H_TEST : H_SHRINKAGE),
