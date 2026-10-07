@@ -408,7 +408,7 @@ defineWidget({
     }, default: "Step through this page" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
-      const anim = { n: { shrinkage: 0, test: 0 }, p: 1, st: { from: params.stat, to: params.stat, t: 1 }, easing: false };
+      const anim = { n: { shrinkage: 0, test: 0 }, p: 1, page: params.page, st: { from: params.stat, to: params.stat, t: 1 }, easing: false };
       if (!fromScratch) anim.n.shrinkage = Math.min(3, Math.max(0, Number(params.shown) || 0));
       settle(anim, params.page);
       return anim;
@@ -432,8 +432,12 @@ defineWidget({
         anim.st.from = anim.st.t < 0.5 ? anim.st.from : anim.st.to;
         anim.st.to = params.stat; anim.st.t = 0; anim.easing = true;
       }
-      /* a page switch mid-press finishes the press where it was (the 2026-09-20 sweep) */
-      if (anim.p < 1) anim.p = 1;
+      /* A page switch mid-press finishes the press where it was (the 2026-09-20
+         sweep); Test has no press, so the loop then stops by itself. Any other
+         display change — True values, the example protein — leaves the press
+         running: until 2026-10-08 it jumped the press to its end (found on 91). */
+      if (params.page !== anim.page && anim.p < 1) anim.p = 1;
+      anim.page = params.page;
       settle(anim, params.page);
     },
   },

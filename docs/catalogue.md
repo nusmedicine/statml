@@ -21549,8 +21549,10 @@ switch now ends a press, not any display change. `_lab/switch-probe.html`:
 7 switches, 0 flagged; the interrupted state then hashes as the unpressed
 Correction page. Three identical runs at DPR 1.25, 17/17 MATCH; the verify
 145 checks in `npm test`. 79 widgets on the gallery. NEXT: 93 `ms-features`.
-**Owed, not done:** 90 `limma` ends a press on ANY display change (a True
-values toggle mid-Shrink jumps it to the end), the same handling 91 had.
+**Fixed the same day, his word (local, awaiting his test):** 90 `limma` ended a
+press on ANY display change (a True values toggle mid-Shrink jumped it to the
+end); now only a page switch does. A toggle mid-Shrink leaves the press running
+(canvas checked); switch probe 0 flagged; 19/19 MATCH.
 
 ---
 
