@@ -21513,6 +21513,26 @@ three rows of the 26 appeared. **A row now fills in only for a correction the
 reader has applied** on this run (None from the start; Median after its press;
 QC-LOESS once chosen), kept in `anim.applied` as display state.
 
+#### Copy audit, 2026-10-08 — eleven rows, all the recommendation
+
+claudisms.ai's 292 terms: 0 hits over 140 strings. Subtitle B ("Metabolite
+abundances measured by LC-MS drift along the injection order, each metabolite
+in its own way. Subtracting a curve fitted through pooled quality-control (QC)
+samples removes this drift; normalizing each sample to its median removes only
+the drift all metabolites share. In a run made in group order, drift is
+confounded with the group difference." — the draft's "give the drift" and
+"drift becomes a difference" were agency verbs); blurb b3 ("LC-MS drift
+differs by metabolite: a curve through pooled QCs removes it; a per-sample
+median removes only part." — the draft's "does not" was too absolute); "one a
+beat" and "compare" out of the tooltips; log2FC as 90 writes it; the heading
+during the press; **Residual drift** for our "drift left"; "(tick)" off the
+legend; "median across the 26 metabolites". `_lab/qc-drift-verify.mjs` (145
+checks, in `npm test`): the run's invariants, the corrections, the rank-sum
+arithmetic, the claims over 30 seeds and the struck words (7 in the pre-audit
+copy). Measured on the way: with 26 metabolites a sample's median carries its
+own biology, so the median adds false calls in a random order (0.97 against
+0.18) — at the QCs it follows the shared drift.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

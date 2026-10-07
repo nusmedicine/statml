@@ -147,7 +147,7 @@ function drawDrift(ctx, colors, w, params, state, anim) {
     state.qcCentred.forEach((c, k) => { if (k !== m) poly(ctx, qc.map(sx), qc.map((i) => sy(c[i])), colors.ink3, 1, null, 0.45); });
     poly(ctx, qc.map(sx), qc.map((i) => sy(state.qcCentred[m][i])), colors.ink1, 1.6);
     poly(ctx, qc.map(sx), qc.map((i) => sy(state.medianCentred[i])), colors.highlight, 3);
-    txt(ctx, colors, "median across the 26", Q.x1 - 4, Q.y0 + 10, { size: "fsXs", colour: colors.highlight, weight: "600", align: "right" });
+    txt(ctx, colors, "median across the 26 metabolites", Q.x1 - 4, Q.y0 + 10, { size: "fsXs", colour: colors.highlight, weight: "600", align: "right" });
     txt(ctx, colors, E.METABOLITES[m], Q.x0 + 6, Q.y0 + 10, { size: "fsXs", colour: colors.ink1, weight: "600" });
   }
   txt(ctx, colors, "injection order", (X0 + w - RIGHT) / 2, L.axis, { size: "fsXs", colour: colors.ink3, align: "center" });
@@ -173,7 +173,7 @@ function drawCorrection(ctx, colors, w, params, state, anim) {
   const moved = s < 1 ? 0 : p < 0.3 ? 0 : easeInOut((p - 0.3) / 0.7);
   const val = (i) => run.X[m][i] + (Yto[i] - run.X[m][i]) * moved;
   const curveColour = (ease ? (moved >= 1 && ease.e < 0.5 ? ease.from : to) : to) === "median" ? colors.highlight : colors.smoothed;
-  const label = s < 1 ? "as measured" : moved >= 1 ? `after ${CORR_NAME[to]}` : `as measured, the curve ${CORR_NAME[to]} removes`;
+  const label = s < 1 ? "as measured" : moved >= 1 ? `after ${CORR_NAME[to]}` : "as measured, with the curve to subtract";
   txt(ctx, colors, `${E.METABOLITES[m]}: ${label}`, 12, 20, { colour: colors.ink1, weight: "600" });
   const truthLine = truth ? run.inj.map((_, i) => { const free = run.mets[m].base + run.drift[m][i]; return free + (Yto[i] - run.X[m][i]) * moved; }) : null;
   // the curve shown while it is being applied: it moves with the values, flat once they land
@@ -183,7 +183,7 @@ function drawCorrection(ctx, colors, w, params, state, anim) {
 
   // all 26: cancer − hyperplasia under each correction; the corrections' rows appear when the press lands
   const S = L.strips, applied = appliedOf(anim, params);
-  txt(ctx, colors, "All 26 metabolites: cancer − hyperplasia, log2 (medians)", 12, S.top - 14, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, "All 26 metabolites: log2FC, cancer / hyperplasia (medians)", 12, S.top - 14, { colour: colors.ink1, weight: "600" });
   const rowKeys = { none: "none", median: "median", "qc-loess": `qc-loess-${params.span}` };
   const rowName = { none: "None", median: "Median", "qc-loess": "QC-LOESS" };
   ROWS.forEach((r, k) => {
@@ -251,10 +251,10 @@ defineWidget({
   slug: "qc-drift",
   title: "Metabolomics: QC and Drift",
   subtitle:
-    "Metabolite abundances drift along the injection order of an LC-MS run, and each metabolite drifts in its own way. "
-    + "Pooled quality-control (QC) samples, the same material injected throughout the run, give the drift of each metabolite; "
-    + "a curve fitted through them removes it, while normalizing each sample to its median removes only the drift shared by "
-    + "all metabolites. In a run made in group order, uncorrected drift becomes a difference between the groups.",
+    "Metabolite abundances measured by LC-MS drift along the injection order, each metabolite in its own way. "
+    + "Subtracting a curve fitted through pooled quality-control (QC) samples removes this drift; normalizing each sample "
+    + "to its median removes only the drift all metabolites share. In a run made in group order, drift is confounded with "
+    + "the group difference.",
   layout: "side",
   status: "draft",
   height: (p) => (p.page === "correction" ? H_CORR : H_DRIFT),
@@ -315,7 +315,7 @@ defineWidget({
           ? { token: "highlight", label: "The curve the correction removes: the median across the metabolites", mark: "line" }
           : { token: "smoothed", label: "The curve the correction removes: LOESS through this metabolite's QCs", mark: "line" },
         { token: "extreme", label: "Called different: adjusted p < 0.05", mark: "dot" },
-        ...(truth ? [{ token: "theory", label: "The true drift", mark: "dash" }, { token: "reference", label: "A true difference (tick)", mark: "line" }] : []),
+        ...(truth ? [{ token: "theory", label: "The true drift", mark: "dash" }, { token: "reference", label: "A true difference", mark: "line" }] : []),
       ];
     }
     return [
@@ -347,10 +347,10 @@ defineWidget({
   animation: {
     stepLabel: { anim: "labelAt", labels: { drift0: "Inject", driftdone: "Inject", correction0: "Correct", correctiondone: "Correct" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      drift0: "Run the injections in order, one a beat: the study samples, and a pooled QC between every few",
+      drift0: "Make the injections in run order, one at a time: the study samples, with a pooled QC after every few",
       driftdone: "Every injection of this run has been made",
       correction0: "Draw the curve the correction removes, then move every value by it",
-      correctiondone: "This correction has been applied; change Correction to compare",
+      correctiondone: "This correction has been applied; change Correction to apply another",
     }, default: "Step through this page" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
@@ -429,8 +429,8 @@ defineWidget({
       return [
         { label: "Injections", value: `${k} of ${run.N}`, note: `${run.N - nQC} study samples and ${nQC} pooled QCs` },
         done
-          ? { label: name, value: `${sg(sc.fc[m])} log2`, note: `cancer − hyperplasia; adjusted p ${pFmt(sc.padj[m])}; QC RSD ${pct(sc.rsd[m])}` }
-          : { label: name, value: "–", note: "cancer − hyperplasia, once every injection is made" },
+          ? { label: name, value: `log2FC ${sg(sc.fc[m])}`, note: `cancer / hyperplasia, from the medians; adjusted p ${pFmt(sc.padj[m])}; QC RSD ${pct(sc.rsd[m])}` }
+          : { label: name, value: "–", note: "cancer / hyperplasia, once every injection is made" },
         { label: "Metabolites called different", value: done ? `${sc.called} of 26` : "–", note: done ? called(sc) : "once every injection is made" },
       ];
     }
@@ -440,8 +440,8 @@ defineWidget({
     return [
       { label: `QC RSD, ${name}`, value: done ? `${pct(none.rsd[m])} → ${pct(sc.rsd[m])}` : pct(none.rsd[m]), note: done ? `as measured → after ${CORR_NAME[k]}` : "as measured" },
       truth
-        ? { label: "Drift left in the study samples", value: done ? `${f3(state.left.none[m])} → ${f3(state.left[k][m])} log2` : `${f3(state.left.none[m])} log2`, note: "SD of the corrected values minus the drift-free values, this metabolite" }
-        : { label: "Drift left in the study samples", value: "–", note: "against the drift-free values: True values On" },
+        ? { label: "Residual drift in the study samples", value: done ? `${f3(state.left.none[m])} → ${f3(state.left[k][m])} log2` : `${f3(state.left.none[m])} log2`, note: "SD of the corrected values minus the drift-free values, this metabolite" }
+        : { label: "Residual drift in the study samples", value: "–", note: "against the drift-free values: True values On" },
       { label: "Metabolites called different", value: done ? `${none.called} → ${sc.called} of 26` : `${none.called} of 26`, note: done ? called(sc) : "as measured; Correct applies the correction" },
     ];
   },
