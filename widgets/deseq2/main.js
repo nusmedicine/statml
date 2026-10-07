@@ -325,7 +325,7 @@ defineWidget({
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.distribution,
 
   params: {
-    page: { role: "page", type: "segmented", label: "Page", options: PAGES, default: "distribution", display: true },
+    page: { role: "page", type: "segmented", label: "Step", options: PAGES, default: "distribution", display: true },
 
     dataSec: { type: "section", label: "The data" },
     reps: {
@@ -469,7 +469,7 @@ defineWidget({
      `init`, which asks core for an ease when there is a last picture to ease
      from, and puts the walkthrough back at its first step. */
   animation: {
-    stepLabel: { anim: "labelAt", labels: { s0: "Fit the trend", s1: "Multiply by the prior", s2: "Shrink every gene", f0: "Test", f1: "Fit the prior", f2: "Multiply by the prior", f3: "Shrink every gene", done: "Step" }, default: "Step" },
+    stepLabel: { anim: "labelAt", labels: { s0: "Fit the trend", s1: "Multiply by the prior", s2: "Shrink every gene", f0: "Test", f1: "Fit the prior", f2: "Multiply by the prior", f3: "Shrink every gene", done: "Shrink every gene" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
       s0: "Fit the trend through every gene's own estimate: the prior's centre, and its width from their spread",
       s1: "Multiply the one gene's likelihood by the prior: the posterior, whose mode is the shrunk estimate",
