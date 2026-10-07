@@ -28,7 +28,8 @@ import { FOREST, FOREST_SEEDS, TYPICAL_SEED } from "./forest-table.js";
 
 const { NA, N } = E;
 const isNa = Number.isNaN;
-const H_MISSING = 610, H_IMPUTING = 530;
+const TREE_H = 132;                   // the Imputing page's diagram of the two steps, above the matrix
+const H_MISSING = 610, H_IMPUTING = 530 + TREE_H;
 const COL_MS = 140;                    // one sample a beat: 22 samples in about three seconds
 const LO = 17, HI = 31;                // the log2 axis every panel shares
 /* Grouped by the assumption each method makes about a hole, in the terms 01-3
@@ -62,13 +63,17 @@ const pFmt = (p) => (p < 0.001 ? p.toExponential(1).replace("e-", "e−") : p.to
    the right-hand panel starts after it. Set by `fitTo(w)` at the top of every
    draw and region build, so both read one geometry. */
 const M = { x0: 92, w: 200, y0: 44, h: 380, gap: 6, px: 338 };
-function fitTo(w) { M.w = Math.round(Math.min(280, Math.max(190, 0.36 * w))); M.px = M.x0 + M.w + 46; }
+function fitTo(w, page = "missing") {
+  M.w = Math.round(Math.min(280, Math.max(190, 0.36 * w)));
+  M.px = M.x0 + M.w + 46;
+  M.y0 = 44 + (page === "imputing" ? TREE_H : 0);   // the Imputing page's diagram sits above the matrix
+}
 const colX = (j) => M.x0 + j * ((M.w - M.gap) / N) + (j >= NA ? M.gap : 0);
 const colW = () => (M.w - M.gap) / N;
 const rowY = (i, P) => M.y0 + (i * M.h) / P;
 const RIGHT = 16;
 const missingLayout = (w) => ({ share: { x0: M.px + 30, x1: w - RIGHT, top: 64, base: 270 }, key: { y: 318 }, counts: { top: 478, base: 580 } });
-const imputingLayout = (w) => ({ hist: { x0: M.px + 30, x1: w - RIGHT, top: 76, base: 330 }, strip: { x0: M.x0, x1: w - RIGHT, y: 466 } });
+const imputingLayout = (w) => ({ hist: { x0: M.px + 30, x1: w - RIGHT, top: 76 + TREE_H, base: 330 + TREE_H }, strip: { x0: M.x0, x1: w - RIGHT, y: 466 + TREE_H } });
 
 /* ------------------------------------------------------------ the press clock */
 /* `anim.done` is never set: core's Replay re-inits the whole anim, which would
@@ -151,7 +156,7 @@ function matrixImage(ctx, colors, sim, order, F, fillKey, owner) {
 }
 function drawMatrix(ctx, colors, sim, order, { upTo, F = null, fillKey = "", fillTo = 0, mark = -1, heading, owner }) {
   const P = order.length, cw = colW(), rh = M.h / P;
-  txt(ctx, colors, heading, 12, 16, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, heading, 12, M.y0 - 28, { colour: colors.ink1, weight: "600" });
   txt(ctx, colors, "cancer", colX(0) + (NA * cw) / 2, M.y0 - 7, { size: "fsXs", colour: colors.groupA, weight: "600", align: "center" });
   txt(ctx, colors, "healthy", colX(NA) + (NA * cw) / 2, M.y0 - 7, { size: "fsXs", colour: colors.groupB, weight: "600", align: "center" });
   txt(ctx, colors, "most", M.x0 - 8, M.y0 + 9, { size: "fsXs", colour: colors.ink3, align: "right" });
@@ -237,9 +242,55 @@ function drawMissing(ctx, colors, w, params, state, anim) {
 function bins(values, nb) { const c = new Array(nb).fill(0); for (const v of values) { const k = Math.floor(((v - LO) / (HI - LO)) * nb); if (k >= 0 && k < nb) c[k] += 1; } return c; }
 const NB = 42;
 
+/* The two steps as a tree (his pick 2026-10-07, _lab/imputation-diagram-mock.html):
+   every protein -> step 1, the filter (kept / removed) -> step 2, the method; Mixed
+   splits into the Minimum (MNAR) and the Random forest (MAR). The counts follow the
+   settings: the filter is a data parameter, the method a display one. */
+const KEEP_TEXT = { any: "in ≥ 1 sample", 50: "in ≥ 50% of one group", 70: "in ≥ 70% of one group", 100: "in 100% of one group" };
+function drawTree(ctx, colors, w, params, state) {
+  const c = state.tree, removed = c.all - c.kept, method = params.method;
+  const g = 10, root = 96, gap = 30, col = (w - 2 * g - root - 2 * gap) / 2;
+  const x0 = g, x1 = g + root + gap, x2 = x1 + col + gap;
+  const box = (x, y, bw, title, sub, dashed = false) => {
+    ctx.save();
+    ctx.fillStyle = colors.surface2; ctx.fillRect(x, y, bw, 40);
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = dashed ? 1 : 1.3; if (dashed) ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, 39);
+    ctx.restore();
+    txt(ctx, colors, title, x + 8, y + 16, { colour: dashed ? colors.ink3 : colors.ink1, weight: "600" });
+    txt(ctx, colors, sub, x + 8, y + 32, { size: "fsXs", colour: dashed ? colors.ink3 : colors.ink2 });
+  };
+  const link = (xa, ya, xb, yb) => {
+    ctx.save(); ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xa, ya);
+    const mx = (xa + xb) / 2; ctx.bezierCurveTo(mx, ya, mx, yb, xb, yb); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xb, yb); ctx.lineTo(xb - 6, yb - 4); ctx.lineTo(xb - 6, yb + 4); ctx.closePath(); ctx.fillStyle = colors.ink3; ctx.fill();
+    ctx.restore();
+  };
+  const label = METHODS.find((m) => m.value === method)?.label ?? method;
+  txt(ctx, colors, "Step 1 · filter", x1, 14, { size: "fsXs", colour: colors.ink2, weight: "600" });
+  txt(ctx, colors, `Step 2 · ${label}`, x2, 14, { size: "fsXs", colour: colors.ink2, weight: "600" });
+  box(x0, 46, root, `${n0(c.all)} proteins`, "in the matrix");
+  box(x1, 24, col, `${n0(c.kept)} kept`, `measured ${KEEP_TEXT[params.keep]}`);
+  box(x1, 76, col, `${n0(removed)} removed`, removed ? "too few measured values" : "none below the threshold", true);
+  link(x0 + root, 66, x1, 44); link(x0 + root, 66, x1, 96);
+  if (method === "mixed") {
+    box(x2, 24, col, `${n0(c.mnar)} → Minimum (MNAR)`, "measured in ≤ 20% of a group");
+    box(x2, 76, col, `${n0(c.kept - c.mnar)} → Random forest (MAR)`, "every other protein");
+    link(x1 + col, 44, x2, 44); link(x1 + col, 44, x2, 96);
+  } else if (method === "measured-only") {
+    box(x2, 24, col, `${n0(c.testable)} tested`, "2 values or more in each group");
+    link(x1 + col, 44, x2, 44);
+  } else {
+    box(x2, 24, col, `${n0(c.kept)} → ${label}`, "every missing value");
+    link(x1 + col, 44, x2, 44);
+  }
+  rule(ctx, 12, TREE_H - 6, w - 12, TREE_H - 6, colors.grid);
+}
+
 function drawImputing(ctx, colors, w, params, state, anim) {
-  fitTo(w);
+  fitTo(w, "imputing");
   const L = imputingLayout(w);
+  drawTree(ctx, colors, w, params, state);
   const ik = anim ? anim.ik : (Number(params.shown) > 0 ? N : 0);
   const fillTo = Math.floor(ik);
   const { sim, order, rows } = state;
@@ -253,7 +304,7 @@ function drawImputing(ctx, colors, w, params, state, anim) {
 
   // where the values sit: measured (an outline), imputed so far (bars), the truth behind the holes (dashed)
   const H = L.hist, bw = (H.x1 - H.x0) / NB, sx = (v) => H.x0 + ((v - LO) / (HI - LO)) * (H.x1 - H.x0);
-  txt(ctx, colors, "Measured and imputed values", M.px, 16, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, "Measured and imputed values", M.px, M.y0 - 28, { colour: colors.ink1, weight: "600" });
   const yMax = state.histMax, sh = (c) => (Math.min(c, yMax) / yMax) * (H.base - H.top);
   if (F && fillTo > 0) {
     const vals = [];
@@ -417,6 +468,11 @@ defineWidget({
     sim.obs.forEach((r, p) => r.forEach((v, j) => (isNa(v) ? missingTrue.push(sim.truth[p][j]) : measuredVals.push(v))));
     return {
       sim, rows, rowOf, order, fullOrder, filled, scores, examples, measuredBins, truthBins, histMax, share, measuredIn,
+      tree: {
+        all: sim.obs.length, kept: rows.length,
+        mnar: obs.filter((r) => Math.min(E.seenIn(r, 0, NA), E.seenIn(r, NA, N)) <= E.MIXED_CUT).length,
+        testable: scores["measured-only"].tested,
+      },
       holes, holesKept, missingTrueMean: E.mean(missingTrue), measuredMean: E.mean(measuredVals),
       wholeGroup: sim.obs.filter((r) => E.seenIn(r, 0, NA) === 0 || E.seenIn(r, NA, N) === 0).length,
       anyHole: sim.obs.filter((r) => E.seenIn(r) < N).length,
@@ -464,7 +520,7 @@ defineWidget({
   /* a row of the matrix on the Imputing page marks that protein */
   regions: ({ w, params, state }) => {
     if (params.page !== "imputing" || !state) return [];
-    fitTo(w);
+    fitTo(w, "imputing");
     const P = state.order.length, rh = M.h / P;
     return state.order.map((_, i) => ({ x: M.x0, y: rowY(i, P), w: M.w, h: rh, set: { protein: `row-${i + 1}` }, label: `Row ${i + 1}` }));
   },
