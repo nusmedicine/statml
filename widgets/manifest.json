@@ -1331,6 +1331,22 @@
       ],
       "arc": 90,
       "status": "shipped"
+    },
+    {
+      "slug": "qc-drift",
+      "title": "Metabolomics: QC and Drift",
+      "blurb": "Instrument drift differs by metabolite; a curve through pooled QCs removes it, and per-sample normalization does not.",
+      "course": "PHM5003",
+      "topics": [
+        "metabolomics",
+        "LC-MS",
+        "quality control",
+        "drift",
+        "normalization",
+        "LOESS"
+      ],
+      "arc": 91,
+      "status": "draft"
     }
   ]
 }

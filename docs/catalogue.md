@@ -21487,6 +21487,22 @@ records no run order and 02-2 cell 5 builds `injection.order` from the file's
 row order, which runs in 12 cohort blocks; 02-3's `massqc_report` RSD is over
 subjects (no QCs).
 
+#### DRAFT 2026-10-08
+
+`widgets/qc-drift/` — `engine.js` (the arc model's part D with two changes on
+purpose: every metabolite's drift, every sample's values and a random order
+are drawn before the layout, so Run order and QC every rearrange the same
+samples; and the test is 02-4's Wilcoxon rank-sum with BH and the median
+fold change, not Welch's t — the same story over 100 seeds: grouped none 16.6
+false of 22, median 16.1, QC-LOESS 0.3 0.41, random none 0.18) and `main.js`
+(90's press clock: Inject, an injection a beat; Correct, the curve held, then
+every value moved by it; a Correction or Span change after the press eases).
+**One simplification, his to confirm:** None is the page before the press —
+the metabolite as measured and the strip's first row — so Correction offers
+Median (02-3's choice, the default) and QC-LOESS. Default seed 84. The
+formula card: the QC RSD on Drift; median normalization and QC-LOESS on
+Correction. Status draft.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`
