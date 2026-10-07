@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 89 — the filter and imputation diagram</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 4px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 89 &middot; a diagram of the two steps, numbers from the settings</h1>
+  <p class="note">The Imputing page gains a diagram of what happens to the proteins: <b>step 1</b>, the filter (<i>Keep proteins measured in
+    at least</i>), and <b>step 2</b>, the method &mdash; for Mixed, the split into the minimum and random forest. Every number below is computed
+    on this page by the widget's own engine (seed 2, the default), so each panel is what the page would show for that setting. Two forms:
+    <b>A</b>, a tree across the top of the Imputing page, above the matrix; <b>B</b>, one line of text in the same place.</p>
+
+  <h2>A &middot; the tree, above the matrix &mdash; Method = Mixed, each filter setting (550 px, the harness width)</h2>
+  <div class="row" id="treeMixed"></div>
+
+  <h2>A &middot; the tree for the other methods, filter 50%</h2>
+  <p class="note">Step 2 has one branch for a single method; for Measured only it says how many proteins can be tested.</p>
+  <div class="row" id="treeOther"></div>
+
+  <h2>A &middot; at the widest canvas (770 px)</h2>
+  <div class="row" id="treeWide"></div>
+
+  <h2>B &middot; one line instead of a tree</h2>
+  <div class="row" id="line"></div>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">D.1 &middot; The form</b>
+    <b>A &middot; the tree (recommended: the two steps are two splits, and the tree draws them as splits, with the counts on the branches)</b>
+    &nbsp;|&nbsp; B &middot; one line of text</p>
+  <p class="q"><b class="h">D.2 &middot; Where</b>
+    <b>A &middot; across the top of the Imputing page, above the matrix; the page grows by about 130 px (recommended: read first, then the
+    matrix it describes)</b> &nbsp;|&nbsp; B &middot; under the matrix, above the example protein</p>
+  <p class="q"><b class="h">D.3 &middot; The matrix under it</b>
+    <b>A &middot; unchanged: only the kept proteins, as now (recommended)</b> &nbsp;|&nbsp; B &middot; all 600 rows, the removed ones dimmed, so the
+    filter is visible in the matrix too</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../imputation/engine.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function cand(rowId, title, sub, w) { const b = el("div", "cand"); b.style.width = `${w}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = w * DPR; c.height = h * DPR; c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const txt = (ctx, s, x, y, { size = 12, colour = T.ink2, align = "left", weight = "" } = {}) => { ctx.font = `${weight} ${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); };
+const n0 = (v) => v.toLocaleString("en-US");
+
+// the numbers, from the engine
+const sim = E.simulateMatrix(makeRng(2));
+const share = (r) => [E.seenIn(r, 0, E.NA) / E.NA, E.seenIn(r, E.NA, E.N) / E.NB];
+function counts(keep) {
+  const rows = E.keepRows(sim.obs, keep);
+  const mnar = rows.filter((p) => Math.min(...share(sim.obs[p])) <= 0.2 + 1e-9).length;
+  const testable = rows.filter((p) => Math.min(E.seenIn(sim.obs[p], 0, E.NA), E.seenIn(sim.obs[p], E.NA, E.N)) >= 2).length;
+  return { all: sim.obs.length, kept: rows.length, removed: sim.obs.length - rows.length, mnar, mar: rows.length - mnar, testable };
+}
+const KEEPTEXT = { any: "in ≥ 1 sample", 50: "in ≥ 50% of one group", 70: "in ≥ 70% of one group", 100: "in 100% of one group" };
+const METHOD = { "random-forest": "Random forest", minimum: "Minimum", knn: "kNN", "low-draw": "Low draw", "measured-only": "Measured only" };
+
+/* the tree: proteins -> step 1 (kept / removed) -> step 2 (method; Mixed splits) */
+function tree(ctx, w, c, keep, method) {
+  const H = 128;
+  const box = (x, y, bw, bh, lines, { dashed = false, strong = false, colour = T.ink3 } = {}) => {
+    ctx.save(); ctx.fillStyle = T.surface2; ctx.fillRect(x, y, bw, bh);
+    ctx.strokeStyle = colour; ctx.lineWidth = strong ? 1.8 : 1.2; if (dashed) ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1); ctx.restore();
+    lines.forEach((s, i) => txt(ctx, s, x + 8, y + 16 + i * 15, { size: i ? 11 : 12, colour: dashed ? T.ink3 : T.ink1, weight: i ? "" : "600" }));
+  };
+  const link = (x1, y1, x2, y2) => {
+    ctx.save(); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x1, y1);
+    const mx = (x1 + x2) / 2; ctx.bezierCurveTo(mx, y1, mx, y2, x2, y2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 6, y2 - 4); ctx.lineTo(x2 - 6, y2 + 4); ctx.closePath(); ctx.fillStyle = T.ink3; ctx.fill(); ctx.restore();
+  };
+  const g = 10, root = 96, gap = 30, col = (w - 2 * g - root - 2 * gap) / 2;   // a narrow first column, two wide ones
+  const x0 = g, x1 = g + root + gap, x2 = x1 + col + gap;
+  // step labels over the gaps
+  txt(ctx, "Step 1 · filter", x1, 14, { size: 11, colour: T.ink2, weight: "600" });
+  txt(ctx, `Step 2 · ${method === "mixed" ? "Mixed" : METHOD[method]}`, x2, 14, { size: 11, colour: T.ink2, weight: "600" });
+  box(x0, 46, root, 40, [`${n0(c.all)} proteins`, "in the matrix"]);
+  box(x1, 24, col, 40, [`${n0(c.kept)} kept`, `measured ${KEEPTEXT[keep]}`], { strong: true });
+  box(x1, 76, col, 40, [`${n0(c.removed)} removed`, c.removed ? "too few measured values" : "none below the threshold"], { dashed: true });
+  link(x0 + root, 66, x1, 44); link(x0 + root, 66, x1, 96);
+  if (method === "mixed") {
+    box(x2, 24, col, 40, [`${n0(c.mnar)} → Minimum (MNAR)`, "measured in ≤ 20% of a group"]);
+    box(x2, 76, col, 40, [`${n0(c.mar)} → Random forest (MAR)`, "every other protein"]);
+    link(x1 + col, 44, x2, 44); link(x1 + col, 44, x2, 96);
+  } else if (method === "measured-only") {
+    box(x2, 24, col, 40, [`${n0(c.testable)} tested`, "2 values or more in each group"]);
+    link(x1 + col, 44, x2, 44);
+  } else {
+    box(x2, 24, col, 40, [`${n0(c.kept)} → ${METHOD[method]}`, "every missing value"]);
+    link(x1 + col, 44, x2, 44);
+  }
+  return H;
+}
+
+for (const keep of ["any", "50", "70", "100"]) {
+  const c = counts(keep);
+  const b = cand("treeMixed", `Keep: ${keep === "any" ? "Any" : keep + "%"} · Method: Mixed`, `kept ${c.kept} · removed ${c.removed} · minimum ${c.mnar} · random forest ${c.mar}`, 550);
+  const ctx = canvasIn(b, 550, 128); tree(ctx, 550, c, keep, "mixed");
+}
+for (const m of ["random-forest", "minimum", "knn", "measured-only"]) {
+  const c = counts("50");
+  const b = cand("treeOther", `Keep: 50% · Method: ${METHOD[m]}`, "", 550);
+  const ctx = canvasIn(b, 550, 128); tree(ctx, 550, c, "50", m);
+}
+{ const c = counts("50"); const b = cand("treeWide", "Keep: 50% · Method: Mixed, 770 px", "", 770); const ctx = canvasIn(b, 770, 128); tree(ctx, 770, c, "50", "mixed"); }
+
+// B: one line
+for (const keep of ["any", "50", "100"]) {
+  const c = counts(keep);
+  const b = cand("line", `Keep: ${keep === "any" ? "Any" : keep + "%"} · Mixed`, "", 550);
+  const ctx = canvasIn(b, 550, 56);
+  txt(ctx, `${n0(c.all)} proteins → step 1, measured ${KEEPTEXT[keep]}: ${n0(c.kept)} kept, ${n0(c.removed)} removed`, 10, 22, { size: 12, colour: T.ink1 });
+  txt(ctx, `→ step 2, Mixed: ${n0(c.mnar)} minimum (≤ 20% of a group), ${n0(c.mar)} random forest`, 10, 42, { size: 12, colour: T.ink1 });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 89 — filter, then impute, in one function</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 4px; }
+  p.note, li { color: var(--ink-2); font-size: var(--fs-sm); max-width: 105ch; }
+  p.note { margin: 0 0 var(--sp-3); }
+  p.note b, li b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  pre { background: var(--surface-2); padding: var(--sp-2) var(--sp-3); font-size: 12px; max-width: 105ch; white-space: pre-wrap; border: 1px solid var(--grid); color: var(--ink-1); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 105ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 105ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  tr.rec-row td { background: var(--surface-2); font-weight: 600; }
+  .rail { border: 1px solid var(--grid); background: var(--surface-1); padding: var(--sp-3); width: 360px; font-size: 13px; color: var(--ink-1); }
+  .rail .lab2 { margin: 10px 0 4px; }
+  .rail .seg { display: flex; border: 1px solid var(--grid); border-radius: 4px; overflow: hidden; }
+  .rail .seg span { flex: 1; text-align: center; padding: 5px 0; border-right: 1px solid var(--grid); color: var(--ink-2); }
+  .rail .seg span:last-child { border-right: 0; }
+  .rail .seg span.on { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  .rail .det { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+  .rail .sel { border: 1px solid var(--grid); border-radius: 4px; padding: 5px 8px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 89 &middot; filter, then impute &mdash; one function, the notebook and the widget saying the same thing</h1>
+  <p class="note">Your two steps: <b>1) filter</b> with a threshold (50% / 70% / 100%), <b>2) impute</b> with a proportion. Both
+    thresholds are written one way only: <b>the proportion of a group's samples in which the protein was measured</b>.
+    The R is <b>tested on your data</b> (the state before cell 42, rebuilt from <code>data/rds/proteins.rds</code>; tidyproteomics 1.8.10);
+    the simulation numbers are the widget's engine over 20 seeds.</p>
+
+  <h2>1 &middot; The idea in one picture</h2>
+  <div class="row" id="flow"></div>
+
+  <h2>2 &middot; Can it all be one function? Yes &mdash; it takes the tidyproteomics object, not the table</h2>
+  <p class="note">The function <code>impute()</code> calls must hand back a table of the same size, so it cannot remove proteins. The filter
+    therefore sits in an outer function that takes the whole object: it filters, then calls <code>impute()</code> with the mixed rule.
+    For students it is one call: <code>rdata_mixed &lt;- impute_mixed(rdata_unimputed)</code>.</p>
+<pre>impute_mixed &lt;- function(data, keep_prop = 0.5, mnar_prop = 0.2) {
+  # Step 1, filter: keep proteins measured in at least keep_prop of the samples of one group
+  measured &lt;- data %&gt;%
+    extract() %&gt;%
+    complete(identifier, nesting(sample, replicate)) %&gt;%      # a missing value becomes NA
+    group_by(identifier, sample) %&gt;%
+    summarise(prop = mean(!is.na(abundance)), .groups = "drop") %&gt;%
+    group_by(identifier) %&gt;%
+    summarise(annotation = if_else(max(prop) &gt;= keep_prop, "yes", "no"))
+  # subset() compares a column with a value, so add the result as an annotation first
+  data$annotations &lt;- data$annotations %&gt;%
+    bind_rows(measured %&gt;% transmute(protein = identifier, term = "keep", annotation))
+  data &lt;- data %&gt;% subset(keep == "yes")
+
+  # Step 2, impute: the minimum for proteins measured in at most mnar_prop of the
+  # samples of some group (MNAR), random forest for the rest (MAR)
+  mixed &lt;- function(m, ...) {
+    group &lt;- sub("-sep-.*", "", colnames(m))           # "cancer-sep-1" -&gt; "cancer"
+    prop &lt;- sapply(unique(group), function(g) rowMeans(!is.na(m[, group == g, drop = FALSE])))
+    mnar &lt;- apply(prop, 1, min) &lt;= mnar_prop
+    filled &lt;- missForest::missForest(m)$ximp           # random forest fills every missing value
+    use_min &lt;- is.na(m) &amp; mnar                         # then MNAR proteins get the minimum instead
+    filled[use_min] &lt;- min(m, na.rm = TRUE)
+    filled
+  }
+  data %&gt;% impute(.function = mixed, method = "matrix")
+}
+
+rdata_mixed &lt;- impute_mixed(rdata_unimputed, keep_prop = 0.5, mnar_prop = 0.2)</pre>
+  <p class="note"><b>Tested on your data</b> (no missing value left in any run):</p>
+  <div class="row" id="lessonTable"></div>
+
+  <h2>3 &middot; Your 1,337 proteins under each filter</h2>
+  <p class="note">Each square: proteins measured in <i>x</i> of 11 healthy samples (across) and <i>y</i> of 11 cancer (up). <b>Grey</b>:
+    removed by step 1. <b>Violet</b>: kept, measured in 2 of 11 or fewer in one group &rarr; the minimum. <b>Blue</b>: kept &rarr; random
+    forest. Your 64 proteins are the three squares at the bottom right; every filter keeps them.</p>
+  <div class="row" id="grids"></div>
+
+  <h2>4 &middot; What the settings do to the test &mdash; widget simulation, 20 seeds, 110 real differences</h2>
+  <div class="row" id="simTable"></div>
+  <p class="rec">The filter is the setting that matters: 50% and 70% behave alike, and 100% keeps fewer than half the proteins and finds
+    half the real differences. With the filter at 50%, Mixed finds 89 of 110 at 6.4% FDR; random forest alone, 74 at 9.5%.</p>
+
+  <h2>5 &middot; What the notebook says &mdash; the &ldquo;In practice&rdquo; cell and the function's parameters</h2>
+<pre>### In practice
+
+Random forest assumes a missing value is like the measured ones (MAR). In mass spectrometry, many values are
+missing because the protein is below the detection limit (MNAR), so the true value is lower than anything
+measured. Random forest fills these too high, which can hide a protein that is present in healthy samples but
+below the limit in cancer.
+
+A single missing value cannot tell us why it is missing, so each protein is judged by how many samples it was
+measured in, in two steps:
+
+1. **Filter.** Remove proteins measured in too few samples to impute from: keep a protein if it was measured in
+   at least half of the samples of one group. Stricter thresholds (70%, or every sample) are also used; they
+   remove more proteins.
+2. **Impute by protein (mixed imputation).** A protein measured in at most 20% of the samples of a group (2 of 11
+   here) is treated as below the detection limit in that group (MNAR), and its missing values get the lowest
+   value measured in the data. All other missing values are imputed with random forest (MAR).
+
+`tidyproteomics` does not have mixed imputation built in, so the function below does both steps:
+
+- `keep_prop`: keep proteins measured in at least this proportion of the samples of one group (0.5, 0.7 or 1)
+- `mnar_prop`: give the minimum to proteins measured in at most this proportion of the samples of a group (0.2)</pre>
+
+  <h2>6 &middot; The widget, matching</h2>
+  <div class="row">
+    <div class="rail">
+      <div><b>Imputation</b></div>
+      <div class="lab2">Keep proteins measured in at least</div>
+      <div class="seg"><span>Any</span><span class="on">50%</span><span>70%</span><span>100%</span></div>
+      <div class="det">of the samples of one group; the others are removed before imputing</div>
+      <div class="lab2">Method</div>
+      <div class="sel">Mixed &#9662;</div>
+      <div class="det">a protein measured in at most 20% of the samples of a group (2 of 11): the Minimum for its missing values;
+        every other protein: the Random forest</div>
+    </div>
+    <div>
+      <p class="note" style="max-width:70ch">
+        <b>Step 1</b> is the first control, in the same words as the notebook's <code>keep_prop</code>; it applies to every method, as
+        filtering does in practice. <b>Step 2</b> is Method = Mixed, its 20% stated in its detail line, as <code>mnar_prop</code> in the
+        notebook. <b>Any</b> keeps every protein (the simulation has no protein that was never measured), so the reader can still see
+        kNN's 26% FDR before the filter fixes it.<br><br>
+        Replaced: the control <i>Minimum measured: Any &middot; Half of a group</i>. Renamed throughout: &ldquo;hole&rdquo; &rarr;
+        &ldquo;missing value&rdquo;. The forest table grows by the 70% and 100% levels (about 300 KB).</p>
+    </div>
+  </div>
+
+  <h2>7 &middot; The alternative: one number instead of two</h2>
+  <p class="note">The same function with <code>mnar_prop</code> set equal to <code>keep_prop</code> (&ldquo;detected in a group&rdquo; = measured in
+    at least half its samples: detected in both &rarr; random forest, in one &rarr; minimum, in neither &rarr; removed). One number to
+    explain, but on your data it sends 342 proteins to the minimum at 50% (against 168), and at 100% <i>every</i> missing value gets the
+    minimum. Its simulation numbers are the &ldquo;one number&rdquo; rows in &sect;4.</p>
+
+  <h2>8 &middot; The calls</h2>
+  <p class="q"><b class="h">8.1 &middot; The function</b>
+    <b>A &middot; one function, two parameters, <code>keep_prop = 0.5</code> and <code>mnar_prop = 0.2</code> (recommended: your two steps, and the
+    minimum goes only to proteins clearly absent from a group)</b> &nbsp;|&nbsp; B &middot; one number (&sect;7)</p>
+  <p class="q"><b class="h">8.2 &middot; The widget's filter</b>
+    <b>A &middot; Keep proteins measured in at least: Any &middot; 50% &middot; 70% &middot; 100%, default 50% (recommended)</b> &nbsp;|&nbsp; B &middot; default Any, so
+    the page opens on the unfiltered data and kNN's failure</p>
+  <p class="q"><b class="h">8.3 &middot; Mixed's 20%</b>
+    <b>A &middot; fixed, stated in Mixed's detail line (recommended: the notebook's default; 0 against 0.2 changes little)</b> &nbsp;|&nbsp; B &middot; a
+    second control</p>
+  <p class="q"><b class="h">8.4 &middot; The notebook text</b> <b>A &middot; &sect;5 as written</b></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const F = await fetch("./imputation-filter-measure.json").then((r) => r.json());
+const S = await fetch("./imputation-two-step-measure.json").then((r) => r.json());
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = w * DPR; c.height = h * DPR; c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const txt = (ctx, s, x, y, { size = 12, colour = T.ink2, align = "left", weight = "" } = {}) => { ctx.font = `${weight} ${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); };
+const pct = (v) => `${(100 * v).toFixed(1)}%`;
+
+// §1 the flow
+{
+  const box = el("div"); document.getElementById("flow").appendChild(box);
+  const ctx = canvasIn(box, 900, 190);
+  const node = (x, y, w, h, colour, lines) => {
+    ctx.fillStyle = colour; ctx.globalAlpha = 0.18; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1;
+    ctx.strokeStyle = colour; ctx.lineWidth = 1.5; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    lines.forEach((s, i) => txt(ctx, s, x + 10, y + 20 + i * 17, { colour: T.ink1, weight: i ? "" : "600" }));
+  };
+  const arrow = (x1, y1, x2, y2, label) => {
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const a = Math.atan2(y2 - y1, x2 - x1); ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 8 * Math.cos(a - 0.4), y2 - 8 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 8 * Math.cos(a + 0.4), y2 - 8 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fillStyle = T.ink3; ctx.fill();
+    if (label) txt(ctx, label, (x1 + x2) / 2 + 6, (y1 + y2) / 2 - 6, { size: 11, colour: T.ink2 });
+  };
+  node(10, 70, 150, 50, T.ink3, ["Every protein", "1,337 in your data"]);
+  node(220, 20, 230, 66, T.ink3, ["Step 1 · filter", "measured in ≥ keep_prop (50%)", "of one group?"]);
+  node(220, 120, 230, 50, T.unknown, ["No → removed", "too little to impute from"]);
+  node(520, 20, 240, 66, T.ink3, ["Step 2 · impute", "measured in ≤ mnar_prop (20%)", "of some group?"]);
+  node(520, 110, 175, 66, T.highlight, ["Yes → MNAR", "the minimum", "(below the limit)"]);
+  node(710, 110, 180, 66, T.empirical, ["No → MAR", "random forest", "(missing by chance)"]);
+  arrow(160, 95, 220, 55); arrow(335, 86, 335, 120); txt(ctx, "no", 342, 106, { size: 11 });
+  arrow(450, 53, 520, 53, "yes"); arrow(600, 86, 600, 110); arrow(700, 86, 790, 110);
+}
+
+// §2 the lesson table
+{
+  const t = el("table");
+  t.innerHTML = "<tr><th>keep_prop</th><th>proteins kept (of 1,337)</th><th>MNAR → minimum (mnar_prop 0.2)</th><th>MAR → random forest</th></tr>";
+  for (const k of [0.5, 0.7, 1]) {
+    const o = S.lesson[`B|${k}`]; const r = el("tr", k === 0.5 ? "rec-row" : null);
+    [String(k), o.kept.toLocaleString(), String(o.mnar), String(o.kept - o.mnar)].forEach((s) => r.appendChild(el("td", null, s)));
+    t.appendChild(r);
+  }
+  document.getElementById("lessonTable").appendChild(t);
+}
+
+// §3 grids
+const grid = Array.from({ length: 12 }, () => new Array(12).fill(0));
+for (const [c, h] of F.lesson) grid[c][h] += 1;
+const CELL = 22, X0 = 44, Y0 = 26;
+for (const k of [0.5, 0.7, 1]) {
+  const o = S.lesson[`B|${k}`];
+  const box = el("div");
+  box.appendChild(el("h3", null, `keep_prop = ${k}`));
+  box.appendChild(el("p", "note", `kept ${o.kept.toLocaleString()} · minimum ${o.mnar} · random forest ${o.kept - o.mnar}`));
+  document.getElementById("grids").appendChild(box);
+  const ctx = canvasIn(box, X0 + 12 * CELL + 12, Y0 + 12 * CELL + 44);
+  const need = Math.ceil(k * 11 - 1e-9);
+  for (let c = 0; c <= 11; c += 1) for (let h = 0; h <= 11; h += 1) {
+    const kept = Math.max(c, h) >= need, mnar = Math.min(c, h) <= 2;
+    const x = X0 + h * CELL, y = Y0 + (11 - c) * CELL;
+    ctx.fillStyle = !kept ? T.unknown : mnar ? T.highlight : T.empirical; ctx.globalAlpha = !kept ? 0.3 : 0.85;
+    ctx.fillRect(x + 1, y + 1, CELL - 2, CELL - 2); ctx.globalAlpha = 1;
+    if (grid[c][h]) txt(ctx, String(grid[c][h]), x + CELL / 2, y + CELL / 2 + 4, { size: 9, colour: kept ? "#fff" : T.ink2, align: "center", weight: "600" });
+  }
+  for (const v of [0, 2, 4, 6, 8, 11]) { txt(ctx, String(v), X0 + v * CELL + CELL / 2, Y0 + 12 * CELL + 14, { size: 10, colour: T.ink3, align: "center" }); txt(ctx, String(v), X0 - 6, Y0 + (11 - v) * CELL + CELL / 2 + 4, { size: 10, colour: T.ink3, align: "right" }); }
+  txt(ctx, "healthy samples measured (of 11)", X0 + 6 * CELL, Y0 + 12 * CELL + 32, { size: 10, colour: T.groupB, align: "center", weight: "600" });
+  ctx.save(); ctx.translate(12, Y0 + 6 * CELL); ctx.rotate(-Math.PI / 2); txt(ctx, "cancer samples measured (of 11)", 0, 0, { size: 10, colour: T.groupA, align: "center", weight: "600" }); ctx.restore();
+}
+
+// §4 simulation table
+{
+  const t = el("table");
+  t.innerHTML = "<tr><th>setting</th><th>proteins kept (of 600)</th><th>MNAR → minimum</th><th>FDR</th><th>real differences found (of 110)</th><th>absent-in-healthy protein (true 6)</th></tr>";
+  const row = (label, key, cls) => { const o = S.sim[key]; const r = el("tr", cls); [label, o.kept.toFixed(0), o.mnar.toFixed(0), pct(o.fdr), o.tp.toFixed(1), o.absentFc.toFixed(2)].forEach((s) => r.appendChild(el("td", null, s))); t.appendChild(r); };
+  row("no filter · mnar_prop 0.2", "B|0");
+  row("keep_prop 0.5 · mnar_prop 0.2", "B|0.5", "rec-row");
+  row("keep_prop 0.7 · mnar_prop 0.2", "B|0.7");
+  row("keep_prop 1 · mnar_prop 0.2", "B|1");
+  row("one number, 0.5 (§7)", "A|0.5");
+  row("one number, 0.7 (§7)", "A|0.7");
+  row("one number, 1 (§7)", "A|1");
+  const r = el("tr"); ["random forest alone, no filter (cell 42)", "600", "0", "9.5%", "73.8", "2.41"].forEach((s) => r.appendChild(el("td", null, s))); t.appendChild(r);
+  document.getElementById("simTable").appendChild(t);
+}
+</script>
+</body>
+</html>
