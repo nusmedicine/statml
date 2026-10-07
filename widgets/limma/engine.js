@@ -147,3 +147,16 @@ export function priorDensityLog10(u, df, d0, s02) {
     - (lgamma(df / 2) + lgamma(d0 / 2) - lgamma((df + d0) / 2));
   return Math.exp(lf) * x * 2 * Math.LN10;
 }
+
+/** One protein's curve over log10 σ, peak 1: a scaled inverse χ² with nu
+    degrees of freedom and scale tau2, as a function of ln σ². Its peak is at
+    σ² = tau2 exactly — so the likelihood (nu = d, tau2 = s²) peaks at the own
+    SD, the prior (d0, s0²) at s0, and their product (d + d0, s̃²) at the
+    moderated SD. */
+export function logSdCurve(nu, tau2) {
+  const zc = Math.log(tau2);
+  return (u) => {
+    const z = 2 * Math.LN10 * u;
+    return Math.exp(-(nu / 2) * (z - zc) - (nu / 2) * (Math.exp(zc - z) - 1));
+  };
+}

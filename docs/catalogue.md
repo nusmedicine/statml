@@ -21380,6 +21380,22 @@ percentile — by own SD alone it landed on a protein whose sample log2FC was
 (limma's prior has a long upper tail: 34 log2 once in 200 seeds). Status
 draft; no fingerprint states until the design settles.
 
+#### Round 1, 2026-10-07 — Shrinkage, MathML, and 78's curves
+
+His three points: the equations as MathML (78's formula card above the
+figure, one per stage: own variance, the prior 1/σ² ~ χ²(d0)/(d0 s0²), the
+moderated variance; the ordinary and moderated t on Test); the page renamed
+**Shrinkage** (link value `page=shrinkage`); and "is shrinkage also shown like
+deseq2?" — mocked three ways in `_lab/limma-shrinkage-mock.html` (A as drawn;
+B 78's layout, whose SD-against-mean panel is a flat line because limma's
+prior is one value, `trend = FALSE`, which the lesson's run used; C the
+histogram above one protein's likelihood × prior = posterior). **His pick: C.**
+The curves share the histogram's log-SD axis and are exact: over ln σ² each is
+a scaled inverse χ² that peaks at its scale, so the likelihood peaks at the
+own SD, the prior at s0, and their product (d + d0 df) at the moderated SD.
+Step 3 slides the posterior from the likelihood to where it lands while the
+histogram's outline narrows. The protein's value rows and bars are gone.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

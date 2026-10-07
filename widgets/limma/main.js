@@ -29,7 +29,7 @@ import * as E from "./engine.js";
 const P = E.PROTEINS;
 const REPS = ["3", "5", "11"];
 const TYPICAL_SEED = 9;                // measured over 40 seeds (scratch limma-seed.mjs): nearest the mean at 3, 5 and 11
-const H_SHRINKAGE = 470, H_TEST = 480;
+const H_SHRINKAGE = 456, H_TEST = 480;
 const STEP_MS = [700, 1, 1400];        // own SDs grow in · the prior appears · every SD moves to its moderated value
 const EASE_MS = 900;                   // a Statistic change: the dots move vertically
 const U0 = -2, U1 = Math.log10(2.5), NBINS = 48;   // log10 SD: 0.01 to 2.5 log2
@@ -55,7 +55,7 @@ const binOf = (s) => Math.min(NBINS - 1, Math.max(0, Math.floor(((Math.log10(s) 
 const RIGHT = 20;
 const shrinkageLayout = (w) => ({
   hist: { x0: 112, x1: w - RIGHT, top: 44, base: 244 },
-  prot: { title: 296, rows: [318, 340], ticks: 362, bars: [392, 414, 436] },
+  prot: { title: 292, key: 312, top: 322, base: 408 },
 });
 const testLayout = (w) => ({ x0: 64, x1: w - RIGHT, top: 52, base: 420 });
 const histX = (L, u) => L.hist.x0 + ((u - U0) / (U1 - U0)) * (L.hist.x1 - L.hist.x0);
@@ -148,40 +148,45 @@ function drawShrinkage(ctx, colors, w, params, state, anim) {
     if (s >= 3) txt(ctx, colors, "moderated SD", H.x0 + 8, H.top + 24, { size: "fsXs", colour: colors.posterior, weight: "600" });
   }
 
-  // the protein walked through
+  /* the protein walked through: its likelihood, the prior and their product,
+     the posterior, on the histogram's own log-SD axis (his round 2: arm C of
+     `_lab/limma-shrinkage-mock.html`, 78's right-hand panel). Over ln σ² each
+     is a scaled inverse χ² and peaks at its scale, so the likelihood peaks at
+     the protein's own SD, the prior at s0, and the posterior — the product,
+     with d + d0 degrees of freedom — at the moderated SD, exactly. */
   const R = L.prot;
   txt(ctx, colors, mk.title, 12, R.title, { colour: colors.ink1, weight: "600" });
+  for (const t of SD_TICKS) { rule(ctx, sx(t), R.base, sx(t), R.base + 4, colors.axis); txt(ctx, colors, String(t), sx(t), R.base + 16, { size: "fsXs", colour: colors.ink3, align: "center" }); }
+  rule(ctx, H.x0, R.base, H.x1, R.base, colors.axis);
+  txt(ctx, colors, "σ, the protein's true SD, log2 (log scale)", (H.x0 + H.x1) / 2, R.base + 32, { size: "fsXs", colour: colors.ink3, align: "center" });
   if (s < 1) return;
-  const row = [...state.sim.cancer[mk.id].slice(0, state.n), ...state.sim.healthy[mk.id].slice(0, state.n)];
-  const centre = E.mean(row);
-  const half = Math.max(1.5, 1.1 * Math.max(...row.map((v) => Math.abs(v - centre))));   // every value on the row
-  const qx = (v) => (H.x0 + H.x1) / 2 + ((v - centre) / half) * ((H.x1 - H.x0) / 2);
-  ["cancer", "healthy"].forEach((g, k) => {
-    const y = R.rows[k], vs = row.slice(k * state.n, (k + 1) * state.n);
-    rule(ctx, H.x0, y, H.x1, y, colors.grid);
-    txt(ctx, colors, g, H.x0 - 8, y + 4, { size: "fsXs", colour: colors.ink2, align: "right" });
-    vs.forEach((v) => dot(ctx, qx(v), y, 3.6, colors.ink1));
-    const m = E.mean(vs);
-    rule(ctx, qx(m), y - 8, qx(m), y + 8, colors.ink2, 1.5);
-  });
-  for (const v of [-1, 0, 1]) txt(ctx, colors, v === 0 ? "mean" : sg(v, 0), qx(centre + v), R.ticks, { size: "fsXs", colour: colors.ink3, align: "center" });
-  txt(ctx, colors, "log2", H.x1, R.ticks, { size: "fsXs", colour: colors.ink3, align: "right" });
-
-  const bar = (y, name, sd, colour, note, alpha = 1) => {
-    txt(ctx, colors, name, H.x0 - 8, y + 4, { size: "fsXs", colour, weight: "600", align: "right" });
-    box(ctx, H.x0, y - 6, sx(sd) - H.x0, 12, colour, alpha);
-    txt(ctx, colors, `${f3(sd)}${note}`, sx(sd) + 6, y + 4, { size: "fsXs", mono: true, colour: colors.ink2 });
+  const us = Array.from({ length: 240 }, (_, i) => U0 + (i / 239) * (U1 - U0));
+  const cy = (v) => R.base - v * (R.base - R.top);
+  const curve = (nu, tau, colour, width) => {
+    const f = E.logSdCurve(nu, tau * tau);
+    ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath();
+    us.forEach((u, i) => { const px = histX(L, u), py = cy(f(u)); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+    ctx.stroke(); ctx.restore();
+    rule(ctx, sx(tau), R.top, sx(tau), R.base, colour, 1.2, [3, 3]);
   };
-  bar(R.bars[0], "own SD", own, colors.empirical, `  ${state.df} df`, 0.55);
-  if (s >= 2) bar(R.bars[1], "prior s0", state.s0, colors.prior, `  ${state.d0.toFixed(1)} df`, 0.85);
+  const keys = [[`likelihood ${f3(own)} · ${state.df} df`, colors.empirical]];
+  curve(state.df, own, colors.empirical, 2);
+  if (s >= 2) { curve(state.d0, state.s0, colors.prior, 2); keys.push([`× prior ${f3(state.s0)} · ${state.d0.toFixed(1)} df`, colors.prior]); }
   if (s >= 3) {
+    // the posterior leaves from where the likelihood is and lands at the moderated SD
     const k = s === 3 ? e : 1;
-    bar(R.bars[2], "moderated SD", own ** (1 - k) * mod ** k, colors.posterior, "");
+    curve(state.df + k * state.d0, own ** (1 - k) * mod ** k, colors.posterior, 2.5);
+    keys.push([`= posterior ${f3(mod)} · ${(state.df + state.d0).toFixed(1)} df`, colors.posterior]);
   }
   if (params.truth === "on") {
     const tsd = Math.sqrt(state.sim.meta[mk.id].sigma2);
-    rule(ctx, sx(tsd), R.bars[0] - 12, sx(tsd), R.bars[2] + 10, colors.reference, 1.5, [3, 3]);
-    txt(ctx, colors, `true ${f3(tsd)}`, sx(tsd), R.bars[2] + 22, { size: "fsXs", colour: colors.reference, align: "center" });
+    rule(ctx, sx(tsd), R.top - 4, sx(tsd), R.base, colors.reference, 1.5, [2, 4]);
+    keys.push([`true SD ${f3(tsd)}`, colors.reference]);
+  }
+  let kx = 12;
+  for (const [t, c] of keys) {
+    txt(ctx, colors, t, kx, R.key, { size: "fsXs", colour: c, weight: "600" });
+    kx += ctx.measureText(t).width + 14;
   }
 }
 
@@ -209,7 +214,7 @@ const FORMULAS = {
   shrinkage3: {
     math: `<math><mrow><msup>${STILDE}<mn>2</mn></msup><mo>=</mo><mfrac><mrow>${D0}${S0SQ}<mo>+</mo><mi>d</mi><msup><mi>s</mi><mn>2</mn></msup></mrow><mrow>${D0}<mo>+</mo><mi>d</mi></mrow></mfrac></mrow></math>`,
     plain: "s̃² = (d0 s0² + d s²) / (d0 + d)",
-    note: "the moderated variance: the prior's and the protein's own, averaged with their degrees of freedom as weights; with few replicates d is small and the prior counts for more",
+    note: "the moderated variance: the prior's and the protein's own, averaged with their degrees of freedom as weights, and the peak of the posterior, likelihood × prior; with few replicates d is small and the prior counts for more",
   },
   ordinary: {
     math: `<math><mrow><mi>t</mi><mo>=</mo><mfrac><mrow>${BAR("y", "c")}<mo>−</mo>${BAR("y", "h")}</mrow><mrow><mi>s</mi>${ROOT}</mrow></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mtext> degrees of freedom</mtext></mrow></math>`,
@@ -366,9 +371,9 @@ defineWidget({
       ...(params.truth === "on" ? [{ token: "reference", label: "A protein that truly differs", mark: "ring" }] : []),
     ]
     : [
-      { token: "empirical", label: "A protein's own SD, from its replicates", mark: "bar" },
+      { token: "empirical", label: "A protein's own SD, from its replicates; below, the example protein's likelihood", mark: "bar" },
       { token: "prior", label: "The prior fitted across all proteins: the SDs it predicts, and s0", mark: "line" },
-      { token: "posterior", label: "The moderated SD", mark: "line" },
+      { token: "posterior", label: "The moderated SD; below, the posterior, likelihood × prior", mark: "line" },
       ...(params.truth === "on" ? [{ token: "reference", label: "The example protein's true SD", mark: "dash" }] : []),
     ]),
 

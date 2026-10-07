@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 90 — limma, the Shrinkage page three ways</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 90 &middot; <code>limma</code> &middot; the Shrinkage page three ways</h1>
+  <p class="note">Your question: is shrinkage shown as in 78 (<i>deseq2</i>)? 78's Shrinkage page has two panels: on the left every gene's own
+    estimate against its mean, a trend through them, each gene pulled toward it; on the right one gene's <b>likelihood &times; prior =
+    posterior</b>, whose peak is the shrunk estimate. <b>For limma that right panel is exact</b>, on the log-SD axis the histogram already uses:
+    the likelihood peaks at the protein's own SD, the prior at s0, and their product is the posterior, which peaks at the moderated SD
+    (s&#771;&sup2; = (d0&middot;s0&sup2; + d&middot;s&sup2;) / (d0 + d) is the posterior's mode for log &sigma;&sup2;). All three arms at the end of the third
+    Step, seed 9, the example <i>Small SD by chance</i>; the top row at 3 vs 3, the bottom at 11 vs 11. Computed on the page by the widget's
+    own <code>engine.js</code>.</p>
+  <div class="row" id="row3"></div>
+  <div class="row" id="row11"></div>
+  <p class="rec"><b>C recommended.</b> It keeps the histogram (what &ldquo;fitted across all proteins&rdquo; is) and replaces the three bars with
+    78's curves, so the moderated SD is seen to come from somewhere: it is where likelihood &times; prior peaks. 3 against 11 replicates is
+    the lesson in one glance: with 3 the likelihood is wide and the posterior sits between it and the prior; with 11 it is narrow and the
+    posterior sits on it. B is 78's layout exactly, but its left panel's x axis (mean abundance) carries nothing here: limma's prior is one
+    value for every protein (<code>eBayes</code>'s default, <code>trend = FALSE</code>; the lesson's run used it: a refit with one prior reproduces its limma t to 1e-10), so the &ldquo;trend&rdquo; is a flat line. That flat line
+    against 78's curve is itself a difference worth a sentence, which C can say in its formula note.</p>
+  <p class="note"><b>The Step presses under C</b>: 1 own SDs (the histogram, and the protein's likelihood); 2 fit the prior (the curve and s0
+    in the histogram, and the prior curve below, which is the same distribution); 3 moderate (the outline moves in the histogram; the posterior
+    moves from where the likelihood is to where it lands). The formula card per step as now; step 3's note would add &ldquo;the posterior
+    &prop; likelihood &times; prior&rdquo;.</p>
+  <p class="q"><b class="h">Your call</b>
+    A &middot; as now (histogram and bars) &nbsp;|&nbsp; B &middot; 78's layout (SD against mean abundance, a flat prior line; one protein's curves)
+    &nbsp;|&nbsp; <b>C &middot; the histogram above, one protein's likelihood, prior and posterior below (recommended)</b></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../limma/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = 9;
+const U0 = -2, U1 = Math.log10(2.5), NB = 48;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const b = el("div", "cand"); b.style.width = `${w}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(b, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; b.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill) { ctx.save(); ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 2) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const f3 = (v) => v.toFixed(3);
+const TICKS = [0.01, 0.03, 0.1, 0.3, 1];
+
+/** a scaled-inverse-chi-square over z = ln σ², as a function of log10 σ, peak 1: the peak sits at σ = τ */
+const logCurve = (nu, tau2) => (u) => { const z = 2 * Math.LN10 * u, zc = Math.log(tau2); return Math.exp(-(nu / 2) * (z - zc) - (nu / 2) * (Math.exp(zc - z) - 1)); };
+
+function model(n) {
+  const sim = E.simulate(makeRng(SEED));
+  const fit = E.fit(sim, n);
+  const own = fit.fits.map((x) => Math.sqrt(x.s2)), mod = fit.fits.map((x) => Math.sqrt(x.s2post));
+  // Small SD by chance, as the widget picks it
+  const byP = own.map((_, i) => i).sort((a, b) => fit.fits[a].p - fit.fits[b].p).slice(0, 60).filter((i) => !sim.meta[i].de);
+  const ex = (byP.length ? byP : own.map((_, i) => i).filter((i) => !sim.meta[i].de)).sort((a, b) => own[a] - own[b])[0];
+  return { sim, fit, own, mod, ex, d0: fit.prior.d0, s0: Math.sqrt(fit.prior.s02), df: fit.df, n };
+}
+const binOf = (s) => Math.min(NB - 1, Math.max(0, Math.floor(((Math.log10(s) - U0) / (U1 - U0)) * NB)));
+function histogram(ctx, m, x0, x1, top, base) {
+  const cnt = (a) => { const c = new Array(NB).fill(0); a.forEach((s) => { c[binOf(s)] += 1; }); return c; };
+  const cO = cnt(m.own), cM = cnt(m.mod), bw = (x1 - x0) / NB, binU = (U1 - U0) / NB;
+  const curve = Array.from({ length: 160 }, (_, i) => { const u = U0 + (i / 159) * (U1 - U0); return [u, E.priorDensityLog10(u, m.df, m.d0, m.s0 ** 2) * binU * E.PROTEINS]; });
+  const yMax = Math.max(...cO, ...cM, ...curve.map(([, c]) => c)) * 1.08;
+  const sx = (u) => x0 + ((u - U0) / (U1 - U0)) * (x1 - x0), sy = (c) => base - (Math.min(c, yMax) / yMax) * (base - top);
+  const sxs = (s) => sx(Math.min(U1, Math.max(U0, Math.log10(s))));
+  line(ctx, x0, base, x1, base, T.axis); line(ctx, x0, top, x0, base, T.axis);
+  TICKS.forEach((t) => { line(ctx, sxs(t), base, sxs(t), base + 4, T.axis); label(ctx, String(t), sxs(t), base + 15, { align: "center", size: 10, colour: T.ink3 }); });
+  cO.forEach((c, k) => { if (c) rect(ctx, x0 + k * bw + 0.5, sy(c), bw - 1, base - sy(c), wash(T.empirical, 0.55)); });
+  polyline(ctx, curve.map(([u]) => sx(u)), curve.map(([, c]) => sy(c)), T.prior, 2);
+  line(ctx, sxs(m.s0), top, sxs(m.s0), base, T.prior, 1.5, [4, 3]);
+  ctx.save(); ctx.strokeStyle = T.posterior; ctx.lineWidth = 2; ctx.beginPath();
+  cM.forEach((c, b) => { const xa = x0 + b * bw; if (b === 0) ctx.moveTo(xa, sy(c)); else ctx.lineTo(xa, sy(c)); ctx.lineTo(xa + bw, sy(c)); }); ctx.stroke(); ctx.restore();
+  line(ctx, sxs(m.own[m.ex]), top, sxs(m.own[m.ex]), base, T.empirical, 1.5);
+  line(ctx, sxs(m.mod[m.ex]), top, sxs(m.mod[m.ex]), base, T.posterior, 1.5);
+  label(ctx, "own SD", x0 + 6, top + 10, { size: 10, colour: T.empirical, weight: "600" });
+  label(ctx, "moderated SD", x0 + 6, top + 23, { size: 10, colour: T.posterior, weight: "600" });
+  label(ctx, `prior: s0 = ${m.s0.toFixed(2)}, d0 = ${m.d0.toFixed(1)}`, sxs(m.s0) + (m.own[m.ex] > m.s0 ? -6 : 6), top + 10, { size: 10, colour: T.prior, weight: "600", align: m.own[m.ex] > m.s0 ? "right" : "left" });
+  return { sx, sxs };
+}
+/* the one protein's three curves over log SD */
+function curves(ctx, m, x0, x1, top, base, sx, sxs) {
+  const i = m.ex, own = m.own[i], mod = m.mod[i];
+  line(ctx, x0, base, x1, base, T.axis);
+  TICKS.forEach((t) => { line(ctx, sxs(t), base, sxs(t), base + 4, T.axis); label(ctx, String(t), sxs(t), base + 15, { align: "center", size: 10, colour: T.ink3 }); });
+  label(ctx, "σ, the protein's true SD, log2 (log scale)", (x0 + x1) / 2, base + 30, { align: "center", size: 10, colour: T.ink3 });
+  const us = Array.from({ length: 300 }, (_, k) => U0 + (k / 299) * (U1 - U0));
+  const sy = (v) => base - v * (base - top - 24);
+  const draw = (fn, colour, wd) => polyline(ctx, us.map(sx), us.map((u) => sy(fn(u))), colour, wd);
+  draw(logCurve(m.df, own * own), T.empirical, 2);
+  draw(logCurve(m.d0, m.s0 * m.s0), T.prior, 2);
+  draw(logCurve(m.df + m.d0, mod * mod), T.posterior, 2.5);
+  const mark = (s, colour) => line(ctx, sxs(s), top + 22, sxs(s), base, colour, 1.2, [3, 3]);
+  mark(own, T.empirical); mark(m.s0, T.prior); mark(mod, T.posterior);
+  const keys = [[`likelihood: own SD ${f3(own)}, ${m.df} df`, T.empirical], [`× prior: s0 ${f3(m.s0)}, ${m.d0.toFixed(1)} df`, T.prior], [`= posterior: moderated ${f3(mod)}, ${(m.df + m.d0).toFixed(1)} df`, T.posterior]];
+  let kx = 12;
+  keys.forEach(([t, c]) => { label(ctx, t, kx, top + 8, { size: 10, colour: c, weight: "600" }); ctx.save(); ctx.font = `600 10px ${T.font}`; kx += ctx.measureText(t).width + 14; ctx.restore(); });
+}
+
+for (const [rowId, n] of [["row3", 3], ["row11", 11]]) {
+  const m = model(n), i = m.ex;
+  /* A: as now */
+  {
+    const b = cand(rowId, `A · as now · ${n} vs ${n}`, `protein ${i + 1} · own ${f3(m.own[i])} → moderated ${f3(m.mod[i])}`);
+    const ctx = canvasIn(b, W, 380);
+    const { sxs } = histogram(ctx, m, 112, W - 20, 30, 220);
+    label(ctx, `Small SD by chance: protein ${i + 1}`, 12, 270, { colour: T.ink1, weight: "600" });
+    [["own SD", m.own[i], T.empirical, 0.55, `  ${m.df} df`], ["prior s0", m.s0, T.prior, 0.85, `  ${m.d0.toFixed(1)} df`], ["moderated SD", m.mod[i], T.posterior, 1, ""]].forEach(([nm, s, c, a, note], k) => {
+      const y = 300 + k * 24;
+      label(ctx, nm, 104, y + 4, { size: 10, colour: c, weight: "600", align: "right" });
+      rect(ctx, 112, y - 6, sxs(s) - 112, 12, wash(c, a));
+      label(ctx, `${f3(s)}${note}`, sxs(s) + 6, y + 4, { size: 10, mono: true });
+    });
+  }
+  /* B: 78's layout */
+  {
+    const b = cand(rowId, `B · 78's layout · ${n} vs ${n}`, `left: every 20th protein's own SD against its mean, pulled to the moderated SD; the prior a flat line\nright: protein ${i + 1}'s likelihood, prior and posterior`);
+    const ctx = canvasIn(b, W, 380);
+    const lx0 = 50, lx1 = 250, top = 30, base = 300;
+    const means = m.fit.fits.map((_, k) => E.mean([...m.sim.cancer[k].slice(0, n), ...m.sim.healthy[k].slice(0, n)]));
+    const mlo = 18, mhi = 30;
+    const px = (v) => lx0 + ((Math.min(mhi, Math.max(mlo, v)) - mlo) / (mhi - mlo)) * (lx1 - lx0);
+    const py = (s) => base - ((Math.min(U1, Math.max(U0, Math.log10(s))) - U0) / (U1 - U0)) * (base - top);
+    line(ctx, lx0, base, lx1, base, T.axis); line(ctx, lx0, top, lx0, base, T.axis);
+    [20, 24, 28].forEach((t) => label(ctx, String(t), px(t), base + 15, { align: "center", size: 10, colour: T.ink3 }));
+    TICKS.forEach((t) => label(ctx, String(t), lx0 - 5, py(t) + 3, { align: "right", size: 10, colour: T.ink3 }));
+    label(ctx, "mean log2 abundance", (lx0 + lx1) / 2, base + 30, { align: "center", size: 10, colour: T.ink3 });
+    line(ctx, lx0, py(m.s0), lx1, py(m.s0), T.prior, 2);
+    m.fit.fits.forEach((_, k) => { if (k % 20 !== 0 && k !== i) return; const x = px(means[k]); line(ctx, x, py(m.own[k]), x, py(m.mod[k]), wash(T.posterior, 0.6), 1); dot(ctx, x, py(m.mod[k]), 2.6, T.posterior); dot(ctx, x, py(m.own[k]), 2.6, T.empirical); if (k === i) dot(ctx, x, py(m.own[k]), 6, null, T.reference, 1.5); });
+    label(ctx, "prior: one value for every protein", lx1 - 4, py(m.s0) - 6, { align: "right", size: 10, colour: T.prior, weight: "600" });
+    // right: the curves on a vertical log axis would differ from the histogram's; drawn horizontally as 78
+    const rx0 = 285, rx1 = W - 14;
+    const sx = (u) => rx0 + ((u - U0) / (U1 - U0)) * (rx1 - rx0), sxs = (s) => sx(Math.min(U1, Math.max(U0, Math.log10(s))));
+    const us = Array.from({ length: 200 }, (_, k) => U0 + (k / 199) * (U1 - U0));
+    const sy = (v) => base - v * (base - top - 50);
+    line(ctx, rx0, base, rx1, base, T.axis);
+    [0.01, 0.1, 1].forEach((t) => label(ctx, String(t), sxs(t), base + 15, { align: "center", size: 10, colour: T.ink3 }));
+    label(ctx, "σ, log2", (rx0 + rx1) / 2, base + 30, { align: "center", size: 10, colour: T.ink3 });
+    polyline(ctx, us.map(sx), us.map((u) => sy(logCurve(m.df, m.own[i] ** 2)(u))), T.empirical, 2);
+    polyline(ctx, us.map(sx), us.map((u) => sy(logCurve(m.d0, m.s0 ** 2)(u))), T.prior, 2);
+    polyline(ctx, us.map(sx), us.map((u) => sy(logCurve(m.df + m.d0, m.mod[i] ** 2)(u))), T.posterior, 2.5);
+    label(ctx, "likelihood", rx0 + 2, top + 10, { size: 10, colour: T.empirical, weight: "600" });
+    label(ctx, "prior", rx0 + 2, top + 24, { size: 10, colour: T.prior, weight: "600" });
+    label(ctx, "posterior", rx0 + 2, top + 38, { size: 10, colour: T.posterior, weight: "600" });
+  }
+  /* C: histogram above, curves below */
+  {
+    const b = cand(rowId, `C · histogram above, protein ${i + 1}'s curves below · ${n} vs ${n}`, `the curves share the histogram's axis: likelihood × prior = posterior\nthe posterior's peak is the moderated SD`);
+    const ctx = canvasIn(b, W, 395);
+    const { sx, sxs } = histogram(ctx, m, 112, W - 20, 30, 200);
+    label(ctx, `Small SD by chance: protein ${i + 1}`, 12, 238, { colour: T.ink1, weight: "600" });
+    curves(ctx, m, 112, W - 20, 252, 350, sx, sxs);
+  }
+}
+</script>
+</body>
+</html>
