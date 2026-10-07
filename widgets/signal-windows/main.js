@@ -62,7 +62,7 @@ const S = {
     + "not an independent sample: split by window, a held-out window's nearest training window is usually "
     + "the same subject's and the score is inflated; split by subject it is not. Each window is then "
     + "standardised over its own samples.",
-  pageLabel: "Page",
+  pageLabel: "Step",
   recSection: "The recordings",
   noiseLabel: "Noise",
   noiseDetail: "what the raw recordings contain besides the ECG: line noise at 50 Hz, a slow drift, or both",
