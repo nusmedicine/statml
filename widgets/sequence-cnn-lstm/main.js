@@ -124,7 +124,7 @@ const S = {
     + "applies a kernel at every position, which on one-hot rows is a position weight matrix; an LSTM "
     + "updates one state symbol by symbol and, packed, ends at the last real one. Occlusion sets a window "
     + "of tokens to PAD, and the change in the prediction is that window's attribution.",
-  pageLabel: "Page",
+  pageLabel: "Step",
   seqSection: "The sequence",
   taskLabel: "Task",
   taskDetail: "what separates the two classes: one planted motif, TGACTCA, or the fraction of G and C",
