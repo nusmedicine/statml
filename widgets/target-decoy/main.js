@@ -397,7 +397,7 @@ defineWidget({
 
   params: {
     page: {
-      role: "page", type: "segmented", label: "Page", display: true, default: "score",
+      role: "page", type: "segmented", label: "Step", display: true, default: "score",
       options: [{ value: "score", label: "Score" }, { value: "proteins", label: "Proteins" }],
     },
     dataSec: { type: "section", label: "The data", when: { param: "page", equals: "score" } },
@@ -449,7 +449,7 @@ defineWidget({
   animation: {
     stepLabel: { anim: "labelAt", labels: {
       search: "Search", searching: "Search", searched: "Search again",
-      p0: "Match proteins", p1: "Eliminate subsets", p2: "Eliminate subsumables", p3: "Minimal set", pdone: "Step",
+      p0: "Match proteins", p1: "Eliminate subsets", p2: "Eliminate subsumables", p3: "Minimal set", pdone: "Minimal set",
     }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
       search: "Match every spectrum against the target and decoy peptides of its precursor mass, and add each PSM to the histogram at its score",
