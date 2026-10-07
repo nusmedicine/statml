@@ -21326,6 +21326,42 @@ nine samples in), 1 hit (row 123) and 1 interrupted (Measure, then Imputing: ope
 same hashes as the unfilled page) — three identical runs at DPR 1.25, then 18/18 MATCH; the
 verify 325 checks in `npm test`. 77 widgets on the gallery. NEXT: 90 `limma`.
 
+### Slot 90 · `limma` — Proteomics: Differential Expression
+
+#### MEASURED, MOCKED AND PICKED 2026-10-07 — `_lab/limma-mock.html`
+
+01-4's two figures extracted to `_lab/figs/proteomics-01-4-cell8-output.png`
+(log2FC, t-test against limma) and `…-cell14-output.png` (the volcano).
+
+**Measured before the mock.** The simulation is now 1,337 proteins (the
+lesson's count) with the lesson's fitted prior (d0 3, s0 0.33), ~10% truly
+different by 0.5–1.5 log2; over 20 seeds, true · false calls at BH < 0.05:
+3 vs 3 ordinary 3.7 · 0.3, moderated 24.3 · 1.4; 5 vs 5 67.7 · 3.0 and
+82.6 · 4.3; 11 vs 11 116.2 · 5.7 and 118.5 · 5.9. Typical seed at 3 vs 3: 6.
+**On the lesson's own table** (50 draws of 3 and of 5 samples a group from its
+11): ordinary 28.9 and moderated 87.8 calls at 3 vs 3, 242.9 and 279.0 at 5
+vs 5, 678 and 692 at 11 vs 11 — the same story.
+
+**A new notebook finding, told to him:** the lesson's limma prior is fitted
+mostly from imputed variances. The 50 proteins with the smallest own SD all
+have one group entirely imputed (the forest's fill has SD 0.13 against 0.21
+measured); 372 of the 649 proteins with half or more of one group imputed sit
+below s0, against 21 of 392 with nothing imputed. Fitted on the never-imputed
+proteins alone the prior is d0 9.0, s0 0.50; on all, 3.1 and 0.33. The 9
+calls the moderation drops at 11 vs 11 are all heavily imputed.
+
+**His eight calls, every one the recommendation:** simulated data; the
+Variance page as a histogram of every protein's own SD with the fitted prior
+curve and s0, the moderated SDs as an outline, and one protein below (its
+values in two ink rows, own · prior · moderated SD as bars, limma's weighted
+average written out); the Test page as one volcano with a *Statistic* control
+Ordinary t · Moderated t, the dots moving vertically; significance at adjusted
+p < 0.05 only; Replicates default 3; Example protein Small SD by chance ·
+Typical · Large SD, or a click; a Step press of three steps on Variance (own
+SD, prior, moderated); colours own SD `--c-empirical`, prior `--c-prior`,
+moderated `--c-posterior`, called `--c-extreme`, truly different a
+`--c-reference` ring, cancer and healthy uncoloured on Variance.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`
