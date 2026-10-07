@@ -1316,6 +1316,21 @@
       ],
       "arc": 89,
       "status": "shipped"
+    },
+    {
+      "slug": "limma",
+      "title": "Proteomics: Differential Expression",
+      "blurb": "limma shrinks each protein's variance toward a prior fitted across all proteins; the fold change is not shrunk.",
+      "course": "PHM5003",
+      "topics": [
+        "proteomics",
+        "limma",
+        "empirical Bayes",
+        "moderated t",
+        "differential expression"
+      ],
+      "arc": 90,
+      "status": "draft"
     }
   ]
 }

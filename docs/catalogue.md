@@ -21362,6 +21362,24 @@ SD, prior, moderated); colours own SD `--c-empirical`, prior `--c-prior`,
 moderated `--c-posterior`, called `--c-extreme`, truly different a
 `--c-reference` ring, cancer and healthy uncoloured on Variance.
 
+#### DRAFT 2026-10-07
+
+`widgets/limma/` — `engine.js` (the arc model's part C; one change on
+purpose: every protein's 11 + 11 values are drawn once and Replicates n reads
+the first n of each group, so 3 vs 3 and 11 vs 11 are the same proteins with
+the same truth) and `main.js` (78's press clock: three Step presses on
+Variance, `inert` on Test; a Statistic change eases the dots vertically
+through core's `anim.easing`, the colours switching when they land). Default
+seed 9, measured over 40 seeds as the nearest the mean at 3, 5 and 11 (3 vs 3:
+3 true calls ordinary, 21 moderated; means 3.3 and 17.6). Examples: Small SD
+by chance (the null with the smallest own SD among the ordinary t's 60 lowest
+p), Typical (a truly different protein at the median own SD), Large SD (the
+truly different protein with the largest |t| among own SDs at the 85th–97th
+percentile — by own SD alone it landed on a protein whose sample log2FC was
++0.02 against a true −0.77). A rare SD past 0.01–2.5 counts in the end bar
+(limma's prior has a long upper tail: 34 log2 once in 200 seeds). Status
+draft; no fingerprint states until the design settles.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`
