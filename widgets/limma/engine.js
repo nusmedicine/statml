@@ -160,3 +160,24 @@ export function logSdCurve(nu, tau2) {
     return Math.exp(-(nu / 2) * (z - zc) - (nu / 2) * (Math.exp(zc - z) - 1));
   };
 }
+
+/* ------------------------------------------------------------ the examples */
+export function pickExamples(sim, fitted) {
+  const own = fitted.fits.map((x) => Math.sqrt(x.s2));
+  const ids = own.map((_, i) => i);
+  const nulls = ids.filter((i) => !sim.meta[i].de), des = ids.filter((i) => sim.meta[i].de);
+  const byP = ids.slice().sort((a, b) => fitted.fits[a].p - fitted.fits[b].p).slice(0, 60);
+  const topNull = byP.filter((i) => !sim.meta[i].de);
+  const small = (topNull.length ? topNull : nulls).slice().sort((a, b) => own[a] - own[b])[0];
+  const sorted = own.slice().sort((a, b) => a - b);
+  const near = (target, pool) => pool.slice().sort((a, b) => Math.abs(Math.log(own[a] / target)) - Math.abs(Math.log(own[b] / target)))[0];
+  const typical = near(sorted[Math.floor(PROTEINS / 2)], des.filter((i) => i !== small));
+  /* among the truly different proteins with an own SD in the top 15%, the one
+     the test sees best: an unlucky draw whose sample log2FC came out near 0 at
+     11 vs 11 made a poor example of what moderation does to a large SD */
+  const wide = des.filter((i) => i !== small && i !== typical && own[i] >= sorted[Math.floor(PROTEINS * 0.85)] && own[i] <= sorted[Math.floor(PROTEINS * 0.97)]);
+  const large = wide.length
+    ? wide.slice().sort((a, b) => Math.abs(fitted.fits[b].t) - Math.abs(fitted.fits[a].t))[0]
+    : near(sorted[Math.floor(PROTEINS * 0.95)], des.filter((i) => i !== small && i !== typical));
+  return { small, typical, large };
+}

@@ -44,7 +44,7 @@ const PROTEIN_OPTIONS = Array.from({ length: P }, (_, i) => ({ value: `protein-$
 const STATS = { ordinary: "Ordinary t", moderated: "Moderated t" };
 
 const n0 = (v) => v.toLocaleString("en-US");
-const f2 = (v) => v.toFixed(2), f3 = (v) => v.toFixed(3);
+const f3 = (v) => v.toFixed(3);
 const sg = (x, d = 2) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(d)}`;
 const tFmt = (t) => `${t < 0 ? "−" : ""}${Math.abs(t).toFixed(2)}`;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
@@ -128,7 +128,7 @@ function drawShrinkage(ctx, colors, w, params, state, anim) {
     ctx.stroke(); ctx.restore();
     rule(ctx, sx(state.s0), H.top, sx(state.s0), H.base, colors.prior, 1.5, [4, 3]);
     const away = own > state.s0 ? -6 : 6;     // on the side away from the example protein's lines
-    txt(ctx, colors, `prior: s0 = ${f2(state.s0)}, d0 = ${state.d0.toFixed(1)}`, sx(state.s0) + away, H.top + 10, { size: "fsXs", colour: colors.prior, weight: "600", align: away < 0 ? "right" : "left" });
+    txt(ctx, colors, `prior: s0 = ${f3(state.s0)}, d0 = ${state.d0.toFixed(1)}`, sx(state.s0) + away, H.top + 10, { size: "fsXs", colour: colors.prior, weight: "600", align: away < 0 ? "right" : "left" });
   }
   // stage 3: every SD moves to its moderated value; the outline is the moving histogram
   if (s >= 3) {
@@ -209,12 +209,12 @@ const FORMULAS = {
   shrinkage2: {
     math: `<math><mrow><mfrac><mn>1</mn><msup><mi>σ</mi><mn>2</mn></msup></mfrac><mo>∼</mo><mfrac><msubsup><mi>χ</mi><msub><mi>d</mi><mn>0</mn></msub><mn>2</mn></msubsup><mrow>${D0}${S0SQ}</mrow></mfrac></mrow></math>`,
     plain: "1/σ² ~ χ²(d0) / (d0 s0²)",
-    note: "the prior: across proteins the true variances σ² scatter around s0², and d0 says how tightly; s0 and d0 are fitted to every protein's s² at once (empirical Bayes)",
+    note: "the prior: across proteins the true variances σ² scatter around s0², more tightly the larger d0; s0 and d0 are estimated from all proteins' s² together (empirical Bayes)",
   },
   shrinkage3: {
     math: `<math><mrow><msup>${STILDE}<mn>2</mn></msup><mo>=</mo><mfrac><mrow>${D0}${S0SQ}<mo>+</mo><mi>d</mi><msup><mi>s</mi><mn>2</mn></msup></mrow><mrow>${D0}<mo>+</mo><mi>d</mi></mrow></mfrac></mrow></math>`,
     plain: "s̃² = (d0 s0² + d s²) / (d0 + d)",
-    note: "the moderated variance: the prior's and the protein's own, averaged with their degrees of freedom as weights, and the peak of the posterior, likelihood × prior; with few replicates d is small and the prior counts for more",
+    note: "the moderated variance: the prior's and the protein's own, averaged with their degrees of freedom as weights, and the peak of the posterior, likelihood × prior; with few replicates d is small and the prior has more weight",
   },
   ordinary: {
     math: `<math><mrow><mi>t</mi><mo>=</mo><mfrac><mrow>${BAR("y", "c")}<mo>−</mo>${BAR("y", "h")}</mrow><mrow><mi>s</mi>${ROOT}</mrow></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mtext> degrees of freedom</mtext></mrow></math>`,
@@ -224,7 +224,7 @@ const FORMULAS = {
   moderated: {
     math: `<math><mrow><mover><mi>t</mi><mo>~</mo></mover><mo>=</mo><mfrac><mrow>${BAR("y", "c")}<mo>−</mo>${BAR("y", "h")}</mrow><mrow>${STILDE}${ROOT}</mrow></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mo>+</mo>${D0}<mtext> degrees of freedom</mtext></mrow></math>`,
     plain: "t̃ = (ȳc − ȳh) / ( s̃ √(1/n + 1/n) ),   d + d0 degrees of freedom",
-    note: "the same numerator, the log2 fold change; the denominator has the moderated SD, and the prior adds its d0 degrees of freedom",
+    note: "the same numerator, the log2 fold change; the denominator has the moderated SD, and the t has d + d0 degrees of freedom",
   },
 };
 let mathHost = null, mathKey = null;
@@ -295,28 +295,7 @@ function resolveMarked(params, state) {
   const truth = params.truth === "on"
     ? (state.sim.meta[id].de ? `: truly differs, log2FC ${sg(state.sim.meta[id].fc)}` : ": does not differ")
     : "";
-  return { id, title: `${ex ? `${ex.label}: protein` : "Protein"} ${id + 1}${truth}` };
-}
-
-/* ------------------------------------------------------------ the examples */
-function pickExamples(sim, fitted) {
-  const own = fitted.fits.map((x) => Math.sqrt(x.s2));
-  const ids = own.map((_, i) => i);
-  const nulls = ids.filter((i) => !sim.meta[i].de), des = ids.filter((i) => sim.meta[i].de);
-  const byP = ids.slice().sort((a, b) => fitted.fits[a].p - fitted.fits[b].p).slice(0, 60);
-  const topNull = byP.filter((i) => !sim.meta[i].de);
-  const small = (topNull.length ? topNull : nulls).slice().sort((a, b) => own[a] - own[b])[0];
-  const sorted = own.slice().sort((a, b) => a - b);
-  const near = (target, pool) => pool.slice().sort((a, b) => Math.abs(Math.log(own[a] / target)) - Math.abs(Math.log(own[b] / target)))[0];
-  const typical = near(sorted[Math.floor(P / 2)], des.filter((i) => i !== small));
-  /* among the truly different proteins with an own SD in the top 15%, the one
-     the test sees best: an unlucky draw whose sample log2FC came out near 0 at
-     11 vs 11 made a poor example of what moderation does to a large SD */
-  const wide = des.filter((i) => i !== small && i !== typical && own[i] >= sorted[Math.floor(P * 0.85)] && own[i] <= sorted[Math.floor(P * 0.97)]);
-  const large = wide.length
-    ? wide.slice().sort((a, b) => Math.abs(fitted.fits[b].t) - Math.abs(fitted.fits[a].t))[0]
-    : near(sorted[Math.floor(P * 0.95)], des.filter((i) => i !== small && i !== typical));
-  return { small, typical, large };
+  return { id, title: `${ex ? `${ex.label}, protein` : "Protein"} ${id + 1}${truth}` };
 }
 
 /* ------------------------------------------------------------ the widget */
@@ -324,9 +303,10 @@ defineWidget({
   slug: "limma",
   title: "Proteomics: Differential Expression",
   subtitle:
-    "limma tests each protein with its own variance pulled toward a typical variance fitted across all proteins (empirical Bayes). "
-    + "With few replicates a protein's own variance is unreliable, so the moderated t finds more of the true differences at the same "
-    + "false discovery rate. The fold change is the same in both tests: the difference of the mean log2 abundances.",
+    "Protein abundances are compared on the log2 scale, one t-test per protein. With few replicates each protein's own "
+    + "variance estimate is imprecise, so limma shrinks it toward a prior variance fitted across all proteins by empirical "
+    + "Bayes, and tests with a moderated t-statistic whose degrees of freedom include the prior's. The log2 fold change, "
+    + "the difference of mean log2 abundances, is not shrunk.",
   layout: "side",
   status: "draft",
   height: (p) => (p.page === "test" ? H_TEST : H_SHRINKAGE),
@@ -352,7 +332,7 @@ defineWidget({
     showSec: { type: "section", label: "Show" },
     protein: {
       type: "select", label: "Example protein", display: true, default: "small-sd-by-chance",
-      detail: "a click on a bar of the histogram or a point of the volcano marks that protein",
+      detail: "a click on a bar of the histogram selects its middle protein; a click on a point of the volcano selects that protein",
       options: [...EXAMPLES, ...PROTEIN_OPTIONS],
     },
     truth: {
@@ -372,7 +352,7 @@ defineWidget({
     ]
     : [
       { token: "empirical", label: "A protein's own SD, from its replicates; below, the example protein's likelihood", mark: "bar" },
-      { token: "prior", label: "The prior fitted across all proteins: the SDs it predicts, and s0", mark: "line" },
+      { token: "prior", label: "The prior fitted across all proteins: the distribution of own SDs it implies, and s0", mark: "line" },
       { token: "posterior", label: "The moderated SD; below, the posterior, likelihood × prior", mark: "line" },
       ...(params.truth === "on" ? [{ token: "reference", label: "The example protein's true SD", mark: "dash" }] : []),
     ]),
@@ -408,7 +388,7 @@ defineWidget({
     const pTicks = Array.from({ length: yMaxLog / pStep + 1 }, (_, i) => i * pStep);
     return {
       n, sim, fit: fitted, df: fitted.df, d0, s0: Math.sqrt(s02), ownSd, modSd, ownCounts, modCounts, curve, yMax, yTicks,
-      calls, yMaxLog, pTicks, examples: pickExamples(sim, fitted), medianOwn: ownSd.slice().sort((a, b) => a - b)[Math.floor(P / 2)],
+      calls, yMaxLog, pTicks, examples: E.pickExamples(sim, fitted), medianOwn: ownSd.slice().sort((a, b) => a - b)[Math.floor(P / 2)],
       trulyDiffer: sim.meta.filter((m) => m.de).length,
     };
   },
@@ -419,9 +399,9 @@ defineWidget({
   animation: {
     stepLabel: { anim: "labelAt", labels: { s0: "Own SDs", s1: "Fit the prior", s2: "Moderate", done: "Step" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      s0: "Each protein's SD from its own replicates",
-      s1: "Fit a prior to every protein's SD: a typical SD, s0, and how many degrees of freedom it is worth, d0",
-      s2: "Replace each protein's SD by a weighted average of its own and the prior's, weighted by their degrees of freedom",
+      s0: "Compute each protein's SD from its own replicates",
+      s1: "Fit a prior to every protein's SD: its SD, s0, and its degrees of freedom, d0",
+      s2: "Replace each protein's SD by the average of its own and the prior's, with their degrees of freedom as weights",
       done: "Every step of this page has been taken",
     }, default: "Step through this page" },
     runLabel: null,
@@ -488,7 +468,7 @@ defineWidget({
       const line = (stat, df) => {
         const c = state.calls[stat];
         return { label: `Significant, ${STATS[stat].toLowerCase()}`, value: `${n0(c.called)} of ${n0(P)}`,
-          note: truth ? `${n0(c.tp)} of the ${n0(state.trulyDiffer)} that truly differ; ${n0(c.fp)} that do not` : `adjusted p < 0.05, ${df} df` };
+          note: truth ? `${n0(c.tp)} true positive${c.tp === 1 ? "" : "s"}, ${n0(c.fp)} false positive${c.fp === 1 ? "" : "s"}; ${n0(state.trulyDiffer)} truly differ` : `adjusted p < 0.05, ${df} df` };
       };
       return [
         line("ordinary", state.df),
@@ -500,9 +480,9 @@ defineWidget({
     const own = Math.sqrt(x.s2), mod = Math.sqrt(x.s2post);
     const tsd = truth ? `; true SD ${f3(Math.sqrt(state.sim.meta[mk.id].sigma2))}` : "";
     return [
-      { label: "Each protein's own SD", value: s >= 1 ? `median ${f2(state.medianOwn)}` : "–", note: `from ${state.n} + ${state.n} values: ${state.df} degrees of freedom` },
-      { label: "The prior, across all proteins", value: s >= 2 ? `s0 ${f2(state.s0)}, d0 ${state.d0.toFixed(1)}` : "–", note: "a typical SD, and the degrees of freedom it is worth" },
-      { label: `Protein ${mk.id + 1}'s SD`, value: s >= 3 ? `${f3(own)} → ${f3(mod)}` : s >= 1 ? f3(own) : "–", note: s >= 3 ? `weights ${state.df} : ${state.d0.toFixed(1)}${tsd}` : `its own, then moderated${tsd}` },
+      { label: "Each protein's own SD", value: s >= 1 ? `median ${f3(state.medianOwn)}` : "–", note: `from ${state.n} + ${state.n} values: ${state.df} degrees of freedom` },
+      { label: "The prior, across all proteins", value: s >= 2 ? `s0 ${f3(state.s0)}, d0 ${state.d0.toFixed(1)}` : "–", note: "the prior's SD, s0, and its degrees of freedom, d0" },
+      { label: `Protein ${mk.id + 1}'s SD`, value: s >= 3 ? `${f3(own)} → ${f3(mod)}` : s >= 1 ? f3(own) : "–", note: s >= 3 ? `weights ${state.df} : ${state.d0.toFixed(1)}${tsd}` : `own SD, then moderated SD${tsd}` },
     ];
   },
 });

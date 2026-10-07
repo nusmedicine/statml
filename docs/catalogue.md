@@ -21396,6 +21396,30 @@ own SD, the prior at s0, and their product (d + d0 df) at the moderated SD.
 Step 3 slides the posterior from the likelihood to where it lands while the
 histogram's outline narrows. The protein's value rows and bars are gone.
 
+His two questions after it, answered from measurement and not built: a small
+SD is raised and a large one lowered — shrinkage is toward s0, and the spread
+of the SDs shrinks (limma's own function is `squeezeVar`); the name stays
+Shrinkage. Proteins near s0 barely move (436 of 1,337 within 30% of s0, median
+×1.00 at 3 vs 3); own SDs under s0/2 are raised ×1.78, over 2·s0 lowered ×0.79;
+the prior's weight is 43% at 3 vs 3 and 14% at 11, so at 11 only 10 of 1,337
+change by more than 25%. d0 stays the lesson's 3.
+
+#### Copy audit, 2026-10-07 — fifteen rows, all the recommendation
+
+claudisms.ai's 292 terms: 0 hits. Applied: the subtitle in 78's methods
+register ("…limma shrinks it toward a prior variance fitted across all
+proteins by empirical Bayes, and tests with a moderated t-statistic whose
+degrees of freedom include the prior's. The log2 fold change … is not
+shrunk."; the draft's "the moderated t finds" was personification); the blurb
+kept; "worth" (twice), "says how tightly", "counts for more", "adds its d0",
+"predicts" rewritten; the three Step tooltips as verbs; the heading's double
+colon; s0 to three decimals everywhere; 89's true / false positives; what a
+histogram click selects. `_lab/limma-copy-sweep.html` and
+`_lab/limma-copy-scan.mjs` are 89's tools pointed at 90; `pickExamples` moved
+to the engine so `_lab/limma-verify.mjs` (1,341 checks, in `npm test`) checks
+the examples on 200 seeds, the posterior's peak at the moderated SD, and the
+struck words.
+
 ---
 
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`

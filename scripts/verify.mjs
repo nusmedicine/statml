@@ -51,6 +51,7 @@ const SCRIPTS = [
   "widgets/_lab/explainability-verify.mjs",   // widget 87's table against 85's models and rows, IG's completeness, attention rows, occlusion's windows
   "widgets/_lab/target-decoy-verify.mjs",       // the search's masses, the decoy method over seeds, the defaults and 01-1's protein figure (widget 88)
   "widgets/_lab/imputation-verify.mjs",         // the forest table against the engine, the example proteins and the claims widget 89 shows
+  "widgets/_lab/limma-verify.mjs",              // limma's arithmetic, the posterior's peak at the moderated SD and the claims widget 90 shows
   "widgets/_lab/cell-qc-verify.mjs",            // the droplet stage against the lesson's own 40,564 cells, the filter, the map and the claims widget 79 draws
   "widgets/_lab/augmentation-verify.mjs",       // the engine against MONAI 1.6.0, the smear's claims and the stage widget 62 draws
   "widgets/_lab/loss-functions-verify.mjs",     // the three losses and the stage widget 54 draws
