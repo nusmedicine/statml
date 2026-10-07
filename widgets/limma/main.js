@@ -6,10 +6,10 @@
  * all the recommendation. The misconception is 01-4 cell 9's: limma's log2FC
  * is not shrunk — limma shrinks each protein's VARIANCE toward a prior fitted
  * across all proteins, which changes the t and so the p-value.
- *   1. two pages, Variance · Test; Replicates 3 · 5 · 11 per group, default 3;
+ *   1. two pages, Shrinkage · Test (named Variance on the mock; his round 1); Replicates 3 · 5 · 11 per group, default 3;
  *   2. simulated: 1,337 proteins (01-4's count) whose true variances follow
  *      the lesson's fitted prior, about 10% truly different;
- *   3. Variance: a histogram of every protein's own SD, the fitted prior's
+ *   3. Shrinkage: a histogram of every protein's own SD, the fitted prior's
  *      curve and s0, the moderated SDs as an outline; one protein below, its
  *      values in two ink rows (no group colours: --c-prior shares a slot with
  *      --c-group-b), its own, prior and moderated SD as bars, and limma's
@@ -23,13 +23,13 @@
  * The press clock is 78's (deseq2, the count-data cousin of this widget):
  * stages per page, `anim.inert` where a page has nothing to step.
  */
-import { defineWidget } from "../core/index.js";
+import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as E from "./engine.js";
 
 const P = E.PROTEINS;
 const REPS = ["3", "5", "11"];
 const TYPICAL_SEED = 9;                // measured over 40 seeds (scratch limma-seed.mjs): nearest the mean at 3, 5 and 11
-const H_VARIANCE = 520, H_TEST = 480;
+const H_SHRINKAGE = 470, H_TEST = 480;
 const STEP_MS = [700, 1, 1400];        // own SDs grow in · the prior appears · every SD moves to its moderated value
 const EASE_MS = 900;                   // a Statistic change: the dots move vertically
 const U0 = -2, U1 = Math.log10(2.5), NBINS = 48;   // log10 SD: 0.01 to 2.5 log2
@@ -53,15 +53,15 @@ const binOf = (s) => Math.min(NBINS - 1, Math.max(0, Math.floor(((Math.log10(s) 
 
 /* ------------------------------------------------------------ geometry */
 const RIGHT = 20;
-const varianceLayout = (w) => ({
+const shrinkageLayout = (w) => ({
   hist: { x0: 112, x1: w - RIGHT, top: 44, base: 244 },
-  prot: { title: 296, rows: [318, 340], ticks: 362, bars: [392, 414, 436], formula: 468, t: 490 },
+  prot: { title: 296, rows: [318, 340], ticks: 362, bars: [392, 414, 436] },
 });
 const testLayout = (w) => ({ x0: 64, x1: w - RIGHT, top: 52, base: 420 });
 const histX = (L, u) => L.hist.x0 + ((u - U0) / (U1 - U0)) * (L.hist.x1 - L.hist.x0);
 
 /* ------------------------------------------------------------ the press clock (78's) */
-const stagesOf = (page) => (page === "variance" ? 3 : 0);
+const stagesOf = (page) => (page === "shrinkage" ? 3 : 0);
 function settle(anim, page) {
   const max = stagesOf(page), n = anim.n[page] ?? 0;
   anim.inert = max === 0;                 // core takes Step out of the row on Test
@@ -70,7 +70,7 @@ function settle(anim, page) {
 }
 function stageOf(params, anim) {
   if (!anim) return { s: Math.min(3, Number(params.shown) || 0), e: 1 };
-  const s = anim.n.variance ?? 0;
+  const s = anim.n.shrinkage ?? 0;
   return { s, e: anim.p < 1 ? easeInOut(anim.p) : 1 };
 }
 
@@ -98,9 +98,9 @@ function counts(sds) {
 }
 const SD_TICKS = [0.01, 0.03, 0.1, 0.3, 1];
 
-/* ------------------------------------------------------------ the Variance page */
-function drawVariance(ctx, colors, w, params, state, anim) {
-  const L = varianceLayout(w), H = L.hist;
+/* ------------------------------------------------------------ the Shrinkage page */
+function drawShrinkage(ctx, colors, w, params, state, anim) {
+  const L = shrinkageLayout(w), H = L.hist;
   const { s, e } = stageOf(params, anim);
   const sx = (sd) => histX(L, Math.min(U1, Math.max(U0, Math.log10(sd))));
   const sy = (c) => H.base - (c / state.yMax) * (H.base - H.top);
@@ -183,10 +183,58 @@ function drawVariance(ctx, colors, w, params, state, anim) {
     rule(ctx, sx(tsd), R.bars[0] - 12, sx(tsd), R.bars[2] + 10, colors.reference, 1.5, [3, 3]);
     txt(ctx, colors, `true ${f3(tsd)}`, sx(tsd), R.bars[2] + 22, { size: "fsXs", colour: colors.reference, align: "center" });
   }
-  if (s >= 3 && e >= 1) {
-    txt(ctx, colors, `moderated SD² = (${state.df} × ${f3(own)}² + ${state.d0.toFixed(1)} × ${f3(state.s0)}²) / (${state.df} + ${state.d0.toFixed(1)}) = ${f3(mod)}²`, 12, R.formula, { size: "fsXs", mono: true, colour: colors.ink1 });
-    txt(ctx, colors, `t = log2FC / (SD × √(1/${state.n} + 1/${state.n})): ordinary ${tFmt(x.t)}, moderated ${tFmt(x.tMod)}; log2FC ${sg(x.diff)} in both`, 12, R.t, { size: "fsXs", mono: true, colour: colors.ink1 });
+}
+
+/* ------------------------------------------------------------ the formula card */
+/* MathML above the figure, one equation per stage, as 78's (his round 1,
+   2026-10-07: "use mathml for equations"). Symbols only; the protein's numbers
+   are in the readout. */
+const MATHML = mathmlRenders();
+const BAR = (v, sub) => `<msub><mover><mi>${v}</mi><mo>¯</mo></mover><mtext>${sub}</mtext></msub>`;
+const SQ = (inner) => `<msup><mrow><mo>(</mo>${inner}<mo>)</mo></mrow><mn>2</mn></msup>`;
+const ROOT = "<msqrt><mfrac><mn>1</mn><mi>n</mi></mfrac><mo>+</mo><mfrac><mn>1</mn><mi>n</mi></mfrac></msqrt>";
+const S0SQ = "<msubsup><mi>s</mi><mn>0</mn><mn>2</mn></msubsup>", D0 = "<msub><mi>d</mi><mn>0</mn></msub>";
+const STILDE = "<mover><mi>s</mi><mo>~</mo></mover>";
+const FORMULAS = {
+  shrinkage1: {
+    math: `<math><mrow><msup><mi>s</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mtext>cancer</mtext></munder>${SQ(`<mi>y</mi><mo>−</mo>${BAR("y", "c")}`)}<mo>+</mo><munder><mo>∑</mo><mtext>healthy</mtext></munder>${SQ(`<mi>y</mi><mo>−</mo>${BAR("y", "h")}`)}</mrow><mi>d</mi></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mo>=</mo><mn>2</mn><mi>n</mi><mo>−</mo><mn>2</mn></mrow></math>`,
+    plain: "s² = [ Σ_cancer (y − ȳc)² + Σ_healthy (y − ȳh)² ] / d,   d = 2n − 2",
+    note: "each protein's variance from its own replicates, pooled over the two groups: y is a log2 abundance, n the replicates in each group, d the degrees of freedom",
+  },
+  shrinkage2: {
+    math: `<math><mrow><mfrac><mn>1</mn><msup><mi>σ</mi><mn>2</mn></msup></mfrac><mo>∼</mo><mfrac><msubsup><mi>χ</mi><msub><mi>d</mi><mn>0</mn></msub><mn>2</mn></msubsup><mrow>${D0}${S0SQ}</mrow></mfrac></mrow></math>`,
+    plain: "1/σ² ~ χ²(d0) / (d0 s0²)",
+    note: "the prior: across proteins the true variances σ² scatter around s0², and d0 says how tightly; s0 and d0 are fitted to every protein's s² at once (empirical Bayes)",
+  },
+  shrinkage3: {
+    math: `<math><mrow><msup>${STILDE}<mn>2</mn></msup><mo>=</mo><mfrac><mrow>${D0}${S0SQ}<mo>+</mo><mi>d</mi><msup><mi>s</mi><mn>2</mn></msup></mrow><mrow>${D0}<mo>+</mo><mi>d</mi></mrow></mfrac></mrow></math>`,
+    plain: "s̃² = (d0 s0² + d s²) / (d0 + d)",
+    note: "the moderated variance: the prior's and the protein's own, averaged with their degrees of freedom as weights; with few replicates d is small and the prior counts for more",
+  },
+  ordinary: {
+    math: `<math><mrow><mi>t</mi><mo>=</mo><mfrac><mrow>${BAR("y", "c")}<mo>−</mo>${BAR("y", "h")}</mrow><mrow><mi>s</mi>${ROOT}</mrow></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mtext> degrees of freedom</mtext></mrow></math>`,
+    plain: "t = (ȳc − ȳh) / ( s √(1/n + 1/n) ),   d degrees of freedom",
+    note: "ȳ is a group's mean log2 abundance, so the numerator is the log2 fold change; s is the protein's own SD",
+  },
+  moderated: {
+    math: `<math><mrow><mover><mi>t</mi><mo>~</mo></mover><mo>=</mo><mfrac><mrow>${BAR("y", "c")}<mo>−</mo>${BAR("y", "h")}</mrow><mrow>${STILDE}${ROOT}</mrow></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>d</mi><mo>+</mo>${D0}<mtext> degrees of freedom</mtext></mrow></math>`,
+    plain: "t̃ = (ȳc − ȳh) / ( s̃ √(1/n + 1/n) ),   d + d0 degrees of freedom",
+    note: "the same numerator, the log2 fold change; the denominator has the moderated SD, and the prior adds its d0 degrees of freedom",
+  },
+};
+let mathHost = null, mathKey = null;
+function renderFormula(key) {
+  if (!mathHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    mathHost = document.createElement("div");
+    mathHost.className = "w-math";
+    figure.parentNode.insertBefore(mathHost, figure);
   }
+  if (mathKey === key) return;
+  mathKey = key;
+  const F = FORMULAS[key];
+  mathHost.innerHTML = `<div class="w-math-eq"><span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span></div><div class="w-math-note">${F.note}</div>`;
 }
 
 /* ------------------------------------------------------------ the Test page */
@@ -276,12 +324,12 @@ defineWidget({
     + "false discovery rate. The fold change is the same in both tests: the difference of the mean log2 abundances.",
   layout: "side",
   status: "draft",
-  height: (p) => (p.page === "test" ? H_TEST : H_VARIANCE),
+  height: (p) => (p.page === "test" ? H_TEST : H_SHRINKAGE),
 
   params: {
     page: {
-      role: "page", type: "segmented", label: "Page", display: true, default: "variance",
-      options: [{ value: "variance", label: "Variance" }, { value: "test", label: "Test" }],
+      role: "page", type: "segmented", label: "Page", display: true, default: "shrinkage",
+      options: [{ value: "shrinkage", label: "Shrinkage" }, { value: "test", label: "Test" }],
     },
     dataSec: { type: "section", label: "The data" },
     reps: {
@@ -307,7 +355,7 @@ defineWidget({
       detail: "each protein's true SD and whether it truly differs: known in a simulation, unknown in a measured data set",
       options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }],
     },
-    /* authoring escape hatch, first render only: the Variance page's stage */
+    /* authoring escape hatch, first render only: the Shrinkage page's stage */
     shown: { type: "int", min: 0, max: 3, default: 0, hidden: true },
   },
 
@@ -360,21 +408,21 @@ defineWidget({
     };
   },
 
-  /* Step alone, on the Variance page: three presses that are read. The Test
+  /* Step alone, on the Shrinkage page: three presses that are read. The Test
      page has nothing to step (`inert`). A Statistic change asks core for an
      ease; a change flipped back mid-ease starts from where the picture is. */
   animation: {
-    stepLabel: { anim: "labelAt", labels: { v0: "Own SDs", v1: "Fit the prior", v2: "Moderate", done: "Step" }, default: "Step" },
+    stepLabel: { anim: "labelAt", labels: { s0: "Own SDs", s1: "Fit the prior", s2: "Moderate", done: "Step" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      v0: "Each protein's SD from its own replicates",
-      v1: "Fit a prior to every protein's SD: a typical SD, s0, and how many degrees of freedom it is worth, d0",
-      v2: "Replace each protein's SD by a weighted average of its own and the prior's, weighted by their degrees of freedom",
+      s0: "Each protein's SD from its own replicates",
+      s1: "Fit a prior to every protein's SD: a typical SD, s0, and how many degrees of freedom it is worth, d0",
+      s2: "Replace each protein's SD by a weighted average of its own and the prior's, weighted by their degrees of freedom",
       done: "Every step of this page has been taken",
     }, default: "Step through this page" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
-      const anim = { n: { variance: 0, test: 0 }, p: 1, st: { from: params.stat, to: params.stat, t: 1 }, easing: false };
-      if (!fromScratch) anim.n.variance = Math.min(3, Math.max(0, Number(params.shown) || 0));
+      const anim = { n: { shrinkage: 0, test: 0 }, p: 1, st: { from: params.stat, to: params.stat, t: 1 }, easing: false };
+      if (!fromScratch) anim.n.shrinkage = Math.min(3, Math.max(0, Number(params.shown) || 0));
       settle(anim, params.page);
       return anim;
     },
@@ -410,9 +458,9 @@ defineWidget({
       const { qx, qy } = volcanoGeometry(w, state);
       return state.fit.fits.map((x, i) => ({ x: qx(x.diff) - 4, y: qy(pOf(x, params.stat)) - 4, w: 8, h: 8, set: { protein: `protein-${i + 1}` }, label: `Protein ${i + 1}` }));
     }
-    const s = anim ? anim.n.variance : Number(params.shown) || 0;
+    const s = anim ? anim.n.shrinkage : Number(params.shown) || 0;
     if (s < 1) return [];
-    const L = varianceLayout(w), H = L.hist, bw = (H.x1 - H.x0) / NBINS;
+    const L = shrinkageLayout(w), H = L.hist, bw = (H.x1 - H.x0) / NBINS;
     const byBin = new Map();
     state.ownSd.forEach((sd, i) => { const k = binOf(sd); if (k >= 0 && k < NBINS) { if (!byBin.has(k)) byBin.set(k, []); byBin.get(k).push(i); } });
     return [...byBin.entries()].map(([k, ids]) => {
@@ -423,8 +471,9 @@ defineWidget({
   },
 
   draw: ({ ctx, colors, w, params, state, anim }) => {
+    renderFormula(params.page === "test" ? params.stat : `shrinkage${Math.max(1, stageOf(params, anim).s)}`);
     if (params.page === "test") drawTest(ctx, colors, w, params, state, anim);
-    else drawVariance(ctx, colors, w, params, state, anim);
+    else drawShrinkage(ctx, colors, w, params, state, anim);
   },
 
   readout: ({ params, state, anim }) => {
