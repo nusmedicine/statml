@@ -9,11 +9,13 @@
    §2 the simulation: about a third missing, as the lesson's 35.1%
    §3 the three example proteins exist on every seed, and the filter removes
       the two-sample one and keeps the other two
+   §5 the copy: no struck word (the audit of 2026-10-07) in a reader-facing string
    §4 the claims the arc measured and the page shows, over the 20 seeds: the
       minimum keeps an absence best, kNN and the forest shrink it; kNN makes
       the most false calls and the filter cuts them
    ========================================================================= */
 
+import { readFileSync } from "node:fs";
 import { makeRng } from "../core/rng.js";
 import * as E from "../imputation/engine.js";
 import { FOREST, FOREST_SEEDS, TYPICAL_SEED } from "../imputation/forest-table.js";
@@ -85,6 +87,20 @@ section("§4 the claims, over the seeds (mixed included)");
   assert(g("mixed", "absentFc") > 4 && g("mixed", "fdr") < g("forest", "fdr"), "mixed keeps an absence and makes fewer false calls than the forest");
   assert(["min", "knn", "forest"].every((k) => g("mixed", "tp") > g(k, "tp")), "mixed finds more true differences than any single method");
   assert(g("knn", "bias") > 0.5 && g("forest", "bias") > 0.3 && g("min", "bias") < -0.5, "kNN and the forest fill above the truth, the minimum below");
+}
+
+section("§5 the copy: no struck word in a reader-facing string (the audit of 2026-10-07)");
+{
+  // string literals only, comments stripped: what a reader can see
+  const src = readFileSync(new URL("../imputation/main.js", import.meta.url), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "").replace(/\s\/\/ .*$/gm, "");
+  const strings = [...src.matchAll(/"([^"\n]{3,})"|`([^`\n]{3,})`/g)].map((m) => m[1] || m[2]);
+  const struck = /\b(hole|holes|called|false calls?|real differences?|no real|marked protein|settle|misses|missed|you|your|never|hold)\b/i;
+  // the words a reader sees: template expressions removed, single-word keys skipped
+  const visible = strings.map((s) => s.replace(/\$\{[^}]*\}/g, "")).filter((s) => / /.test(s.trim()));
+  for (const s of visible) assert(!struck.test(s), `struck word in "${s.slice(0, 80)}"`);
+  const card = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8")).widgets.find((w) => w.slug === "imputation");
+  assert(!struck.test(card.blurb) && !/\b(four|five) imputation methods\b/.test(card.blurb), "the blurb carries no struck word and no stale method count");
 }
 
 console.log(`\n${checks - fails} of ${checks} checks pass`);

@@ -41,11 +41,11 @@ const MNAR = "MNAR: the value fell below the detection limit";
 const MAR = "MAR: the value is like the measured values";
 const MIXED = "Mixed: by protein";
 const METHODS = [
-  { value: "measured-only", label: "Measured only", group: "No imputation", detail: "no value filled; a protein is tested where both groups hold 2 values or more" },
+  { value: "measured-only", label: "Measured only", group: "No imputation", detail: "no value filled; a protein is tested where both groups have 2 values or more" },
   { value: "minimum", label: "Minimum", group: MNAR, detail: "each sample's lowest measured value" },
-  { value: "low-draw", label: "Low draw", group: MNAR, detail: "a random draw around each sample's 1% quantile, spread by the median protein SD" },
-  { value: "knn", label: "kNN", group: MAR, detail: "the mean of the 10 proteins whose measured values are nearest, in that sample" },
-  { value: "random-forest", label: "Random forest", group: MAR, detail: "for each sample, a regression forest on the other samples' values, repeated until the filled values settle (missForest)" },
+  { value: "low-draw", label: "Low draw", group: MNAR, detail: "a random draw near each sample's 1% quantile, with the median protein SD as its spread" },
+  { value: "knn", label: "kNN", group: MAR, detail: "the mean, in that sample, of the 10 proteins with the most similar measured values" },
+  { value: "random-forest", label: "Random forest", group: MAR, detail: "for each sample, a regression forest on the other samples' values, repeated until the filled values stop changing (missForest)" },
   { value: "mixed", label: "Mixed", group: MIXED, detail: "a protein measured in at most 20% of the samples of a group (2 of 11): the Minimum for its missing values; every other protein: the Random forest" },
 ];
 const EXAMPLES = [
@@ -290,13 +290,13 @@ function drawTree(ctx, colors, w, params, state) {
 
 /* What imputation does to the conclusion (his pick 2026-10-07, _lab/imputation-test-mock.html):
    one bar per method, the proteins its test calls, the method on screen outlined. With True
-   values On a bar splits into real differences found and false calls, the FDR at its end,
+   values On a bar splits into true positives and false positives, the FDR at its end,
    and a dashed outline marks every real difference in the data, so what each method missed
    shows too. Fills after the Impute press, as the readout does. */
 function drawTest(ctx, colors, w, y0, params, state, ready) {
   const truth = params.truth === "on";
   rule(ctx, 12, y0 - 6, w - 12, y0 - 6, colors.grid);
-  txt(ctx, colors, "Proteins called, adjusted p < 0.05, by each method", 12, y0 + 12, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, "Proteins significant at adjusted p < 0.05, by method", 12, y0 + 12, { colour: colors.ink1, weight: "600" });
   const x0 = 112, x1 = w - 96, max = state.realAll + 20, sx = (v) => x0 + (v / max) * (x1 - x0);
   METHODS.forEach((m, i) => {
     const sc = state.scores[m.value], y = y0 + 24 + i * 28, h = 17, on = m.value === params.method;
@@ -322,8 +322,8 @@ function drawTest(ctx, colors, w, y0, params, state, ready) {
     if (on) { ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(12, y - 4, w - 24, h + 8); ctx.restore(); }
   });
   const ky = y0 + 24 + METHODS.length * 28 + 10;
-  if (!ready) { txt(ctx, colors, "Impute fills the missing values; then each method's calls appear here", 12, ky, { size: "fsXs", colour: colors.ink3 }); return; }
-  if (!truth) { txt(ctx, colors, "True values On splits each bar into real differences and false calls", 12, ky, { size: "fsXs", colour: colors.ink3 }); return; }
+  if (!ready) { txt(ctx, colors, "Impute fills the missing values; the significant proteins of each method are then counted here", 12, ky, { size: "fsXs", colour: colors.ink3 }); return; }
+  if (!truth) { txt(ctx, colors, "True values On splits each bar into true positives and false positives", 12, ky, { size: "fsXs", colour: colors.ink3 }); return; }
   let kx = 12;
   const key = (colour, label, dashed = false) => {
     ctx.save();
@@ -332,7 +332,7 @@ function drawTest(ctx, colors, w, y0, params, state, ready) {
     txt(ctx, colors, label, kx + 16, ky, { size: "fsXs", colour: colors.ink2 });
     ctx.font = `${colors.fsXs} ${colors.font}`; kx += 30 + ctx.measureText(label).width;
   };
-  key(colors.ink2, "real differences found"); key(colors.extreme, "false calls"); key(colors.reference, `all ${state.realAll} real differences in the data`, true);
+  key(colors.ink2, "true positives"); key(colors.extreme, "false positives"); key(colors.reference, `all ${state.realAll} proteins that truly differ`, true);
 }
 
 function drawImputing(ctx, colors, w, params, state, anim) {
@@ -418,11 +418,11 @@ defineWidget({
   slug: "imputation",
   title: "Proteomics: Imputation",
   subtitle:
-    "A mass spectrometer misses a protein most often where its abundance is low, so many missing values in a protein matrix "
-    + "are missing not at random (MNAR). The data cannot show why any one value is missing, so every imputation method "
-    + "is an assumption: that the value fell below the detection limit (a minimum, a low random draw), that it is like "
-    + "the measured values (MAR: kNN, a random forest), or one or the other by protein (mixed). Each assumption changes "
-    + "what the test finds; testing only the measured values is the comparison.",
+    "Many missing values in proteomics are below the detection limit, so they are missing not at random (MNAR). "
+    + "The reason for any one missing value cannot be determined from the data, so each imputation method assumes one: "
+    + "below the limit (minimum, low random draw), like the measured values (MAR: kNN, random forest), or decided "
+    + "protein by protein (mixed). Proteins measured in too few samples are usually removed first, and the list of "
+    + "significant proteins differs with the assumption.",
   layout: "side",
   status: "draft",
   height: (p) => (p.page === "imputing" ? H_IMPUTING : H_MISSING),
@@ -473,7 +473,7 @@ defineWidget({
       { token: "highlight", label: "An imputed value", mark: "bar" },
       { token: "unknown", label: "A missing value", mark: "bar" },
       ...(params.truth === "on" ? [{ token: "reference", label: "The true value of a missing value", mark: "dash" }] : []),
-      ...(params.truth === "on" ? [{ token: "extreme", label: "A false call", mark: "bar" }] : []),
+      ...(params.truth === "on" ? [{ token: "extreme", label: "A false positive", mark: "bar" }] : []),
     ]
     : [
       { token: "empirical", label: "A measured value", mark: "bar" },
@@ -537,7 +537,7 @@ defineWidget({
       i0: "Impute", irun: "Impute", idone: "Impute again",
     }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      m0: "Measure the 22 samples one at a time; a value under the detection limit is likely to be missed",
+      m0: "Measure the 22 samples one at a time; a value below the detection limit is likely to be missing",
       mrun: "Finish measuring at once",
       mdone: "Measure the same samples again from the first",
       i0: "Fill the missing values of each sample in turn with the chosen method",
@@ -591,7 +591,7 @@ defineWidget({
         return [
           { label: "Values missing", value: "–", note: `of ${n0(P * N)}: ${n0(P)} proteins in ${N} samples` },
           { label: "Proteins with a missing value", value: "–", note: "counted once every sample is measured" },
-          { label: "The missing values", value: "–", note: truth ? "their true mean, once every sample is measured" : "their level: True values On" },
+          { label: "The missing values", value: "–", note: truth ? "their true mean, once every sample is measured" : "their true level: True values On" },
         ];
       }
       return [
@@ -599,7 +599,7 @@ defineWidget({
         { label: "Proteins with a missing value", value: `${n0(state.anyHole)} of ${n0(P)}`, note: `${n0(state.wholeGroup)} missing in every sample of one group` },
         truth
           ? { label: "The missing values", value: `mean ${state.missingTrueMean.toFixed(1)} log2`, note: `the measured values: mean ${state.measuredMean.toFixed(1)} log2` }
-          : { label: "The missing values", value: "–", note: "their level: True values On" },
+          : { label: "The missing values", value: "–", note: "their true level: True values On" },
       ];
     }
     const m = params.method, s = state.scores[m];
@@ -608,23 +608,23 @@ defineWidget({
     const mk = resolveMarked(params, state);
     const kept = state.rows.length;
     const imputed = m === "measured-only"
-      ? { label: "Values imputed", value: "none", note: `${n0(s.tested)} of ${n0(kept)} proteins hold 2 values or more in both groups` }
+      ? { label: "Values imputed", value: "none", note: `${n0(s.tested)} of ${n0(kept)} proteins have 2 values or more in both groups` }
       : { label: "Values imputed", value: ready ? n0(state.holesKept) : "–", note: ready ? (truth ? `imputed − true: mean ${sg(s.bias, 2)} log2` : `in ${n0(kept)} proteins`) : "Impute fills the missing values" };
     const called = ready
-      ? { label: "Proteins called, adjusted p < 0.05", value: `${n0(s.called)} of ${n0(s.tested)}`,
-        note: `Welch t-test on log2, Benjamini–Hochberg${truth ? `; ${n0(s.fp)} with no real difference (FDR ${pct(s.fdr)})` : ""}` }
-      : { label: "Proteins called, adjusted p < 0.05", value: "–", note: "Welch t-test on log2, Benjamini–Hochberg" };
+      ? { label: "Proteins significant, adjusted p < 0.05", value: `${n0(s.called)} of ${n0(s.tested)}`,
+        note: `Welch t-test on log2, Benjamini–Hochberg${truth ? `; ${n0(s.fp)} false positive${s.fp === 1 ? "" : "s"} (FDR ${pct(s.fdr)})` : ""}` }
+      : { label: "Proteins significant, adjusted p < 0.05", value: "–", note: "Welch t-test on log2, Benjamini–Hochberg" };
     let marked;
-    if (mk.row < 0) marked = { label: "The marked protein", value: "removed", note: "by the filter before imputing" };
+    if (mk.row < 0) marked = { label: "The example protein", value: "removed", note: "by the filter before imputing" };
     else {
       const showF = m === "measured-only" || ready;
       const i = mk.i, fc = s.fc[i], p = s.p[i];
       const tru = truth ? `; true log2FC ${sg(state.sim.meta[mk.id].fc)}` : "";
       marked = !showF
-        ? { label: "The marked protein", value: "–", note: `log2FC once its missing values are filled${tru}` }
+        ? { label: "The example protein", value: "–", note: `log2FC once its missing values are filled${tru}` }
         : Number.isFinite(p)
-          ? { label: "The marked protein", value: `log2FC ${sg(fc)}`, note: `p ${pFmt(p)}${tru}` }
-          : { label: "The marked protein", value: "not tested", note: `fewer than 2 values in a group${tru}` };
+          ? { label: "The example protein", value: `log2FC ${sg(fc)}`, note: `p ${pFmt(p)}${tru}` }
+          : { label: "The example protein", value: "not tested", note: `fewer than 2 values in a group${tru}` };
     }
     return [imputed, called, marked];
   },
