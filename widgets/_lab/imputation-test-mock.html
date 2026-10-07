@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 89 — what imputation does to the conclusion</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 4px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 89 &middot; showing what imputation does to the conclusion</h1>
+  <p class="note">Today the conclusion is one readout tile, &ldquo;Proteins called, adjusted p &lt; 0.05: 91 of 465&rdquo;, and the false
+    calls appear only in its note under True values On &mdash; for one method at a time. The conclusion students should see is that
+    <b>the list of significant proteins changes with the method</b>. Two ways to draw it, as a panel at the foot of the Imputing page
+    (550 px). Numbers from the widget's engine, seed 2; the test is the widget's (Welch t on log2, Benjamini&ndash;Hochberg, adjusted
+    p &lt; 0.05).</p>
+
+  <h2>A &middot; every method side by side &mdash; the current one highlighted</h2>
+  <p class="note">One bar per method: the proteins it calls. <b>True values Off</b>: just the count, as a real analysis sees it.
+    <b>True values On</b>: the bar splits into real differences found and false calls, and an outline shows the real differences the
+    test missed. The FDR is printed at the bar's end. Method = Mixed highlighted.</p>
+  <div class="row" id="barsRow"></div>
+
+  <h2>B &middot; a volcano plot for the method on screen</h2>
+  <p class="note">01-4's own figure: log2 fold change across, &minus;log10 adjusted p up, the 0.05 line. <b>True values On</b> colours the
+    false calls. The marked protein is ringed. Comparing methods means switching Method and watching the cloud move.</p>
+  <div class="row" id="volcRow"></div>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">T.1 &middot; How to show the conclusion</b>
+    <b>A &middot; every method side by side (recommended: the comparison is the lesson, and it is visible without switching)</b>
+    &nbsp;|&nbsp; B &middot; a volcano for the current method &nbsp;|&nbsp; C &middot; both</p>
+  <p class="q"><b class="h">T.2 &middot; Where</b>
+    <b>A &middot; a panel at the foot of the Imputing page, under the example protein; the page grows by about 200 px (recommended)</b>
+    &nbsp;|&nbsp; B &middot; a third page, <i>Testing</i>, after Imputing</p>
+  <p class="q"><b class="h">T.3 &middot; When it fills</b>
+    <b>A &middot; after the Impute press, like the readout (recommended: the conclusion comes after the imputation)</b>
+    &nbsp;|&nbsp; B &middot; always</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../imputation/engine.js";
+import { FOREST } from "../imputation/forest-table.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function cand(rowId, title, sub, w = W) { const b = el("div", "cand"); b.style.width = `${w}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = w * DPR; c.height = h * DPR; c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const txt = (ctx, s, x, y, { size = 12, colour = T.ink2, align = "left", weight = "" } = {}) => { ctx.font = `${weight} ${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); };
+
+// the widget's own computation, seed 2
+const SEED = 2;
+const rng = makeRng(SEED);
+const sim = E.simulateMatrix(rng);
+function run(keep) {
+  const rows = E.keepRows(sim.obs, keep);
+  const obs = rows.map((p) => sim.obs[p]);
+  const min = E.imputeMin(obs);
+  const forest = E.fillFromHoles(obs, FOREST[SEED][keep]);
+  const F = { "Measured only": obs, Minimum: min, "Low draw": E.imputeLowDraw(obs, makeRng(99)), kNN: E.imputeKnn(obs), "Random forest": forest, Mixed: E.imputeMixed(obs, min, forest) };
+  const realAll = sim.meta.filter((m) => m.kind !== "null").length;
+  return { rows, F, realAll, S: Object.fromEntries(Object.entries(F).map(([k, M]) => [k, E.score(sim, rows, M)])) };
+}
+
+function bars(box, R, truth, current, keepLabel) {
+  const ctx = canvasIn(box, W, 236);
+  const names = Object.keys(R.S);
+  const x0 = 120, x1 = W - 70, max = R.realAll + 20, sx = (v) => x0 + (v / max) * (x1 - x0);
+  txt(ctx, `Proteins called, adjusted p < 0.05 · keep ${keepLabel}`, 12, 18, { colour: T.ink1, weight: "600" });
+  names.forEach((n, i) => {
+    const s = R.S[n], y = 34 + i * 30, h = 18, on = n === current;
+    txt(ctx, n, x0 - 10, y + 13, { align: "right", colour: on ? T.ink1 : T.ink2, weight: on ? "600" : "" });
+    if (truth) {
+      // the real differences the test could have found: an outline
+      ctx.save(); ctx.strokeStyle = T.reference; ctx.setLineDash([3, 2]); ctx.strokeRect(sx(0) + 0.5, y + 0.5, sx(R.realAll) - sx(0), h - 1); ctx.restore();
+      ctx.fillStyle = T.empirical; ctx.globalAlpha = on ? 1 : 0.55; ctx.fillRect(sx(0), y, sx(s.tp) - sx(0), h);
+      ctx.fillStyle = T.extreme; ctx.fillRect(sx(s.tp), y, sx(s.tp + s.fp) - sx(s.tp), h); ctx.globalAlpha = 1;
+      txt(ctx, `${s.tp + s.fp} · FDR ${(100 * s.fdr).toFixed(0)}%`, sx(Math.max(s.tp + s.fp, R.realAll)) + 6, y + 13, { size: 11, colour: on ? T.ink1 : T.ink2 });
+    } else {
+      ctx.fillStyle = T.ink2; ctx.globalAlpha = on ? 1 : 0.5; ctx.fillRect(sx(0), y, sx(s.tp + s.fp) - sx(0), h); ctx.globalAlpha = 1;
+      txt(ctx, String(s.tp + s.fp), sx(s.tp + s.fp) + 6, y + 13, { size: 11, colour: on ? T.ink1 : T.ink2 });
+    }
+    if (on) { ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.strokeRect(x0 - 112, y - 3, x1 - x0 + 175, h + 6); ctx.lineWidth = 1; }
+  });
+  if (truth) {
+    let lx = 12; const yk = 226;
+    const key = (colour, s, dash) => { if (dash) { ctx.save(); ctx.strokeStyle = colour; ctx.setLineDash([3, 2]); ctx.strokeRect(lx + 0.5, yk - 9.5, 12, 9); ctx.restore(); } else { ctx.fillStyle = colour; ctx.fillRect(lx, yk - 10, 12, 10); } txt(ctx, s, lx + 16, yk, { size: 11 }); ctx.font = `11px ${T.font}`; lx += 30 + ctx.measureText(s).width; };
+    key(T.empirical, "real differences found"); key(T.extreme, "false calls"); key(T.reference, `all ${R.realAll} real differences`, true);
+  }
+}
+const R50 = run("50"), RA = run("any");
+bars(cand("barsRow", "A · True values Off", "keep 50%, Method = Mixed"), R50, false, "Mixed", "50%");
+bars(cand("barsRow", "A · True values On", "keep 50%, Method = Mixed"), R50, true, "Mixed", "50%");
+bars(cand("barsRow", "A · True values On, keep Any", "kNN's false calls before the filter"), RA, true, "kNN", "Any");
+
+function volcano(box, R, method, truth, markId) {
+  const ctx = canvasIn(box, W, 300);
+  const s = R.S[method];
+  const x0 = 50, x1 = W - 16, y0 = 30, y1 = 260;
+  const sx = (v) => x0 + ((Math.max(-5, Math.min(7, v)) + 5) / 12) * (x1 - x0);
+  const sy = (p) => y1 - (Math.min(12, -Math.log10(Math.max(p, 1e-12))) / 12) * (y1 - y0);
+  txt(ctx, `${method}: ${s.tp + s.fp} proteins called`, 12, 18, { colour: T.ink1, weight: "600" });
+  ctx.strokeStyle = T.axis; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = T.ink3; ctx.beginPath(); ctx.moveTo(x0, sy(0.05)); ctx.lineTo(x1, sy(0.05)); ctx.stroke(); ctx.restore();
+  txt(ctx, "adjusted p = 0.05", x1, sy(0.05) - 4, { size: 10, colour: T.ink3, align: "right" });
+  R.rows.forEach((p, i) => {
+    if (!Number.isFinite(s.padj[i])) return;
+    const called = s.padj[i] < 0.05, real = sim.meta[p].kind !== "null";
+    const colour = !called ? T.ink3 : truth && !real ? T.extreme : T.empirical;
+    ctx.globalAlpha = called ? 0.9 : 0.35; ctx.fillStyle = colour; ctx.beginPath(); ctx.arc(sx(s.fc[i]), sy(s.padj[i]), 2.4, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    if (p === markId) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(s.fc[i]), sy(s.padj[i]), 7, 0, 7); ctx.stroke(); ctx.lineWidth = 1; }
+  });
+  for (const v of [-4, -2, 0, 2, 4, 6]) txt(ctx, String(v), sx(v), y1 + 15, { size: 10, colour: T.ink3, align: "center" });
+  txt(ctx, "log2 fold change, cancer / healthy", (x0 + x1) / 2, y1 + 32, { size: 10, colour: T.ink3, align: "center" });
+  ctx.save(); ctx.translate(16, (y0 + y1) / 2); ctx.rotate(-Math.PI / 2); txt(ctx, "−log10 adjusted p", 0, 0, { size: 10, colour: T.ink3, align: "center" }); ctx.restore();
+}
+const ex = E.pickExamples(sim, E.score(sim, sim.obs.map((r, p) => p), E.imputeKnn(sim.obs)).padj, E.score(sim, sim.obs.map((r, p) => p), E.imputeMin(sim.obs)).fc);
+volcano(cand("volcRow", "B · Random forest, True values On", "keep 50%; the absent-in-healthy protein ringed"), R50, "Random forest", true, ex.absent);
+volcano(cand("volcRow", "B · Mixed, True values On", "the same protein, now at the right"), R50, "Mixed", true, ex.absent);
+</script>
+</body>
+</html>

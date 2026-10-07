@@ -29,7 +29,8 @@ import { FOREST, FOREST_SEEDS, TYPICAL_SEED } from "./forest-table.js";
 const { NA, N } = E;
 const isNa = Number.isNaN;
 const TREE_H = 132;                   // the Imputing page's diagram of the two steps, above the matrix
-const H_MISSING = 610, H_IMPUTING = 530 + TREE_H;
+const TEST_H = 228;                   // the Imputing page's comparison of every method's calls, at its foot
+const H_MISSING = 610, H_IMPUTING = 530 + TREE_H + TEST_H;
 const COL_MS = 140;                    // one sample a beat: 22 samples in about three seconds
 const LO = 17, HI = 31;                // the log2 axis every panel shares
 /* Grouped by the assumption each method makes about a hole, in the terms 01-3
@@ -73,7 +74,7 @@ const colW = () => (M.w - M.gap) / N;
 const rowY = (i, P) => M.y0 + (i * M.h) / P;
 const RIGHT = 16;
 const missingLayout = (w) => ({ share: { x0: M.px + 30, x1: w - RIGHT, top: 64, base: 270 }, key: { y: 318 }, counts: { top: 478, base: 580 } });
-const imputingLayout = (w) => ({ hist: { x0: M.px + 30, x1: w - RIGHT, top: 76 + TREE_H, base: 330 + TREE_H }, strip: { x0: M.x0, x1: w - RIGHT, y: 466 + TREE_H } });
+const imputingLayout = (w) => ({ hist: { x0: M.px + 30, x1: w - RIGHT, top: 76 + TREE_H, base: 330 + TREE_H }, strip: { x0: M.x0, x1: w - RIGHT, y: 466 + TREE_H }, test: { y: 530 + TREE_H + 8 } });
 
 /* ------------------------------------------------------------ the press clock */
 /* `anim.done` is never set: core's Replay re-inits the whole anim, which would
@@ -287,6 +288,53 @@ function drawTree(ctx, colors, w, params, state) {
   rule(ctx, 12, TREE_H - 6, w - 12, TREE_H - 6, colors.grid);
 }
 
+/* What imputation does to the conclusion (his pick 2026-10-07, _lab/imputation-test-mock.html):
+   one bar per method, the proteins its test calls, the method on screen outlined. With True
+   values On a bar splits into real differences found and false calls, the FDR at its end,
+   and a dashed outline marks every real difference in the data, so what each method missed
+   shows too. Fills after the Impute press, as the readout does. */
+function drawTest(ctx, colors, w, y0, params, state, ready) {
+  const truth = params.truth === "on";
+  rule(ctx, 12, y0 - 6, w - 12, y0 - 6, colors.grid);
+  txt(ctx, colors, "Proteins called, adjusted p < 0.05, by each method", 12, y0 + 12, { colour: colors.ink1, weight: "600" });
+  const x0 = 112, x1 = w - 96, max = state.realAll + 20, sx = (v) => x0 + (v / max) * (x1 - x0);
+  METHODS.forEach((m, i) => {
+    const sc = state.scores[m.value], y = y0 + 24 + i * 28, h = 17, on = m.value === params.method;
+    txt(ctx, colors, m.label, x0 - 10, y + 13, { size: "fsXs", colour: on ? colors.ink1 : colors.ink2, weight: on ? "600" : "", align: "right" });
+    if (truth) {
+      ctx.save(); ctx.strokeStyle = colors.reference; ctx.setLineDash([3, 2]);
+      ctx.strokeRect(sx(0) + 0.5, y + 0.5, sx(state.realAll) - sx(0), h - 1); ctx.restore();
+    } else {
+      ctx.fillStyle = colors.surface2; ctx.fillRect(sx(0), y, x1 - sx(0), h);
+    }
+    if (ready) {
+      ctx.save(); ctx.globalAlpha = on ? 1 : 0.55;
+      if (truth) {
+        ctx.fillStyle = colors.ink2; ctx.fillRect(sx(0), y, sx(sc.tp) - sx(0), h);   // blue is a measured value on this page
+        ctx.fillStyle = colors.extreme; ctx.fillRect(sx(sc.tp), y, sx(sc.called) - sx(sc.tp), h);
+      } else {
+        ctx.fillStyle = colors.ink2; ctx.fillRect(sx(0), y, sx(sc.called) - sx(0), h);
+      }
+      ctx.restore();
+      const end = truth ? Math.max(sc.called, state.realAll) : sc.called;
+      txt(ctx, colors, truth ? `${sc.called} · FDR ${pct(sc.fdr, 0)}` : String(sc.called), sx(end) + 6, y + 13, { size: "fsXs", colour: on ? colors.ink1 : colors.ink2, weight: on ? "600" : "" });
+    }
+    if (on) { ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(12, y - 4, w - 24, h + 8); ctx.restore(); }
+  });
+  const ky = y0 + 24 + METHODS.length * 28 + 10;
+  if (!ready) { txt(ctx, colors, "Impute fills the missing values; then each method's calls appear here", 12, ky, { size: "fsXs", colour: colors.ink3 }); return; }
+  if (!truth) { txt(ctx, colors, "True values On splits each bar into real differences and false calls", 12, ky, { size: "fsXs", colour: colors.ink3 }); return; }
+  let kx = 12;
+  const key = (colour, label, dashed = false) => {
+    ctx.save();
+    if (dashed) { ctx.strokeStyle = colour; ctx.setLineDash([3, 2]); ctx.strokeRect(kx + 0.5, ky - 9.5, 12, 9); } else { ctx.fillStyle = colour; ctx.fillRect(kx, ky - 10, 12, 10); }
+    ctx.restore();
+    txt(ctx, colors, label, kx + 16, ky, { size: "fsXs", colour: colors.ink2 });
+    ctx.font = `${colors.fsXs} ${colors.font}`; kx += 30 + ctx.measureText(label).width;
+  };
+  key(colors.ink2, "real differences found"); key(colors.extreme, "false calls"); key(colors.reference, `all ${state.realAll} real differences in the data`, true);
+}
+
 function drawImputing(ctx, colors, w, params, state, anim) {
   fitTo(w, "imputing");
   const L = imputingLayout(w);
@@ -328,6 +376,8 @@ function drawImputing(ctx, colors, w, params, state, anim) {
   for (const v of [18, 21, 24, 27, 30]) { rule(ctx, sx(v), H.base, sx(v), H.base + 4, colors.axis); txt(ctx, colors, String(v), sx(v), H.base + 16, { size: "fsXs", colour: colors.ink3, align: "center" }); }
   txt(ctx, colors, "log2 abundance", (H.x0 + H.x1) / 2, H.base + 32, { size: "fsXs", colour: colors.ink3, align: "center" });
   txt(ctx, colors, "values", M.px, H.top - 12, { size: "fsXs", colour: colors.ink3 });
+
+  drawTest(ctx, colors, w, L.test.y, params, state, ik >= N);
 
   // the marked protein: its 22 values on the same log2 axis
   const S = L.strip, qx = (v) => S.x0 + ((v - LO) / (HI - LO)) * (S.x1 - S.x0);
@@ -423,6 +473,7 @@ defineWidget({
       { token: "highlight", label: "An imputed value", mark: "bar" },
       { token: "unknown", label: "A missing value", mark: "bar" },
       ...(params.truth === "on" ? [{ token: "reference", label: "The true value of a missing value", mark: "dash" }] : []),
+      ...(params.truth === "on" ? [{ token: "extreme", label: "A false call", mark: "bar" }] : []),
     ]
     : [
       { token: "empirical", label: "A measured value", mark: "bar" },
@@ -468,6 +519,7 @@ defineWidget({
     sim.obs.forEach((r, p) => r.forEach((v, j) => (isNa(v) ? missingTrue.push(sim.truth[p][j]) : measuredVals.push(v))));
     return {
       sim, rows, rowOf, order, fullOrder, filled, scores, examples, measuredBins, truthBins, histMax, share, measuredIn,
+      realAll: sim.meta.filter((m) => m.kind !== "null").length,
       tree: {
         all: sim.obs.length, kept: rows.length,
         mnar: obs.filter((r) => Math.min(E.seenIn(r, 0, NA), E.seenIn(r, NA, N)) <= E.MIXED_CUT).length,
