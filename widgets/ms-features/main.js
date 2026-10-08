@@ -656,7 +656,7 @@ defineWidget({
     + "grouped across samples into features, each an m/z and an RT. An accurate mass narrows a feature to a molecular "
     + "formula; isomers share a formula, and are told apart by the RT of an authentic standard.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   pointer: true,
   height: (p) => (p.page === "identification" ? B + 424 + 26 + Math.max(1, COUNTS[p.window]?.[Math.max(0, E.ROWS.findIndex((r) => r.key === p.row))] ?? 2) * TABLE_ROW + 10 : p.page === "alignment" ? H_ALIGN : H_PEAKS),
 

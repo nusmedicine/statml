@@ -12404,6 +12404,295 @@
       },
       "px": "31c96b2f",
       "tx": "e6c66589"
+    },
+    {
+      "$note": "ms-features · Peaks opens on the raw run, nothing detected",
+      "slug": "ms-features",
+      "state": "?theme=light&shown=0",
+      "px": "e23a6fc4",
+      "tx": "96698f3f"
+    },
+    {
+      "$note": "ms-features · Peaks after Detect: rings at S/N 3, the brackets in noise SDs",
+      "slug": "ms-features",
+      "state": "?theme=light&shown=1",
+      "px": "8b50fe32",
+      "tx": "2c9130ae"
+    },
+    {
+      "$note": "ms-features · Peaks after Integrate: the areas in their table rows",
+      "slug": "ms-features",
+      "state": "?theme=light&shown=2",
+      "px": "07e197a0",
+      "tx": "a504fec8"
+    },
+    {
+      "$note": "ms-features · Peaks, malic acid's m/z: one peak",
+      "slug": "ms-features",
+      "state": "?theme=light&row=133.014&shown=2",
+      "px": "0eee0f8f",
+      "tx": "cd6063cb"
+    },
+    {
+      "$note": "ms-features · Peaks, a sample with glutaric acid below the limit",
+      "slug": "ms-features",
+      "state": "?theme=light&sample=P210302925&shown=2",
+      "px": "13e9cabe",
+      "tx": "178d2d3b"
+    },
+    {
+      "$note": "ms-features · Peaks, an m/z with no peak at S/N 3",
+      "slug": "ms-features",
+      "state": "?theme=light&row=161.046&shown=2",
+      "px": "07906639",
+      "tx": "47ef0c3a"
+    },
+    {
+      "$note": "ms-features · Alignment before Align",
+      "slug": "ms-features",
+      "state": "?theme=light&page=alignment&shown=0",
+      "px": "995641ca",
+      "tx": "18351172"
+    },
+    {
+      "$note": "ms-features · Alignment at 0.3 min: two features, labelled m/z · RT",
+      "slug": "ms-features",
+      "state": "?theme=light&page=alignment&shown=1",
+      "px": "48c6e6a0",
+      "tx": "22185d60"
+    },
+    {
+      "$note": "ms-features · Alignment at 0.05 min: five, numbered, the key line",
+      "slug": "ms-features",
+      "state": "?theme=light&page=alignment&window=0.05&shown=1",
+      "px": "9956a34d",
+      "tx": "1d822d37"
+    },
+    {
+      "$note": "ms-features · Alignment at 1.5 min: one feature holding both",
+      "slug": "ms-features",
+      "state": "?theme=light&page=alignment&window=1.5&shown=1",
+      "px": "6d010908",
+      "tx": "14f0d02a"
+    },
+    {
+      "$note": "ms-features · Alignment, lactic acid's m/z, its own RT view",
+      "slug": "ms-features",
+      "state": "?theme=light&page=alignment&row=89.024&shown=1",
+      "px": "7f8da14e",
+      "tx": "9025eb48"
+    },
+    {
+      "$note": "ms-features · Identification before Match mass: every feature on the overview",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification&shown=0",
+      "px": "a4764c37",
+      "tx": "1f4dd3a0"
+    },
+    {
+      "$note": "ms-features · Identification after Match mass, ±0.5 Da: 40 formulas, 2 candidates",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification&shown=1",
+      "px": "beae9933",
+      "tx": "59fdc194"
+    },
+    {
+      "$note": "ms-features · Identification after Match RT: 11 of 11 named",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification&shown=2",
+      "px": "ea35813f",
+      "tx": "e863ccf2"
+    },
+    {
+      "$note": "ms-features · Identification at ±5 ppm: 1 formula",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification&tolerance=ppm&shown=2",
+      "px": "0aa03e06",
+      "tx": "cc64be35"
+    },
+    {
+      "$note": "ms-features · Identification at 1.5 min: one feature, neither standard",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification&window=1.5&shown=2",
+      "px": "86e6ee37",
+      "tx": "bbb54cce"
+    },
+    {
+      "$note": "ms-features · Identification at 0.05 min: 20 of 33 named, five features at m/z 131.035",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification&window=0.05&shown=2",
+      "px": "9ffa55b7",
+      "tx": "c4b6bb6f"
+    },
+    {
+      "$note": "ms-features · Identification, citric acid's m/z: one candidate",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification&row=191.020&shown=2",
+      "px": "ede1e8f1",
+      "tx": "2ed7136e"
+    },
+    {
+      "$note": "ms-features · dark: Peaks after Integrate",
+      "slug": "ms-features",
+      "state": "?theme=dark&shown=2",
+      "px": "96d125d1",
+      "tx": "a504fec8"
+    },
+    {
+      "$note": "ms-features · dark: Identification after Match RT",
+      "slug": "ms-features",
+      "state": "?theme=dark&page=identification&shown=2",
+      "px": "ede23c9f",
+      "tx": "e863ccf2"
+    },
+    {
+      "$note": "ms-features · DRIVEN: Detect mid-sweep, map and trace together",
+      "slug": "ms-features",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "b67f0d26",
+      "tx": "96698f3f"
+    },
+    {
+      "$note": "ms-features · DRIVEN: Integrate, the areas moving into the table",
+      "slug": "ms-features",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 100
+          }
+        ],
+        "click": "step",
+        "frames": 70,
+        "dt": 32
+      },
+      "px": "6fcb2de4",
+      "tx": "2c9130ae"
+    },
+    {
+      "$note": "ms-features · DRIVEN: Align, the bracket mid-walk",
+      "slug": "ms-features",
+      "state": "?theme=light&page=alignment",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "208a10a2",
+      "tx": "18351172"
+    },
+    {
+      "$note": "ms-features · DRIVEN: Match RT, every feature dropping onto the RT axis",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "0dddb9c3",
+      "tx": "59fdc194"
+    },
+    {
+      "$note": "ms-features · INTERRUPTED: Match mass done, then ±5 ppm: the ruler mid-zoom",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "set": {
+          "tolerance": "ppm"
+        },
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "2e542434",
+      "tx": "37cbe737"
+    },
+    {
+      "$note": "ms-features · INTERRUPTED: Align done, then 0.05 min: the bracket walks again",
+      "slug": "ms-features",
+      "state": "?theme=light&page=alignment",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 100
+          }
+        ],
+        "set": {
+          "window": "0.05"
+        },
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "d20cdae7",
+      "tx": "1d822d37"
+    },
+    {
+      "$note": "ms-features · INTERRUPTED: Detect, 5 frames in, then Identification: the press finishes, Identification opens unpressed",
+      "slug": "ms-features",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "identification"
+        },
+        "frames": 10
+      },
+      "px": "a4764c37",
+      "tx": "1f4dd3a0"
+    },
+    {
+      "$note": "ms-features · HIT: a click on malic acid's spot on the raw map draws its EIC",
+      "slug": "ms-features",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          106,
+          131
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "378ba964",
+      "tx": "424d1de0"
+    },
+    {
+      "$note": "ms-features · HIT: a click on citric acid's feature on the overview matches its m/z",
+      "slug": "ms-features",
+      "state": "?theme=light&page=identification",
+      "drive": {
+        "hit": [
+          137,
+          70
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "2f261d45",
+      "tx": "323850dc"
     }
   ]
 }

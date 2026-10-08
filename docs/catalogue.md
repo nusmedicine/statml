@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); 88's layout mocked and picked (six calls, all the recommendation); 88 SHIPPED AND PUSHED 2026-10-07 (00ae5f3, 22 states); 89 `imputation` SHIPPED AND PUSHED 2026-10-07 (18 states; Missing · Imputing, five methods and Mixed grouped by assumption, a filter, the two steps as a tree, every method's significant proteins side by side); 90 `limma` SHIPPED AND PUSHED 2026-10-07 (19 states; Shrinkage · Test under Step, 78's likelihood × prior = posterior under a histogram of own SDs, a volcano whose dots move vertically); 91 `qc-drift` SHIPPED AND PUSHED 2026-10-08 (17 states; Drift · Correction, grouped by default, a row of the 26 per correction applied); 93 `ms-features` PICKED 2026-10-08; NEXT 93** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The proteomics and metabolomics arc (PHM5003 09), PICKED 2026-10-05: 88 `target-decoy` · 89 `imputation` · 90 `limma` · 91 `qc-drift`, in the lessons' order, the drift simulated; MEASURED AND MOCKED the same day, his ten calls taken (all the recommendation); 88's layout mocked and picked (six calls, all the recommendation); 88 SHIPPED AND PUSHED 2026-10-07 (00ae5f3, 22 states); 89 `imputation` SHIPPED AND PUSHED 2026-10-07 (18 states; Missing · Imputing, five methods and Mixed grouped by assumption, a filter, the two steps as a tree, every method's significant proteins side by side); 90 `limma` SHIPPED AND PUSHED 2026-10-07 (19 states; Shrinkage · Test under Step, 78's likelihood × prior = posterior under a histogram of own SDs, a volcano whose dots move vertically); 91 `qc-drift` SHIPPED AND PUSHED 2026-10-08 (17 states; Drift · Correction, grouped by default, a row of the 26 per correction applied); 93 `ms-features` SHIPPED AND PUSHED 2026-10-08 as *Metabolomics: Peaks, Features and Identification* (29 states; Peaks · Alignment · Identification, one m/z followed through, every feature identified on the Peaks map's axes); the arc's picked slots COMPLETE** — § *The proteomics and metabolomics arc*, under PHM5003. Before it: **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` SHIPPED AND PUSHED 2026-10-01 (three pages by architecture, Encoder · Decoder · Encoder–decoder, each block's sections under a map of his figure, twenty-eight states); 85 `adapting` **SHIPPED AND PUSHED 2026-10-04** as *Deep Learning - Language: Training and Adapting* (19 states): from scratch · transfer · full · LoRA, each animating its weights' change with a blink, on three tasks under two data sets (Outcome · Drug error on synthetic clinical notes, Influenza host on HA proteins; 86 cut into it), the two training stages as cards; 87 `explainability` **SHIPPED AND PUSHED 2026-10-05** as *Deep Learning - Language: Explainability* (18 states; Attention · Integrated gradients · Occlusion on 85's models and rows); the arc COMPLETE — § *Slot 85*, § *Slot 87*** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -21018,7 +21018,7 @@ included) and the MTBLS6038 metabolite table (26 organic acids).
 | 90 | `limma` | 01-4 cells 0, 3–9 | limma shrinks the fold change (cell 9 says so) — it shrinks the variance toward a prior fitted across all proteins | **picked** |
 | 91 | `qc-drift` | 02-1 cells 0, 2; 02-3 cell 10 | per-sample normalization corrects instrument drift — each metabolite drifts its own way along the injection order, and only a curve through the pooled QCs follows it; run in group order, drift becomes a difference | **picked, simulated** (the lesson's data has no QCs) |
 | 92 | `rank-test` | 02-4 cells 0, 11–12 | the Wilcoxon test compares medians | **not picked**; a page of 5 `permutation-test` if ever |
-| 93 | `ms-features` | 02-1 cell 3 | an m/z match is an identification — MTBLS6038 holds three isomer pairs (glutaric/ethylmalonic C5H8O4 at RT 2.11/3.39, fumaric/maleic C4H4O4 at 2.2/1.78, adipic/3-methylglutaric C6H10O4 at 3.48/3.68), and ethylmalonic acid is 02-4's top hit | **PICKED 2026-10-08** on his word ("add 93"), after 90 shipped; built on the lesson's own m/z and RT, after 91; **MOCKED AND PICKED 2026-10-08** (nine calls, all the recommendation) — § *Slot 93* |
+| 93 | `ms-features` | 02-1 cell 3 | an m/z match is an identification — MTBLS6038 holds three isomer pairs (glutaric/ethylmalonic C5H8O4 at RT 2.11/3.39, fumaric/maleic C4H4O4 at 2.2/1.78, adipic/3-methylglutaric C6H10O4 at 3.48/3.68), and ethylmalonic acid is 02-4's top hit | **PICKED 2026-10-08** on his word ("add 93"), after 90 shipped; built on the lesson's own m/z and RT, after 91; **MOCKED AND PICKED 2026-10-08** (nine calls, all the recommendation); **SHIPPED AND PUSHED 2026-10-08** after four review rounds — § *Slot 93* |
 
 Left out on purpose: contaminant filtering (string matching), the Venn and
 Euler plots (a page of 89 if anything: detected in one group only), and
@@ -21555,7 +21555,7 @@ end); now only a page switch does. A toggle mid-Shrink leaves the press running
 (canvas checked); switch probe 0 flagged; 19/19 MATCH.
 
 
-### Slot 93 · `ms-features` — Metabolomics: from peaks to names (title for the copy audit)
+### Slot 93 · `ms-features` — Metabolomics: Peaks, Features and Identification
 
 #### MEASURED, MOCKED AND PICKED 2026-10-08 — `_lab/ms-features-mock.html`
 
@@ -21592,6 +21592,60 @@ standard decides (no MS2); the lesson's numbers with simulated peak shapes and
 noise; colours as drawn (detected peak `--c-empirical`, S/N line and standards
 `--c-reference`, features `--c-cluster-*`, the match `--c-highlight`); presses
 Detect, Integrate · Align · Match mass, Match RT.
+
+
+#### DRAFT AND FOUR REVIEW ROUNDS, 2026-10-08 — SHIPPED AND PUSHED
+
+`widgets/ms-features/` — `data.js` (generated by `_lab/ms-features-extract.mjs`
+from the 02-2 download: 26 metabolites, six real samples), `engine.js` (every
+m/z of the run as a row, 18 of them, simulated around the file's RTs and
+areas; a row's trace redrawn until its detections are exactly the file's
+non-zero peaks at S/N 3 or more; grouping by chained RT gaps; CHNOS formulas
+by mass; identification at any row's measured m/z) and `main.js`.
+
+- **Draft:** three pages as picked. Ten review findings in all came after.
+- **Round 1** (`_lab/ms-features-round1-mock.html`): his "the visual concept
+  in peak detection is not very clear". The map now opens on raw intensity
+  (`--c-magnitude`, so the cursor and the selection draw in ink), Detect rings
+  each spot at S/N 3 and brackets each peak's height in noise SDs, Integrate
+  moves each area into a table row; a tick axis with a bracket one window wide
+  on Alignment; the ruler zooms on a tolerance change; skeletal structures from
+  the MAF's SMILES; hover everywhere. The rings then marked the file's non-zero
+  values, three of which sit below S/N 3 at one noise level (the study measured
+  each metabolite against its own limit) — ringed only at S/N 3 or more since.
+- **Round 2** (`_lab/ms-features-round2-mock.html`): "why only certain
+  retention times?" The draft's zoom box was 10 m/z tall and enclosed malic and
+  pyroglutamic acid, which the trace never showed, and the map and trace used
+  two RT scales. Now one RT axis (0.8–5.6 min, 5 late eluters noted), the
+  trace a line one m/z thin, and a click on a spot picks the m/z. His draggable
+  RT window was mocked and not taken: the zoom was not the confusion.
+- **Round 3** (`_lab/ms-features-round3-mock.html`, his "review it from a
+  student's perspective"): the Feature control offered 1–5 against 2 features
+  and fell back silently, and **page 1 named the isomers** — the answer the last
+  page exists to reach. Now no name before Identification, every feature on the
+  RT row, the bands labelled by m/z · RT, eight wording fixes.
+- **Round 4** (`_lab/ms-features-round4-mock.html`): Identification "feels
+  stand alone". One m/z is followed through all three pages; Identification
+  opens on every feature of the run on the Peaks map's axes (11 of 11 named at
+  0.3 min, 9 of 10 at 1.5, 20 of 33 at 0.05), with the caveat that one
+  candidate per m/z reflects the study's list of 26; the table holds the chosen
+  m/z's features; a lone candidate unconfirmed by RT reads "(mass only)".
+- **Copy audit** (his picks): the title above; subtitle S1; blurb b2 cut to
+  the card's 120. "Row" was ours — the trace is the **extracted ion
+  chromatogram (EIC)** and the control is the m/z. Agency struck ("decides",
+  "names"), Schymanski et al. 2014 cited for the levels (level 1 needs the
+  standard's MS2 as well as its RT, checked against the paper's summary).
+  claudisms 0 of 292.
+
+**Fingerprint: 29 states** — 20 settled (two dark), 4 driven, 3 interrupted
+(a page switch mid-Detect hashes identically to the unpressed Identification
+page), 2 hit (a spot on the raw map, a feature on the overview). Three
+identical runs at DPR 1.25, the tab never hidden; 29/29 MATCH. **The
+Identification page runs past the harness's 1,200px frame** (its root's bottom
+1,268–1,362), so its canvas is 532px there rather than 547: consistent across
+the runs, but a DIFFER on those states alone should be re-run before it is
+believed. The switch probe flags the Identification switch at its default
+frame for the same reason and reads 0 at `?h=1800`.
 
 ---
 
