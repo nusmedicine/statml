@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 93 — ms-features round 1: clearer pictures, hover and tweens</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1900px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 116ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 116ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 116ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 93 &middot; <code>ms-features</code> &middot; round 1: what each step shows, hover and tweens</h1>
+  <p class="note">Your questions: what the Peaks page shows, how to make every step clearer, and where hover and tweens would help. Every frame below is drawn
+    from the draft's own engine (<code>widgets/ms-features/engine.js</code>, the same traces and features) at the draft's canvas width, 610px. Each arm is
+    drawn as the moments of its press. Tweens follow the rules we already use: only movement is eased, appearances switch at once, and a mover keeps to its own lane.
+    The blue-ruled boxes in &sect;5 are your calls.</p>
+
+  <h2>1 &middot; Peaks &mdash; what the draft does not show</h2>
+  <p class="note"><b>The concept:</b> an LC-MS run is <b>intensity everywhere</b> on an m/z &times; RT plane. Most of it is noise, with bright spots where a metabolite
+    reaches the detector. <b>Detection</b> picks out the spots that stand at least 3 noise SDs above the baseline. <b>Integration</b> turns each spot into one
+    number, its area, which becomes a row of the table. The draft shows none of the first part: its map starts empty and dots appear. The map and the
+    trace below it are on different RT scales, with nothing joining them. And S/N 3 is a dashed line, while the ratio itself is never drawn.</p>
+  <div class="row" id="peaksRow"></div>
+  <p class="rec"><b>B recommended.</b> (1) The map is <b>raw intensity</b>, noise and spots on the <code>--c-magnitude</code> ramp, before anything is pressed.
+    So the page opens on the data, and Detect has something to find. (2) A <b>zoom box</b> on the map, with connector lines down to the trace, makes the trace
+    visibly that box's row. (3) The trace draws the <b>noise band</b> (&plusmn;1 SD) and, at each detected peak, a <b>bracket from the baseline to the apex</b>
+    labelled in noise SDs: S/N shown as a length. (4) Integrate ends in a <b>table row per peak</b>; the tween moves each area's number down into its row,
+    in a lane of its own beside the trace. The hover shows what is under the pointer: a spot on the map (its name, m/z, RT and the file's area) or a point
+    on the trace (RT, intensity, S/N).</p>
+
+  <h2>2 &middot; Alignment &mdash; the window as a length</h2>
+  <p class="note"><b>The concept:</b> the same compound elutes a little earlier or later in each run. Alignment collects every sample's peaks on one RT axis
+    and joins neighbours closer than the window. In the draft the window is a number in the rail, and the bands simply grow.</p>
+  <div class="row" id="alignRow"></div>
+  <p class="rec"><b>B recommended.</b> Under the six traces sits one <b>RT axis with every peak as a tick</b>. Align slides a <b>bracket the width of the window</b>
+    along it, in its own lane. A tick within the bracket's reach of the one before it joins that feature, and the band above grows with it. So "0.3 min" is a
+    length the reader sees against the gaps. The hover highlights one peak (sample, RT, its shift) or one feature (its peaks in every row).</p>
+
+  <h2>3 &middot; Identification &mdash; the tolerance as a zoom, and the isomers as structures</h2>
+  <p class="note"><b>The concept:</b> a tighter mass tolerance leaves fewer formulas, down to one. That one formula is shared by two different molecules.
+    In the draft, switching the tolerance swaps one ruler for another, and the two candidates are only names.</p>
+  <div class="row" id="zoomRow"></div>
+  <div class="row" id="structRow"></div>
+  <p class="rec"><b>B and C recommended.</b> <b>B:</b> changing Mass tolerance <b>zooms the ruler</b> 50&times; over 0.9 s: the 40 ticks spread, those outside
+    leave at the edges, and the window narrows to the 5 nearest and then the 1. Hovering a tick names its formula and its error in ppm. <b>C:</b> the two
+    candidate cards draw their <b>skeletal structures</b>: the same five carbons and four oxygens, a straight chain against a branch. This puts "same formula,
+    different molecule" on the screen. The structures are drawn from the MAF's own SMILES strings.</p>
+
+  <h2>4 &middot; Hover and tweens, every page</h2>
+  <table>
+    <tr><th>page</th><th>hover shows</th><th>tween (movement only)</th></tr>
+    <tr><td>Peaks</td><td>map: the spot's name, m/z, RT and the file's area &middot; trace: RT, intensity, S/N at the pointer</td><td>Detect: the sweep (now) &middot; Integrate: each area's number moves into its table row</td></tr>
+    <tr><td>Alignment</td><td>a peak: sample, RT, its shift &middot; a feature band: its peaks in every row, brightened</td><td>Align: the window bracket slides along the tick axis &middot; a window change: band edges ease to their new places</td></tr>
+    <tr><td>Identification</td><td>a formula tick: formula, m/z, ppm from the feature &middot; a standard: its RT and the gap to the feature &middot; a table row (click selects, now)</td><td>Mass tolerance: the ruler zooms &middot; Match RT: the feature drops onto its RT (now)</td></tr>
+  </table>
+  <p class="note">Hover is an inspector only: the lecture screen has no hover, so nothing lives only there (core's pointer rule).</p>
+
+  <h2>5 &middot; Your calls</h2>
+  <p class="q"><b class="h">5.1 &middot; Peaks</b> A &middot; as drafted &nbsp;|&nbsp; <b>B &middot; raw intensity map, zoom box to the trace, noise band and S/N brackets, a table row per peak (recommended)</b></p>
+  <p class="q"><b class="h">5.2 &middot; Peaks colour</b> <b>A &middot; intensity on <code>--c-magnitude</code> (violet), and the sweep cursor and slice box in ink, since magnitude and highlight share a slot and never meet on one page (recommended)</b>
+    &nbsp;|&nbsp; B &middot; intensity on a grey ramp, highlight kept</p>
+  <p class="q"><b class="h">5.3 &middot; Alignment</b> A &middot; as drafted &nbsp;|&nbsp; <b>B &middot; a tick axis under the traces, the window as a sliding bracket (recommended)</b></p>
+  <p class="q"><b class="h">5.4 &middot; Identification, the tolerance</b> A &middot; as drafted, one ruler swapped for the other &nbsp;|&nbsp; <b>B &middot; the ruler zooms 50&times; (recommended)</b></p>
+  <p class="q"><b class="h">5.5 &middot; Identification, the candidates</b> A &middot; names on cards &nbsp;|&nbsp; <b>C &middot; skeletal structures on the cards (recommended)</b></p>
+  <p class="q"><b class="h">5.6 &middot; Hover</b> <b>A &middot; everything in &sect;4's table (recommended)</b> &nbsp;|&nbsp; B &middot; name which to drop</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../ms-features/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 610;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const b = el("div", "cand"); b.style.width = `${w}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(b, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; b.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const fmt = (x) => Math.round(x).toLocaleString("en-GB");
+function tip(ctx, x, y, lines) {
+  ctx.save(); ctx.font = `11px ${T.font}`;
+  const w = Math.max(...lines.map((s) => ctx.measureText(s).width)) + 16, h = lines.length * 15 + 8;
+  const bx = Math.min(x + 10, W - w - 6), by = y - h - 8;
+  rect(ctx, bx, by, w, h, T.surface2, T.ink3);
+  lines.forEach((s, i) => label(ctx, s, bx + 8, by + 17 + i * 15, { size: 11, colour: i ? T.ink2 : T.ink1, weight: i ? "" : "600" }));
+  ctx.restore();
+}
+
+/* the draft's own data: the same compute the widget runs (seed 1) */
+const traces = E.simulate(makeRng(1));
+const top = traces.map((t) => Math.max(...t.y) * 1.08);
+const J = 1, tr = traces[J];
+
+/* ---------------------------------------------------------------- the slice, shared */
+function slice(ctx, tr, P, top, { det = false, integ = false, band = false, brackets = false, ticks = true, peakColour = null } = {}) {
+  const sx = (t) => P.x0 + ((t - E.RT0) / (E.RT1 - E.RT0)) * (P.x1 - P.x0), sy = (v) => P.y1 - (Math.min(v, top) / top) * (P.y1 - P.y0);
+  line(ctx, P.x0, P.y1, P.x1, P.y1, T.axis);
+  if (ticks) for (let t = 1; t <= 4.5; t += 0.5) { line(ctx, sx(t), P.y1, sx(t), P.y1 + 3, T.axis); if (Number.isInteger(t)) label(ctx, String(t), sx(t), P.y1 + 14, { size: 10, colour: T.ink3, align: "center" }); }
+  if (band) rect(ctx, P.x0, sy(E.BASE + E.NOISE), P.x1 - P.x0, sy(E.BASE - E.NOISE) - sy(E.BASE + E.NOISE), wash(T.reference, 0.16));
+  if (integ) for (const d of tr.det) {
+    ctx.save(); ctx.fillStyle = wash(T.empirical, 0.45); ctx.beginPath(); ctx.moveTo(sx(tr.rt[d.lo]), sy(E.BASE));
+    for (let k = d.lo; k <= d.hi; k++) ctx.lineTo(sx(tr.rt[k]), sy(tr.y[k]));
+    ctx.lineTo(sx(tr.rt[d.hi]), sy(E.BASE)); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  polyline(ctx, tr.rt.map(sx), tr.y.map(sy), T.ink2, 1);
+  line(ctx, P.x0, sy(E.THRESHOLD), P.x1, sy(E.THRESHOLD), T.reference, 1.2, [5, 3]);
+  if (det) for (const d of tr.det) {
+    const x = sx(d.rt), y = sy(d.h + E.BASE);
+    if (brackets) {
+      line(ctx, x - 14, sy(E.BASE), x - 14, y, T.ink1, 1.4);
+      line(ctx, x - 18, sy(E.BASE), x - 10, sy(E.BASE), T.ink1, 1.4); line(ctx, x - 18, y, x - 10, y, T.ink1, 1.4);
+      label(ctx, `${d.sn.toFixed(1)} SD`, x - 20, (sy(E.BASE) + y) / 2 + 4, { size: 10, colour: T.ink1, align: "right", weight: "600" });
+    }
+    dot(ctx, x, y, 4, peakColour ? peakColour(d) : T.empirical);
+  }
+  return { sx, sy };
+}
+
+/* ---------------------------------------------------------------- §1 Peaks */
+function rawMap(ctx, M, j, { rings = false, cursor = null, dots = false }) {
+  const mx = (t) => M.x0 + (t / 10) * (M.x1 - M.x0), my = (m) => M.y1 - ((m - 80) / 150) * (M.y1 - M.y0);
+  // noise speckle and spots, on the magnitude ramp from surface-3; log intensity
+  const w = Math.round(M.x1 - M.x0), h = Math.round(M.y1 - M.y0), rng = makeRng(7);
+  const base = rgb(T.surface3), full = rgb(T.magnitude);
+  const img = ctx.createImageData(Math.round(w * DPR), Math.round(h * DPR));
+  const I = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) I[i] = Math.abs(rng.normal()) * E.NOISE;
+  E.METS.forEach((m) => {
+    const a = m.at[j]; if (a <= 0) return;
+    const cx = mx(m.rt + E.SHIFT[j]) - M.x0, cy = my(m.exact) - M.y0, sp = 1.8 * (E.SIG / 10) * w;   // drawn 1.8x wider than the trace's peak, to be visible at 10 min
+    for (let x = Math.floor(cx - 4 * sp); x <= cx + 4 * sp; x++) for (let y = Math.floor(cy - 3); y <= cy + 3; y++) {
+      if (x < 0 || y < 0 || x >= w || y >= h) continue;
+      I[y * w + x] += E.heightOf(a) * Math.exp(-0.5 * ((x - cx) / sp) ** 2) * Math.exp(-0.5 * ((y - cy) / 1.4) ** 2);
+    }
+  });
+  const lo = Math.log10(E.NOISE * 1.2), hi = Math.log10(E.heightOf(40000));
+  for (let py = 0; py < img.height; py++) for (let px = 0; px < img.width; px++) {
+    const v = I[Math.floor(py / DPR) * w + Math.floor(px / DPR)];
+    const f = Math.max(0, Math.min(1, (Math.log10(Math.max(v, 1)) - lo) / (hi - lo)));
+    const k = (py * img.width + px) * 4;
+    for (let c = 0; c < 3; c++) img.data[k + c] = base[c] + (full[c] - base[c]) * f;
+    img.data[k + 3] = 255;
+  }
+  ctx.putImageData(img, Math.round(M.x0 * DPR), Math.round(M.y0 * DPR));
+  line(ctx, M.x0, M.y1, M.x1, M.y1, T.axis); line(ctx, M.x0, M.y0, M.x0, M.y1, T.axis);
+  for (let t = 0; t <= 10; t += 2) label(ctx, String(t), mx(t), M.y1 + 13, { size: 10, colour: T.ink3, align: "center" });
+  for (let m = 100; m <= 220; m += 40) label(ctx, String(m), M.x0 - 6, my(m) + 3, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "m/z", M.x0 - 6, M.y0 - 6, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "RT (min)", M.x1, M.y1 + 26, { size: 10, colour: T.ink3, align: "right" });
+  if (rings) E.METS.forEach((m) => { if (m.at[j] > 0 && m.rt + E.SHIFT[j] <= (cursor ?? 99)) dot(ctx, mx(m.rt + E.SHIFT[j]), my(m.exact), dots ? Math.max(3, 1.5 + 1.6 * (Math.log10(m.at[j]) - 3)) : 6, null, T.ink1, 1.4); });
+  if (cursor != null && cursor < 10) line(ctx, mx(cursor), M.y0, mx(cursor), M.y1, T.ink1, 1.5);
+  return { mx, my };
+}
+function peaksB(ctx, moment) {
+  const M = { x0: 56, x1: W - 20, y0: 34, y1: 184 }, P = { x0: 56, x1: W - 20, y0: 250, y1: 390 };
+  label(ctx, `Sample ${E.SAMPLES[J].id} (${E.SAMPLES[J].cohort}): intensity at every m/z and RT`, 12, 18, { colour: T.ink1, weight: "600" });
+  const det = moment >= 1, integ = moment >= 2;
+  const g = rawMap(ctx, M, J, { rings: det, cursor: moment === 0.5 ? 2.6 : null, dots: integ });
+  // the zoom box and its connectors
+  const bx0 = g.mx(E.RT0), bx1 = g.mx(E.RT1), by0 = g.my(136), by1 = g.my(126);
+  rect(ctx, bx0, by0, bx1 - bx0, by1 - by0, null, T.ink1, 1.2);
+  line(ctx, bx0, by1, P.x0, P.y0 - 2, T.ink3, 1, [3, 3]); line(ctx, bx1, by1, P.x1, P.y0 - 2, T.ink3, 1, [3, 3]);
+  label(ctx, "The box at m/z 131.035: intensity against RT", P.x0 + 6, P.y0 + 14, { colour: T.ink1, weight: "600" });
+  const s = slice(ctx, tr, P, top[J], { det: moment >= 0.5, integ, band: true, brackets: det });
+  label(ctx, "S/N 3", P.x1 - 2, s.sy(E.THRESHOLD) - 4, { size: 10, colour: T.reference, align: "right" });
+  label(ctx, "noise ±1 SD", P.x0 + 4, s.sy(E.BASE - E.NOISE) + 13, { size: 10, colour: T.reference });
+  label(ctx, "retention time (min)", (P.x0 + P.x1) / 2, P.y1 + 30, { size: 10, colour: T.ink3, align: "center" });
+  // the table, a row per peak
+  const ty = 440;
+  label(ctx, "m/z", 20, ty, { size: 10, colour: T.ink3, mono: true }); label(ctx, "RT", 100, ty, { size: 10, colour: T.ink3, mono: true }); label(ctx, "area", 160, ty, { size: 10, colour: T.ink3, mono: true });
+  tr.det.forEach((d, r) => {
+    const y = ty + 18 + r * 16;
+    if (!integ) { label(ctx, "–", 20, y, { size: 10, colour: T.ink3, mono: true }); return; }
+    label(ctx, "131.035", 20, y, { size: 10, colour: T.ink1, mono: true }); label(ctx, d.rt.toFixed(2), 100, y, { size: 10, colour: T.ink1, mono: true }); label(ctx, fmt(d.area), 160, y, { size: 10, colour: T.empirical, mono: true, weight: "600" });
+  });
+  if (moment === 2) {
+    // the hover inspector, on a spot of the map
+    const m = E.ETH;
+    dot(ctx, g.mx(m.rt + E.SHIFT[J]), g.my(m.exact), 7, null, T.ink1, 2);
+    tip(ctx, g.mx(m.rt + E.SHIFT[J]), g.my(m.exact), [m.name, `m/z ${m.exact.toFixed(4)} · RT ${(m.rt + E.SHIFT[J]).toFixed(2)}`, `the file records ${fmt(m.at[J])}`]);
+  }
+}
+function peaksA(ctx) {
+  label(ctx, "the draft, after Integrate: dots on an empty map, a trace on another RT scale", 12, 18, { colour: T.ink1, weight: "600" });
+  const M = { x0: 56, x1: W - 20, y0: 34, y1: 184 };
+  const mx = (t) => M.x0 + (t / 10) * (M.x1 - M.x0), my = (m) => M.y1 - ((m - 80) / 150) * (M.y1 - M.y0);
+  line(ctx, M.x0, M.y1, M.x1, M.y1, T.axis); line(ctx, M.x0, M.y0, M.x0, M.y1, T.axis);
+  rect(ctx, M.x0, my(131) - 4, M.x1 - M.x0, 8, wash(T.highlight, 0.16));
+  E.METS.forEach((m) => { if (m.at[J] > 0) dot(ctx, mx(m.rt + E.SHIFT[J]), my(m.exact), Math.max(2, 1.5 + 1.6 * (Math.log10(m.at[J]) - 3)), T.empirical); });
+  slice(ctx, tr, { x0: 56, x1: W - 20, y0: 250, y1: 390 }, top[J], { det: true, integ: true });
+}
+{
+  const a = cand("peaksRow", "A · as drafted", "after Integrate", W); peaksA(canvasIn(a, W, 420));
+  for (const [m, t] of [[0, "B · 1 · before any press: the raw run, noise and spots"], [0.5, "B · 2 · mid-Detect: the sweep at RT 2.6 rings each spot it passes"], [2, "B · 3 · after Integrate: the brackets, the areas, a row per peak; hover on a spot"]]) {
+    const b = cand("peaksRow", t, m === 2 ? "the integrated areas move into their rows (the tween); map spots become dots sized by area" : m === 0.5 ? "the bracket on each detected peak is its height in noise SDs" : "the page opens on data, not on an empty frame", W);
+    peaksB(canvasIn(b, W, 500), m);
+  }
+}
+
+/* ---------------------------------------------------------------- §2 Alignment */
+function alignB(ctx, win, T1, hoverF = null) {
+  const x0 = 112, x1 = W - 20, y0 = 40, row = 40;
+  const sx = (t) => x0 + ((t - E.RT0) / (E.RT1 - E.RT0)) * (x1 - x0);
+  const fs = E.group(traces, win), yEnd = y0 + row * 6;
+  label(ctx, `m/z 131.035 in six samples · RT window ${win} min`, 12, 18, { colour: T.ink1, weight: "600" });
+  const colOf = new Map();
+  fs.forEach((f) => {
+    if (T1 < f.lo) return;
+    const c = T.clusters[f.k % 6], hi = Math.min(f.hi, T1);
+    rect(ctx, sx(f.lo) - 6, y0 - 4, sx(hi) - sx(f.lo) + 12, yEnd + 70 - y0, wash(c, hoverF === f.k ? 0.34 : 0.18));
+    label(ctx, sx(f.hi) - sx(f.lo) > 50 ? `feature ${f.k + 1}` : `${f.k + 1}`, (sx(f.lo) + sx(f.hi)) / 2, y0 - 10, { size: 10, colour: c, weight: "600", align: "center" });
+    f.peaks.forEach((p) => { if (p.rt <= T1) colOf.set(p, c); });
+  });
+  traces.forEach((t, j) => {
+    slice(ctx, t, { x0, x1, y0: y0 + j * row + 3, y1: y0 + (j + 1) * row - 3 }, top[j], { det: true, ticks: false, peakColour: (d) => colOf.get(d) ?? T.ink1 });
+    label(ctx, E.SAMPLES[j].id.slice(-3), x0 - 8, y0 + (j + 1) * row - 14, { size: 10, colour: T.ink1, align: "right", mono: true });
+  });
+  // the tick axis: every peak of every sample on one RT line
+  const ay = yEnd + 40;
+  label(ctx, "every peak, one axis", x0 - 8, ay + 4, { size: 10, colour: T.ink2, align: "right" });
+  line(ctx, x0, ay, x1, ay, T.axis);
+  traces.flatMap((t) => t.det).forEach((p) => line(ctx, sx(p.rt), ay - 9, sx(p.rt), ay + 9, colOf.get(p) ?? T.ink1, 2));
+  for (let t = 1; t <= 4; t++) label(ctx, String(t), sx(t), ay + 24, { size: 10, colour: T.ink3, align: "center" });
+  // the window bracket, sliding along the axis at the press's RT
+  if (T1 < 99) {
+    /* the bracket starts at the latest tick passed and reaches one window to the right:
+       the next tick joins the feature if it lands inside */
+    const last = traces.flatMap((t) => t.det).map((p) => p.rt).filter((r) => r <= T1).sort((a, b) => b - a)[0];
+    const bx = sx(last), bw = sx(E.RT0 + win) - sx(E.RT0);
+    line(ctx, bx, ay - 16, bx + bw, ay - 16, T.ink1, 2); line(ctx, bx, ay - 20, bx, ay - 12, T.ink1, 2); line(ctx, bx + bw, ay - 20, bx + bw, ay - 12, T.ink1, 2);
+    label(ctx, `${win} min`, bx + bw / 2, ay - 22, { size: 10, colour: T.ink1, align: "center", weight: "600" });
+  }
+  label(ctx, "retention time (min)", (x0 + x1) / 2, ay + 40, { size: 10, colour: T.ink3, align: "center" });
+}
+{
+  const a = cand("alignRow", "B · 1 · mid-Align, window 0.3: the press has reached RT 3.30", "the bracket reaches one window past the latest tick; the next tick joins the feature if it lands inside");
+  alignB(canvasIn(a, W, 380), 0.3, 3.30);
+  const b = cand("alignRow", "B · 2 · Align done, window 0.3; hover on feature 1", "the band brightens across every row; the bracket's work is done, so it is gone");
+  alignB(canvasIn(b, W, 380), 0.3, 99, 0);
+  const c = cand("alignRow", "B · 3 · Align done, window 0.05: the gaps are wider than the bracket", "five features; ethylmalonic acid split three ways");
+  alignB(canvasIn(c, W, 380), 0.05, 99);
+}
+
+/* ---------------------------------------------------------------- §3 Identification */
+const FMZ = E.FEATURE_MZ, all = E.formulas(FMZ, 0.62);
+function ruler(ctx, half, win, y, { hover = null } = {}) {
+  const x0 = 24, x1 = W - 140, lo = FMZ - half, hi = FMZ + half, rx = (m) => x0 + ((m - lo) / (hi - lo)) * (x1 - x0);
+  rect(ctx, rx(FMZ - win), y - 16, Math.max(2, rx(FMZ + win) - rx(FMZ - win)), 26, wash(T.highlight, 0.18));
+  line(ctx, x0, y + 10, x1, y + 10, T.axis);
+  let n = 0;
+  all.forEach((f) => { const x = rx(f.mz); if (x < x0 || x > x1) return; const inn = Math.abs(f.mz - FMZ) <= win; if (inn) n++; line(ctx, x, y - 12, x, y + 10, inn ? T.ink1 : T.ink3, 1.2); });
+  line(ctx, rx(FMZ), y - 18, rx(FMZ), y + 14, T.empirical, 2);
+  [lo, FMZ, hi].forEach((m) => label(ctx, m.toFixed(half > 0.1 ? 2 : 3), rx(m), y + 24, { size: 9, colour: T.ink3, align: "center", mono: true }));
+  label(ctx, `${n} formula${n === 1 ? "" : "s"} within ±${win > 0.01 ? win.toFixed(2) + " Da" : "5 ppm"}`, W - 14, y, { size: 11, colour: T.ink1, weight: "600", align: "right" });
+  if (hover) { const f = all.find((g) => g.f === hover); if (f) { line(ctx, rx(f.mz), y - 14, rx(f.mz), y + 12, T.ink1, 3); tip(ctx, rx(f.mz), y - 14, [f.f, `m/z ${f.mz.toFixed(4)}`, `${E.ppmOf(f.mz, FMZ).toFixed(0)} ppm from the feature`]); } }
+}
+{
+  const frames = [[0.6, 0.5, "Mass tolerance ±0.5 Da: 40 ticks"], [0.08, 0.06, "mid-zoom (0.4 s): ticks spread and leave at the edges"], [0.012, E.tolDa("ppm", FMZ), "±5 ppm: 6 ticks in view, 1 inside"]];
+  frames.forEach(([half, win, t], k) => {
+    const b = cand("zoomRow", `B · ${k + 1} · ${t}`, k === 2 ? "hover on a tick: its formula and its error from the feature" : "the scale eases between the two; the window narrows with it");
+    const ctx = canvasIn(b, W, 130);
+    ruler(ctx, half, win, 84, { hover: k === 2 ? "C6H4N4" : null });
+  });
+}
+/* skeletal formulas, from the MAF's SMILES: glutaric OC(=O)CCCC(O)=O, ethylmalonic CCC(C(O)=O)C(O)=O */
+function skeleton(ctx, x, y, kind) {
+  const s = 22, dx = s * Math.cos(Math.PI / 6), dy = s * Math.sin(Math.PI / 6);
+  const bond = (a, b, dbl = false) => {
+    line(ctx, a[0], a[1], b[0], b[1], T.ink1, 1.6);
+    if (dbl) { const nx = -(b[1] - a[1]), ny = b[0] - a[0], L = Math.hypot(nx, ny); line(ctx, a[0] + (nx / L) * 4, a[1] + (ny / L) * 4, b[0] + (nx / L) * 4, b[1] + (ny / L) * 4, T.ink1, 1.6); }
+  };
+  const O = (p, t) => { rect(ctx, p[0] - 9, p[1] - 8, 18, 16, T.surface2); label(ctx, t, p[0], p[1] + 4, { size: 11, colour: T.ink1, align: "center", weight: "600" }); };
+  if (kind === "glutaric") {
+    const c = [0, 1, 2, 3, 4].map((i) => [x + i * dx, y + (i % 2 ? -dy : dy)]);
+    for (let i = 0; i < 4; i++) bond(c[i], c[i + 1]);
+    const o1 = [c[0][0] - dx, c[0][1] - dy], o2 = [c[0][0], c[0][1] + s], o3 = [c[4][0] + dx, c[4][1] - dy], o4 = [c[4][0], c[4][1] + s];
+    bond(c[0], o1); bond(c[0], o2, true); bond(c[4], o3); bond(c[4], o4, true);
+    O(o1, "HO"); O(o2, "O"); O(o3, "OH"); O(o4, "O");
+  } else {
+    const ca = [x + 2 * dx, y + dy], c1 = [ca[0] - dx, ca[1] - dy], c2 = [ca[0] + dx, ca[1] - dy], e1 = [ca[0], ca[1] + s], e2 = [e1[0] + dx, e1[1] + dy];
+    bond(ca, c1); bond(ca, c2); bond(ca, e1); bond(e1, e2);
+    const o1 = [c1[0] - dx, c1[1] + dy], o2 = [c1[0], c1[1] - s], o3 = [c2[0] + dx, c2[1] + dy], o4 = [c2[0], c2[1] - s];
+    bond(c1, o1); bond(c1, o2, true); bond(c2, o3); bond(c2, o4, true);
+    O(o1, "HO"); O(o2, "O"); O(o3, "OH"); O(o4, "O");
+  }
+}
+{
+  const b = cand("structRow", "A · as drafted: names on cards", "");
+  const ctx = canvasIn(b, W, 150);
+  [E.GLU, E.ETH].forEach((m, k) => { const bx = 24 + k * 200; rect(ctx, bx, 40, 186, 44, T.surface2); label(ctx, m.name, bx + 8, 58, { colour: T.ink1, weight: "600" }); label(ctx, `${m.formula} · 1.6 ppm`, bx + 8, 74, { size: 10, mono: true, colour: T.ink2 }); });
+  const c = cand("structRow", "C · skeletal structures on the cards", "from the MAF's SMILES: five carbons and four oxygens in each; a straight chain against a branch");
+  const cx = canvasIn(c, W, 150);
+  [[E.GLU, "glutaric"], [E.ETH, "ethylmalonic"]].forEach(([m, kind], k) => {
+    const bx = 24 + k * 285;
+    rect(cx, bx, 8, 270, 136, T.surface2);
+    label(cx, m.name, bx + 10, 26, { colour: T.ink1, weight: "600" });
+    label(cx, `${m.formula} · ${m.exact.toFixed(4)}`, bx + 260, 26, { size: 10, mono: true, colour: T.ink2, align: "right" });
+    skeleton(cx, bx + 60, 80, kind);
+  });
+}
+</script>
+</body>
+</html>
