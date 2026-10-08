@@ -1350,8 +1350,8 @@
     },
     {
       "slug": "ms-features",
-      "title": "Metabolomics: Peaks to Names",
-      "blurb": "A mass match narrows the molecular formula; isomers share it, and the RT of an authentic standard decides between them.",
+      "title": "Metabolomics: Peaks, Features and Identification",
+      "blurb": "An LC-MS feature is an m/z and a retention time; isomers share the m/z, and only a standard tells them apart.",
       "course": "PHM5003",
       "topics": [
         "metabolomics",

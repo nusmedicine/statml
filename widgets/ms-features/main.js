@@ -245,7 +245,7 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
   rule(ctx, M.x0, my(row.mz), M.x1, my(row.mz), colors.ink1, 1.4);
   txt(ctx, colors, `m/z ${row.key}`, M.x1 - 4, my(row.mz) - 5, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
 
-  txt(ctx, colors, `The row at m/z ${row.key} ± 5 ppm: intensity against RT`, 12, P.y0 - 10, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, `Extracted ion chromatogram (EIC) at m/z ${row.key} ± 5 ppm`, 12, P.y0 - 10, { colour: colors.ink1, weight: "600" });
   const g = drawSlice(ctx, colors, tr, P, {
     upTo: detT, fillTo, top: state.top[j][r], band: true, brackets: true,
     label: (d, x, y) => txt(ctx, colors, `RT ${d.rt.toFixed(2)}`, x + 10, y + 4, { size: "fsXs", colour: colors.ink1, weight: "600" }),
@@ -261,7 +261,7 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
   txt(ctx, colors, "m/z", T.xMz, T.y, { size: "fsXs", colour: colors.ink3, mono: true });
   txt(ctx, colors, "RT", T.xRt, T.y, { size: "fsXs", colour: colors.ink3, mono: true });
   txt(ctx, colors, "area", T.xArea, T.y, { size: "fsXs", colour: colors.ink3, mono: true, align: "right" });
-  if (!tr.det.length && detT === Infinity) txt(ctx, colors, "no peak at S/N 3 or more in this row", T.xMz, T.y + 18, { size: "fsXs", colour: colors.ink3 });
+  if (!tr.det.length && detT === Infinity) txt(ctx, colors, "no peak at S/N 3 or more in this EIC", T.xMz, T.y + 18, { size: "fsXs", colour: colors.ink3 });
   tr.det.forEach((d, k) => {
     const ry = T.y + 18 + k * 16, seen = d.rt <= detT;
     txt(ctx, colors, seen ? row.key : "–", T.xMz, ry, { size: "fsXs", colour: seen ? colors.ink1 : colors.ink3, mono: true });
@@ -293,7 +293,7 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
         `m/z ${hoverSpot.key} · RT ${hoverSpot.rt.toFixed(2)} min`,
         `S/N ${hoverSpot.sn.toFixed(1)}: ${hoverSpot.sn >= 3 ? "above" : "below"} the line of 3`,
         `MTBLS6038 records an area of ${fmt(hoverSpot.m.at[j])}`,
-        here ? "its row is the trace below" : "a click makes its row the trace below",
+        here ? "its EIC is drawn below" : "a click draws its EIC below",
       ]);
     } else {
       dot(ctx, g.sx(tr.rt[i]), g.sy(tr.y[i]), 3, colors.ink1);
@@ -334,7 +334,7 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
   const sx = (t) => L.x0 + ((t - view[0]) / (view[1] - view[0])) * (L.x1 - L.x0);
   const ay = L.axis;
   const peaks = tRow.flatMap((t) => t.det);
-  txt(ctx, colors, `The row at m/z ${row.key} in six samples, each trace on its own scale`, 12, 18, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, `The EIC at m/z ${row.key} in six samples, each on its own scale`, 12, 18, { colour: colors.ink1, weight: "600" });
 
   // hover: a peak first, else a feature band
   let hoverPeak = null, hoverFeature = null;
@@ -375,7 +375,7 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
     txt(ctx, colors, s0.id.slice(-3), L.x0 - 8, P.y1 - 12, { size: "fsXs", colour: colors.ink1, align: "right", mono: true });
     txt(ctx, colors, groupWord(s0.cohort), L.x0 - 8, P.y1 + 1, { size: "fsXs", colour: colors.ink3, align: "right" });
   });
-  if (!peaks.length) txt(ctx, colors, "no peak at S/N 3 or more in this row, in any of the six samples", (L.x0 + L.x1) / 2, L.y0 + 3 * L.row, { colour: colors.ink2, align: "center" });
+  if (!peaks.length) txt(ctx, colors, "no peak at S/N 3 or more at this m/z, in any of the six samples", (L.x0 + L.x1) / 2, L.y0 + 3 * L.row, { colour: colors.ink2, align: "center" });
 
   // every peak on one RT axis, and the bracket one window wide
   txt(ctx, colors, "every peak", L.x0 - 8, ay + 4, { size: "fsXs", colour: colors.ink2, align: "right" });
@@ -464,7 +464,7 @@ function drawOverview(ctx, colors, w, params, state, stage, rowNow, pointer) {
   txt(ctx, colors, "m/z", M.x0 - 6, M.y0 - 6, { size: "fsXs", colour: colors.ink3, align: "right" });
   txt(ctx, colors, "RT (min)", M.x1, M.y1 + 28, { size: "fsXs", colour: colors.ink3, align: "right" });
   rule(ctx, M.x0, my(rowNow.mz), M.x1, my(rowNow.mz), colors.ink1, 1.3);
-  txt(ctx, colors, `m/z ${rowNow.key}: the row below`, M.x1 - 4, my(rowNow.mz) - 5, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
+  txt(ctx, colors, `m/z ${rowNow.key}: matched below`, M.x1 - 4, my(rowNow.mz) - 5, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
   let hover = null, named = 0, multi = 0;
   for (const x of all) {
     const px = mx(x.f.rt), py = my(x.row.mz), nm = nameOf(x, stage, tol), here = x.row === rowNow;
@@ -497,7 +497,7 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     txt(ctx, colors, sub, L.lx, y + 14, { size: "fsXs", colour: colors.ink3, align: "right" });
   };
   const hoverOv = drawOverview(ctx, colors, w, params, state, stage, row, pointer);
-  txt(ctx, colors, fs.length ? `The features at m/z ${row.key} (RT window ${params.window} min): RT ${rtList(fs)}` : `m/z ${row.key}: no feature in this row`, 12, L.title, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, fs.length ? `The features at m/z ${row.key} (RT window ${params.window} min): RT ${rtList(fs)}` : `m/z ${row.key}: no feature`, 12, L.title, { colour: colors.ink1, weight: "600" });
 
   // 1 · formulas within the tolerance: a ruler of every CHNOS formula's [M−H]⁻, zoomed by a tolerance change
   const z = anim && anim.zoom.t < 1 ? { from: anim.zoom.from, e: easeInOut(anim.zoom.t) } : null;
@@ -576,7 +576,7 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     if (rtP >= 1) {
       const nNamed = fs.filter((f) => E.identify(f, tol, mz).byRt.length === 1).length;
       level(ty - 66, nNamed ? "level 1" : "level 3", nNamed ? `${nNamed} of ${fs.length} named` : "no feature within ±0.1", nNamed > 0);
-      txt(ctx, colors, nNamed ? "with the standard's MS2" : "of a standard", L.lx, ty - 38, { size: "fsXs", colour: colors.ink3, align: "right" });
+      txt(ctx, colors, nNamed ? "once its MS2 matches too" : "of a standard", L.lx, ty - 38, { size: "fsXs", colour: colors.ink3, align: "right" });
     }
   }
 
@@ -587,7 +587,7 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
   txt(ctx, colors, "areas in six samples, by the last digits of each ID", w - RIGHT, L.table - 10, { size: "fsXs", colour: colors.ink3, align: "right" });
   const cols = [16, 82, 122, 280, ...E.SAMPLES.map((_, j) => w - RIGHT - (E.SAMPLES.length - 1 - j) * 42)];
   ["m/z", "RT", "name", "matched by", ...E.SAMPLES.map((s0) => s0.id.slice(-3))].forEach((c, k) => txt(ctx, colors, c, cols[k], L.table + 8, { size: "fsXs", colour: colors.ink3, mono: true, align: k >= 4 ? "right" : "left" }));
-  if (!fs.length) txt(ctx, colors, "no feature in this row", cols[0], L.table + 26, { size: "fsXs", colour: colors.ink3 });
+  if (!fs.length) txt(ctx, colors, "no feature at this m/z", cols[0], L.table + 26, { size: "fsXs", colour: colors.ink3 });
   fs.forEach((f, k) => {
     const y = L.table + 26 + k * TABLE_ROW, nm = nameOf({ f, row }, stage, tol);
     if (rowOver === f) box(ctx, 8, y - 11, w - RIGHT - 4, TABLE_ROW, colors.surface2);
@@ -600,7 +600,7 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     const nm = hoverOv.nm, lines = [`m/z ${hoverOv.x.row.key} · RT ${hoverOv.x.f.rt.toFixed(2)}`];
     if (stage >= 1) lines.push(`${nm.n} of the 26 within ${tol === "unit" ? "±0.5 Da" : "±5 ppm"}`);
     if (stage >= 2) lines.push(nm.hit ? `named ${nm.name.toLowerCase()}: its standard's RT` : "within ±0.1 min of no standard");
-    lines.push(hoverOv.x.row === row ? "its row is the one below" : "a click makes its row the one below");
+    lines.push(hoverOv.x.row === row ? "its m/z is matched below" : "a click matches its m/z below");
     tip(ctx, colors, w, hoverOv.px, hoverOv.py, lines);
   } else if (hoverTick) {
     rule(ctx, hoverTick.x, ry - 14, hoverTick.x, ry + 12, colors.ink1, 3);
@@ -629,7 +629,7 @@ const FORMULAS = {
   identification: {
     math: "<math><mrow><mi>error</mi><mo>=</mo><mfrac><mrow><msub><mi>m</mi><mtext>observed</mtext></msub><mo>−</mo><msub><mi>m</mi><mtext>exact</mtext></msub></mrow><msub><mi>m</mi><mtext>exact</mtext></msub></mfrac><mo>×</mo><msup><mn>10</mn><mn>6</mn></msup><mspace width='0.3em'/><mtext>ppm</mtext></mrow></math>",
     plain: "error = (m_observed − m_exact) / m_exact × 10⁶ ppm",
-    note: "m_exact is the [M−H]⁻ mass computed from a formula; molecules with the same formula have the same exact mass, so a mass match names a formula and leaves its structures open",
+    note: "m_exact is the [M−H]⁻ mass computed from a formula; molecules with the same formula have the same exact mass, so a mass match cannot tell them apart; the levels are Schymanski et al. 2014's: 5 exact mass, 4 molecular formula, 3 candidate structures, 1 confirmed by a reference standard",
   },
 };
 let mathHost = null, mathKey = null;
@@ -650,11 +650,11 @@ function renderFormula(key) {
 /* ------------------------------------------------------------ the widget */
 defineWidget({
   slug: "ms-features",
-  title: "Metabolomics: Peaks to Names",
+  title: "Metabolomics: Peaks, Features and Identification",
   subtitle:
-    "LC-MS records each metabolite as a peak at an m/z and a retention time (RT). Peaks are detected above the noise, "
-    + "integrated to an area, grouped across samples into features, and matched to a database. A mass match narrows the "
-    + "molecular formula; isomers share it, and the RT of an authentic standard decides between them.",
+    "LC-MS data are intensities at each m/z and retention time (RT). Peaks above the noise are integrated to areas and "
+    + "grouped across samples into features, each an m/z and an RT. An accurate mass narrows a feature to a molecular "
+    + "formula; isomers share a formula, and are told apart by the RT of an authentic standard.",
   layout: "side",
   status: "draft",
   pointer: true,
@@ -665,16 +665,16 @@ defineWidget({
       role: "page", type: "segmented", label: "Step", display: true, default: "peaks",
       options: [{ value: "peaks", label: "Peaks" }, { value: "alignment", label: "Alignment" }, { value: "identification", label: "Identification" }],
     },
-    rowSec: { type: "section", label: "The row" },
+    rowSec: { type: "section", label: "The m/z" },
     row: {
-      type: "select", label: "Row", display: true, default: E.ROWS[E.ROW_131].key,
-      detail: "the m/z followed through the three steps, with the RT of each metabolite MTBLS6038 reports at it; a click on a spot (Peaks) or a feature (Identification) selects its row",
+      type: "select", label: "m/z", display: true, default: E.ROWS[E.ROW_131].key,
+      detail: "the m/z followed through the three steps, with the RT of each metabolite MTBLS6038 reports at it; a click on a spot (Peaks) or a feature (Identification) selects its m/z",
       options: E.ROWS.map((r) => ({ value: r.key, label: `${r.key} · RT ${r.mets.map((m) => m.rt.toFixed(2)).join(", ")}` })),
     },
     peaksSec: { type: "section", label: "The sample", when: { param: "page", equals: "peaks" } },
     sample: {
       type: "select", label: "Sample", display: true, default: E.SAMPLES[1].id, when: { param: "page", equals: "peaks" },
-      detail: "six serum samples of MTBLS6038, with the areas its file records",
+      detail: "six serum samples of MTBLS6038, with the areas MTBLS6038 records",
       options: E.SAMPLES.map((s0) => ({ value: s0.id, label: sampleLabel(s0) })),
     },
     alignSec: { type: "section", label: "Grouping", when: { param: "page", equals: "alignment" } },
@@ -706,7 +706,7 @@ defineWidget({
     if (params.page === "identification") {
       return [
         { token: "empirical", label: "The feature: its m/z and its RT", mark: "line" },
-        { token: "highlight", label: "Within the tolerance, and the match", mark: "bar" },
+        { token: "highlight", label: "Within the mass tolerance; a standard matched by RT", mark: "bar" },
         { token: "reference", label: "An authentic standard's RT", mark: "line" },
       ];
     }
@@ -737,7 +737,7 @@ defineWidget({
       identification0: "Match mass", identification1: "Match RT", identificationdone: "Match RT",
     }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      peaks0: "Find the spots that stand at least three noise SDs above the baseline",
+      peaks0: "Find the spots at least three noise SDs above the baseline",
       peaks1: "Sum the area over the baseline under each detected peak, and enter it in the table",
       peaksdone: "Every peak in this sample has been detected and integrated",
       alignment0: "Group the six samples' peaks into features by retention time",
@@ -824,7 +824,7 @@ defineWidget({
       return [
         { label: `Peaks at m/z ${rowR.key}`, value: `${n}`, note: "above S/N 3, in the six samples" },
         { label: "Features", value: done ? `${fs.length}` : "–", note: done ? `RT window ${params.window} min` : "once the peaks are grouped" },
-        { label: "Feature RTs", value: done && fs.length ? fs.map((f) => f.rt.toFixed(2)).join(" · ") : "–", note: done ? (fs.length ? `m/z ${rowR.key}, found in ${fs.map((f) => nSamples(f)).join(" · ")} of the six samples` : "no peak to group in this row") : "once the peaks are grouped" },
+        { label: "Feature RTs", value: done && fs.length ? fs.map((f) => f.rt.toFixed(2)).join(" · ") : "–", note: done ? (fs.length ? `m/z ${rowR.key}, found in ${fs.map((f) => nSamples(f)).join(" · ")} of the six samples` : "no peak to group at this m/z") : "once the peaks are grouped" },
       ];
     }
     if (params.page === "identification") {
@@ -835,9 +835,9 @@ defineWidget({
       const named = all.filter((x) => E.identify(x.f, tol, E.measuredMz(x.row.mz)).byRt.length === 1).length;
       const mine = state.features[params.window][rr].map((f) => ({ f, hit: E.identify(f, tol, mz).byRt }));
       return [
-        { label: `Formulas at m/z ${rowR.key}`, value: stage >= 1 ? `${nF}` : "–", note: tol === "unit" ? "±0.5 Da: CHNOS, [M−H]⁻" : "±5 ppm: CHNOS, [M−H]⁻" },
+        { label: `Formulas at m/z ${rowR.key}`, value: stage >= 1 ? `${nF}` : "–", note: `${tol === "unit" ? "±0.5 Da" : "±5 ppm"}: formulas of C, H, N, O and S, as [M−H]⁻` },
         { label: "Candidates among the 26", value: stage >= 1 ? `${cands.length}` : "–", note: stage >= 1 ? (cands.map((m) => m.name).join(", ") || "none") : "once matched by mass" },
-        { label: "Features named in the run", value: stage >= 2 ? `${named} of ${all.length}` : "–", note: stage >= 2 ? (mine.map((x) => `RT ${x.f.rt.toFixed(2)}: ${x.hit.length === 1 ? x.hit[0].name.toLowerCase() : "no standard"}`).join(" · ") || `no feature at m/z ${rowR.key}`) : "once matched by RT" },
+        { label: "Features named in the run", value: stage >= 2 ? `${named} of ${all.length}` : "–", note: stage >= 2 ? (mine.map((x) => `RT ${x.f.rt.toFixed(2)}: ${x.hit.length === 1 ? x.hit[0].name.toLowerCase() : "not named"}`).join(" · ") || `no feature at m/z ${rowR.key}`) : "once matched by RT" },
       ];
     }
     const { s, p } = stageOf("peaks", params, anim);
@@ -846,7 +846,7 @@ defineWidget({
     const inRun = E.METS.filter((m) => m.rt <= E.RT1), nFile = inRun.filter((m) => m.at[j] > 0).length, nMap = inRun.filter((m) => m.at[j] > 0 && E.snOf(m.at[j]) >= 3).length;
     return [
       { label: `Peaks at m/z ${E.ROWS[r].key}`, value: detected ? `${tr.det.length}` : "–", note: detected ? (tr.det.length ? tr.det.map((d) => `RT ${d.rt.toFixed(2)}, S/N ${d.sn.toFixed(1)}`).join(" · ") : "none at S/N 3 or more") : "once detected" },
-      { label: "Areas", value: integrated && tr.det.length ? tr.det.map((d) => fmt(d.area)).join(" · ") : "–", note: integrated ? (tr.det.length ? `MTBLS6038 records ${tr.det.map((d) => fmt(d.who.at[j])).join(" · ")}` : "no peak to integrate in this row") : "once integrated" },
+      { label: "Areas", value: integrated && tr.det.length ? tr.det.map((d) => fmt(d.area)).join(" · ") : "–", note: integrated ? (tr.det.length ? `MTBLS6038 records ${tr.det.map((d) => fmt(d.who.at[j])).join(" · ")}` : "no peak to integrate in this EIC") : "once integrated" },
       { label: "Above S/N 3 in this sample", value: detected ? `${nMap} of ${inRun.length}` : "–", note: `of the metabolites eluting by ${E.RT1} min; MTBLS6038 records ${nFile} as non-zero, each measured against its own detection limit` },
     ];
   },
