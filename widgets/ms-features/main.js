@@ -26,7 +26,7 @@
  *   6. hover inspects everything named in the round 1 mock's § 4;
  *   7. one Row is followed through the three pages (round 4, his pick), and
  *      Identification opens on every feature of the run on the Peaks map's axes,
- *      with the table of every feature at its foot.
+ *      with the chosen row's features in the table at its foot.
  * Round 1 (his picks, `_lab/ms-features-round1-mock.html`): all four the
  * recommendation. The press clock is 91's: only a page switch ends a press.
  */
@@ -35,13 +35,13 @@ import * as E from "./engine.js";
 import { makeRng } from "../core/rng.js";
 
 const H_PEAKS = 500, H_ALIGN = 416;
-/* The Identification page's table holds every feature of the run, so its height
-   is the feature count's; a height reads only the parameters, so the run is
+/* The Identification page's table holds the chosen row's features, so its
+   height is that row's feature count; a height reads only the parameters, so the run is
    simulated once here as compute() does it (core seeds compute's rng with 1,
    this widget having no seed), and compute() checks that the counts agree. */
 const COUNTS = (() => {
   const t = E.simulate(makeRng(1));
-  return Object.fromEntries(E.WINDOWS.map((v) => [v, E.ROWS.reduce((n, _, r) => n + E.group(t.map((x) => x[r]), Number(v)).length, 0)]));
+  return Object.fromEntries(E.WINDOWS.map((v) => [v, E.ROWS.map((_, r) => E.group(t.map((x) => x[r]), Number(v)).length)]));
 })();
 const DETECT_MS = 3000, INTEGRATE_MS = 2600, ALIGN_MS = 3000, MASS_MS = 1500, RTM_MS = 1200;
 const WALK_MS = 1500, ZOOM_MS = 900;                 // the eases: a window change, a tolerance change
@@ -411,7 +411,7 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
    on is where the names arrive; Match mass marks each feature's candidates
    among the 26, Match RT names each that sits on its standard's RT. Under it,
    the funnel for the row followed through the pages (a click on a feature
-   picks it), and at the foot the table of every feature. */
+   picks it), and at the foot the table of that row's features. */
 const B = 236;                                       // where the funnel starts, under the overview
 const idLayout = (w) => ({ x0: 24, x1: w - RIGHT - LEVEL_W, lx: w - RIGHT, title: B, ruler: B + 66, cards: B + 144, rt: B + 348, table: B + 424 });
 const ovLayout = (w) => ({ x0: X0, x1: w - RIGHT, y0: 34, y1: 174 });
@@ -553,7 +553,7 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
   rule(ctx, L.x0, ty, L.x1, ty, colors.axis);
   for (let t = Math.ceil(T0 * 2) / 2; t <= T1 + 1e-9; t += 0.5) txt(ctx, colors, t.toFixed(1), tx(t), ty + 14, { size: "fsXs", colour: colors.ink3, align: "center" });
   let hoverStd = null, hoverDot = null;
-  const rowOver = pointer ? state.featuresAll[params.window].find((x, k) => { const y = L.table + 26 + k * TABLE_ROW; return pointer.y >= y - 11 && pointer.y < y + 4 && pointer.x >= 8; }) : null;
+  const rowOver = pointer ? fs.find((f, k) => { const y = L.table + 26 + k * TABLE_ROW; return pointer.y >= y - 11 && pointer.y < y + 4 && pointer.x >= 8; }) : null;
   if (rtP > 0) {
     cands.forEach((m) => {
       const hit = named(m);
@@ -567,7 +567,7 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     fs.forEach((f, k) => {
       const fx = tx(f.rt);
       dot(ctx, fx, y, 5, colors.empirical);
-      if (rowOver && rowOver.f === f) dot(ctx, fx, y, 9, null, colors.ink1, 2);
+      if (rowOver === f) dot(ctx, fx, y, 9, null, colors.ink1, 2);
       if (rtP >= 1) txt(ctx, colors, f.rt.toFixed(2), fx, ty + 28 + (k % 2) * 13, { size: "fsXs", colour: colors.empirical, align: "center", weight: "600" });
       if (near(pointer, fx, y, 8)) hoverDot = { f, fx, y };
     });
@@ -578,16 +578,19 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     }
   }
 
-  // the feature table: every feature of the run, the row followed shaded, names as far as the presses have gone
-  const all = state.featuresAll[params.window];
-  txt(ctx, colors, `The feature table: every feature of the run (RT window ${params.window} min)`, 12, L.table - 10, { colour: colors.ink1, weight: "600" });
-  const cols = [16, 82, 128, 214, 300, w - RIGHT - 120, w - RIGHT];
-  ["m/z", "RT", "formulas", "candidates", "name", "matched by", "samples"].forEach((c, k) => txt(ctx, colors, c, cols[k], L.table + 8, { size: "fsXs", colour: colors.ink3, mono: true, align: k === 6 ? "right" : "left" }));
-  all.forEach((x, k) => {
-    const y = L.table + 26 + k * TABLE_ROW, nm = nameOf(x, stage, tol), here = x.row === row;
-    if (here || rowOver === x) box(ctx, 8, y - 11, w - RIGHT - 4, TABLE_ROW, colors.surface2, rowOver === x ? 1 : 0.6);
-    const cells = [x.row.key, x.f.rt.toFixed(2), stage >= 1 ? String(state.formulas[x.r][tol].length) : "–", stage >= 1 ? String(nm.n) : "–", nm.hit ? short(nm.name) : nm.name, nm.by, `${new Set(x.f.peaks.map((pk) => pk.j)).size} of 6`];
-    cells.forEach((c, j) => txt(ctx, colors, c, cols[j], y, { size: "fsXs", mono: j !== 4, align: j === 6 ? "right" : "left", colour: j === 4 && nm.hit ? colors.highlight : colors.ink1, weight: here && j === 4 ? "600" : "" }));
+  /* the feature table: the chosen row's features, as the file a study deposits
+     holds them — m/z, RT, the name as far as the presses have gone, and the area
+     in each sample (his call: the overview above carries every other row) */
+  txt(ctx, colors, `The feature table: m/z ${row.key} (RT window ${params.window} min)`, 12, L.table - 10, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, "areas in six samples, by the last digits of each ID", w - RIGHT, L.table - 10, { size: "fsXs", colour: colors.ink3, align: "right" });
+  const cols = [16, 82, 122, 280, ...E.SAMPLES.map((_, j) => w - RIGHT - (E.SAMPLES.length - 1 - j) * 42)];
+  ["m/z", "RT", "name", "matched by", ...E.SAMPLES.map((s0) => s0.id.slice(-3))].forEach((c, k) => txt(ctx, colors, c, cols[k], L.table + 8, { size: "fsXs", colour: colors.ink3, mono: true, align: k >= 4 ? "right" : "left" }));
+  if (!fs.length) txt(ctx, colors, "no feature in this row", cols[0], L.table + 26, { size: "fsXs", colour: colors.ink3 });
+  fs.forEach((f, k) => {
+    const y = L.table + 26 + k * TABLE_ROW, nm = nameOf({ f, row }, stage, tol);
+    if (rowOver === f) box(ctx, 8, y - 11, w - RIGHT - 4, TABLE_ROW, colors.surface2);
+    const cells = [row.key, f.rt.toFixed(2), nm.hit ? short(nm.name) : nm.name, nm.by, ...f.area.map((a) => (a > 0 ? `${Math.round(a / 1000)}k` : "0"))];
+    cells.forEach((c, j) => txt(ctx, colors, c, cols[j], y, { size: "fsXs", mono: j !== 2, align: j >= 4 ? "right" : "left", colour: j === 2 && nm.hit ? colors.highlight : colors.ink1 }));
   });
 
   if (hoverOv) {
@@ -653,7 +656,7 @@ defineWidget({
   layout: "side",
   status: "draft",
   pointer: true,
-  height: (p) => (p.page === "identification" ? B + 424 + 26 + (COUNTS[p.window] ?? 11) * TABLE_ROW + 10 : p.page === "alignment" ? H_ALIGN : H_PEAKS),
+  height: (p) => (p.page === "identification" ? B + 424 + 26 + Math.max(1, COUNTS[p.window]?.[Math.max(0, E.ROWS.findIndex((r) => r.key === p.row))] ?? 2) * TABLE_ROW + 10 : p.page === "alignment" ? H_ALIGN : H_PEAKS),
 
   params: {
     page: {
@@ -720,7 +723,7 @@ defineWidget({
     const top = traces.map((rows) => rows.map((t) => Math.max(...t.y, E.THRESHOLD + 4 * E.NOISE) * 1.08));
     const features = Object.fromEntries(E.WINDOWS.map((v) => [v, E.ROWS.map((_, r) => E.group(traces.map((rows) => rows[r]), Number(v)))]));
     const featuresAll = Object.fromEntries(E.WINDOWS.map((v) => [v, features[v].flatMap((fs, r) => fs.map((f) => ({ r, row: E.ROWS[r], f }))).sort((a, b) => a.row.mz - b.row.mz || a.f.rt - b.f.rt)]));
-    for (const v of E.WINDOWS) if (featuresAll[v].length !== COUNTS[v]) console.error(`ms-features: ${featuresAll[v].length} features at ${v} min, the height expects ${COUNTS[v]}`);
+    for (const v of E.WINDOWS) features[v].forEach((fs, r) => { if (fs.length !== COUNTS[v][r]) console.error(`ms-features: ${fs.length} features at m/z ${E.ROWS[r].key}, ${v} min; the height expects ${COUNTS[v][r]}`); });
     const formulas = E.ROWS.map((row) => { const mz = E.measuredMz(row.mz); return { wide: E.formulas(mz, 0.6), unit: E.formulas(mz, 0.5), ppm: E.formulas(mz, E.tolDa("ppm", mz)) }; });
     return { traces, grids, top, features, featuresAll, formulas };
   },
