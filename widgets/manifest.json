@@ -1347,6 +1347,22 @@
       ],
       "arc": 91,
       "status": "shipped"
+    },
+    {
+      "slug": "ms-features",
+      "title": "Metabolomics: Peaks to Names",
+      "blurb": "A mass match narrows the molecular formula; isomers share it, and the RT of an authentic standard decides between them.",
+      "course": "PHM5003",
+      "topics": [
+        "metabolomics",
+        "LC-MS",
+        "peak detection",
+        "alignment",
+        "identification",
+        "isomers"
+      ],
+      "arc": 93,
+      "status": "draft"
     }
   ]
 }
