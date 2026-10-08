@@ -1,5 +1,53 @@
 # Handover
 
+**2026-10-08, night: 93 `ms-features` SHIPPED AND PUSHED (c07d009, 29 states)
+as "Metabolomics: Peaks, Features and Identification" — the record is the
+catalogue's § *Slot 93*.** Mock, draft and four review rounds in one session,
+every call his. The proteomics and metabolomics arc's picked slots (88–91, 93)
+are COMPLETE; 92 `rank-test` stays unpicked. NEXT: his call.
+
+**93 as shipped.** Step: **Peaks · Alignment · Identification**, one **m/z**
+followed through all three (a click on a spot or a feature picks it; default
+131.035, the glutaric/ethylmalonic pair). Peaks: one sample's raw m/z × RT
+intensity over 0.8–5.6 min on `--c-magnitude`, and on the same RT axis the
+**extracted ion chromatogram** (EIC); Detect rings spots at S/N 3 and brackets
+peak heights in noise SDs, Integrate moves each area into a table row.
+Alignment: the six samples' EICs, every peak a tick on one axis, a bracket one
+RT window wide (0.05 · 0.3 · 1.5) walking tick to tick; bands labelled m/z · RT.
+Identification: every feature of the run on the Peaks map's axes (Match mass
+marks candidates among the 26, Match RT names those on their standard's RT),
+then for the chosen m/z the formulas within ±0.5 Da · ±5 ppm (the ruler zooms),
+the candidates drawn as structures, every feature on the RT axis against each
+standard, Schymanski levels; the table holds the chosen m/z's features. No
+metabolite is named before Identification.
+
+**Worth knowing:**
+
+- **The Identification page runs past 1,200px**, the fingerprint harness's and
+  the switch probe's frame: its canvas is 532px there (547 elsewhere). The 29
+  states were three-run identical at that width; the probe needs `?h=1800`.
+  A DIFFER on those states alone: re-run before believing it.
+- **Identification's height is the chosen m/z's feature count**, counted at
+  module load by simulating the run as compute() does (core seeds rng with 1;
+  the widget has no seed); compute() logs an error if the counts disagree.
+  Adding a seed control would break that link.
+- **What the reviews found, for the next widget:** (1) a box drawn around more
+  than the trace shows (the zoom box enclosed two other metabolites); (2) two
+  RT scales for one moment; (3) **names leaking onto page 1** — the answer the
+  last page teaches, there for three rounds before a student walk-through
+  caught it; (4) a dropdown numbering things nothing else numbered; (5) "row",
+  our word for the field's EIC. Walk the pages in order as a student before
+  handing over.
+- **R/tidymass setup from the earlier 02-3 review** is in a previous session's
+  scratchpad and goes with it.
+
+**EIGHTY WIDGETS SHIPPED + `roc-auc` UNLISTED (eighty-one in the
+manifest).** Dev server: this session started `widgets-alt` on :8011;
+`widgets` now takes `autoPort` (8010 belongs to another chat).
+**SESSION CLOSED 2026-10-08.**
+
+---
+
 **2026-10-08, late: NO WIDGET CHANGES — the 02-3 metabolomics notebook,
 reviewed with tidymass installed and run. 93 `ms-features` is still NEXT.** The
 90 fix (c3e84b7) and the previous handover (1c1bfde) are pushed; `main` matches
