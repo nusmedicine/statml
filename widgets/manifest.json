@@ -1363,6 +1363,24 @@
       ],
       "arc": 93,
       "status": "shipped"
+    },
+    {
+      "slug": "graph-representation",
+      "title": "Deep Learning - Graphs: Representation",
+      "blurb": "A graph as a feature matrix and an edge list; SMILES holds every bond, though bonded atoms may be written far apart.",
+      "course": "PHM5005",
+      "topics": [
+        "graph",
+        "adjacency matrix",
+        "edge list",
+        "node features",
+        "SMILES",
+        "molecular graph",
+        "PyTorch Geometric",
+        "deep learning"
+      ],
+      "arc": 94,
+      "status": "draft"
     }
   ]
 }
