@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 93 — ms-features round 4: an overview on Identification</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1900px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 116ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 116ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 116ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 93 &middot; <code>ms-features</code> &middot; round 4: an overview that links Identification to the pages before it</h1>
+  <p class="note">Your point: Identification works on one row and stands apart from Peaks and Alignment. Two ways to show every feature being identified,
+    each drawn from the widget's engine with every row grouped across the six samples at the page's RT window. With either one, the row chosen on Peaks is
+    followed through all three pages, and a click on the overview picks the row the funnel below works on.</p>
+
+  <h2>1 &middot; Measured: every feature of the run, identified the same way</h2>
+  <table id="meas"></table>
+  <p class="note"><b>A caveat the page has to state.</b> Among the study's 26 metabolites, every row except m/z 131.035 has <b>one</b> candidate within
+    &plusmn;0.5 Da, so mass alone can look sufficient. It is not: 16&ndash;78 CHNOS formulas fit each row at &plusmn;0.5 Da (one at &plusmn;5 ppm), and a
+    database of every known metabolite holds more structures per formula. A single candidate here reflects a targeted study's short list. The
+    overview's note says so.</p>
+
+  <h2>2 &middot; Two overviews</h2>
+  <div class="row" id="armRow"></div>
+  <p class="rec"><b>A recommended.</b> It is the Peaks page's map with the noise taken away: every <b>feature</b> (a spot found in the samples and
+    grouped by Alignment) at its m/z and RT. Match mass marks how many of the 26 lie within the tolerance of each, and Match RT names each one that
+    sits on its standard's RT. So the page the student started on becomes the page where the names arrive. The funnel below (formulas,
+    candidates, standards) works on the row clicked, 131.035 by default. B, a table of every feature, says the same in numbers. It is a good companion
+    for the readout, but as the picture it repeats the table already at the foot of the page.</p>
+
+  <h2>3 &middot; Your calls</h2>
+  <p class="q"><b class="h">3.1 &middot; The overview</b> <b>A &middot; the feature map (recommended)</b> &nbsp;|&nbsp; B &middot; a table of every feature &nbsp;|&nbsp; both</p>
+  <p class="q"><b class="h">3.2 &middot; The row through the pages</b> <b>A &middot; one Row for all three pages: chosen on Peaks or by a click on either map,
+    followed by Alignment and Identification; default m/z 131.035 (recommended)</b> &nbsp;|&nbsp; B &middot; Peaks free, Alignment fixed at 131.035,
+    Identification picks from its map</p>
+  <p class="q"><b class="h">3.3 &middot; Where it sits</b> <b>A &middot; above the funnel, the page's first figure; the page grows by about 170px (recommended)</b>
+    &nbsp;|&nbsp; B &middot; in place of the table at the foot</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../ms-features/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 610;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub) { const b = el("div", "cand"); b.style.width = `${W}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(b, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; b.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill) { ctx.save(); ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1.4) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+
+const traces = E.simulate(makeRng(1));
+function features(win) {
+  return E.ROWS.flatMap((row, r) => E.group(traces.map((t) => t[r]), win).map((f) => {
+    const cands = E.candidates(row.mz, "unit"), hit = cands.filter((m) => Math.abs(f.rt - m.rt) <= E.RT_TOL);
+    return { row, f, cands, name: hit.length === 1 ? hit[0].name : null, nForm: E.formulas(row.mz, 0.5).length, nPpm: E.formulas(row.mz, row.mz * 5e-6).length, nS: new Set(f.peaks.map((p) => p.j)).size };
+  }));
+}
+{
+  const rows = [0.05, 0.3, 1.5].map((w) => { const fs = features(w); return `<tr><td>${w} min</td><td>${fs.length}</td><td>${fs.filter((x) => x.name).length}</td><td>${fs.filter((x) => x.cands.length > 1).length}</td></tr>`; });
+  document.getElementById("meas").innerHTML = "<tr><th>RT window</th><th>features in the run</th><th>named by m/z and RT</th><th>with 2 candidates by mass</th></tr>" + rows.join("");
+}
+
+/* A · the feature map: the Peaks map's axes, every feature a dot */
+function featureMap(ctx, win, stage, sel = "131.035") {
+  const fs = features(win);
+  const M = { x0: 56, x1: W - 20, y0: 36, y1: 196 };
+  const mx = (t) => M.x0 + ((t - E.RT0) / (E.RT1 - E.RT0)) * (M.x1 - M.x0), my = (m) => M.y1 - ((m - 80) / 150) * (M.y1 - M.y0);
+  label(ctx, `Every feature of the run (RT window ${win} min): its m/z and RT`, 12, 18, { colour: T.ink1, weight: "600" });
+  rect(ctx, M.x0, M.y0, M.x1 - M.x0, M.y1 - M.y0, T.surface2);
+  line(ctx, M.x0, M.y1, M.x1, M.y1, T.axis); line(ctx, M.x0, M.y0, M.x0, M.y1, T.axis);
+  for (let t = 1; t <= 5; t++) label(ctx, String(t), mx(t), M.y1 + 13, { size: 10, colour: T.ink3, align: "center" });
+  for (let m = 100; m <= 220; m += 40) label(ctx, String(m), M.x0 - 6, my(m) + 3, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "m/z", M.x0 - 6, M.y0 - 4, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "RT (min)", M.x1, M.y1 + 26, { size: 10, colour: T.ink3, align: "right" });
+  line(ctx, M.x0, my(Number(sel)), M.x1, my(Number(sel)), T.ink1, 1.3);
+  label(ctx, `m/z ${sel}: the row below`, M.x1 - 4, my(Number(sel)) - 5, { size: 10, colour: T.ink1, align: "right", weight: "600" });
+  let named = 0;
+  fs.forEach((x) => {
+    const px = mx(x.f.rt), py = my(x.row.mz);
+    if (stage === 0) { dot(ctx, px, py, 4.5, T.empirical); return; }
+    if (stage === 1) { if (x.cands.length > 1) { dot(ctx, px, py, 6, null, T.ink1, 1.6); label(ctx, "2", px + 8, py + 4, { size: 10, colour: T.ink1, weight: "700" }); } else dot(ctx, px, py, 4.5, T.ink1); return; }
+    if (x.name) { named++; dot(ctx, px, py, 5, T.highlight); if (x.row.key === sel) label(ctx, x.name.replace(" acid", ""), px, py - 9, { size: 10, colour: T.highlight, weight: "600", align: "center" }); }
+    else { dot(ctx, px, py, 6, null, T.ink1, 1.6); label(ctx, "?", px, py - 10, { size: 10, colour: T.ink1, weight: "700" }); }
+  });
+  const text = stage === 0 ? `${fs.length} features` : stage === 1 ? `${fs.filter((x) => x.cands.length > 1).length} with 2 candidates · ${fs.filter((x) => x.cands.length === 1).length} with 1` : `${named} of ${fs.length} named`;
+  label(ctx, text, M.x1 - 4, M.y0 + 14, { size: 11, colour: T.ink1, weight: "700", align: "right" });
+  label(ctx, "candidates come from the study's 26; a full database holds more structures for each formula", 12, M.y1 + 42, { size: 10, colour: T.ink3 });
+}
+{
+  const frames = [[0.3, 0, "A · 1 · before Match mass: every feature, grouped across the six samples"], [0.3, 1, "A · 2 · after Match mass (±0.5 Da): candidates among the 26"], [0.3, 2, "A · 3 · after Match RT: each named by its standard"], [1.5, 2, "A · 4 · RT window 1.5: the isomers merged into one feature, unnamed"]];
+  for (const [w, st, t] of frames) {
+    const b = cand("armRow", t, st === 1 ? "ringed with 2: the two features at m/z 131.035; every other row has one candidate" : st === 2 ? "names drawn for the selected row; every other feature named on hover" : "the same axes as the Peaks map: a spot there is a feature here, once grouped");
+    featureMap(canvasIn(b, W, 250), w, st);
+  }
+}
+/* B · the table of every feature */
+{
+  const fs = features(0.3).sort((a, b) => a.row.mz - b.row.mz || a.f.rt - b.f.rt);
+  const b = cand("armRow", "B · a table of every feature (RT window 0.3, after Match RT)", "the m/z 131.035 rows marked; a click on a row picks it for the funnel");
+  const ctx = canvasIn(b, W, 40 + fs.length * 17);
+  const cols = [16, 84, 130, 214, 300, 440];
+  ["m/z", "RT", "formulas ±0.5", "candidates", "name", "samples"].forEach((c, k) => label(ctx, c, cols[k], 22, { size: 10, colour: T.ink3, mono: true }));
+  fs.forEach((x, r) => {
+    const y = 40 + r * 17;
+    if (x.row.key === "131.035") rect(ctx, 8, y - 12, W - 16, 16, T.surface2);
+    [x.row.key, x.f.rt.toFixed(2), String(x.nForm), String(x.cands.length), x.name ?? "?", `${x.nS} of 6`].forEach((c, k) => label(ctx, c, cols[k], y, { size: 10, mono: k !== 4, colour: k === 4 && x.name ? T.highlight : T.ink1 }));
+  });
+}
+</script>
+</body>
+</html>
