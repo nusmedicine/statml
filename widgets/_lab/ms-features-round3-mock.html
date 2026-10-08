@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 93 — ms-features round 3: a student's walk-through</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1900px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 116ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 116ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 1200px; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.n { font-family: var(--font-mono); color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 93 &middot; <code>ms-features</code> &middot; round 3: the widget read as a student</h1>
+  <p class="note">I walked the three pages in order as a student would, asking at each one what they can see, what they are told, and whether it
+    connects to the page before. Ten findings, most serious first. Each comes with the smallest fix that answers it. The Identification change is the one
+    that alters a layout, so it is drawn below at the widget's width, from the widget's own engine.</p>
+
+  <h2>1 &middot; Findings</h2>
+  <table>
+    <tr><th>#</th><th>page</th><th>what a student meets</th><th>the fix</th></tr>
+    <tr><td class="n">1</td><td>Identification</td><td><b>The Feature list offers 1&ndash;5, and the numbers match nothing.</b> Alignment labels bands by m/z and RT, and at 0.3 min there are 2 features, so "Feature 4" silently shows feature 2. The page also draws one feature at a time, while its table holds all of them.</td><td><b>Remove the Feature control.</b> Rows 1 and 2 are the same for every feature in the row, since they share the m/z. Row 3 draws <b>every</b> feature on the RT axis against both standards, and the table names each one. (&sect;2)</td></tr>
+    <tr><td class="n">2</td><td>Peaks</td><td><b>The answer appears on page 1.</b> Detect labels the two peaks "Glutaric" and "Ethylmalonic". The row's title says "(Glutaric and Ethylmalonic)", and the map's hover names every spot. The widget's own point is that the m/z cannot tell these two apart, and a real untargeted run has no names at this stage.</td><td><b>No names before Identification.</b> Peaks are labelled by RT, and the trace's title is the m/z alone. The hover gives m/z, RT, S/N and area. The Row list gives each m/z with its spots' RTs ("131.035 &middot; RT 2.16, 3.45").</td></tr>
+    <tr><td class="n">3</td><td>Alignment</td><td>A student who picked malic acid's row on Peaks arrives at a page about m/z 131.035, with no word on why.</td><td>Title: "The row at m/z 131.035 in six samples: two peaks to group". The rail's detail says Alignment and Identification follow this one row.</td></tr>
+    <tr><td class="n">4</td><td>Identification</td><td>The title reads "Feature 2 of 2: m/z 131.0352, RT 3.38 min". The m/z has 4 decimals here and 3 everywhere else.</td><td>Title: "The features at m/z 131.035 (RT window 0.3 min): RT 2.09 and 3.38". The measured 131.0352 appears only where ppm is computed, labelled "measured".</td></tr>
+    <tr><td class="n">5</td><td>Identification</td><td>"2 &middot; The 26 metabolites within the tolerance" reads as if there were 26 within it.</td><td>"2 &middot; Of the study's 26 metabolites, those within the tolerance".</td></tr>
+    <tr><td class="n">6</td><td>Identification</td><td>The readout's "Identified" names one feature.</td><td>"Features named: 2 of 2"; the note gives each pair and its name.</td></tr>
+    <tr><td class="n">7</td><td>Alignment</td><td>The readout's "Largest feature" is a choice the page never explains.</td><td>"Features: 2", with the note listing each pair ("m/z 131.035 &middot; RT 2.09, 3 samples; &middot; RT 3.38, 6 samples").</td></tr>
+    <tr><td class="n">8</td><td>Peaks</td><td>"the file records 16,300 &middot; 78,700": "the file" is our word.</td><td>"MTBLS6038 records &hellip;", the study's name, as the rail uses it.</td></tr>
+    <tr><td class="n">9</td><td>all</td><td>The feature table's sample columns read 925, 932&hellip;, the last three digits of IDs that the Peaks rail spells in full.</td><td>Keep, with a header note: "areas in six samples (last digits of the ID)".</td></tr>
+    <tr><td class="n">10</td><td>Identification</td><td>At 0.05 min two features are both named ethylmalonic acid, and two stay unresolved. With one feature drawn at a time, the student cannot see why.</td><td>Answered by fix 1: five dots on the RT row show which fall inside a standard's &plusmn;0.1 min and which miss.</td></tr>
+  </table>
+
+  <h2>2 &middot; Identification with every feature on the RT row (fixes 1, 4, 10)</h2>
+  <p class="note">After Match RT, row 3 and the table, at each RT window. The Feature control is gone. Each feature is a dot at its RT,
+    labelled by its RT. A dot inside a standard's &plusmn;0.1 min band takes that standard's name, and a dot inside neither stays "glutaric or ethylmalonic".</p>
+  <div class="row" id="idRow"></div>
+  <p class="rec"><b>All ten recommended.</b> Fixes 1 and 2 matter most: one gives the last page something to show that the earlier pages connect to,
+    the other stops page 1 from giving away the last page's answer. The rest are wording.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../ms-features/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 610;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub) { const b = el("div", "cand"); b.style.width = `${W}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(b, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; b.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill) { ctx.save(); ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); ctx.restore(); }
+function dot(ctx, x, y, r, fill) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
+
+/* the widget's own draws: traces first, as its compute does */
+const traces = E.simulate(makeRng(1)), t131 = traces.map((rows) => rows[E.ROW_131]);
+const cands = [E.GLU, E.ETH];
+const nameOf = (f) => { const hit = cands.filter((m) => Math.abs(f.rt - m.rt) <= E.RT_TOL); return hit.length === 1 ? hit[0].name.replace(" acid", "") : "Glutaric or Ethylmalonic"; };
+
+for (const win of ["0.3", "1.5", "0.05"]) {
+  const fs = E.group(t131, Number(win));
+  const b = cand("idRow", `RT window ${win} min: ${fs.length} feature${fs.length > 1 ? "s" : ""}`, fs.map((f) => `RT ${f.rt.toFixed(2)} → ${nameOf(f)}`).join("\n"));
+  const ctx = canvasIn(b, W, 150 + fs.length * 17);
+  label(ctx, `The features at m/z 131.035 (RT window ${win} min): RT ${fs.map((f) => f.rt.toFixed(2)).join(", ")}`, 12, 18, { colour: T.ink1, weight: "600" });
+  label(ctx, "3 · Retention time against each standard (±0.1 min)", 12, 44, { colour: T.ink1, weight: "600" });
+  const x0 = 24, x1 = W - 140, T0 = 1.5, T1 = 4.0, tx = (t) => x0 + ((t - T0) / (T1 - T0)) * (x1 - x0), ty = 100;
+  line(ctx, x0, ty, x1, ty, T.axis);
+  for (let t = T0; t <= T1 + 1e-9; t += 0.5) label(ctx, t.toFixed(1), tx(t), ty + 14, { size: 10, colour: T.ink3, align: "center" });
+  cands.forEach((m) => {
+    const hit = fs.some((f) => Math.abs(f.rt - m.rt) <= E.RT_TOL);
+    rect(ctx, tx(m.rt - E.RT_TOL), ty - 30, tx(m.rt + E.RT_TOL) - tx(m.rt - E.RT_TOL), 30, wash(hit ? T.highlight : T.reference, 0.18));
+    line(ctx, tx(m.rt), ty - 32, tx(m.rt), ty, T.reference, 2);
+    label(ctx, `${m.name.replace(" acid", "")} standard ${m.rt}`, tx(m.rt), ty - 38, { size: 10, colour: hit ? T.highlight : T.ink2, align: "center", weight: hit ? "600" : "" });
+  });
+  fs.forEach((f, k) => { dot(ctx, tx(f.rt), ty - 12, 5, T.empirical); label(ctx, f.rt.toFixed(2), tx(f.rt), ty + 28 + (k % 2) * 11, { size: 10, colour: T.empirical, align: "center", weight: "600" }); });
+  const named = fs.filter((f) => nameOf(f) !== "Glutaric or Ethylmalonic").length;
+  label(ctx, `${named} of ${fs.length} named`, W - 14, ty - 12, { colour: T.ink1, weight: "700", align: "right" });
+  // the table
+  const ty0 = 156, cols = [16, 82, 122, 300];
+  ["m/z", "RT", "name", "matched by"].forEach((c, k) => label(ctx, c, cols[k], ty0, { size: 10, colour: T.ink3, mono: true }));
+  fs.forEach((f, r) => {
+    const n = nameOf(f), y = ty0 + 17 + r * 17, hit = n !== "Glutaric or Ethylmalonic";
+    [`131.035`, f.rt.toFixed(2), n, hit ? "m/z, RT" : "m/z"].forEach((c, k) => label(ctx, c, cols[k], y, { size: 10, mono: k !== 2, colour: k === 2 && hit ? T.highlight : T.ink1 }));
+  });
+}
+</script>
+</body>
+</html>
