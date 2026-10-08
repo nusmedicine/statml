@@ -24347,6 +24347,129 @@ arc's); and leave for the network (pip, the Hub configs, his figures).
 
 ---
 
+## The graph arc — PROPOSED AND PICKED 2026-10-09, from `09-1` and `09-2`
+
+**Kenneth's ask, 2026-10-09:** *we need to work on PHM5005 notebooks on DL for
+graph data … PHM5003 interleaves with PHM5005, so we need to prepare for this
+next set before returning to multi-omics.* (The multi-omics arc, PHM5003 10,
+was proposed in chat the day before — shared components · DIABLO · selection
+bias — and not picked; it takes the next free numbers when it returns.) Five
+slots proposed; **he picked three the same day — 94, 95, 97, in the lessons'
+order** — and allowed `pip install rdkit` (2026.03.6) and the download of the
+lesson's molecule file to `_lab/graph-fingat-training.csv` (untracked; 2,335
+SMILES and `Activity`, from the URL 09-2 cell 20 loads).
+
+**The two notebooks were read in full** from the Master copies (no outputs):
+`09-1 Overview` (27 cells: graphs as relations, adjacency matrix and edge list,
+node and edge features, networkx with degree, density and clustering, the GNN
+layer, stacking for hops, node / edge / graph tasks with readout, PyG's `Data`,
+`GCNConv` and `GATConv`, explainability families and GNNExplainer) and
+`09-2 Molecular` (93: caffeine → SMILES → RDKit → `x`, `edge_index`,
+`edge_attr`; a scaffold split of 2,335 E. coli growth-inhibition molecules by
+`GroupShuffleSplit`; a 2-layer GCN and a 2-layer GAT, both max-pooled, class
+weighted, scored by macro F1; GNNExplainer on test molecule 3). Hosts below are
+cell indices in those files.
+
+### What is already covered
+
+| existing widget | what it already does for this week |
+|---|---|
+| 83 `attention` | α as a softmax over scores — GAT's attention is the same operation over a node's neighbours |
+| 87 `explainability` | an attribution is not the mechanism — GNNExplainer's mask is one more attribution |
+| 49 `processing-layers` | a Graph page was declined there (2026-09-10): node-and-arc geometry and a PyG dependency |
+| 72 `signal-windows` | a split by subject — 97's split by scaffold is the same idea for molecules |
+| 54 `loss-functions`, 55 `optimizers`, `metrics` | the training set-up 09-2 repeats |
+
+### The slots
+
+| # | slug (provisional) | host | misconception | state |
+|---|---|---|---|---|
+| 94 | `graph-representation` | 09-1 cells 1–4, 25; 09-2 cells 1, 9–17 | *"SMILES lose some of the spatial and relational information"* (09-2 cell 1) — a SMILES string records every bond; what it lacks is locality (a ring-closure bond joins atoms far apart in the string) and uniqueness (one molecule, many strings). Pages: Graph (drawing ↔ adjacency ↔ `edge_index`, an undirected bond stored both ways, renumbering the nodes gives the same graph) · Molecule (caffeine's characters linked to its atoms, then `x`, `edge_index`, `edge_attr`) | **picked**; prerequisite for 95 |
+| 95 | `message-passing` | 09-1 cells 22–25; 09-2 cells 39–42, 62–64 | a GNN sees the whole molecule, and more layers always help — after k layers an atom has seen k hops, and with depth every atom's vector converges (oversmoothing; Li et al. 2018). Pages: Aggregate (one atom gathers its neighbours in any order; GCN's 1/√(dᵢdⱼ) against GAT's learned α) · Layers (the reach grows hop by hop; vectors converge) · Readout (sum · mean · max; two molecules mean pooling cannot separate and sum can; Xu et al. 2019) | **picked**; 96 folded into its Aggregate page |
+| 96 | `graph-attention` | 09-2 cells 40, 63 | GCN against GAT as its own widget | **not picked** — a page of 95 |
+| 97 | `scaffold-split` | 09-2 cells 18, 23–30 | a random split tests the model on new chemistry — molecules sharing a backbone sit on both sides of it, and the score is optimistic (MoleculeNet, Wu et al. 2018; Yang et al. 2019). Pages: Scaffold (a molecule stripped to its Murcko scaffold) · Split (random against scaffold, a test score each) | **picked**; measured on the lesson's own 2,335 molecules |
+| 98 | `gnn-explainer` | 09-2 cells 84–92 | the highlighted bonds are why the molecule stops E. coli growing, and the mask is unique | **not picked** — 87 teaches it |
+
+### Notebook findings, to tell him (from reading; told 2026-10-09)
+
+1. **09-1 cell 25**'s GCN is a plain mean over neighbours without the node
+   itself; **09-2 cell 40** gives what `GCNConv` computes (self-loops,
+   1/√(dᵢdⱼ)). The two disagree.
+2. **09-2 cell 40**: GCN represents bond type *"implicitly through graph
+   connectivity"* — `GCNConv` never sees `edge_attr`; a single and a double
+   bond are the same edge to it. Only atom features (hydrogens, hybridization)
+   carry a trace of bond order.
+3. **09-2 cell 32**: `ATOM_VOCAB = list(atoms_set)` — string hashing is
+   randomised per Python session, so the one-hot columns can change order
+   between sessions and a saved checkpoint stops matching a fresh session's
+   features. `sorted(atoms_set)` fixes it.
+4. **09-2 cell 28**: `GroupShuffleSplit(test_size=0.2)` takes 20% of the
+   *scaffolds*, not the molecules — the split is not 80/10/10 by molecule.
+5. **09-2 cell 18**'s *label split* is what is usually called a random
+   (stratified) split.
+
+**Build order** is the lessons': 94 → 95 → 97.
+
+### MEASURED AND MOCKED 2026-10-09
+
+`_lab/graph-arc-measure.py` (RDKit 2026.03.6 + scikit-learn, ~30 s) reads the
+lesson's file and writes the untracked `graph-arc-measure.json`;
+`_lab/graph-arc-export.py` writes the untracked `graph-arc-mock-data.json`
+(caffeine, the readout pairs, the quinolone family, one split's
+similarities) for `_lab/graph-arc-mock.html`. His ten graph figures were
+copied from his Dropbox `Images` folder into `_lab/figs/dl-graph-*.png`.
+
+The file: 2,335 rows, 2,334 parse, **120 active (5.1%)**, 681 salts, median
+22 atoms (max 136).
+
+- **94 holds.** All 2,334 come back identical through RDKit's canonical
+  SMILES — the string loses no bond. 29% of the 58,760 bonds join atoms not
+  next to each other in the string, 11% more than five apart, the furthest
+  118. Caffeine: 15 bonds, 6 non-adjacent, the ring closure 13–1 spans 12;
+  5,000 random writes give 1,232 distinct strings, all one molecule.
+- **95 holds.** Caffeine's diameter is 6 (atom 0 has gathered from 1 · 2 · 4
+  · 7 · 10 · 13 atoms after 0–5 layers); two layers reach 42% of its atom
+  pairs and 29% in the average molecule (diameter median 10, 90th percentile
+  17, max 51). Oversmoothing on caffeine, mean pairwise cosine distance:
+  random W + ReLU 1.03 → 0.09 by five layers; propagation alone 1.03 → 0.19
+  by twelve; the file's mean, propagation alone, 1.00 → 0.82 by twelve.
+  **Pooling, by two 1-WL rounds on cell 32's atom features:** no pair in the
+  file is identical under sum or mean; **4 pairs are identical under max**,
+  the lesson's pooling — chain-length homologues (suberic C8 / azelaic C9
+  acid, two bis-quaternary ammonium bromides, two isoprenoid alcohols, a
+  pyrrolidine / piperidine pair), all with the same label. Cyclopropane /
+  cyclohexane: identical under mean and max, not sum.
+- **97 holds, with a qualification.** 1,114 scaffolds, 860 of them one
+  molecule; benzene is the scaffold of 278, the empty (acyclic) scaffold of
+  208. Ten seeds, 20% test, random forest (500 trees, class-weighted) on
+  Morgan fingerprints r 2: random split AUC 0.89 (0.82–0.95), macro F1 0.80,
+  test actives found 54%; scaffold split AUC 0.84 (0.70–0.97), F1 0.75,
+  actives found 42%. A training neighbour above 0.7 Tanimoto: 21% of test
+  molecules under random, 6% under scaffold. **But 60% of scaffold-split test
+  actives still have an active as their most similar training molecule (57%
+  random)** — a family spans scaffolds: ciprofloxacin and gatifloxacin share
+  one, norfloxacin (ethyl at N1 for cyclopropyl) has another, all three
+  active. The scaffold split's test set runs 324–689 molecules across seeds.
+  1-NN is weak (AUC 0.64 random, 0.46 scaffold) — not a widget model.
+
+**Five more notebook findings, measured** (6–10 on the mock's § 4): the
+lesson's split is 1,960 / 202 / 173 and **its test set holds 5 actives**, so
+cells 57 and 79's test F1 rests on five molecules; 29% of molecules are salts
+whose counter-ion is a separate piece of the graph that max pooling includes;
+one SMILES (an aluminium sucrose sulfate) does not parse, which shifts
+`test_set` against `test_idx` in cell 92; `dl-graph-molecule-scaffold.png`
+labels 3-methylindole as *2-methyindole*; 09-1 cell 3 numbers nodes from 1,
+cell 25 and PyG from 0.
+
+**The mock's calls (§ 5, fourteen):** 94's pages and molecule; numbering
+from 0; atoms as nodes or skeletal; 95's pages, Aggregate stage (his chain
+then caffeine), GAT as a control, untrained weights, the readout pair; 97's
+data (the lesson's molecules if FinGAT's / Stokes et al. 2020's terms allow
+public display — unchecked), model (a forest table computed ahead), and claim
+(the similarity histogram leads); slugs and titles; colours. NEXT: his calls.
+
+---
+
 ## Two arcs, not one — now three
 
 The evaluation arc below was written before any notebook had been read. Reading

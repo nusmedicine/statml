@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · the graph arc — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+          border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 104ch; }
+  .tell ol { margin: 4px 0 0; padding-left: 20px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; vertical-align: top; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 150ch; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 190px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.eng { border-color: var(--c-group-a); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+  img.fig { max-height: 150px; border: 1px solid var(--grid); background: #fff; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The graph arc &middot; PHM5005 09 &middot; mock</h1>
+  <p class="note">
+    Three picked slots, 94 &rarr; 95 &rarr; 97 in the lessons' order, the leading figures of each drawn at the widget's 550px.
+    Molecules, 2-D coordinates, scaffolds and one split's similarities come from <code>graph-arc-mock-data.json</code>, which
+    <code>_lab/graph-arc-export.py</code> writes with RDKit from the lesson's own file; the 10-seed numbers from
+    <code>graph-arc-measure.py</code> (&sect;0). Everything else is computed on this page. The mock draws filled states so they
+    can be judged; a widget opens empty. On-canvas strings are candidates for the copy audit, not copy. Blue-ruled boxes are
+    my recommendations, grey-ruled ones the calls only you can answer (&sect;5), red-ruled ones what the lesson says (&sect;4).
+  </p>
+  <div class="row">
+    <img class="fig" src="figs/dl-graph-overview.png" alt="">
+    <img class="fig" src="figs/dl-graph-edge-undirected.png" alt="">
+    <img class="fig" src="figs/dl-layer-gnn.png" alt="">
+    <img class="fig" src="figs/dl-graph-predict-graph.png" alt="">
+    <img class="fig" src="figs/dl-graph-molecule-scaffold.png" alt="">
+  </div>
+  <p class="note">Your figures, which the arms below follow: nodes as filled circles with a name, a node's features as a row of
+    cells above it, a dashed ring for what a node gathers, a bracket from related molecules to their scaffold.</p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings">loading&hellip;</div>
+
+  <h2>1 &middot; Slot 94 <code>graph-representation</code> &mdash; a graph as tables, and a molecule as a graph (09-1 cells 1&ndash;4, 25; 09-2 cells 1, 9&ndash;17)</h2>
+  <p class="note"><b>Graph page.</b> Left: your triangle, undirected and directed, with the adjacency matrix and the edge list
+    numbered from 0 as PyG numbers them (your figures number from 1; &sect;5.3). One edge is picked: its two cells in A and
+    its column(s) in <code>edge_index</code> light together. Right: 09-1 cell 25's four proteins, their <code>x</code> and
+    <code>edge_index</code>, then the same graph with the nodes numbered in another order &mdash; every table changes, the
+    graph does not.</p>
+  <div class="row" id="g94a"></div>
+  <p class="note"><b>Molecule page.</b> Caffeine (09-2 cell 6). The SMILES string above the graph, each atom's character
+    carrying the atom's number; a bond picked lights its two characters and how far apart they sit. Below: the tensors cell
+    11&ndash;13 builds. Right: four of the 1,232 different strings RDKit writes for caffeine in 5,000 tries, all one graph.</p>
+  <div class="row" id="g94b"></div>
+  <p class="rec">Two pages, <b>Graph &middot; Molecule</b>. The claim measured on the lesson's file: every one of the 2,334
+    molecules that parse comes back identical through RDKit's canonical SMILES, so the string loses no bond; but 29% of
+    the 58,760 bonds join atoms that are not next to each other in the string, 11% join atoms more than five apart, the
+    furthest 118. In caffeine 6 of 15 bonds are non-adjacent; the ring-closure bond (atoms 13&ndash;1) spans 12. What a graph
+    adds is that each bond is an entry in <code>edge_index</code> however the string was written.</p>
+
+  <h2>2 &middot; Slot 95 <code>message-passing</code> &mdash; gather, stack, pool (09-1 cells 22&ndash;25; 09-2 cells 39&ndash;42, 62&ndash;64)</h2>
+  <p class="note"><b>Aggregate page.</b> Arm A is your <code>dl-layer-gnn.png</code> computed: three nodes, three features,
+    node 2's new row the weighted sum of itself and its neighbours (GCN's 1/&radic;(d<sub>i</sub>d<sub>j</sub>), self-loops
+    counted). Arm B is the same step on caffeine, one atom and the weights on its bonds: GCN's fixed by degree, against GAT's
+    &alpha; (untrained weights here, so only their form is meaningful).</p>
+  <div class="row" id="g95a"></div>
+  <p class="note"><b>Layers page.</b> What atom 0 (caffeine's first methyl carbon) has gathered from after k layers; the
+    lesson stacks two. Right: how alike the atoms' vectors become with depth &mdash; mean pairwise cosine distance, 1 when
+    the vectors are unrelated, 0 when every atom carries the same vector.</p>
+  <div class="row" id="g95b"></div>
+  <p class="note"><b>Readout page.</b> After two layers each atom's vector is fixed by what it has seen; atoms that saw the
+    same thing get the same vector (coloured alike). Pooling turns the molecule's atoms into one vector. Arm A is the
+    lesson's own data: suberic acid (8 carbons, inactive) against azelaic acid (9, inactive) &mdash; one more middle CH&#8322;.
+    Arm B is the all-alike pair: cyclopropane against cyclohexane.</p>
+  <div class="row" id="g95c"></div>
+  <p class="rec">Three pages, <b>Aggregate &middot; Layers &middot; Readout</b>, GCN against GAT a control on Aggregate (96
+    folded in). Measured: caffeine's diameter is 6, so atom 0 needs six layers to have gathered from all 14 atoms; two layers
+    reach 42% of caffeine's atom pairs and 29% of the pairs in the average molecule of the lesson's file (median diameter 10,
+    the largest 51). With random weights and ReLU the atoms' vectors in caffeine fall from a cosine distance of 1.03 to 0.09
+    by five layers; propagation alone, to 0.19 by twelve. <b>The lesson pools with max</b>, and after two layers four pairs in
+    its file are identical under max pooling and differ under mean and sum &mdash; chain-length homologues, as arm A. No pair
+    is identical under mean pooling with the lesson's atom features.</p>
+
+  <h2>3 &middot; Slot 97 <code>scaffold-split</code> &mdash; a scaffold, and two ways to split (09-2 cells 18, 23&ndash;30)</h2>
+  <p class="note"><b>Scaffold page.</b> Three quinolones from the lesson's file, all three active. A Murcko scaffold keeps
+    the rings and the chains joining them and removes everything else (dimmed). Ciprofloxacin and gatifloxacin share a
+    scaffold; norfloxacin has an ethyl where they have a cyclopropyl ring, and the ring is part of the scaffold &mdash; so
+    norfloxacin is a different group, and a scaffold split may put it on the other side from its relatives.</p>
+  <div class="row" id="g97a"></div>
+  <p class="note"><b>Split page.</b> Every test molecule's similarity (Tanimoto on Morgan fingerprints, radius 2) to the most
+    similar molecule in its training set, under a random split (above) and a scaffold split (below), seed 0, 20% of the
+    file (or of its scaffolds). Actives are the dots. Right: what a model scores on each, over ten seeds.</p>
+  <div class="row" id="g97b"></div>
+  <p class="rec">Two pages, <b>Scaffold &middot; Split</b>. Measured over ten seeds: under a random split 21% of test molecules
+    have a training molecule above 0.7 similarity, under a scaffold split 6%; a random forest on the fingerprints scores AUC
+    0.89 against 0.84 and finds 54% of test actives against 42%. <b>But the scaffold split does not separate the actives'
+    families</b>: 60% of test actives still have an active as their most similar training molecule (57% under a random split),
+    because families such as the quinolones span several scaffolds. And the scaffold split's test set moves from 324 to 689
+    molecules with the seed, because <code>test_size</code> counts scaffolds and benzene alone is the scaffold of 278
+    molecules.</p>
+
+  <h2>4 &middot; What the lessons say, for you to fix</h2>
+  <div class="tell"><b>Told from reading, 2026-10-09:</b>
+    <ol>
+      <li><b>09-1 cell 25</b>'s GCN is a plain mean over neighbours without the node itself; <b>09-2 cell 40</b> gives what
+        <code>GCNConv</code> computes (self-loops, 1/&radic;(d<sub>i</sub>d<sub>j</sub>)).</li>
+      <li><b>09-2 cell 40</b>: GCN carries bond type <i>implicitly through connectivity</i> &mdash; <code>GCNConv</code> never
+        sees <code>edge_attr</code>; a single and a double bond are the same edge to it.</li>
+      <li><b>09-2 cell 32</b>: <code>ATOM_VOCAB = list(atoms_set)</code> can order the one-hot columns differently in every
+        Python session; <code>sorted(atoms_set)</code>.</li>
+      <li><b>09-2 cell 28</b>: <code>GroupShuffleSplit(test_size=0.2)</code> takes 20% of the scaffolds, not the molecules.</li>
+      <li><b>09-2 cell 18</b>'s <i>label split</i> is usually called a random (stratified) split.</li>
+    </ol>
+    <b>New, measured on the lesson's file:</b>
+    <ol start="6">
+      <li><b>The lesson's test set holds 5 actives</b> (173 molecules, 2.9% active); its split is 1,960 / 202 / 173, not
+        80 / 10 / 10. The test F1 in cells 57 and 79 rests on five molecules.</li>
+      <li><b>681 of 2,334 molecules (29%) are salts</b> (<code>.Cl</code>, <code>.[Na+]</code>, &hellip;): the counter-ion
+        becomes a separate piece of the graph, no message crosses to it, and max pooling includes its atoms.</li>
+      <li><b>One SMILES does not parse</b> (an aluminium sucrose sulfate); <code>MoleculeDataset</code> drops it, so
+        <code>df.iloc[test_idx[idx]]</code> in cell 92 can name the wrong molecule if it falls before the chosen index.</li>
+      <li><b><code>dl-graph-molecule-scaffold.png</code></b> labels the top molecule <i>2-methyindole</i> but draws the methyl
+        at position 3 (3-methylindole, skatole); and <i>methyindole</i> lacks an l.</li>
+      <li><b>09-1 cell 3</b> numbers the nodes from 1 (X: 1, Y: 2, Z: 3, as your figures do); cell 25 and PyG number from 0.</li>
+    </ol>
+  </div>
+
+  <h2>5 &middot; The calls</h2>
+  <p class="q"><b class="h">5.1 &middot; 94's pages</b>
+    <b>A &middot; Graph &middot; Molecule (recommended)</b> &nbsp;|&nbsp; B &middot; Molecule only; the triangle and the tables as its first press</p>
+  <p class="q"><b class="h">5.2 &middot; 94's molecule</b>
+    <b>A &middot; caffeine, the lesson's (recommended)</b> &nbsp;|&nbsp; B &middot; a Molecule control over caffeine, ciprofloxacin and one small salt from the file</p>
+  <p class="q"><b class="h">5.3 &middot; Numbering</b>
+    <b>A &middot; from 0 everywhere, as PyG and cell 25 (recommended: <code>edge_index</code> is what the reader types)</b> &nbsp;|&nbsp; B &middot; from 1 on the Graph page, as your figures and cell 3</p>
+  <p class="q"><b class="h">5.4 &middot; How atoms are drawn</b>
+    <b>A &middot; as nodes, a filled circle with its element, every atom including carbon (recommended: the arc is about nodes)</b> &nbsp;|&nbsp;
+    B &middot; as a chemist draws them, carbons unlabelled, as RDKit and your scaffold figure</p>
+  <p class="q"><b class="h">5.5 &middot; 95's pages</b>
+    <b>A &middot; Aggregate &middot; Layers &middot; Readout (recommended)</b> &nbsp;|&nbsp; B &middot; Aggregate &middot; Layers; pooling as a note</p>
+  <p class="q"><b class="h">5.6 &middot; 95's Aggregate stage</b>
+    A &middot; your three-node chain only &nbsp;|&nbsp; <b>B &middot; your chain first, then caffeine (recommended: the chain reads, caffeine is where degree differs)</b> &nbsp;|&nbsp; C &middot; caffeine only</p>
+  <p class="q"><b class="h">5.7 &middot; 95's GAT</b>
+    <b>A &middot; a Layer control GCN &middot; GAT on Aggregate, the weights on the bonds changing (recommended)</b> &nbsp;|&nbsp; B &middot; GCN only</p>
+  <p class="q"><b class="h">5.8 &middot; 95's weights</b>
+    <b>A &middot; untrained, seeded: hops, smoothing and pooling are properties of the graph and the layer, not of training (recommended)</b> &nbsp;|&nbsp;
+    B &middot; a small GCN trained in the page on a toy task</p>
+  <p class="q"><b class="h">5.9 &middot; 95's Readout pair</b>
+    <b>A &middot; the lesson's suberic and azelaic acid, under the lesson's max pooling (recommended)</b> &nbsp;|&nbsp; B &middot; cyclopropane and cyclohexane &nbsp;|&nbsp; C &middot; both, a Pair control</p>
+  <p class="q"><b class="h">5.10 &middot; 97's data</b>
+    <b>A &middot; the lesson's 2,334 molecules, precomputed (fingerprints, scaffolds, split results) &mdash; if the file's terms allow it to be shown publicly; the FinGAT repository carries no licence I have checked yet, and the molecules come from Stokes et al. 2020 (recommended, once checked)</b> &nbsp;|&nbsp;
+    B &middot; simulated families that behave the same way</p>
+  <p class="q"><b class="h">5.11 &middot; 97's model</b>
+    <b>A &middot; scores computed ahead, a random forest on fingerprints per seed and split, as 70's Rank table (recommended)</b> &nbsp;|&nbsp;
+    B &middot; nearest neighbour live in the page (weak: AUC 0.64 random, 0.46 scaffold)</p>
+  <p class="q"><b class="h">5.12 &middot; 97's claim, after the measurement</b>
+    <b>A &middot; the similarity histogram leads and the score follows: a scaffold split removes shared ring systems and the score drops; the quinolones on the Scaffold page show what it does not remove (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the score only</p>
+  <p class="q"><b class="h">5.13 &middot; Slugs and titles</b>
+    <code>graph-representation</code> &middot; <code>message-passing</code> &middot; <code>scaffold-split</code>; titles in the DL prefix,
+    as 83&ndash;87: <b>Deep Learning - Graphs: Representation</b> &middot; <b>Deep Learning - Graphs: Message Passing</b> &middot;
+    <b>Deep Learning - Graphs: Scaffold Split</b> &mdash; yours to rename; a slug is a public URL.</p>
+  <p class="q"><b class="h">5.14 &middot; Colours, as drawn</b>
+    a node <code>--surface-2</code> ringed in ink &middot; the picked node or bond <code>--c-highlight</code> &middot; its neighbours
+    <code>--c-group-a</code> &middot; atoms alike after two layers <code>--c-cluster-a&hellip;f</code> &middot; a node's features
+    <code>--c-magnitude</code> ramp &middot; random split <code>--c-group-a</code>, scaffold split <code>--c-group-b</code> &middot; an
+    active <code>--c-event</code> &middot; the side chain a scaffold removes <code>--ink-3</code>. Any to change?</p>
+
+  <h2>6 &middot; The rails, as proposed</h2>
+  <div class="rail"><span class="w">graph-representation</span><span class="pg">Graph</span><span class="pg">Molecule</span><span class="n">09-1 cells 1&ndash;4, 25; 09-2 cells 1, 9&ndash;17 &middot; Edges Undirected &middot; Directed; a click picks a node or bond</span></div>
+  <div class="rail"><span class="w">message-passing</span><span class="pg">Aggregate</span><span class="pg">Layers</span><span class="pg">Readout</span><span class="n">09-1 cells 22&ndash;25; 09-2 cells 39&ndash;42, 62&ndash;64 &middot; Layer GCN &middot; GAT, Layers 0&ndash;6, Pooling sum &middot; mean &middot; max</span></div>
+  <div class="rail"><span class="w">scaffold-split</span><span class="pg">Scaffold</span><span class="pg">Split</span><span class="n">09-2 cells 18, 23&ndash;30 &middot; Split Random &middot; Scaffold, Seed</span></div>
+  <p class="note">The step control's name follows <code>name-the-page-control</code>: <b>Step</b> on all three.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function ring(ctx, x, y, r, colour, dash = [3, 3]) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+function arrow(ctx, x1, y1, x2, y2, colour, width = 1.4, head = 6) {
+  line(ctx, x1, y1, x2, y2, colour, width);
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - head * Math.cos(a - 0.4), y2 - head * Math.sin(a - 0.4)); ctx.lineTo(x2 - head * Math.cos(a + 0.4), y2 - head * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function frame(ctx, x0, y0, w, h, { xlab = "", ylab = "" } = {}) {
+  line(ctx, x0, y0, x0, y0 + h, T.axis); line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  if (xlab) label(ctx, xlab, x0 + w / 2, y0 + h + 28, { align: "center", colour: T.ink3, size: 10 });
+  if (ylab) { ctx.save(); ctx.translate(x0 - 34, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, ylab, 0, 0, { align: "center", colour: T.ink3, size: 10 }); ctx.restore(); }
+}
+function xTicks(ctx, sx, y, ticks, fmt = String) { for (const t of ticks) { line(ctx, sx(t), y, sx(t), y + 4, T.axis); label(ctx, fmt(t), sx(t), y + 15, { align: "center", size: 10, colour: T.ink3 }); } }
+function yTicks(ctx, sy, x, ticks, fmt = String) { for (const t of ticks) { line(ctx, x - 4, sy(t), x, sy(t), T.axis); label(ctx, fmt(t), x - 6, sy(t) + 3, { align: "right", size: 10, colour: T.ink3 }); } }
+const f = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+const pct = (v, d = 0) => `${(100 * v).toFixed(d)}%`;
+function table(rowId, head, rows) {
+  const t = el("table"); const tr = el("tr"); head.forEach((h) => tr.appendChild(el("th", null, h))); t.appendChild(tr);
+  rows.forEach((r) => { const x = el("tr"); r.forEach((v) => x.appendChild(el("td", null, v))); t.appendChild(x); });
+  document.getElementById(rowId).appendChild(t); return t;
+}
+/* the magnitude ramp: --surface-3 to --c-magnitude */
+function ramp(v) { const a = rgb(T.surface3), b = rgb(T.magnitude); const t = Math.max(0, Math.min(1, v)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`; }
+function vecCells(ctx, x, y, vals, { cell = 14, lo = 0, hi = 1, stroke = T.ink1 } = {}) {
+  vals.forEach((v, i) => rect(ctx, x + i * cell, y, cell, cell, ramp((v - lo) / (hi - lo)), stroke, 1));
+}
+/* seeded rng for the untrained weights */
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+/* ---------------------------------------------------------------- graphs */
+function node(ctx, x, y, name, { r = 13, fill = T.surface2, stroke = T.ink1, ink = T.ink1, size = 11, lw = 1.5 } = {}) {
+  dot(ctx, x, y, r, fill, stroke, lw);
+  label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", colour: ink, size, weight: "600" });
+}
+/* fit a molecule's coordinates into a box */
+function fit(mol, x0, y0, w, h, maxScale = 30) {
+  const xs = mol.atoms.map((a) => a.x), ys = mol.atoms.map((a) => a.y);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const s = Math.min(w / Math.max(maxx - minx, 1e-6), h / Math.max(maxy - miny, 1e-6), maxScale);
+  const ox = x0 + (w - (maxx - minx) * s) / 2, oy = y0 + (h - (maxy - miny) * s) / 2;
+  return mol.atoms.map((a) => [ox + (a.x - minx) * s, oy + (a.y - miny) * s]);
+}
+function drawBond(ctx, p, q, type, colour, width = 1.4) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L * 2.6, ny = dx / L * 2.6;
+  if (type === "DOUBLE") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, colour, width); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, colour, width); }
+  else if (type === "TRIPLE") { line(ctx, p[0], p[1], q[0], q[1], colour, width); line(ctx, p[0] + 1.6 * nx, p[1] + 1.6 * ny, q[0] + 1.6 * nx, q[1] + 1.6 * ny, colour, width); line(ctx, p[0] - 1.6 * nx, p[1] - 1.6 * ny, q[0] - 1.6 * nx, q[1] - 1.6 * ny, colour, width); }
+  else if (type === "AROMATIC") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, colour, width); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, colour, width, [3, 2.5]); }
+  else line(ctx, p[0], p[1], q[0], q[1], colour, width);
+}
+function drawMol(ctx, mol, box, { r = 9, atomFill = () => T.surface2, atomStroke = () => T.ink1, atomInk = () => T.ink1,
+  bondColour = () => T.ink2, bondWidth = () => 1.4, name = (a) => a.el, size = 10, maxScale = 30 } = {}) {
+  const P = fit(mol, box[0], box[1], box[2], box[3], maxScale);
+  mol.bonds.forEach((b, k) => drawBond(ctx, P[b[0]], P[b[1]], b[2], bondColour(b, k), bondWidth(b, k)));
+  mol.atoms.forEach((a, i) => node(ctx, P[i][0], P[i][1], name(a, i), { r, fill: atomFill(a, i), stroke: atomStroke(a, i), ink: atomInk(a, i), size, lw: 1.2 }));
+  return P;
+}
+function adjacencyOf(mol) {
+  const n = mol.atoms.length, A = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (const [i, j] of mol.bonds) { A[i][j] = 1; A[j][i] = 1; }
+  return A;
+}
+function hopsFrom(A, s) {
+  const n = A.length, D = new Array(n).fill(Infinity); D[s] = 0; let fr = [s], k = 0;
+  while (fr.length) { k += 1; const nx = []; for (const u of fr) for (let v = 0; v < n; v++) if (A[u][v] && D[v] === Infinity) { D[v] = k; nx.push(v); } fr = nx; }
+  return D;
+}
+function matrix(ctx, x, y, M, { cell = 18, cellW = cell, hi = () => false, name = "", fmt = String, size = 11 } = {}) {
+  const rows = M.length, cols = M[0].length;
+  if (name) label(ctx, name, x - 8, y + rows * cell / 2 + 4, { align: "right", size: 13, weight: "600", colour: T.ink1, mono: true });
+  line(ctx, x, y, x, y + rows * cell, T.ink1, 1.2); line(ctx, x, y, x + 4, y, T.ink1, 1.2); line(ctx, x, y + rows * cell, x + 4, y + rows * cell, T.ink1, 1.2);
+  const xr = x + cols * cellW + 4;
+  line(ctx, xr, y, xr, y + rows * cell, T.ink1, 1.2); line(ctx, xr, y, xr - 4, y, T.ink1, 1.2); line(ctx, xr, y + rows * cell, xr - 4, y + rows * cell, T.ink1, 1.2);
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+    const cx = x + 2 + j * cellW + cellW / 2, cy = y + i * cell + cell / 2;
+    if (hi(i, j)) rect(ctx, cx - cellW / 2 + 1, cy - cell / 2 + 1, cellW - 2, cell - 2, wash(T.highlight, 0.28));
+    label(ctx, fmt(M[i][j]), cx, cy + 0.5, { align: "center", baseline: "middle", mono: true, size, colour: hi(i, j) ? T.ink1 : T.ink2, weight: hi(i, j) ? "600" : "" });
+  }
+  return xr;
+}
+
+/* ================================================================ data */
+const D = await fetch("graph-arc-mock-data.json").then((r) => r.json()).catch(() => null);
+if (!D) {
+  document.getElementById("findings").textContent = "run `python widgets/_lab/graph-arc-measure.py` then `python widgets/_lab/graph-arc-export.py` to write graph-arc-mock-data.json";
+  throw new Error("no data");
+}
+const Mm = D.measure;
+{
+  const c = Mm["94_caffeine"], d94 = Mm["94_dataset"], c95 = Mm["95_caffeine"], r95 = Mm["95_reach"], s97 = Mm["97_scaffolds"], ls = Mm["97_lesson_split"];
+  const rs = Mm["97_random_vs_scaffold_10_seeds"];
+  document.getElementById("findings").textContent = [
+    `data       ${Mm.data.rows} rows, ${Mm.data.parsed} parse · ${Mm.data.active} active (${pct(Mm.data.active / Mm.data.parsed, 1)}) · ${Mm.data.multi_fragment} salts · median ${Mm.data.atoms_median} atoms, max ${Mm.data.atoms_max}`,
+    `94 SMILES  canonical round trip identical: ${d94.canonical_roundtrip_identical} of ${Mm.data.parsed} · bonds between non-adjacent atoms in the string: ${pct(1 - d94.share_consecutive)} of ${d94.bonds.toLocaleString()}, >5 apart ${pct(d94.share_gap_over_5)}, furthest ${d94.max_gap}`,
+    `           caffeine: ${c.bonds} bonds, ${c.nonconsecutive_bonds} non-adjacent, ring closure 13–1 spans ${c.max_gap} · ${c.distinct_random_smiles_of_5000} distinct strings in 5,000 random writes, all one molecule: ${c.every_random_parses_to_same}`,
+    `95 reach   caffeine diameter ${c95.diameter}, within 2 hops ${pct(c95.share_of_pairs_within_2_hops)} of atom pairs; atom 0 has gathered from ${c95.atoms_seen_after_k_layers_by_atom0.join(" · ")} atoms after 0–5 layers`,
+    `           file: diameter median ${r95.diameter_median}, 90th pct ${r95.diameter_p90}, max ${r95.diameter_max}; within 2 hops ${pct(r95.mean_share_of_atom_pairs_within_2_hops)} of atom pairs (mean over molecules)`,
+    `95 smooth  caffeine, random W + ReLU: ${Mm["95_oversmoothing_caffeine"].random_W_relu_seed0.slice(0, 7).map((v) => f(v)).join(" ")} (layers 0–6)`,
+    `95 pool    pairs identical after 2 layers — sum ${Mm["95_pooling_dataset"].sum_inseparable.pairs}, mean ${Mm["95_pooling_dataset"].mean_inseparable.pairs}, max ${Mm["95_pooling_dataset"].max_inseparable.pairs} (all four homologue pairs, same label)`,
+    `97 scaf    ${s97.unique} scaffolds · ${s97.singletons} hold one molecule · benzene ${s97.largest_groups[0][1]}, none (acyclic) ${s97.acyclic_empty_scaffold}`,
+    `           lesson split (cell 28): train ${ls.train.n} · val ${ls.val.n} · test ${ls.test.n}, test ${pct(ls.test.active_share, 1)} active = ${Math.round(ls.test.n * ls.test.active_share)} actives`,
+    `97 10 seeds random   AUC ${rs.random.rf_auc.mean} (${rs.random.rf_auc.min}–${rs.random.rf_auc.max}) · actives found ${pct(rs.random.rf_recall_actives.mean)} · neighbour >0.7 ${pct(rs.random["share_test_with_neighbour_over_0.7"].mean)} · actives with an active neighbour ${pct(rs.random.actives_whose_nn_is_active.mean)}`,
+    `           scaffold AUC ${rs.scaffold.rf_auc.mean} (${rs.scaffold.rf_auc.min}–${rs.scaffold.rf_auc.max}) · actives found ${pct(rs.scaffold.rf_recall_actives.mean)} · neighbour >0.7 ${pct(rs.scaffold["share_test_with_neighbour_over_0.7"].mean)} · actives with an active neighbour ${pct(rs.scaffold.actives_whose_nn_is_active.mean)} · test n ${rs.scaffold.test_n.min}–${rs.scaffold.test_n.max}`,
+  ].join("\n");
+}
+
+/* ======================================================= 94 Graph page */
+{
+  // his triangle, numbered from 0
+  const pos = [[70, 190], [140, 105], [210, 190]], names = ["X", "Y", "Z"];
+  for (const directed of [false, true]) {
+    const box = cand("g94a", directed ? "Graph · directed" : "Graph · undirected",
+      directed ? "X → Y, Y → Z, X → Z · edge X → Y picked · A is not symmetric; one column per edge"
+               : "X – Y, Y – Z, X – Z · edge X – Y picked · each edge in both directions");
+    const ctx = canvasIn(box, W, 250);
+    const E = directed ? [[0, 1], [1, 2], [0, 2]] : [[0, 1], [1, 0], [1, 2], [2, 1], [0, 2], [2, 0]];
+    const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; E.forEach(([s, t]) => (A[s][t] = 1));
+    const picked = (s, t) => (s === 0 && t === 1) || (!directed && s === 1 && t === 0);
+    const und = [[0, 1], [1, 2], [0, 2]];
+    for (const [s, t] of und) {
+      const p = pos[s], q = pos[t], hl = s === 0 && t === 1;
+      const col = hl ? T.highlight : T.ink1;
+      if (directed) { const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy); arrow(ctx, p[0] + dx / L * 15, p[1] + dy / L * 15, q[0] - dx / L * 16, q[1] - dy / L * 16, col, hl ? 2.4 : 1.6, 8); }
+      else line(ctx, p[0], p[1], q[0], q[1], col, hl ? 2.6 : 1.6);
+    }
+    pos.forEach((p, i) => { node(ctx, p[0], p[1], names[i], { fill: i < 2 ? wash(T.highlight, 0.18) : T.surface2 }); label(ctx, String(i), p[0] + (i === 1 ? 0 : i === 0 ? -22 : 22), p[1] + (i === 1 ? -20 : 4), { align: "center", size: 11, colour: T.ink3, mono: true }); });
+    label(ctx, "A", 300, 40, { size: 10, colour: T.ink3 });
+    matrix(ctx, 300, 52, A, { cell: 20, hi: (i, j) => picked(i, j), name: "" });
+    label(ctx, "row = source, column = target", 300, 130, { size: 9, colour: T.ink3 });
+    label(ctx, "edge_index", 300, 158, { size: 10, colour: T.ink3, mono: true });
+    const EI = [E.map((e) => e[0]), E.map((e) => e[1])];
+    matrix(ctx, 300, 168, EI, { cell: 20, hi: (i, j) => picked(E[j][0], E[j][1]) });
+    label(ctx, "[2, num_edges]", 300 + EI[0].length * 20 + 14, 194, { size: 9, colour: T.ink3, mono: true });
+  }
+  // cell 25's four proteins, numbered two ways
+  const x = [[1.2, 0.3], [0.8, 0.9], [1.1, 0.4], [0.5, 1.2]], prot = ["A", "B", "C", "D"];
+  const edges = [[0, 1], [1, 2], [2, 3]];
+  for (const order of [[0, 1, 2, 3], [2, 0, 3, 1]]) {
+    const renum = order.join("") !== "0123";
+    const box = cand("g94a", renum ? "Graph · the same graph, numbered differently" : "Graph · 09-1 cell 25's four proteins",
+      renum ? "A → 2, B → 0, C → 3, D → 1 · every table changes; the graph does not" : "x [4, 2] · edge_index [2, 6] · chain A – B – C – D");
+    const ctx = canvasIn(box, W, 250);
+    const P = [[60, 90], [140, 60], [220, 90], [300, 60]];
+    edges.forEach(([s, t]) => line(ctx, P[s][0], P[s][1], P[t][0], P[t][1], T.ink1, 1.6));
+    P.forEach((p, i) => {
+      node(ctx, p[0], p[1], prot[i]);
+      label(ctx, String(order[i]), p[0], p[1] + 28, { align: "center", size: 11, colour: T.ink3, mono: true });
+      vecCells(ctx, p[0] - 14, p[1] - 36, x[i], { lo: 0, hi: 1.3 });
+    });
+    // tables in index order
+    const inv = []; order.forEach((idx, i) => (inv[idx] = i));
+    const X = inv.map((i) => x[i]);
+    label(ctx, "x", 40, 136, { size: 10, colour: T.ink3, mono: true });
+    matrix(ctx, 40, 144, X, { cell: 19, cellW: 30, fmt: (v) => v.toFixed(1), size: 10 });
+    const E = []; edges.forEach(([s, t]) => { E.push([order[s], order[t]]); E.push([order[t], order[s]]); });
+    label(ctx, "edge_index", 200, 136, { size: 10, colour: T.ink3, mono: true });
+    matrix(ctx, 200, 144, [E.map((e) => e[0]), E.map((e) => e[1])], { cell: 20 });
+    label(ctx, "row i of x is the node numbered i", 40, 240, { size: 9, colour: T.ink3 });
+  }
+}
+
+/* ===================================================== 94 Molecule page */
+{
+  const mol = D.caffeine, s = mol.smiles, A = adjacencyOf(mol);
+  const pick = mol.bonds.findIndex((b) => (b[0] === 13 && b[1] === 1) || (b[0] === 1 && b[1] === 13));
+  const pb = mol.bonds[pick];
+  const box = cand("g94b", "Molecule · caffeine, string and graph", `Cn1cnc2n(C)c(=O)n(C)c(=O)c12 · bond 13 – 1 picked: the ring closure "1"\n14 atoms, 15 bonds · 6 bonds join atoms that are not next to each other in the string`);
+  const ctx = canvasIn(box, W, 420);
+  // the string, one cell per character
+  const cw = 17, sx = (W - s.length * cw) / 2, sy = 30;
+  const charAtom = new Map(); mol.atom_char.forEach(([p, len], i) => { for (let k = 0; k < len; k++) charAtom.set(p + k, i); });
+  for (let k = 0; k < s.length; k++) {
+    const ai = charAtom.get(k), isPick = ai === pb[0] || ai === pb[1];
+    const ringDigit = (k === 2 || k === s.length - 2) && /[0-9]/.test(s[k]);
+    rect(ctx, sx + k * cw, sy, cw, 22, isPick ? wash(T.highlight, 0.3) : ringDigit ? wash(T.highlight, 0.12) : T.surface2, T.grid);
+    label(ctx, s[k], sx + k * cw + cw / 2, sy + 15, { align: "center", mono: true, size: 13, colour: ai != null ? T.ink1 : T.ink3, weight: ai != null ? "600" : "" });
+    if (ai != null) label(ctx, String(ai), sx + k * cw + cw / 2, sy + 34, { align: "center", mono: true, size: 9, colour: T.ink3 });
+  }
+  // the gap bracket between the two picked atoms' characters
+  const c0 = mol.atom_char[Math.min(pb[0], pb[1])][0], c1 = mol.atom_char[Math.max(pb[0], pb[1])][0];
+  const bx0 = sx + c0 * cw + cw / 2, bx1 = sx + c1 * cw + cw / 2;
+  line(ctx, bx0, sy - 6, bx0, sy - 12, T.highlight, 1.5); line(ctx, bx1, sy - 6, bx1, sy - 12, T.highlight, 1.5); line(ctx, bx0, sy - 12, bx1, sy - 12, T.highlight, 1.5);
+  label(ctx, `atoms 1 and 13: 12 atoms apart in the string`, (bx0 + bx1) / 2, sy - 16, { align: "center", size: 10, colour: T.ink2 });
+  // the graph
+  drawMol(ctx, mol, [90, 90, 370, 300], {
+    r: 11, maxScale: 62,
+    name: (a, i) => a.el,
+    atomFill: (a, i) => (i === pb[0] || i === pb[1] ? wash(T.highlight, 0.35) : T.surface2),
+    bondColour: (b, k) => (k === pick ? T.highlight : T.ink2),
+    bondWidth: (b, k) => (k === pick ? 2.4 : 1.4),
+  });
+  const P = fit(mol, 90, 90, 370, 300, 62);
+  mol.atoms.forEach((a, i) => label(ctx, String(i), P[i][0] + 12, P[i][1] - 9, { size: 9, colour: T.ink3, mono: true }));
+  label(ctx, "solid + dashed: aromatic · double line: double bond", 20, 410, { size: 9, colour: T.ink3 });
+
+  // tensors
+  const box2 = cand("g94b", "Molecule · the tensors cells 11–13 build", "x [14, 5]: atomic number, aromatic, hybridization, hydrogens, charge\nedge_index [2, 30] · edge_attr [30, 4] one-hot single · double · triple · aromatic", 380);
+  const c2 = canvasIn(box2, 380, 420);
+  const hyb = { SP: 1, SP2: 3, SP3: 4 };   // RDKit's enum values as cell 11 stores them
+  const Z = { C: 6, N: 7, O: 8 };
+  const X = mol.atoms.map((a) => [Z[a.el], a.ar ? 1 : 0, hyb[a.hyb] ?? 0, a.h, a.charge]);
+  label(c2, "x", 30, 22, { size: 10, colour: T.ink3, mono: true });
+  matrix(c2, 30, 30, X, { cell: 19, size: 10, hi: (i) => i === pb[0] || i === pb[1] });
+  const EI = []; mol.bonds.forEach(([i, j]) => { EI.push([i, j]); EI.push([j, i]); });
+  const first = EI.slice(0, 8);
+  label(c2, "edge_index (first 8 of 30)", 170, 22, { size: 10, colour: T.ink3, mono: true });
+  matrix(c2, 170, 30, [first.map((e) => e[0]), first.map((e) => e[1])], { cell: 19, size: 10 });
+  const types = ["SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"];
+  label(c2, "edge_attr (first 8 rows)", 170, 98, { size: 10, colour: T.ink3, mono: true });
+  matrix(c2, 170, 106, mol.bonds.flatMap((b) => [b, b]).slice(0, 8).map((b) => types.map((t) => (b[2] === t ? 1 : 0))), { cell: 19, size: 10 });
+  label(c2, "the hybridization column holds RDKit's", 170, 290, { size: 9, colour: T.ink3 });
+  label(c2, "enum number (SP2 = 3), as cell 11 stores it", 170, 302, { size: 9, colour: T.ink3 });
+
+  // random strings
+  const box3 = cand("g94b", "Molecule · one molecule, many strings", "RDKit, 5,000 random writes of caffeine: 1,232 different strings\nevery one parses back to the same 14 atoms and 15 bonds", 330);
+  const c3 = canvasIn(box3, 330, 200);
+  const ex = Mm["94_caffeine"].random_examples.concat([Mm["94_caffeine"].smiles, Mm["94_caffeine"].canonical]);
+  ex.forEach((t, i) => label(c3, t, 14, 30 + i * 26, { mono: true, size: 11, colour: i >= 4 ? T.ink1 : T.ink2 }));
+  label(c3, "lesson's · canonical", 14, 190, { size: 9, colour: T.ink3 });
+}
+
+/* =================================================== 95 Aggregate page */
+{
+  // arm A: his chain, computed
+  const box = cand("g95a", "Aggregate · your three-node chain", "h₂′ = Σ over j in {1, 2, 3} of h_j / √(d₂ d_j), self-loops counted (d₁ = 2, d₂ = 3, d₃ = 2)\nthen W and the activation · the lesson's 2-layer GCN does this at every node at once");
+  const ctx = canvasIn(box, W, 330);
+  const H = [[0.15, 0.8, 0.45], [0.8, 0.4, 0.8], [0.85, 0.15, 0.8]];
+  const deg = [2, 3, 2];
+  const P = [[110, 120], [275, 120], [440, 120]];
+  line(ctx, P[0][0], P[0][1], P[1][0], P[1][1], T.ink1, 1.6); line(ctx, P[1][0], P[1][1], P[2][0], P[2][1], T.ink1, 1.6);
+  P.forEach((p, i) => { vecCells(ctx, p[0] - 21, p[1] - 52, H[i]); node(ctx, p[0], p[1], String(i + 1), { fill: i === 1 ? wash(T.highlight, 0.3) : wash(T.groupA, 0.25) }); });
+  ring(ctx, P[1][0], P[1][1], 22, T.highlight);
+  const w = [1 / Math.sqrt(deg[1] * deg[0]), 1 / Math.sqrt(deg[1] * deg[1]), 1 / Math.sqrt(deg[1] * deg[2])];
+  label(ctx, f(w[0]), (P[0][0] + P[1][0]) / 2, P[0][1] - 8, { align: "center", mono: true, size: 11, colour: T.ink1 });
+  label(ctx, f(w[2]), (P[1][0] + P[2][0]) / 2, P[0][1] - 8, { align: "center", mono: true, size: 11, colour: T.ink1 });
+  label(ctx, `self ${f(w[1])}`, P[1][0], P[1][1] + 34, { align: "center", mono: true, size: 11, colour: T.ink1 });
+  const out = [0, 1, 2].map((c) => w[0] * H[0][c] + w[1] * H[1][c] + w[2] * H[2][c]);
+  arrow(ctx, P[1][0], 175, P[1][0], 215, T.ink2);
+  label(ctx, "aggregate", P[1][0] + 10, 200, { size: 10, colour: T.ink3 });
+  vecCells(ctx, P[1][0] - 21, 225, out, { lo: 0, hi: 1.3 });
+  label(ctx, out.map((v) => f(v)).join("  "), P[1][0], 258, { align: "center", mono: true, size: 10, colour: T.ink2 });
+  label(ctx, "the same sum in any order: {1, 2, 3} = {3, 1, 2}", P[1][0], 290, { align: "center", size: 10, colour: T.ink3 });
+  label(ctx, "next: × W, then ReLU — Transform in your figure", P[1][0], 308, { align: "center", size: 10, colour: T.ink3 });
+
+  // arm B: caffeine, GCN weights vs GAT alpha
+  const mol = D.caffeine, A = adjacencyOf(mol), n = mol.atoms.length;
+  const focus = 5;                                   // the ring N that carries a methyl: degree 3
+  const d = A.map((r) => r.reduce((s, v) => s + v, 0) + 1);
+  const nb = [focus, ...A[focus].map((v, j) => (v ? j : -1)).filter((j) => j >= 0)];
+  // untrained GAT: x as in cell 11, W and a seeded
+  const Z = { C: 6, N: 7, O: 8 }, X = mol.atoms.map((a) => [Z[a.el] / 8, a.ar ? 1 : 0, a.h / 3, a.deg / 3]);
+  const r = rng(7), Wg = Array.from({ length: 4 }, () => Array.from({ length: 8 }, () => gauss(r) * 0.7)), av = Array.from({ length: 16 }, () => gauss(r) * 0.7);
+  const Wh = X.map((xi) => [...Array(8).keys()].map((k) => xi.reduce((s, v, q) => s + v * Wg[q][k], 0)));
+  const e = nb.map((j) => { const z = [...Wh[focus], ...Wh[j]].reduce((s, v, k) => s + v * av[k], 0); return z > 0 ? z : 0.2 * z; });
+  const mx = Math.max(...e), ex = e.map((v) => Math.exp(v - mx)), se = ex.reduce((s, v) => s + v, 0), alpha = ex.map((v) => v / se);
+  for (const kind of ["GCN", "GAT"]) {
+    const box2 = cand("g95a", `Aggregate · caffeine, ${kind}`, kind === "GCN"
+      ? `atom ${focus} (N, 3 bonds) and its neighbours · weight 1 / √(dᵢ dⱼ), self-loops counted\nfixed by the degrees alone; the bond type is not used`
+      : `the same atom · α from a softmax over its neighbours (and itself)\nuntrained weights: the numbers show the form, not what a trained GAT learns`, 420);
+    const c = canvasIn(box2, 420, 330);
+    const wts = kind === "GCN" ? nb.map((j) => 1 / Math.sqrt(d[focus] * d[j])) : alpha;
+    const P2 = drawMol(c, mol, [30, 20, 360, 285], {
+      r: 9, maxScale: 66,
+      atomFill: (a, i) => (i === focus ? wash(T.highlight, 0.35) : nb.includes(i) ? wash(T.groupA, 0.3) : T.surface2),
+      bondColour: (b) => ((b[0] === focus || b[1] === focus) ? T.ink1 : T.grid),
+      bondWidth: (b) => ((b[0] === focus || b[1] === focus) ? 2 : 1.2),
+    });
+    ring(c, P2[focus][0], P2[focus][1], 19, T.highlight);
+    nb.forEach((j, k) => {
+      if (j === focus) {
+        // put "self" on the side away from the neighbours
+        let vx = 0, vy = 0; nb.forEach((q) => { if (q !== focus) { vx += P2[q][0] - P2[focus][0]; vy += P2[q][1] - P2[focus][1]; } });
+        const L = Math.hypot(vx, vy) || 1, lx = P2[focus][0] - (vx / L) * 44, ly = P2[focus][1] - (vy / L) * 44;
+        rect(c, lx - 30, ly - 9, 60, 16, T.surface);
+        label(c, `self ${f(wts[k])}`, lx, ly + 3, { align: "center", mono: true, size: 11, colour: T.ink1, weight: "600" }); return;
+      }
+      const mxp = P2[focus][0] + 0.62 * (P2[j][0] - P2[focus][0]), myp = P2[focus][1] + 0.62 * (P2[j][1] - P2[focus][1]);
+      rect(c, mxp - 17, myp - 9, 34, 16, T.surface);
+      label(c, f(wts[k]), mxp, myp + 3, { align: "center", mono: true, size: 11, colour: T.ink1, weight: "600" });
+    });
+    label(c, `weights sum to ${f(wts.reduce((s, v) => s + v, 0))}`, 20, 318, { size: 10, colour: T.ink3 });
+  }
+}
+
+/* ====================================================== 95 Layers page */
+{
+  const mol = D.caffeine, A = adjacencyOf(mol), Dh = hopsFrom(A, 0);
+  const box = cand("g95b", "Layers · what atom 0 has gathered from", "k = 0 · 1 · 2 · 3 · 6 layers · filled: atoms within k bonds of atom 0\nthe lesson stacks 2 layers: 4 of caffeine's 14 atoms");
+  const ctx = canvasIn(box, W, 330);
+  const ks = [0, 1, 2, 3, 6];
+  ks.forEach((k, m) => {
+    const bx = m < 3 ? 10 + m * 180 : 100 + (m - 3) * 180, by = m < 3 ? 14 : 172;
+    drawMol(ctx, mol, [bx + 10, by + 10, 150, 120], {
+      r: 5.5, name: () => "", maxScale: 28,
+      atomFill: (a, i) => (i === 0 ? T.highlight : Dh[i] <= k ? wash(T.groupA, 0.6) : T.surface2),
+      atomStroke: (a, i) => (Dh[i] <= k ? T.ink1 : T.ink3),
+      bondColour: (b) => (Dh[b[0]] <= k && Dh[b[1]] <= k ? T.ink1 : T.grid),
+    });
+    label(ctx, `${k} layer${k === 1 ? "" : "s"} · ${Dh.filter((v) => v <= k).length} of 14`, bx + 85, by + 152, { align: "center", size: 10, colour: k === 2 ? T.ink1 : T.ink2, weight: k === 2 ? "600" : "" });
+  });
+
+  const box2 = cand("g95b", "Layers · how alike the atoms become", "caffeine: random W + ReLU each layer, and propagation alone\nthe file's mean, propagation alone · measured in graph-arc-measure.py", 420);
+  const c = canvasIn(box2, 420, 330);
+  const x0 = 60, y0 = 30, w = 330, h = 230, K = 12;
+  const sx = (k) => x0 + (k / K) * w, sy = (v) => y0 + h - (v / 1.1) * h;
+  frame(c, x0, y0, w, h, { xlab: "layers", ylab: "mean cosine distance between atoms" });
+  xTicks(c, sx, y0 + h, [0, 2, 4, 6, 8, 10, 12]); yTicks(c, sy, x0, [0, 0.25, 0.5, 0.75, 1]);
+  rect(c, sx(2) - 1, y0, 2, h, wash(T.highlight, 0.5));
+  label(c, "the lesson: 2", sx(2) + 4, y0 + 10, { size: 9, colour: T.ink3 });
+  const curves = [
+    [Mm["95_oversmoothing_caffeine"].random_W_relu_seed0, T.empirical, null, "caffeine, W + ReLU"],
+    [Mm["95_oversmoothing_caffeine"].propagation_only, T.empirical, [5, 3], "caffeine, propagation only"],
+    [Mm["95_oversmoothing_dataset_mean"], T.reference, [2, 3], "file mean, propagation only"],
+  ];
+  curves.forEach(([v, col, dash, name], m) => {
+    polyline(c, v.map((_, k) => sx(k)), v.map((y) => sy(y)), col, 1.8, dash);
+    line(c, x0 + 130, y0 + 104 + m * 15, x0 + 152, y0 + 104 + m * 15, col, 1.8, dash);
+    label(c, name, x0 + 158, y0 + 108 + m * 15, { size: 10, colour: T.ink2 });
+  });
+}
+
+/* ===================================================== 95 Readout page */
+{
+  for (const key of ["acids", "rings"]) {
+    const [a, b] = D.readout_pairs[key];
+    const nCls = Math.max(...a.wl, ...b.wl) + 1;
+    const box = cand("g95c", key === "acids" ? "Readout · suberic and azelaic acid (the lesson's file)" : "Readout · cyclopropane and cyclohexane",
+      key === "acids" ? "after 2 layers, atoms that saw the same neighbourhood share a colour\nmax: which colours occur · mean: in what shares · sum: how many"
+                      : "every atom sees the same neighbourhood, so every atom has one vector\nmax and mean give that vector; sum gives it ×3 and ×6");
+    const ctx = canvasIn(box, W, 330);
+    [a, b].forEach((m, k) => {
+      drawMol(ctx, m, [20, 20 + k * 85, 300, 70], {
+        r: 9, maxScale: 32,
+        atomFill: (at, i) => wash(T.clusters[m.wl[i] % 6], 0.55),
+        name: (at) => at.el,
+      });
+    });
+    label(ctx, key === "acids" ? "C8 · inactive" : "3 atoms", 330, 58, { size: 10, colour: T.ink3 });
+    label(ctx, key === "acids" ? "C9 · inactive" : "6 atoms", 330, 143, { size: 10, colour: T.ink3 });
+    // pooled: per class count, as bars per molecule, three readouts
+    const cnt = (m) => { const c = new Array(nCls).fill(0); m.wl.forEach((v) => (c[v] += 1)); return c; };
+    const ca = cnt(a), cb = cnt(b), na = a.atoms.length, nb = b.atoms.length;
+    const pools = [
+      ["max", ca.map((v) => (v > 0 ? 1 : 0)), cb.map((v) => (v > 0 ? 1 : 0)), 1],
+      ["mean", ca.map((v) => v / na), cb.map((v) => v / nb), Math.max(...ca.map((v) => v / na), ...cb.map((v) => v / nb))],
+      ["sum", ca, cb, Math.max(...ca, ...cb)],
+    ];
+    pools.forEach(([name, pa, pb, top], m) => {
+      const px = 30 + m * 175, py = 200, bw = Math.min(12, 70 / nCls), gh = 80;
+      const same = pa.every((v, i) => Math.abs(v - pb[i]) < 1e-9);
+      label(ctx, `${name} pool`, px, py - 6, { size: 11, colour: T.ink1, weight: "600" });
+      label(ctx, same ? "identical" : "differs", px + 150, py - 6, { align: "right", size: 10, colour: same ? T.extreme : T.ink3, weight: same ? "600" : "" });
+      [pa, pb].forEach((pv, q) => {
+        pv.forEach((v, i) => {
+          const hh = (v / top) * (gh / 2 - 6);
+          rect(ctx, px + q * (nCls * bw + 8) + i * bw, py + gh / 2 - hh + 8, bw - 1, hh, wash(T.clusters[i % 6], 0.75));
+        });
+        label(ctx, q ? (key === "acids" ? "C9" : "6") : (key === "acids" ? "C8" : "3"), px + q * (nCls * bw + 8) + nCls * bw / 2, py + gh / 2 + 22, { align: "center", size: 9, colour: T.ink3 });
+      });
+    });
+    label(ctx, "each bar is one colour's entry in the pooled vector (in a GCN, that atom-vector's contribution)", 20, 320, { size: 9, colour: T.ink3 });
+  }
+}
+
+/* ===================================================== 97 Scaffold page */
+{
+  const fam = D.scaffold_family, names = ["ciprofloxacin", "gatifloxacin", "norfloxacin"];
+  const box = cand("g97a", "Scaffold · one family, two scaffolds (the lesson's file)", "ink: the Murcko scaffold (rings and the chains joining them) · dimmed: removed\nnorfloxacin's N1 carries an ethyl, not a ring: a different scaffold", W);
+  const ctx = canvasIn(box, W, 560);
+  names.forEach((nm, k) => {
+    const m = fam[nm], sc = new Set(m.scaffold_atoms);
+    drawMol(ctx, m, [20, 20 + k * 180, 260, 140], {
+      r: 7, size: 8, maxScale: 27,
+      atomFill: (a, i) => (sc.has(i) ? T.surface2 : T.surface),
+      atomStroke: (a, i) => (sc.has(i) ? T.ink1 : T.ink3),
+      atomInk: (a, i) => (sc.has(i) ? T.ink1 : T.ink3),
+      bondColour: (b) => (sc.has(b[0]) && sc.has(b[1]) ? T.ink1 : T.ink3),
+      bondWidth: (b) => (sc.has(b[0]) && sc.has(b[1]) ? 1.6 : 1),
+    });
+    label(ctx, `${nm} · active`, 150, 20 + k * 180 + 158, { align: "center", size: 11, colour: T.ink1 });
+  });
+  // bracket: cipro + gati → scaffold 1; norflox → scaffold 2
+  line(ctx, 300, 70, 315, 70, T.ink1, 1.4); line(ctx, 315, 70, 315, 290, T.ink1, 1.4); line(ctx, 300, 290, 315, 290, T.ink1, 1.4);
+  arrow(ctx, 315, 180, 345, 180, T.ink1);
+  arrow(ctx, 300, 450, 345, 450, T.ink1);
+  const scafMol = (nm) => { const m = fam[nm], keep = m.scaffold_atoms, idx = new Map(keep.map((a, i) => [a, i]));
+    return { atoms: keep.map((a) => m.atoms[a]), bonds: m.bonds.filter((b) => idx.has(b[0]) && idx.has(b[1])).map((b) => [idx.get(b[0]), idx.get(b[1]), b[2]]) }; };
+  drawMol(ctx, scafMol("ciprofloxacin"), [350, 120, 185, 120], { r: 6, size: 7, maxScale: 18 });
+  label(ctx, "scaffold 1", 442, 260, { align: "center", size: 11, colour: T.ink1, weight: "600" });
+  drawMol(ctx, scafMol("norfloxacin"), [350, 390, 185, 120], { r: 6, size: 7, maxScale: 18 });
+  label(ctx, "scaffold 2", 442, 530, { align: "center", size: 11, colour: T.ink1, weight: "600" });
+}
+
+/* ======================================================= 97 Split page */
+{
+  const sp = D.split_seed0;
+  const box = cand("g97b", "Split · how close each test molecule is to the training set", `seed 0 · random: ${sp.random.test_n} test molecules, ${sp.random.y.reduce((s, v) => s + v, 0)} active · scaffold: ${sp.scaffold.test_n}, ${sp.scaffold.y.reduce((s, v) => s + v, 0)} active\nthe most similar training molecule, Tanimoto on Morgan fingerprints (radius 2)`);
+  const ctx = canvasIn(box, W, 400);
+  const x0 = 60, w = 450, nb = 20, sx = (v) => x0 + v * w;
+  const draw = (name, col, ybase, up) => {
+    const d = sp[name], c = new Array(nb).fill(0);
+    d.sim.forEach((v) => (c[Math.min(nb - 1, Math.floor(v * nb))] += 1));
+    const share = c.map((v) => v / d.sim.length), top = 0.2, hh = 120;
+    share.forEach((v, i) => { const hgt = (v / top) * hh; rect(ctx, sx(i / nb) + 1, up ? ybase - hgt : ybase, w / nb - 2, hgt, wash(col, 0.55)); });
+    d.sim.forEach((v, i) => { if (d.y[i]) dot(ctx, sx(v), up ? ybase - 6 - (i % 5) * 0 : ybase + 6, 3.2, T.event, T.surface, 1); });
+    label(ctx, name === "random" ? "random split" : "scaffold split", x0 + 4, up ? ybase - hh + 4 : ybase + hh - 4, { size: 11, colour: T.ink1, weight: "600" });
+    const over = d.sim.filter((v) => v > 0.7).length / d.sim.length;
+    label(ctx, `above 0.7: ${pct(over)}`, x0 + w, up ? ybase - hh + 4 : ybase + hh - 4, { align: "right", size: 10, colour: T.ink2 });
+  };
+  const mid = 200;
+  line(ctx, x0, mid, x0 + w, mid, T.axis);
+  draw("random", T.groupA, mid, true); draw("scaffold", T.groupB, mid, false);
+  line(ctx, x0, 340, x0 + w, 340, T.axis);
+  xTicks(ctx, sx, 340, [0, 0.2, 0.4, 0.6, 0.8, 1], (v) => v.toFixed(1));
+  rect(ctx, sx(0.7), 60, 1, 280, wash(T.ink3, 0.6));
+  label(ctx, "0.7", sx(0.7) + 3, 70, { size: 9, colour: T.ink3 });
+  label(ctx, "similarity to the most similar training molecule", x0 + w / 2, 376, { align: "center", size: 10, colour: T.ink3 });
+  label(ctx, "● an active test molecule", x0 + w, 394, { align: "right", size: 9, colour: T.ink3 });
+
+  const rs = Mm["97_random_vs_scaffold_10_seeds"];
+  const box2 = cand("g97b", "Split · ten seeds", "random forest on the fingerprints, class-weighted · mean (range)", 460);
+  box2.id = "g97t";
+  const NAMES = { test_n: "test molecules", test_actives: "test actives", rf_auc: "AUC", rf_macro_f1: "macro F1 (the lesson's metric)",
+    rf_recall_actives: "test actives found", "share_test_with_neighbour_over_0.7": "test molecules with a training neighbour above 0.7",
+    actives_whose_nn_is_active: "test actives whose nearest training molecule is active" };
+  const row = (k, fmt) => [NAMES[k], `${fmt(rs.random[k].mean)} (${fmt(rs.random[k].min)}–${fmt(rs.random[k].max)})`, `${fmt(rs.scaffold[k].mean)} (${fmt(rs.scaffold[k].min)}–${fmt(rs.scaffold[k].max)})`];
+  const t = el("table"); const head = el("tr"); ["", "random", "scaffold"].forEach((h) => head.appendChild(el("th", null, h))); t.appendChild(head);
+  [
+    row("test_n", (v) => Math.round(v)), row("test_actives", (v) => Math.round(v)),
+    row("rf_auc", (v) => v.toFixed(2)), row("rf_macro_f1", (v) => v.toFixed(2)), row("rf_recall_actives", (v) => pct(v)),
+    row("share_test_with_neighbour_over_0.7", (v) => pct(v)), row("actives_whose_nn_is_active", (v) => pct(v)),
+  ].forEach((r) => { const x = el("tr"); r.forEach((v) => x.appendChild(el("td", null, v))); t.appendChild(x); });
+  box2.appendChild(t);
+  const ls = Mm["97_lesson_split"];
+  box2.appendChild(el("p", "sub", `the lesson's split (cell 28, seed 42): train ${ls.train.n} · val ${ls.val.n} · test ${ls.test.n}, ${Math.round(ls.test.n * ls.test.active_share)} of them active`));
+}
+</script>
+</body>
+</html>
