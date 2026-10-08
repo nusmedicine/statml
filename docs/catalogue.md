@@ -21018,7 +21018,7 @@ included) and the MTBLS6038 metabolite table (26 organic acids).
 | 90 | `limma` | 01-4 cells 0, 3–9 | limma shrinks the fold change (cell 9 says so) — it shrinks the variance toward a prior fitted across all proteins | **picked** |
 | 91 | `qc-drift` | 02-1 cells 0, 2; 02-3 cell 10 | per-sample normalization corrects instrument drift — each metabolite drifts its own way along the injection order, and only a curve through the pooled QCs follows it; run in group order, drift becomes a difference | **picked, simulated** (the lesson's data has no QCs) |
 | 92 | `rank-test` | 02-4 cells 0, 11–12 | the Wilcoxon test compares medians | **not picked**; a page of 5 `permutation-test` if ever |
-| 93 | `ms-features` | 02-1 cell 3 | an m/z match is an identification — MTBLS6038 holds three isomer pairs (glutaric/ethylmalonic C5H8O4 at RT 2.11/3.39, fumaric/maleic C4H4O4 at 2.2/1.78, adipic/3-methylglutaric C6H10O4 at 3.48/3.68), and ethylmalonic acid is 02-4's top hit | **PICKED 2026-10-08** on his word ("add 93"), after 90 shipped; built on the lesson's own m/z and RT, after 91 |
+| 93 | `ms-features` | 02-1 cell 3 | an m/z match is an identification — MTBLS6038 holds three isomer pairs (glutaric/ethylmalonic C5H8O4 at RT 2.11/3.39, fumaric/maleic C4H4O4 at 2.2/1.78, adipic/3-methylglutaric C6H10O4 at 3.48/3.68), and ethylmalonic acid is 02-4's top hit | **PICKED 2026-10-08** on his word ("add 93"), after 90 shipped; built on the lesson's own m/z and RT, after 91; **MOCKED AND PICKED 2026-10-08** (nine calls, all the recommendation) — § *Slot 93* |
 
 Left out on purpose: contaminant filtering (string matching), the Venn and
 Euler plots (a page of 89 if anything: detected in one group only), and
@@ -21553,6 +21553,45 @@ Correction page. Three identical runs at DPR 1.25, 17/17 MATCH; the verify
 press on ANY display change (a True values toggle mid-Shrink jumped it to the
 end); now only a page switch does. A toggle mid-Shrink leaves the press running
 (canvas checked); switch probe 0 flagged; 19/19 MATCH.
+
+
+### Slot 93 · `ms-features` — Metabolomics: from peaks to names (title for the copy audit)
+
+#### MEASURED, MOCKED AND PICKED 2026-10-08 — `_lab/ms-features-mock.html`
+
+Host 02-1 cell 3, its four headings. The numbers are the lesson's own, from
+the MAF that 02-2 downloads, extracted to `_lab/ms-features-data.js` (26
+metabolites' m/z, RT, formula, zero counts; six real samples' areas, three
+cancer and three hyperplasia, three with glutaric acid detected). Measured:
+
+- The MAF's m/z sits a median **0.082 Da** (max 0.266) from the exact
+  [M−H]⁻: a unit-resolution triple quad, as the protocol says (MRM).
+- CHNOS formulas fitting m/z 131.035 (neutral M, whole RDBE ≥ 0, H ≤ 3C + N + 2):
+  **40 at ±0.5 Da, 5 at ±0.01 Da, 1 at ±5 ppm (C5H8O4)**. Mass accuracy
+  reaches the formula and stops there; the isomers share it exactly.
+- Three isomer pairs in the 26, and only one is ever measured: **ethylmalonic
+  acid** (02-4's top hit) is detected in 179 of 179, **glutaric acid** in 30
+  of 179, its detected areas starting sharply at 10,670 (the assay's limit,
+  by the look of it); fumaric/maleic and adipic/3-methylglutaric are 0 in every
+  sample.
+- 02-3's `massqc_report` m/z–RT plot labels RT "second" (values are minutes)
+  and draws 8 of 26 (why: unchecked).
+
+**His nine calls, all the recommendation:** three pages **Peaks · Alignment ·
+Identification**, the feature table at the foot of Identification
+(deconvolution left out: no co-eluting pair in the data); Peaks as the m/z ×
+RT map of the sample's detected metabolites with the trace at m/z 131.035 as
+its slice (S/N 3 line, the noise set so glutaric's floor sits at S/N 3);
+Alignment as grouping within an **RT window 0.05 · 0.3 · 1.5 min** over six
+samples with simulated RT shifts (6 features · 2 · 1 holding both acids);
+Identification as three rows that narrow down — formulas within the **Mass
+tolerance ±0.5 Da · ±5 ppm**, the database's compounds with that formula, RT
+against each standard — with Schymanski 2014's level beside each (5, 4, 3,
+1); the database the lesson's 26 (HMDB not fetched); RT against an authentic
+standard decides (no MS2); the lesson's numbers with simulated peak shapes and
+noise; colours as drawn (detected peak `--c-empirical`, S/N line and standards
+`--c-reference`, features `--c-cluster-*`, the match `--c-highlight`); presses
+Detect, Integrate · Align · Match mass, Match RT.
 
 ---
 

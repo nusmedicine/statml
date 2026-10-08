@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 93 — ms-features, layout mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  tr.on td { background: var(--surface-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 8px; font-size: 11px; }
+  .rail .w { font-family: var(--font-mono); color: var(--ink-1); min-width: 150px; }
+  .rail .pg { padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.on { border-color: var(--c-highlight); }
+  .rail .n { color: var(--ink-3); margin-left: 6px; }
+  img.fig { max-width: 420px; border: 1px solid var(--grid); background: #fff; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 93 &middot; <code>ms-features</code> &middot; Metabolomics: from peaks to names &middot; layout mock</h1>
+  <p class="note">
+    Host: <b>02-1 cell 3</b>, the processing steps under four headings: <i>Peak detection and integration</i>, <i>Deconvolution and
+    alignment</i>, <i>Database matching and identification</i> and <i>Quantification and table generation</i>. The misconception, from the
+    catalogue: <b>an m/z match is an identification</b>. This mock draws each page at the widget's 550px. <b>Every number is computed on this
+    page</b> from <code>_lab/ms-features-data.js</code>, which holds the lesson's own MAF values: the 26 metabolites' m/z, RT and formula, and six real samples' abundances.
+    Only the peak shapes and the noise are simulated, because the MAF holds no raw traces. The blue-ruled boxes in &sect;8 are your calls.
+  </p>
+  <div class="row">
+    <div class="cand"><h3>02-1 cell 0 &middot; untargeted acquisition</h3><img class="fig" src="figs/metabolomics-02-1-25dc53a3-fff9-40b6-8d6c-34e6882abbf2.png" alt="Full MS and DDA acquisition"></div>
+    <div class="cand"><h3>02-3 &middot; massqc_report: m/z against RT</h3><img class="fig" src="figs/metabolomics-02-3-massqc-mz_rt_plot.png" alt="m/z against retention time, 8 points">
+      <p class="sub">the axis reads "second", but the values are minutes (lactic acid at 1.33)
+only 8 of the 26 are drawn; why is unchecked</p></div>
+  </div>
+
+  <h2>1 &middot; Measured before the mock</h2>
+  <table id="measTable"></table>
+  <p class="rec">Three findings set the design. <b>(1) Better mass accuracy narrows the formula and stops there.</b> At the study's unit resolution, <span id="nUnit"></span> CHNOS
+    formulas fit m/z 131. At 5 ppm, only one does: C5H8O4. Within that one formula, glutaric and ethylmalonic acid have exactly the same mass, so no instrument separates them.
+    <b>(2) The lesson's own data has the case.</b> Ethylmalonic acid, 02-4's top hit, is detected in all 179 samples. Its isomer glutaric acid is detected in 30 of 179,
+    and its detected values start sharply at <span id="gluFloor"></span>, which looks like the assay's limit of detection. <b>(3) RT is what told them apart</b>: the two
+    elute 1.28 min apart, and this targeted study matched each to an authentic standard. The other two isomer pairs are 0 in every sample, so they would draw nothing.</p>
+
+  <h2>2 &middot; How many pages: cell 3's headings</h2>
+  <div class="rail"><span class="w">A &middot; three (rec.)</span><span class="pg on">Peaks</span><span class="pg">Alignment</span><span class="pg">Identification</span><span class="n">the table is drawn at the foot of Identification</span></div>
+  <div class="rail"><span class="w">B &middot; two</span><span class="pg on">Peaks</span><span class="pg">Identification</span><span class="n">alignment left to the notebook's words</span></div>
+  <div class="rail"><span class="w">C &middot; four</span><span class="pg on">Peaks</span><span class="pg">Alignment</span><span class="pg">Identification</span><span class="pg">Table</span><span class="n">one page a heading (&sect;6)</span></div>
+  <p class="rec"><b>A recommended.</b> Alignment has a setting that loses on both sides (&sect;4): a window that is too narrow splits one compound into several features,
+    and one that is too wide merges glutaric and ethylmalonic into one. That makes it a page of its own. The table at the end is a page with no
+    control and no press, so it fits at the foot of Identification. Deconvolution is left out, because the data has no co-eluting pair to separate.</p>
+
+  <h2>3 &middot; The Peaks page &mdash; detection, then integration</h2>
+  <p class="note">Sample <b id="exId"></b> (<span id="exCohort"></span>), one of the 30 in which both C5H8O4 acids are detected. The two peaks have the lesson's own RTs and areas.
+    The noise is set so a peak at glutaric's floor (<span id="gluFloor2"></span>) sits exactly at S/N 3, the study's limit-of-detection rule.</p>
+  <div class="row" id="peaksRow"></div>
+  <p class="rec"><b>B recommended.</b> The map is your 02-3 figure redrawn, with RT in minutes and every metabolite detected in this sample shown. It is where
+    "a feature is an m/z and an RT" comes from. The trace below is the map's slice at one m/z, so detection and integration happen on a
+    picture whose origin is visible. A starts at the slice and has to explain where it came from in words.</p>
+
+  <h2>4 &middot; The Alignment page &mdash; one feature across samples</h2>
+  <p class="note">Six real samples, the same m/z slice. Each sample's RTs are shifted by a small simulated amount, as happens from run to run. Peaks closer in RT than
+    the window are grouped into one feature.</p>
+  <div class="row" id="alignRow"></div>
+  <table id="windowTable"></table>
+  <p class="rec"><b>A recommended.</b> It is cell 3's own wording: peaks are grouped by m/z and RT. The window is the one control, and each of its three values shows a different outcome:
+    too narrow splits ethylmalonic acid into several features, 0.3 min gives two, and too wide gives one feature holding two compounds, whose abundance is their
+    sum. B corrects the shifts first, as XCMS does. That is more faithful to the software, but it adds a step the notebook does not name.</p>
+
+  <h2>5 &middot; The Identification page &mdash; mass, then retention time</h2>
+  <p class="note">The ethylmalonic feature from &sect;4, at its measured m/z and RT, compared with the lesson's 26 as the database.</p>
+  <div class="row" id="idRow"></div>
+  <p class="rec"><b>A recommended.</b> It draws the finding in three rows that narrow down. A <b>Mass tolerance</b> control (&plusmn;0.5 Da as the study's instrument,
+    &plusmn;5 ppm as a high-resolution one) changes only the first row: 40 formulas, then 1. The second row stays at two compounds either way, and only the RT row
+    gets to one. The level reached is written beside each row, using Schymanski et al. 2014's five levels (5 exact mass, 4 formula, 3 candidates, 2 library spectrum,
+    1 reference standard). B is the candidate list a search returns, which is accurate but does not show that the tolerance has stopped mattering.</p>
+
+  <h2>6 &middot; Arm C's fourth page, for comparison: the table</h2>
+  <div class="row" id="tableRow"></div>
+
+  <h2>7 &middot; The rail, as recommended</h2>
+  <div class="rail"><span class="w">Step</span><span class="pg on">Peaks</span><span class="pg">Alignment</span><span class="pg">Identification</span></div>
+  <div class="rail"><span class="w">The data</span><span class="pg">Sample: the six, by ID and group</span><span class="n">display; on Peaks</span></div>
+  <div class="rail"><span class="w">Settings</span><span class="pg">RT window: 0.05 &middot; 0.3 &middot; 1.5 min</span><span class="n">on Alignment</span><span class="pg">Mass tolerance: &plusmn;0.5 Da &middot; &plusmn;5 ppm</span><span class="n">on Identification</span></div>
+  <div class="rail"><span class="w">Buttons</span><span class="pg">Detect</span><span class="pg">Integrate</span><span class="pg">Align</span><span class="pg">Match mass</span><span class="pg">Match RT</span><span class="pg">Reset</span><span class="n">two presses on Peaks, one on Alignment, two on Identification</span></div>
+  <p class="note">Readout: on Peaks, each peak's RT, height over the noise (S/N) and area. On Alignment, the number of features and each one's samples. On Identification,
+    the candidates left and the level reached.</p>
+
+  <h2>8 &middot; Your calls</h2>
+  <p class="q"><b class="h">8.1 &middot; Pages (&sect;2)</b> <b>A &middot; Peaks &middot; Alignment &middot; Identification, the table at the foot (recommended)</b>
+    &nbsp;|&nbsp; B &middot; Peaks &middot; Identification &nbsp;|&nbsp; C &middot; four, Table its own page</p>
+  <p class="q"><b class="h">8.2 &middot; The Peaks page (&sect;3)</b> A &middot; the trace at one m/z alone &nbsp;|&nbsp; <b>B &middot; the m/z &times; RT map above,
+    the trace as its slice (recommended)</b></p>
+  <p class="q"><b class="h">8.3 &middot; The Alignment page (&sect;4)</b> <b>A &middot; group within an RT window, 0.05 &middot; 0.3 &middot; 1.5 min (recommended)</b>
+    &nbsp;|&nbsp; B &middot; correct the shifts first, then group</p>
+  <p class="q"><b class="h">8.4 &middot; The Identification page (&sect;5)</b> <b>A &middot; three rows that narrow down (formulas, compounds, RT), with the level reached
+    (recommended)</b> &nbsp;|&nbsp; B &middot; the candidate list</p>
+  <p class="q"><b class="h">8.5 &middot; The database</b> <b>A &middot; the lesson's 26 (recommended for now)</b>: the isomers are already in it, and every RT
+    is the study's own &nbsp;|&nbsp; B &middot; HMDB's count of compounds with each formula, as a number beside the row. This needs a fetch from hmdb.ca, which I'll make only on your yes,
+    and HMDB has no RT for most entries</p>
+  <p class="q"><b class="h">8.6 &middot; What decides between isomers</b> <b>A &middot; RT against an authentic standard (recommended; it is what this study did)</b>
+    &nbsp;|&nbsp; B &middot; RT and an MS2 spectrum. This needs the two acids' spectra from MassBank first, measured to see whether they differ at all</p>
+  <p class="q"><b class="h">8.7 &middot; The data</b> <b>A &middot; the lesson's m/z, RT, formulas and six real samples' areas; peak shapes and noise simulated
+    (recommended)</b> &nbsp;|&nbsp; B &middot; fully simulated</p>
+  <p class="q"><b class="h">8.8 &middot; Colours</b> <b>A &middot; as drawn (recommended)</b>: the trace in ink; a detected peak's area <code>--c-empirical</code>;
+    the S/N 3 line dashed <code>--c-reference</code>; features <code>--c-cluster-a&hellip;</code> (groups the software made, which nobody assigned); a standard's
+    RT <code>--c-reference</code>; the compound that matches <code>--c-highlight</code> &nbsp;|&nbsp; B &middot; say which to change</p>
+  <p class="q"><b class="h">8.9 &middot; The presses</b> <b>A &middot; Detect, then Integrate on Peaks; Align on Alignment; Match mass, then Match RT on Identification
+    (recommended)</b> &nbsp;|&nbsp; B &middot; no presses; each page drawn finished</p>
+  <p class="note"><b>Left to the draft as conventional:</b> Gaussian peak shapes, the noise seed, and the per-sample RT shifts fixed in the engine. Detection by local maxima
+    over the S/N 3 line. Grouping by chaining peaks whose RT gap is within the window. Title and subtitle wait for the copy audit.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import D from "./ms-features-data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const b = el("div", "cand"); b.style.width = `${w}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(b, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; b.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const fmt = (x) => Math.round(x).toLocaleString("en-GB");
+
+/* ------------------------------------------------ the lesson's numbers */
+const MET = D.metabolites;
+const byName = (n) => MET.find((m) => m.name === n);
+const GLU = byName("Glutaric acid"), ETH = byName("Ethylmalonic acid");
+const EXJ = D.samples.findIndex((s) => GLU.at[D.samples.indexOf(s)] > 0);
+const EX = D.samples[EXJ];
+
+/* formulas: every CHNOS formula whose [M-H]- lies within the tolerance (neutral M, whole RDBE >= 0) */
+const AM = { C: 12, H: 1.00782503207, N: 14.0030740048, O: 15.99491461956, S: 31.972071 }, PROTON = 1.00727646688;
+function formulas(target, tol) {
+  const out = [];
+  for (let C = 1; C <= 14; C++) for (let N = 0; N <= 4; N++) for (let O = 0; O <= 10; O++) for (let S = 0; S <= 1; S++) {
+    const H = Math.round((target + PROTON - C * AM.C - N * AM.N - O * AM.O - S * AM.S) / AM.H);
+    if (H < 0 || H > 3 * C + N + 2) continue;
+    const mz = C * AM.C + H * AM.H + N * AM.N + O * AM.O + S * AM.S - PROTON;
+    const rdbe = C - H / 2 + N / 2 + 1;
+    if (Math.abs(mz - target) <= tol && rdbe >= 0 && rdbe === Math.floor(rdbe))
+      out.push({ f: `C${C}H${H}${N ? "N" + (N > 1 ? N : "") : ""}${O ? "O" + (O > 1 ? O : "") : ""}${S ? "S" : ""}`, mz });
+  }
+  return out.sort((a, b) => a.mz - b.mz);
+}
+const PPM5 = ETH.exact * 5e-6;
+const fUnit = formulas(ETH.exact, 0.5), fPpm = formulas(ETH.exact, PPM5), fNear = formulas(ETH.exact, 0.01);
+
+/* §1 table */
+{
+  const errs = MET.map((m) => Math.abs(m.mz - m.exact)).sort((a, b) => a - b);
+  const rows = [
+    ["reported m/z against the exact [M−H]⁻, median (max)", `${errs[13].toFixed(3)} Da (${errs.at(-1).toFixed(3)})`],
+    ["CHNOS formulas fitting m/z 131.035 at ±0.5 Da · ±0.01 Da · ±5 ppm", `${fUnit.length} · ${fNear.length} · ${fPpm.length}`],
+    ["isomer pairs among the 26 (same formula, same exact mass)", "3"],
+    ["… samples with each detected, of 179: glutaric / ethylmalonic", `${179 - GLU.zeros} / ${179 - ETH.zeros}`],
+    ["… fumaric / maleic, adipic / 3-methylglutaric", `${179 - byName("Fumaric acid").zeros} / ${179 - byName("Maleic acid").zeros}, ${179 - byName("Adipic acid").zeros} / ${179 - byName("3-Methylglutaric acid").zeros}`],
+    ["glutaric acid's smallest detected area · median · ethylmalonic's median", `${fmt(GLU.minNz)} · ${fmt(GLU.medNz)} · ${fmt(ETH.medNz)}`],
+    ["standard RT, glutaric · ethylmalonic (min)", `${GLU.rt} · ${ETH.rt}`],
+  ];
+  document.getElementById("measTable").innerHTML = `<tr><th>MTBLS6038, the 02-2 download</th><th>measured</th></tr>` + rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("");
+  document.getElementById("nUnit").textContent = fUnit.length;
+  document.getElementById("gluFloor").textContent = fmt(GLU.minNz);
+  document.getElementById("gluFloor2").textContent = fmt(GLU.minNz);
+  document.getElementById("exId").textContent = EX.id;
+  document.getElementById("exCohort").textContent = EX.cohort;
+}
+
+/* ------------------------------------------------ simulated traces at one m/z */
+const SIG = 0.035, NORM = SIG * Math.sqrt(2 * Math.PI);
+const NOISE = GLU.minNz / NORM / 3;          // S/N 3 at glutaric's floor
+const BASE = 3 * NOISE;
+const SHIFT = [-0.10, 0.06, 0.03, -0.05, 0.11, -0.12];
+const RT0 = 1.0, RT1 = 4.5, DT = 0.01;
+function trace(j, seed) {
+  const rng = makeRng(seed), n = Math.round((RT1 - RT0) / DT) + 1;
+  const white = Array.from({ length: n + 4 }, () => rng.normal());
+  let sm = white.slice(2, n + 2).map((_, i) => (white[i] + white[i + 1] + white[i + 2] + white[i + 3] + white[i + 4]) / 5);
+  const sd = Math.sqrt(sm.reduce((s, v) => s + v * v, 0) / n); sm = sm.map((v) => (v / sd) * NOISE);
+  const peaks = [GLU, ETH].map((m) => ({ m, rt: m.rt + SHIFT[j], area: m.at[j] }));
+  const rt = Array.from({ length: n }, (_, i) => RT0 + i * DT);
+  const y = rt.map((t, i) => BASE + sm[i] + peaks.reduce((s, p) => s + (p.area / NORM) * Math.exp(-0.5 * ((t - p.rt) / SIG) ** 2), 0));
+  return { rt, y, peaks };
+}
+function detect(tr) {
+  const thr = BASE + 3 * NOISE, out = [];
+  for (let i = 3; i < tr.y.length - 3; i++) {
+    if (tr.y[i] < thr) continue;
+    let top = true; for (let k = -3; k <= 3; k++) if (tr.y[i + k] > tr.y[i]) top = false;
+    if (!top) continue;
+    const lo = Math.max(0, i - Math.round(3 * SIG / DT)), hi = Math.min(tr.y.length - 1, i + Math.round(3 * SIG / DT));
+    let area = 0; for (let k = lo; k <= hi; k++) area += (tr.y[k] - BASE) * DT;
+    out.push({ i, rt: tr.rt[i], h: tr.y[i] - BASE, sn: (tr.y[i] - BASE) / NOISE, area, lo, hi });
+  }
+  return out;
+}
+/* S/N 3 over smoothed noise passes a noise bump now and then; the mock takes the first seed per sample
+   whose detections are exactly the lesson's non-zero peaks, so the page is about the peaks, not the bumps */
+const SEEDS = D.samples.map((_, j) => {
+  for (let s = 93 + 100 * j; ; s += 1) {
+    const tr = trace(j, s), det = detect(tr), want = tr.peaks.filter((p) => p.area > 0);
+    if (det.length === want.length && want.every((p) => det.some((d) => Math.abs(d.rt - p.rt) < 0.05))) return s;
+  }
+});
+const TR = D.samples.map((_, j) => trace(j, SEEDS[j]));
+const DET = TR.map(detect);
+const nameAt = (rt) => (Math.abs(rt - GLU.rt) < 0.5 ? "glutaric" : "ethylmalonic");
+
+function drawTrace(ctx, tr, x0, y0, w, h, { det = null, integrate = false, top = null, lineOn = true, ticks = true, scaleLabel = true } = {}) {
+  const H = top ?? Math.max(...tr.y) * 1.08;
+  const sx = (t) => x0 + ((t - RT0) / (RT1 - RT0)) * w, sy = (v) => y0 + h - (v / H) * h;
+  line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  if (ticks) for (let t = 1; t <= 4.5; t += 0.5) { line(ctx, sx(t), y0 + h, sx(t), y0 + h + 3, T.axis); if (Number.isInteger(t)) label(ctx, String(t), sx(t), y0 + h + 14, { align: "center", size: 10, colour: T.ink3 }); }
+  if (integrate && det) for (const p of det) {
+    ctx.save(); ctx.fillStyle = wash(T.empirical, 0.45); ctx.beginPath(); ctx.moveTo(sx(tr.rt[p.lo]), sy(BASE));
+    for (let k = p.lo; k <= p.hi; k++) ctx.lineTo(sx(tr.rt[k]), sy(tr.y[k]));
+    ctx.lineTo(sx(tr.rt[p.hi]), sy(BASE)); ctx.closePath(); ctx.fill(); ctx.restore();
+    line(ctx, sx(tr.rt[p.lo]), sy(BASE), sx(tr.rt[p.hi]), sy(BASE), T.empirical, 1.2);
+  }
+  polyline(ctx, tr.rt.map(sx), tr.y.map(sy), T.ink2, 1);
+  if (lineOn) { line(ctx, x0, sy(BASE + 3 * NOISE), x0 + w, sy(BASE + 3 * NOISE), T.reference, 1.2, [5, 3]); }
+  if (det) for (const p of det) dot(ctx, sx(p.rt), sy(p.h + BASE), 3.5, integrate ? T.empirical : null, T.empirical, 1.5);
+  return { sx, sy, H };
+}
+
+/* ------------------------------------------------ §3 Peaks */
+{
+  const tr = TR[EXJ], det = DET[EXJ];
+  const ann = (ctx, g, integrate) => det.forEach((p) => {
+    const x = g.sx(p.rt), y = Math.min(g.sy(p.h + BASE), g.sy(BASE + 3 * NOISE) - 24);
+    label(ctx, `${nameAt(p.rt)} · RT ${p.rt.toFixed(2)}`, x + 8, y + 4, { size: 10, colour: T.ink1, weight: "600" });
+    label(ctx, integrate ? `area ${fmt(p.area)}` : `S/N ${p.sn.toFixed(1)}`, x + 8, y + 17, { size: 10, colour: T.ink2, mono: true });
+  });
+  {
+    const b = cand("peaksRow", "A · the trace at one m/z alone", `sample ${EX.id} · m/z 131.035 ± 5 ppm · two moments of the page`);
+    const ctx = canvasIn(b, W, 436);
+    label(ctx, "1 · Detect: local maxima above S/N 3", 50, 20, { colour: T.ink1, weight: "600" });
+    const g1 = drawTrace(ctx, tr, 50, 32, W - 80, 150, { det });
+    ann(ctx, g1, false);
+    label(ctx, "S/N 3", W - 28, g1.sy(BASE + 3 * NOISE) - 4, { size: 10, colour: T.reference, align: "right" });
+    label(ctx, "2 · Integrate: the area over the baseline is the abundance", 50, 232, { colour: T.ink1, weight: "600" });
+    const g2 = drawTrace(ctx, tr, 50, 244, W - 80, 150, { det, integrate: true });
+    ann(ctx, g2, true);
+    label(ctx, "retention time (min) →", 50 + (W - 80) / 2, 428, { align: "center", size: 10, colour: T.ink3 });
+  }
+  {
+    const b = cand("peaksRow", "B · the m/z × RT map, the trace as its slice", `sample ${EX.id} · above: every metabolite detected in it, size = log area\nbelow: the slice at m/z 131.035, after Integrate`);
+    const ctx = canvasIn(b, W, 476);
+    const x0 = 50, w = W - 80, y0 = 22, h = 190;
+    const sx = (t) => x0 + (t / 10) * w, sy = (m) => y0 + h - ((m - 80) / 150) * h;
+    line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis); line(ctx, x0, y0, x0, y0 + h, T.axis);
+    for (let t = 0; t <= 10; t += 2) label(ctx, String(t), sx(t), y0 + h + 14, { align: "center", size: 10, colour: T.ink3 });
+    for (let m = 100; m <= 220; m += 40) label(ctx, String(m), x0 - 6, sy(m) + 3, { align: "right", size: 10, colour: T.ink3 });
+    label(ctx, "m/z", x0 - 6, y0 - 8, { size: 10, colour: T.ink3, align: "right" });
+    label(ctx, "RT (min) →", x0 + w, y0 + h + 28, { size: 10, colour: T.ink3, align: "right" });
+    rect(ctx, x0, sy(131.035) - 4, w, 8, wash(T.highlight, 0.18));
+    let shown = 0;
+    MET.forEach((m) => { const a = m.at[EXJ]; if (a <= 0) return; shown += 1; const r = 1.5 + 1.6 * (Math.log10(a) - 3); dot(ctx, sx(m.rt + SHIFT[EXJ]), sy(m.exact), Math.max(2, r), wash(T.empirical, 0.75)); });
+    label(ctx, `${shown} of 26 detected in this sample`, x0 + w - 4, y0 + 10, { size: 10, colour: T.ink2, align: "right" });
+    label(ctx, "the slice at m/z 131.035", sx(4.4), sy(131.035) + 3, { size: 10, colour: T.ink1 });
+    const g = drawTrace(ctx, tr, 50, 280, W - 80, 150, { det, integrate: true });
+    ann(ctx, g, true);
+    label(ctx, "S/N 3", W - 28, g.sy(BASE + 3 * NOISE) - 4, { size: 10, colour: T.reference, align: "right" });
+    label(ctx, "retention time (min) →", 50 + (W - 80) / 2, 468, { align: "center", size: 10, colour: T.ink3 });
+  }
+}
+
+/* ------------------------------------------------ §4 Alignment */
+function group(window) {
+  const all = DET.flatMap((d, j) => d.map((p) => ({ ...p, j }))).sort((a, b) => a.rt - b.rt);
+  const gs = [];
+  for (const p of all) { const g = gs.at(-1); if (g && p.rt - g.at(-1).rt <= window) g.push(p); else gs.push([p]); }
+  return gs.map((g) => ({ peaks: g, rt: g.reduce((s, p) => s + p.rt, 0) / g.length, lo: g[0].rt, hi: g.at(-1).rt, names: [...new Set(g.map((p) => nameAt(p.rt - SHIFT[p.j])))] }));
+}
+function stack(ctx, x0, y0, w, rowH, { shifted = true, window = null, names = true } = {}) {
+  const gs = window ? group(window) : null;
+  const sx = (t) => x0 + ((t - RT0) / (RT1 - RT0)) * w;
+  if (gs) gs.forEach((g, k) => rect(ctx, sx(g.lo) - 5, y0 - 4, sx(g.hi) - sx(g.lo) + 10, rowH * 6 + 4, wash(T.clusters[k % 6], 0.22)));
+  D.samples.forEach((s, j) => {
+    const tr = shifted ? TR[j] : { ...TR[j], rt: TR[j].rt.map((t) => t - SHIFT[j]) };
+    const yTop = y0 + j * rowH, H = Math.max(...tr.y) * 1.05;
+    const sy = (v) => yTop + rowH - 4 - (v / H) * (rowH - 6);
+    polyline(ctx, tr.rt.map(sx), tr.y.map(sy), T.ink2, 1);
+    DET[j].forEach((p) => dot(ctx, sx(shifted ? p.rt : p.rt - SHIFT[j]), sy(p.h + BASE), 3, T.empirical));
+    if (names) label(ctx, `${s.id.slice(-3)} ${s.cohort === "Prostate cancer" ? "cancer" : "hyperplasia"}`, x0 - 6, yTop + rowH / 2 + 3, { size: 9, colour: T.ink3, align: "right", mono: true });
+  });
+  const yb = y0 + rowH * 6;
+  line(ctx, x0, yb, x0 + w, yb, T.axis);
+  for (let t = 1; t <= 4; t += 1) label(ctx, String(t), sx(t), yb + 13, { align: "center", size: 10, colour: T.ink3 });
+  if (gs) gs.forEach((g, k) => label(ctx, `feature ${k + 1}`, sx(g.rt), y0 - 8, { size: 10, colour: T.clusters[k % 6], weight: "600", align: "center" }));
+  return gs;
+}
+{
+  const b = cand("alignRow", "A · group within an RT window (0.3 min drawn)", `six samples · m/z 131.035 · each trace on its own scale\na band per feature: peaks within the window of their neighbour`);
+  const ctx = canvasIn(b, W, 330);
+  stack(ctx, 110, 30, W - 140, 44, { window: 0.3 });
+  label(ctx, "retention time (min) →", 110 + (W - 140) / 2, 322, { align: "center", size: 10, colour: T.ink3 });
+}
+{
+  const b = cand("alignRow", "B · correct the shifts, then group", `left of the arrow: as measured · right: each sample's RT shifted onto the others\nthen grouped as A`);
+  const ctx = canvasIn(b, W, 330);
+  stack(ctx, 110, 30, (W - 160) / 2, 44, { shifted: true });
+  stack(ctx, 110 + (W - 160) / 2 + 30, 30, (W - 160) / 2, 44, { shifted: false, window: 0.3, names: false });
+  label(ctx, "→", 110 + (W - 160) / 2 + 15, 170, { size: 14, colour: T.ink1, align: "center" });
+}
+{
+  const rows = [0.05, 0.3, 1.5].map((w) => {
+    const gs = group(w);
+    return `<tr${w === 0.3 ? ' class="on"' : ""}><td>${w} min</td><td>${gs.length}</td><td>${gs.map((g) => `${g.names.join(" + ")} (${g.peaks.length} peaks, RT ${g.lo.toFixed(2)}–${g.hi.toFixed(2)})`).join("; ")}</td></tr>`;
+  });
+  document.getElementById("windowTable").innerHTML = `<tr><th>RT window</th><th>features</th><th>what each feature holds</th></tr>` + rows.join("");
+}
+
+/* ------------------------------------------------ §5 Identification */
+const FEAT = (() => { const g = group(0.3).find((g) => g.names.length === 1 && g.names[0] === "ethylmalonic"); return { rt: g.rt, mz: ETH.exact * (1 + 1.6e-6) }; })();
+{
+  const b = cand("idRow", "A · three rows that narrow down, with the level reached", `the ethylmalonic feature: m/z ${FEAT.mz.toFixed(4)}, RT ${FEAT.rt.toFixed(2)} min\nMass tolerance ±0.5 Da drawn above, ±5 ppm below`);
+  const ctx = canvasIn(b, W, 520);
+  const x0 = 30, w = W - 120;
+  const lvl = (y, n, s) => { label(ctx, `level ${n}`, W - 14, y, { size: 11, colour: T.ink1, weight: "600", align: "right" }); label(ctx, s, W - 14, y + 13, { size: 9, colour: T.ink3, align: "right" }); };
+  const ruler = (y, lo, hi, list, tol, title) => {
+    const sx = (m) => x0 + ((m - lo) / (hi - lo)) * w;
+    label(ctx, title, x0, y - 26, { colour: T.ink1, weight: "600" });
+    rect(ctx, sx(FEAT.mz - tol), y - 16, Math.max(2, sx(FEAT.mz + tol) - sx(FEAT.mz - tol)), 26, wash(T.highlight, 0.18));
+    line(ctx, x0, y + 10, x0 + w, y + 10, T.axis);
+    list.forEach((f) => line(ctx, sx(f.mz), y - 12, sx(f.mz), y + 10, Math.abs(f.mz - FEAT.mz) <= tol ? T.ink1 : T.ink3, 1.2));
+    line(ctx, sx(FEAT.mz), y - 18, sx(FEAT.mz), y + 14, T.empirical, 2);
+    [lo, (lo + hi) / 2, hi].forEach((m) => label(ctx, m.toFixed(hi - lo < 1 ? 3 : 1), sx(m), y + 23, { size: 9, colour: T.ink3, align: "center", mono: true }));
+    return sx;
+  };
+  // row 1a: unit tolerance
+  ruler(54, 130.5, 131.6, formulas(ETH.exact, 0.6), 0.5, `1 · Match mass, ±0.5 Da: ${fUnit.length} formulas fit (a tick each)`);
+  lvl(40, 5, "exact mass only");
+  // row 1b: 5 ppm, zoomed
+  const sx = ruler(140, ETH.exact - 0.012, ETH.exact + 0.012, fNear, PPM5, `   ±5 ppm (zoomed 50×): ${fPpm.length} formula fits, ${fPpm.map((f) => f.f).join("")}`);
+  label(ctx, `the other ${fNear.length - fPpm.length} ticks: ${fNear.filter((f) => Math.abs(f.mz - FEAT.mz) > PPM5).map((f) => f.f).join(", ")}`, x0, 176, { size: 9, colour: T.ink3, mono: true });
+  lvl(126, 4, "one formula");
+  // row 2: compounds with that formula
+  label(ctx, "2 · the database's compounds with formula C5H8O4", x0, 200, { colour: T.ink1, weight: "600" });
+  const cands = MET.filter((m) => m.formula === "C5H8O4");
+  cands.forEach((m, k) => { const bx = x0 + k * 190; rect(ctx, bx, 212, 175, 40, T.surface2, T.grid); label(ctx, m.name, bx + 8, 229, { colour: T.ink1, weight: "600" }); label(ctx, `exact ${m.exact.toFixed(4)} · Δ ${(((FEAT.mz - m.exact) / m.exact) * 1e6).toFixed(1)} ppm`, bx + 8, 244, { size: 9, mono: true, colour: T.ink2 }); });
+  lvl(226, 3, `${cands.length} candidates`);
+  label(ctx, "the same at ±0.5 Da and at ±5 ppm: a tighter tolerance removes formulas, not isomers", x0, 272, { size: 10, colour: T.ink2 });
+  // row 3: RT against the standards
+  label(ctx, "3 · Match RT: the feature against each standard's RT (±0.1 min)", x0, 312, { colour: T.ink1, weight: "600" });
+  const rx = (t) => x0 + ((t - 1.5) / 2.5) * w, ry = 360;
+  line(ctx, x0, ry, x0 + w, ry, T.axis);
+  for (let t = 1.5; t <= 4.0; t += 0.5) label(ctx, t.toFixed(1), rx(t), ry + 14, { size: 9, colour: T.ink3, align: "center" });
+  cands.forEach((m) => {
+    const hit = Math.abs(FEAT.rt - m.rt) <= 0.1;
+    rect(ctx, rx(m.rt - 0.1), ry - 30, rx(m.rt + 0.1) - rx(m.rt - 0.1), 30, wash(hit ? T.highlight : T.reference, 0.18));
+    line(ctx, rx(m.rt), ry - 32, rx(m.rt), ry, T.reference, 2);
+    label(ctx, `${m.name.replace(" acid", "")} standard ${m.rt}`, rx(m.rt), ry - 36, { size: 10, colour: hit ? T.highlight : T.ink2, align: "center", weight: hit ? "600" : "" });
+  });
+  dot(ctx, rx(FEAT.rt), ry - 12, 5, T.empirical);
+  label(ctx, `feature ${FEAT.rt.toFixed(2)}`, rx(FEAT.rt), ry + 28, { size: 10, colour: T.empirical, align: "center", weight: "600" });
+  lvl(330, 1, "reference standard");
+  // the table at the foot
+  label(ctx, "the table: one row a feature", x0, 420, { colour: T.ink1, weight: "600" });
+  const cols = ["m/z", "RT", "name", "level", ...D.samples.map((s) => s.id.slice(-3))];
+  const cx = [x0, x0 + 62, x0 + 102, x0 + 220, ...D.samples.map((_, j) => x0 + 262 + j * 42)];
+  cols.forEach((c, k) => label(ctx, c, cx[k], 438, { size: 9, colour: T.ink3, mono: true }));
+  const g2 = group(0.3);
+  g2.forEach((g, r) => {
+    const m = g.names[0] === "glutaric" ? GLU : ETH, y = 456 + r * 16;
+    const cells = [m.exact.toFixed(4), g.rt.toFixed(2), m.name.replace(" acid", ""), "1", ...D.samples.map((_, j) => { const p = g.peaks.find((p) => p.j === j); return p ? (p.area / 1000).toFixed(0) + "k" : "0"; })];
+    cells.forEach((c, k) => label(ctx, c, cx[k], y, { size: 9, colour: k === 2 ? T.highlight : T.ink1, mono: true }));
+  });
+  label(ctx, "areas in thousands; 0 where no peak passed S/N 3, as the MAF records it", x0, 500, { size: 9, colour: T.ink3 });
+}
+{
+  const b = cand("idRow", "B · the candidate list", `the same feature · the lesson's 26 searched\nabove ±0.5 Da, below ±5 ppm`);
+  const ctx = canvasIn(b, W, 300);
+  const list = (y, tol, t) => {
+    label(ctx, t, 30, y, { colour: T.ink1, weight: "600" });
+    ["name", "formula", "exact m/z", "Δ ppm", "standard RT", "Δ RT"].forEach((c, k) => label(ctx, c, 30 + [0, 150, 230, 310, 370, 450][k], y + 20, { size: 9, mono: true, colour: T.ink3 }));
+    MET.filter((m) => Math.abs(m.exact - FEAT.mz) <= tol).forEach((m, r) => {
+      const hit = Math.abs(FEAT.rt - m.rt) <= 0.1;
+      [m.name, m.formula, m.exact.toFixed(4), (((FEAT.mz - m.exact) / m.exact) * 1e6).toFixed(1), m.rt.toFixed(2), (FEAT.rt - m.rt).toFixed(2)]
+        .forEach((c, k) => label(ctx, c, 30 + [0, 150, 230, 310, 370, 450][k], y + 38 + r * 16, { size: 10, mono: k > 0, colour: hit ? T.highlight : T.ink1, weight: hit && k === 0 ? "600" : "" }));
+    });
+  };
+  list(30, 0.5, "±0.5 Da: 2 of the 26");
+  list(150, PPM5, "±5 ppm: the same 2");
+}
+
+/* ------------------------------------------------ §6 Table page */
+{
+  const b = cand("tableRow", "C · Table: the feature table as its own page", `the two features at m/z 131.035 across the six samples, with the ID and group\nwhat 02-2 downloads as the MAF, here built from the peaks`);
+  const ctx = canvasIn(b, W, 200);
+  const g2 = group(0.3), x0 = 20;
+  label(ctx, "sample", x0, 30, { size: 10, colour: T.ink3, mono: true });
+  D.samples.forEach((s, j) => { label(ctx, `${s.id}`, x0, 52 + j * 20, { size: 10, mono: true, colour: T.ink1 }); label(ctx, s.cohort.replace("Prostatic ", "").replace("Prostate ", ""), x0 + 100, 52 + j * 20, { size: 10, colour: T.ink2 }); });
+  g2.forEach((g, k) => {
+    const m = g.names[0] === "glutaric" ? GLU : ETH, x = x0 + 230 + k * 150;
+    label(ctx, `${m.name}`, x, 18, { size: 10, colour: T.ink1, weight: "600" });
+    label(ctx, `${m.exact.toFixed(3)} · RT ${g.rt.toFixed(2)}`, x, 30, { size: 9, colour: T.ink3, mono: true });
+    D.samples.forEach((_, j) => { const p = g.peaks.find((p) => p.j === j); label(ctx, p ? fmt(p.area) : "0", x + 60, 52 + j * 20, { size: 10, mono: true, colour: p ? T.ink1 : T.ink3, align: "right" }); });
+  });
+  label(ctx, "lesson's MAF for the same samples: " + D.samples.map((_, j) => `${fmt(GLU.at[j])} / ${fmt(ETH.at[j])}`).join(" · "), x0, 186, { size: 8, colour: T.ink3, mono: true });
+}
+</script>
+</body>
+</html>
