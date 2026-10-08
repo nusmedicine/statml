@@ -314,7 +314,8 @@ function renderFormula(key) {
 }
 
 /* ------------------------------------------------------------ the widget */
-const FEATURE_OPTIONS = [{ value: "largest", label: "The largest" }, ...Array.from({ length: 9 }, (_, k) => ({ value: String(k + 1), label: `Feature ${k + 1}` }))];
+/* 1–5: the most features any RT window gives on this data (5 at 0.05 min) */
+const FEATURE_OPTIONS = [{ value: "largest", label: "The largest" }, ...Array.from({ length: 5 }, (_, k) => ({ value: String(k + 1), label: `Feature ${k + 1}` }))];
 
 defineWidget({
   slug: "ms-features",
