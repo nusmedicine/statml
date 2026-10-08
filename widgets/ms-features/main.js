@@ -18,16 +18,19 @@
  *      a bracket one RT window wide from tick to tick, and a tick that lands
  *      inside joins the feature; a window change walks the bracket again;
  *   4. Identification: formulas within the Mass tolerance (a change zooms the
- *      ruler), the 26 metabolites within it drawn as structures, RT against
- *      each standard, the level reached; Match mass, then Match RT;
- *   5. hover inspects everything named in the round 1 mock's § 4.
+ *      ruler), the study's metabolites within it drawn as structures, every
+ *      feature of the row on the RT axis against each standard, the level
+ *      reached; Match mass, then Match RT;
+ *   5. no metabolite is named before Identification (round 3, his call: page 1
+ *      had named the two peaks, the answer the last page exists to reach);
+ *   6. hover inspects everything named in the round 1 mock's § 4.
  * Round 1 (his picks, `_lab/ms-features-round1-mock.html`): all four the
  * recommendation. The press clock is 91's: only a page switch ends a press.
  */
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as E from "./engine.js";
 
-const H_PEAKS = 500, H_ALIGN = 416, H_ID = 540;
+const H_PEAKS = 500, H_ALIGN = 416, H_ID = 560;
 const DETECT_MS = 3000, INTEGRATE_MS = 2600, ALIGN_MS = 3000, MASS_MS = 1500, RTM_MS = 1200;
 const WALK_MS = 1500, ZOOM_MS = 900;                 // the eases: a window change, a tolerance change
 const RIGHT = 20, X0 = 56, XA = 112;
@@ -158,7 +161,7 @@ const mapGeom = (M) => ({
   mx: (t) => M.x0 + ((t - E.RT0) / (E.RT1 - E.RT0)) * (M.x1 - M.x0),
   my: (m) => M.y1 - ((m - E.GRID.mz0) / (E.GRID.mz1 - E.GRID.mz0)) * (M.y1 - M.y0),
 });
-/* every spot the file records in this sample, inside the run: its place, its S/N at the page's noise, its row */
+/* every spot MTBLS6038 records in this sample, inside the run: its place, its S/N at the page's noise, its row */
 function spotsOf(j, M) {
   const { mx, my } = mapGeom(M);
   return E.METS.filter((m) => m.at[j] > 0 && m.rt <= E.RT1).map((m) => ({
@@ -230,11 +233,10 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
   rule(ctx, M.x0, my(row.mz), M.x1, my(row.mz), colors.ink1, 1.4);
   txt(ctx, colors, `m/z ${row.key}`, M.x1 - 4, my(row.mz) - 5, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
 
-  const names = row.mets.map((m) => short(m.name)).join(" and ");
-  txt(ctx, colors, `The row at m/z ${row.key} ± 5 ppm (${names}): intensity against RT`, 12, P.y0 - 10, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, `The row at m/z ${row.key} ± 5 ppm: intensity against RT`, 12, P.y0 - 10, { colour: colors.ink1, weight: "600" });
   const g = drawSlice(ctx, colors, tr, P, {
     upTo: detT, fillTo, top: state.top[j][r], band: true, brackets: true,
-    label: (d, x, y) => txt(ctx, colors, `${short(d.who.name)} · RT ${d.rt.toFixed(2)}`, x + 10, y + 4, { size: "fsXs", colour: colors.ink1, weight: "600" }),
+    label: (d, x, y) => txt(ctx, colors, `RT ${d.rt.toFixed(2)}`, x + 10, y + 4, { size: "fsXs", colour: colors.ink1, weight: "600" }),
   });
   txt(ctx, colors, "S/N 3", P.x1 - 2, g.sy(E.THRESHOLD) - 5, { size: "fsXs", colour: colors.reference, align: "right" });
   txt(ctx, colors, "noise ±1 SD", P.x0 + 4, g.sy(E.BASE - E.NOISE) + 13, { size: "fsXs", colour: colors.reference });
@@ -276,9 +278,9 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
       dot(ctx, hoverSpot.x, hoverSpot.y, 9, null, colors.ink1, 2);
       const here = hoverSpot.key === row.key;
       tip(ctx, colors, w, hoverSpot.x, hoverSpot.y, [
-        hoverSpot.m.name,
-        `m/z ${hoverSpot.m.exact.toFixed(4)} · RT ${hoverSpot.rt.toFixed(2)} min`,
-        `S/N ${hoverSpot.sn.toFixed(1)}: ${hoverSpot.sn >= 3 ? "above" : "below"} the line of 3 · the file records ${fmt(hoverSpot.m.at[j])}`,
+        `m/z ${hoverSpot.key} · RT ${hoverSpot.rt.toFixed(2)} min`,
+        `S/N ${hoverSpot.sn.toFixed(1)}: ${hoverSpot.sn >= 3 ? "above" : "below"} the line of 3`,
+        `MTBLS6038 records an area of ${fmt(hoverSpot.m.at[j])}`,
         here ? "its row is the trace below" : "a click makes its row the trace below",
       ]);
     } else {
@@ -306,7 +308,7 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
   const sx = (t) => L.x0 + ((t - VIEW_ALIGN[0]) / (VIEW_ALIGN[1] - VIEW_ALIGN[0])) * (L.x1 - L.x0);
   const ay = L.axis;
   const peaks = state.t131.flatMap((t) => t.det);
-  txt(ctx, colors, "m/z 131.035 in six samples, each trace on its own scale", 12, 18, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, "The row at m/z 131.035 in six samples, each trace on its own scale", 12, 18, { colour: colors.ink1, weight: "600" });
 
   // hover: a peak first, else a feature band
   let hoverPeak = null, hoverFeature = null;
@@ -377,19 +379,8 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
 }
 
 /* ------------------------------------------------------------ the Identification page */
-const idLayout = (w) => ({ x0: 24, x1: w - RIGHT - LEVEL_W, lx: w - RIGHT, ruler: 86, cards: 164, rt: 368, table: 424 });
+const idLayout = (w) => ({ x0: 24, x1: w - RIGHT - LEVEL_W, lx: w - RIGHT, ruler: 86, cards: 164, rt: 368, table: 444 });
 const HALF = { unit: 0.6, ppm: 0.012 };              // the ruler's half-width in Da at each tolerance
-function featureOf(params, state) {
-  const fs = state.features[params.window];
-  const k = Number(params.feature);
-  return params.feature === "largest" || !(k >= 1 && k <= fs.length) ? E.largest(fs) : fs[k - 1];
-}
-function nameOf(f, stage, tol) {
-  if (stage < 1) return { name: "–", by: "–" };
-  const { cands, byRt } = E.identify(f, tol);
-  if (stage >= 2 && byRt.length === 1) return { name: byRt[0].name, by: "m/z, RT", hit: true };
-  return { name: cands.map((m) => short(m.name)).join(" or "), by: "m/z" };
-}
 /* skeletal formulas from the MAF's SMILES: glutaric OC(=O)CCCC(O)=O, ethylmalonic CCC(C(O)=O)C(O)=O */
 function skeleton(ctx, colors, x, y, name) {
   const s = 20, dx = s * Math.cos(Math.PI / 6), dy = s * Math.sin(Math.PI / 6);
@@ -412,8 +403,19 @@ function skeleton(ctx, colors, x, y, name) {
     acid(c1, true, false); acid(c2, false, false);
   }
 }
+/* Round 3 (his picks, `_lab/ms-features-round3-mock.html`): no Feature control.
+   Rows 1 and 2 are the same for every feature in the row, since they share the
+   m/z; row 3 drops every feature onto the RT axis against both standards, and
+   a feature inside a standard's ±0.1 min takes that standard's name. */
+function nameOf(f, stage, tol) {
+  if (stage < 1) return { name: "–", by: "–" };
+  const { cands, byRt } = E.identify(f, tol);
+  if (stage >= 2 && byRt.length === 1) return { name: byRt[0].name, by: "m/z, RT", hit: true };
+  return { name: cands.map((m) => short(m.name)).join(" or "), by: "m/z" };
+}
+const rtList = (fs) => fs.map((f) => f.rt.toFixed(2)).join(", ");
 function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
-  const L = idLayout(w), tol = params.tolerance, f = featureOf(params, state);
+  const L = idLayout(w), tol = params.tolerance;
   const fs = state.features[params.window];
   const { s, p } = stageOf("identification", params, anim);
   const massP = s >= 2 || (s === 1 && p >= 1) ? 1 : s === 1 ? p : 0;
@@ -422,7 +424,7 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     txt(ctx, colors, n, L.lx, y, { colour: on ? colors.ink1 : colors.ink3, weight: "700", align: "right" });
     txt(ctx, colors, sub, L.lx, y + 14, { size: "fsXs", colour: colors.ink3, align: "right" });
   };
-  txt(ctx, colors, `Feature ${f.k + 1} of ${fs.length}: m/z ${E.FEATURE_MZ.toFixed(4)}, RT ${f.rt.toFixed(2)} min`, 12, 20, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, `The features at m/z 131.035 (RT window ${params.window} min): RT ${rtList(fs)}`, 12, 20, { colour: colors.ink1, weight: "600" });
 
   // 1 · formulas within the tolerance: a ruler of every CHNOS formula's [M−H]⁻, zoomed by a tolerance change
   const z = anim && anim.zoom.t < 1 ? { from: anim.zoom.from, e: easeInOut(anim.zoom.t) } : null;
@@ -431,9 +433,10 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
   const winD = z ? lerpLog(E.tolDa(z.from, E.FEATURE_MZ), E.tolDa(tol, E.FEATURE_MZ), z.e) : E.tolDa(tol, E.FEATURE_MZ);
   const lo = E.FEATURE_MZ - half, hi = E.FEATURE_MZ + half;
   const rx = (m) => L.x0 + ((m - lo) / (hi - lo)) * (L.x1 - L.x0), ry = L.ruler;
-  txt(ctx, colors, `1 · Mass: CHNOS formulas within ${tol === "unit" ? "±0.5 Da" : "±5 ppm"}`, 12, 48, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, `1 · Mass: CHNOS formulas within ${tol === "unit" ? "±0.5 Da" : "±5 ppm"} of the measured m/z`, 12, 48, { colour: colors.ink1, weight: "600" });
   rule(ctx, L.x0, ry + 10, L.x1, ry + 10, colors.axis);
-  [lo, E.FEATURE_MZ, hi].forEach((m) => txt(ctx, colors, m.toFixed(half > 0.1 ? 2 : 3), rx(m), ry + 24, { size: "fsXs", colour: colors.ink3, align: "center", mono: true }));
+  [lo, hi].forEach((m) => txt(ctx, colors, m.toFixed(half > 0.1 ? 2 : 3), rx(m), ry + 24, { size: "fsXs", colour: colors.ink3, align: "center", mono: true }));
+  txt(ctx, colors, `measured ${E.FEATURE_MZ.toFixed(4)}`, rx(E.FEATURE_MZ), ry + 24, { size: "fsXs", colour: colors.empirical, align: "center", mono: true, weight: "600" });
   const shownHalf = winD * easeInOut(massP);
   if (massP > 0) box(ctx, rx(E.FEATURE_MZ - shownHalf), ry - 16, Math.max(2, rx(E.FEATURE_MZ + shownHalf) - rx(E.FEATURE_MZ - shownHalf)), 26, colors.highlight, 0.18);
   let hoverTick = null;
@@ -451,13 +454,14 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     level(68, tol === "unit" ? "level 5" : "level 4", tol === "unit" ? "exact mass" : "molecular formula", true);
   }
 
-  // 2 · the 26 metabolites within the tolerance, drawn as structures
+  // 2 · of the study's 26 metabolites, those within the tolerance, drawn as structures
   const cands = E.candidates(E.FEATURE_MZ, tol);
-  txt(ctx, colors, "2 · The 26 metabolites within the tolerance", 12, L.cards - 12, { colour: colors.ink1, weight: "600" });
+  const named = (m) => rtP >= 1 && fs.some((f) => Math.abs(f.rt - m.rt) <= E.RT_TOL);
+  txt(ctx, colors, "2 · Of the study's 26 metabolites, those within the tolerance", 12, L.cards - 12, { colour: colors.ink1, weight: "600" });
   if (massP >= 1) {
     const cw = Math.min(220, (L.x1 - L.x0 - 12) / Math.max(2, cands.length));
     cands.forEach((m, k) => {
-      const bx = L.x0 + k * (cw + 12), on = rtP >= 1 && Math.abs(f.rt - m.rt) <= E.RT_TOL;
+      const bx = L.x0 + k * (cw + 12), on = named(m);
       box(ctx, bx, L.cards, cw, 110, colors.surface2);
       if (on) frame(ctx, bx, L.cards, cw, 110, colors.highlight, 2);
       txt(ctx, colors, m.name, bx + 8, L.cards + 17, { colour: on ? colors.highlight : colors.ink1, weight: "600" });
@@ -467,49 +471,59 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     level(L.cards + 16, "level 3", `${cands.length} candidates`, true);
   }
 
-  // 3 · RT against each candidate's standard
+  // 3 · every feature's RT against each candidate's standard
   const T0 = 1.5, T1 = 4.0, tx = (t) => L.x0 + ((t - T0) / (T1 - T0)) * (L.x1 - L.x0), ty = L.rt;
-  txt(ctx, colors, `3 · Retention time against each standard (±${E.RT_TOL} min)`, 12, ty - 70, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, `3 · Retention time: every feature against each standard (±${E.RT_TOL} min)`, 12, ty - 70, { colour: colors.ink1, weight: "600" });
   rule(ctx, L.x0, ty, L.x1, ty, colors.axis);
   for (let t = T0; t <= T1 + 1e-9; t += 0.5) txt(ctx, colors, t.toFixed(1), tx(t), ty + 14, { size: "fsXs", colour: colors.ink3, align: "center" });
-  let hoverStd = null;
+  let hoverStd = null, hoverDot = null;
+  // a table row under the pointer rings its feature's dot
+  const rowOver = pointer ? fs.find((g, r) => { const y = L.table + 26 + r * 17; return pointer.y >= y - 12 && pointer.y < y + 4 && pointer.x >= 8; }) : null;
   if (rtP > 0) {
     cands.forEach((m) => {
-      const hit = rtP >= 1 && Math.abs(f.rt - m.rt) <= E.RT_TOL;
+      const hit = named(m);
       box(ctx, tx(m.rt - E.RT_TOL), ty - 30, tx(m.rt + E.RT_TOL) - tx(m.rt - E.RT_TOL), 30, hit ? colors.highlight : colors.reference, 0.18);
       rule(ctx, tx(m.rt), ty - 32, tx(m.rt), ty, colors.reference, 2);
-      txt(ctx, colors, `${short(m.name)} ${m.rt}`, tx(m.rt), ty - 38, { size: "fsXs", colour: hit ? colors.highlight : colors.ink2, align: "center", weight: hit ? "600" : "" });
-      if (pointer && Math.abs(pointer.x - tx(m.rt)) <= 8 && pointer.y >= ty - 46 && pointer.y <= ty + 4) hoverStd = m;
+      txt(ctx, colors, `${short(m.name)} standard ${m.rt}`, tx(m.rt), ty - 38, { size: "fsXs", colour: hit ? colors.highlight : colors.ink2, align: "center", weight: hit ? "600" : "" });
+      if (pointer && Math.abs(pointer.x - tx(m.rt)) <= 8 && pointer.y >= ty - 46 && pointer.y <= ty - 28) hoverStd = m;
     });
-    // the feature drops onto its RT
-    const fx = tx(Math.max(T0, Math.min(T1, f.rt)));
+    // every feature drops onto its RT, each in its own vertical lane
     const y = ty - 62 + 50 * easeInOut(clamp01(rtP));
-    dot(ctx, fx, y, 5, colors.empirical);
+    fs.forEach((f, k) => {
+      const fx = tx(Math.max(T0, Math.min(T1, f.rt)));
+      dot(ctx, fx, y, 5, colors.empirical);
+      if (rowOver === f) dot(ctx, fx, y, 9, null, colors.ink1, 2);
+      if (rtP >= 1) txt(ctx, colors, f.rt.toFixed(2), fx, ty + 28 + (k % 2) * 13, { size: "fsXs", colour: colors.empirical, align: "center", weight: "600" });
+      if (near(pointer, fx, y, 8)) hoverDot = { f, fx, y };
+    });
     if (rtP >= 1) {
-      txt(ctx, colors, `feature ${f.rt.toFixed(2)}`, fx, ty + 30, { size: "fsXs", colour: colors.empirical, align: "center", weight: "600" });
-      const { byRt } = E.identify(f, tol);
-      level(ty - 52, byRt.length === 1 ? "level 1" : "level 3", byRt.length === 1 ? "with the standard's MS2" : "no standard within ±0.1", byRt.length === 1);
+      const nNamed = fs.filter((f) => E.identify(f, tol).byRt.length === 1).length;
+      level(ty - 66, nNamed ? "level 1" : "level 3", nNamed ? `${nNamed} of ${fs.length} named` : "no feature within ±0.1", nNamed > 0);
+      txt(ctx, colors, nNamed ? "with the standard's MS2" : "of a standard", L.lx, ty - 38, { size: "fsXs", colour: colors.ink3, align: "right" });
     }
   }
 
   // the feature table: one row a feature, the names as far as the presses have gone
   const stage = massP >= 1 ? (rtP >= 1 ? 2 : 1) : 0;
   txt(ctx, colors, `The feature table (RT window ${params.window} min)`, 12, L.table - 10, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, "areas in six samples, by the last digits of each ID", w - RIGHT, L.table - 10, { size: "fsXs", colour: colors.ink3, align: "right" });
   const cols = tableCols(w);
   ["m/z", "RT", "name", "matched by", ...E.SAMPLES.map((s0) => s0.id.slice(-3))].forEach((c, k) => txt(ctx, colors, c, cols[k], L.table + 8, { size: "fsXs", colour: colors.ink3, mono: true, align: k >= 4 ? "right" : "left" }));
   fs.forEach((g, r) => {
-    const y = L.table + 26 + r * 17, sel = g === f, nm = nameOf(g, stage, tol);
-    const over = pointer && pointer.y >= y - 12 && pointer.y < y + 4 && pointer.x >= 8;
-    if (sel || over) box(ctx, 8, y - 12, w - RIGHT - 4, 16, colors.surface2);
-    const cells = [E.FEATURE_MZ.toFixed(4), g.rt.toFixed(2), nm.hit ? short(nm.name) : nm.name, nm.by, ...g.area.map((a) => (a > 0 ? `${Math.round(a / 1000)}k` : "0"))];
-    cells.forEach((c, k) => txt(ctx, colors, c, cols[k], y, { size: "fsXs", mono: k !== 2, align: k >= 4 ? "right" : "left", colour: k === 2 && nm.hit ? colors.highlight : colors.ink1, weight: sel && k === 2 ? "600" : "" }));
+    const y = L.table + 26 + r * 17, nm = nameOf(g, stage, tol);
+    if (rowOver === g) box(ctx, 8, y - 12, w - RIGHT - 4, 16, colors.surface2);
+    const cells = ["131.035", g.rt.toFixed(2), nm.hit ? short(nm.name) : nm.name, nm.by, ...g.area.map((a) => (a > 0 ? `${Math.round(a / 1000)}k` : "0"))];
+    cells.forEach((c, k) => txt(ctx, colors, c, cols[k], y, { size: "fsXs", mono: k !== 2, align: k >= 4 ? "right" : "left", colour: k === 2 && nm.hit ? colors.highlight : colors.ink1 }));
   });
 
   if (hoverTick) {
     rule(ctx, hoverTick.x, ry - 14, hoverTick.x, ry + 12, colors.ink1, 3);
-    tip(ctx, colors, w, hoverTick.x, ry - 14, [hoverTick.fm.f, `m/z ${hoverTick.fm.mz.toFixed(4)}`, `${E.ppmOf(hoverTick.fm.mz, E.FEATURE_MZ).toFixed(0)} ppm from the feature`]);
+    tip(ctx, colors, w, hoverTick.x, ry - 14, [hoverTick.fm.f, `m/z ${hoverTick.fm.mz.toFixed(4)}`, `${E.ppmOf(hoverTick.fm.mz, E.FEATURE_MZ).toFixed(0)} ppm from the measured m/z`]);
+  } else if (hoverDot) {
+    const { byRt } = E.identify(hoverDot.f, tol);
+    tip(ctx, colors, w, hoverDot.fx, hoverDot.y, [`m/z 131.035 · RT ${hoverDot.f.rt.toFixed(2)}`, byRt.length === 1 ? `within ±${E.RT_TOL} min of the ${short(byRt[0].name).toLowerCase()} standard (${byRt[0].rt})` : `within ±${E.RT_TOL} min of neither standard`]);
   } else if (hoverStd) {
-    tip(ctx, colors, w, tx(hoverStd.rt), ty - 46, [`${hoverStd.name}, the standard`, `RT ${hoverStd.rt} min`, `${Math.abs(f.rt - hoverStd.rt).toFixed(2)} min from the feature`]);
+    tip(ctx, colors, w, tx(hoverStd.rt), ty - 46, [`${hoverStd.name}, the standard`, `RT ${hoverStd.rt} min, run on the same column`]);
   }
 }
 const tableCols = (w) => { const r = w - RIGHT; return [16, 82, 122, 280, ...E.SAMPLES.map((_, j) => r - (E.SAMPLES.length - 1 - j) * 42)]; };
@@ -549,9 +563,6 @@ function renderFormula(key) {
 }
 
 /* ------------------------------------------------------------ the widget */
-/* 1–5: the most features any RT window gives on this data (5 at 0.05 min) */
-const FEATURE_OPTIONS = [{ value: "largest", label: "The largest" }, ...Array.from({ length: 5 }, (_, k) => ({ value: String(k + 1), label: `Feature ${k + 1}` }))];
-
 defineWidget({
   slug: "ms-features",
   title: "Metabolomics: Peaks to Names",
@@ -577,13 +588,13 @@ defineWidget({
     },
     row: {
       type: "select", label: "Row", display: true, default: E.ROWS[E.ROW_131].key, when: { param: "page", equals: "peaks" },
-      detail: "the m/z whose intensity is drawn against RT below the map; a click on a spot selects its row",
-      options: E.ROWS.map((r) => ({ value: r.key, label: `${r.key} · ${r.mets.map((m) => m.name).join(", ")}` })),
+      detail: "the m/z whose intensity is drawn against RT below the map, with the RT of each metabolite MTBLS6038 reports at it; a click on a spot selects its row",
+      options: E.ROWS.map((r) => ({ value: r.key, label: `${r.key} · RT ${r.mets.map((m) => m.rt.toFixed(2)).join(", ")}` })),
     },
     alignSec: { type: "section", label: "Grouping", when: { param: "page", equals: "alignment" } },
     window: {
       type: "segmented", label: "RT window", display: true, default: "0.3", when: { param: "page", equals: "alignment" },
-      detail: "the largest gap in retention time between two peaks of one feature, in minutes",
+      detail: "the largest gap in retention time between two peaks of one feature, in minutes; this page and the next follow the row at m/z 131.035",
       options: E.WINDOWS.map((v) => ({ value: v, label: v })),
     },
     idSec: { type: "section", label: "Matching", when: { param: "page", equals: "identification" } },
@@ -593,11 +604,6 @@ defineWidget({
         { value: "unit", label: "±0.5 Da", detail: "unit resolution, as the triple quadrupole that measured MTBLS6038" },
         { value: "ppm", label: "±5 ppm", detail: "high resolution, as an Orbitrap or a time-of-flight instrument" },
       ],
-    },
-    feature: {
-      type: "select", label: "Feature", display: true, default: "largest", when: { param: "page", equals: "identification" },
-      detail: "the feature matched above; a click on a row of the table selects it",
-      options: FEATURE_OPTIONS,
     },
     /* authoring escape hatch, first render only: presses finished on the page */
     shown: { type: "int", min: 0, max: 2, default: 0, hidden: true },
@@ -654,8 +660,8 @@ defineWidget({
       alignment0: "Group the six samples' peaks into features by retention time",
       alignmentdone: "The peaks have been grouped; change RT window to group them again",
       identification0: "Find every formula, and every metabolite of the 26, within the mass tolerance",
-      identification1: "Compare the feature's retention time with each candidate's standard",
-      identificationdone: "The feature has been matched by mass and by retention time",
+      identification1: "Compare each feature's retention time with each candidate's standard",
+      identificationdone: "Every feature has been matched by mass and by retention time",
     }, default: "Step through this page" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
@@ -708,13 +714,11 @@ defineWidget({
     },
   },
 
-  /* a spot on the map selects its row (Peaks); a row of the feature table selects that feature (Identification) */
+  /* a spot on the map selects its row (Peaks) */
   regions: ({ w, params, state }) => {
     if (!state) return [];
-    if (params.page === "peaks") return spotsOf(sampleIndex(params), peaksLayout(w).map).map((sp) => ({ x: sp.x - 8, y: sp.y - 8, w: 16, h: 16, set: { row: sp.key }, label: sp.m.name }));
-    if (params.page !== "identification") return [];
-    const L = idLayout(w);
-    return state.features[params.window].map((g, r) => ({ x: 8, y: L.table + 14 + r * 17, w: w - RIGHT - 4, h: 16, set: { feature: String(r + 1) }, label: `Feature ${r + 1}` }));
+    if (params.page === "peaks") return spotsOf(sampleIndex(params), peaksLayout(w).map).map((sp) => ({ x: sp.x - 8, y: sp.y - 8, w: 16, h: 16, set: { row: sp.key }, label: `m/z ${sp.key}, RT ${sp.rt.toFixed(2)}` }));
+    return [];
   },
 
   draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
@@ -728,32 +732,33 @@ defineWidget({
     if (params.page === "alignment") {
       const { s, p } = stageOf("alignment", params, anim), done = s >= 1 && p >= 1;
       const fs = state.features[params.window], n = state.t131.reduce((a, t) => a + t.det.length, 0);
-      const big = E.largest(fs);
+      const nSamples = (f) => new Set(f.peaks.map((pk) => pk.j)).size;
       return [
         { label: "Peaks at m/z 131.035", value: `${n}`, note: "above S/N 3, in the six samples" },
         { label: "Features", value: done ? `${fs.length}` : "–", note: done ? `RT window ${params.window} min` : "once the peaks are grouped" },
-        { label: "Largest feature", value: done ? `RT ${big.lo.toFixed(2)}–${big.hi.toFixed(2)}` : "–", note: done ? `${big.peaks.length} peaks in ${new Set(big.peaks.map((pk) => pk.j)).size} samples` : "once the peaks are grouped" },
+        { label: "Feature RTs", value: done ? fs.map((f) => f.rt.toFixed(2)).join(" · ") : "–", note: done ? `m/z 131.035, found in ${fs.map((f) => nSamples(f)).join(" · ")} of the six samples` : "once the peaks are grouped" },
       ];
     }
     if (params.page === "identification") {
       const { s, p } = stageOf("identification", params, anim);
       const stage = s >= 2 && p >= 1 ? 2 : s >= 1 && (s >= 2 || p >= 1) ? 1 : 0;
-      const f = featureOf(params, state), tol = params.tolerance, { cands, byRt } = E.identify(f, tol);
+      const tol = params.tolerance, fs = state.features[params.window], cands = E.candidates(E.FEATURE_MZ, tol);
       const nF = (tol === "unit" ? state.formulasUnit : state.formulasPpm).length;
+      const named = fs.map((f) => ({ f, hit: E.identify(f, tol).byRt }));
       return [
         { label: "Formulas within the tolerance", value: stage >= 1 ? `${nF}` : "–", note: tol === "unit" ? "±0.5 Da: CHNOS, [M−H]⁻" : "±5 ppm: CHNOS, [M−H]⁻" },
         { label: "Candidates among the 26", value: stage >= 1 ? `${cands.length}` : "–", note: stage >= 1 ? cands.map((m) => m.name).join(", ") : "once matched by mass" },
-        { label: "Identified", value: stage >= 2 ? (byRt.length === 1 ? byRt[0].name : "–") : "–", note: stage >= 2 ? (byRt.length === 1 ? `standard at RT ${byRt[0].rt}, feature at ${f.rt.toFixed(2)}` : `no standard within ±${E.RT_TOL} min of RT ${f.rt.toFixed(2)}`) : "once matched by RT" },
+        { label: "Features named", value: stage >= 2 ? `${named.filter((n) => n.hit.length === 1).length} of ${fs.length}` : "–", note: stage >= 2 ? named.map((n) => `RT ${n.f.rt.toFixed(2)}: ${n.hit.length === 1 ? n.hit[0].name.toLowerCase() : "neither standard"}`).join(" · ") : "once matched by RT" },
       ];
     }
     const { s, p } = stageOf("peaks", params, anim);
     const j = sampleIndex(params), r = rowIndex(params), tr = state.traces[j][r];
     const detected = s >= 2 || (s === 1 && p >= 1), integrated = s >= 2 && p >= 1;
-    const nFile = E.METS.filter((m) => m.at[j] > 0).length, nMap = E.METS.filter((m) => m.at[j] > 0 && E.snOf(m.at[j]) >= 3).length;
+    const inRun = E.METS.filter((m) => m.rt <= E.RT1), nFile = inRun.filter((m) => m.at[j] > 0).length, nMap = inRun.filter((m) => m.at[j] > 0 && E.snOf(m.at[j]) >= 3).length;
     return [
       { label: `Peaks at m/z ${E.ROWS[r].key}`, value: detected ? `${tr.det.length}` : "–", note: detected ? (tr.det.length ? tr.det.map((d) => `RT ${d.rt.toFixed(2)}, S/N ${d.sn.toFixed(1)}`).join(" · ") : "none at S/N 3 or more") : "once detected" },
-      { label: "Areas", value: integrated && tr.det.length ? tr.det.map((d) => fmt(d.area)).join(" · ") : "–", note: integrated ? (tr.det.length ? `the file records ${tr.det.map((d) => fmt(d.who.at[j])).join(" · ")}` : "no peak to integrate in this row") : "once integrated" },
-      { label: "Above S/N 3 in this sample", value: detected ? `${nMap} of 26` : "–", note: `the file records ${nFile} as non-zero: the study measured each metabolite against its own detection limit` },
+      { label: "Areas", value: integrated && tr.det.length ? tr.det.map((d) => fmt(d.area)).join(" · ") : "–", note: integrated ? (tr.det.length ? `MTBLS6038 records ${tr.det.map((d) => fmt(d.who.at[j])).join(" · ")}` : "no peak to integrate in this row") : "once integrated" },
+      { label: "Above S/N 3 in this sample", value: detected ? `${nMap} of ${inRun.length}` : "–", note: `of the metabolites eluting by ${E.RT1} min; MTBLS6038 records ${nFile} as non-zero, each measured against its own detection limit` },
     ];
   },
 });
