@@ -27,7 +27,7 @@
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as E from "./engine.js";
 
-const H_PEAKS = 500, H_ALIGN = 400, H_ID = 540;
+const H_PEAKS = 500, H_ALIGN = 416, H_ID = 540;
 const DETECT_MS = 3000, INTEGRATE_MS = 2600, ALIGN_MS = 3000, MASS_MS = 1500, RTM_MS = 1200;
 const WALK_MS = 1500, ZOOM_MS = 900;                 // the eases: a window change, a tolerance change
 const RIGHT = 20, X0 = 56, XA = 112;
@@ -289,6 +289,8 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
 }
 
 /* ------------------------------------------------------------ the Alignment page */
+/* a feature is its m/z and its RT: the mean RT of its peaks, after grouping */
+const featurePair = (f) => `m/z 131.035 · RT ${f.rt.toFixed(2)}`;
 const alignLayout = (w) => ({ x0: XA, x1: w - RIGHT, y0: 40, row: 44, axis: 40 + 44 * 6 + 40 });
 /* how far the bracket has walked: the press, or the walk again after a window change */
 function walkT(params, anim) {
@@ -317,14 +319,24 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
     if (!hoverPeak && T === Infinity && pointer.y >= L.y0 - 4 && pointer.y <= ay + 12) hoverFeature = fs.find((f) => pointer.x >= sx(f.lo) - 6 && pointer.x <= sx(f.hi) + 6) ?? null;
   }
 
-  const colourOf = new Map();
+  /* A band is labelled by what a feature IS, its m/z and its RT (his call,
+     2026-10-08: two molecules share the m/z, the RT separates them, and a name
+     comes only on the next page). When the pairs cannot all sit side by side
+     without touching — five features at 0.05 min — every band takes its
+     number instead, and a line under the axis gives each number's pair. */
+  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+  const centre = (f) => (sx(f.lo) + sx(f.hi)) / 2, half = (f) => ctx.measureText(featurePair(f)).width / 2;
+  const pairsFit = fs.every((f, k) => centre(f) - half(f) >= 4 && centre(f) + half(f) <= w - 4 && (k === 0 || centre(f) - half(f) > centre(fs[k - 1]) + half(fs[k - 1]) + 8));
+  const colourOf = new Map(), shown = [];
   fs.forEach((f) => {
     if (T < f.lo) return;
     const hi = Math.min(f.hi, T), c = colors.clusters[f.k % colors.clusters.length];
     box(ctx, sx(f.lo) - 6, L.y0 - 4, sx(hi) - sx(f.lo) + 12, ay + 12 - (L.y0 - 4), c, hoverFeature === f ? 0.34 : 0.18);
-    txt(ctx, colors, sx(f.hi) - sx(f.lo) > 50 ? `feature ${f.k + 1}` : `${f.k + 1}`, (sx(f.lo) + sx(f.hi)) / 2, L.y0 - 10, { size: "fsXs", colour: c, weight: "600", align: "center" });
+    txt(ctx, colors, pairsFit ? featurePair(f) : `${f.k + 1}`, centre(f), L.y0 - 10, { size: "fsXs", colour: c, weight: "600", align: "center" });
+    shown.push(f);
     f.peaks.forEach((pk) => { if (pk.rt <= T) colourOf.set(pk, c); });
   });
+  if (!pairsFit && shown.length) txt(ctx, colors, `m/z 131.035 · ${shown.map((f) => `${f.k + 1}: RT ${f.rt.toFixed(2)}`).join(" · ")}`, L.x0, ay + 60, { size: "fsXs", colour: colors.ink2 });
   E.SAMPLES.forEach((s0, j) => {
     const P = { x0: L.x0, x1: L.x1, y0: L.y0 + j * L.row + 3, y1: L.y0 + (j + 1) * L.row - 3 };
     drawSlice(ctx, colors, state.t131[j], P, { upTo: Infinity, top: state.top131[j], ticks: false, view: VIEW_ALIGN, peakColour: (d) => colourOf.get(d) ?? colors.ink1, ring: hoverPeak });
@@ -357,10 +369,10 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
 
   if (hoverPeak) {
     const s0 = E.SAMPLES[hoverPeak.j], f = fs.find((g) => g.peaks.includes(hoverPeak));
-    tip(ctx, colors, w, pointer.x, pointer.y, [`${s0.id} · ${s0.cohort}`, `RT ${hoverPeak.rt.toFixed(2)} min · area ${fmt(hoverPeak.area)}`, f && T === Infinity ? `in feature ${f.k + 1}` : "not yet grouped"]);
+    tip(ctx, colors, w, pointer.x, pointer.y, [`${s0.id} · ${s0.cohort}`, `RT ${hoverPeak.rt.toFixed(2)} min · area ${fmt(hoverPeak.area)}`, f && T === Infinity ? `in the feature ${featurePair(f)}` : "not yet grouped"]);
   } else if (hoverFeature) {
     const n = new Set(hoverFeature.peaks.map((pk) => pk.j)).size;
-    tip(ctx, colors, w, pointer.x, pointer.y, [`Feature ${hoverFeature.k + 1}`, `RT ${hoverFeature.lo.toFixed(2)}–${hoverFeature.hi.toFixed(2)} min`, `${hoverFeature.peaks.length} peaks in ${n} sample${n === 1 ? "" : "s"}`]);
+    tip(ctx, colors, w, pointer.x, pointer.y, [featurePair(hoverFeature), `its peaks from RT ${hoverFeature.lo.toFixed(2)} to ${hoverFeature.hi.toFixed(2)} min`, `${hoverFeature.peaks.length} peaks in ${n} sample${n === 1 ? "" : "s"}`]);
   }
 }
 
