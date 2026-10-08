@@ -446,7 +446,9 @@ function nameOf(x, stage, tol) {
   if (stage < 1) return { name: "–", by: "–", n: null };
   const { cands, byRt } = E.identify(x.f, tol, E.measuredMz(x.row.mz));
   if (stage >= 2 && byRt.length === 1) return { name: byRt[0].name, by: "m/z, RT", hit: true, n: cands.length };
-  return { name: cands.length ? cands.map((m) => short(m.name)).join(" or ") : "none of the 26", by: "m/z", n: cands.length };
+  /* one candidate by mass, not confirmed by its standard's RT, says so (his call): a plain name read as identified */
+  const name = cands.length === 1 ? `${short(cands[0].name)} (mass only)` : cands.length ? cands.map((m) => short(m.name)).join(" or ") : "none of the 26";
+  return { name, by: "m/z", n: cands.length };
 }
 const rtList = (fs) => fs.map((f) => f.rt.toFixed(2)).join(", ");
 
