@@ -192,16 +192,20 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
   for (let m = 100; m <= 220; m += 40) { rule(ctx, M.x0 - 3, my(m), M.x0, my(m), colors.axis); txt(ctx, colors, String(m), M.x0 - 6, my(m) + 4, { size: "fsXs", colour: colors.ink3, align: "right" }); }
   txt(ctx, colors, "m/z", M.x0 - 6, M.y0 - 6, { size: "fsXs", colour: colors.ink3, align: "right" });
   txt(ctx, colors, "RT (min)", M.x1, M.y1 + 28, { size: "fsXs", colour: colors.ink3, align: "right" });
-  // each spot the sweep has passed, ringed; after Integrate, the ring sized by its area
-  const spots = E.METS.filter((m) => m.at[j] > 0).map((m) => ({ m, x: mx(m.rt + E.SHIFT[j]), y: my(m.exact), rt: m.rt + E.SHIFT[j] }));
+  /* each spot the sweep has passed is ringed if it stands at S/N 3 or more — the
+     trace's rule, applied to every row (his call, 2026-10-08: the rings had marked
+     the file's non-zero values, three of which sit below the line at this noise
+     level); after Integrate, the ring is sized by its area. Every spot the file
+     records can be inspected, ringed or not. */
+  const spots = E.METS.filter((m) => m.at[j] > 0).map((m) => ({ m, x: mx(m.rt + E.SHIFT[j]), y: my(m.exact), rt: m.rt + E.SHIFT[j], sn: E.snOf(m.at[j]) }));
   let hoverSpot = null;
   for (const sp of spots) {
     if (sp.rt > detT) continue;
-    dot(ctx, sp.x, sp.y, integrated ? Math.max(3, 1.5 + 1.6 * (Math.log10(sp.m.at[j]) - 3)) : 6, null, colors.ink1, 1.4);
+    if (sp.sn >= 3) dot(ctx, sp.x, sp.y, integrated ? Math.max(3, 1.5 + 1.6 * (Math.log10(sp.m.at[j]) - 3)) : 6, null, colors.ink1, 1.4);
     if (!hoverSpot && near(pointer, sp.x, sp.y, 9)) hoverSpot = sp;
   }
   if (detT > 0 && detT < E.MAP_RT) rule(ctx, mx(detT), M.y0, mx(detT), M.y1, colors.ink1, 1.5);
-  if (detT >= 0) txt(ctx, colors, `${spots.filter((sp) => sp.rt <= detT).length} of 26 detected`, M.x1 - 4, M.y0 + 12, { size: "fsXs", colour: colors.ink1, align: "right" });
+  if (detT >= 0) txt(ctx, colors, `${spots.filter((sp) => sp.rt <= detT && sp.sn >= 3).length} above S/N 3`, M.x1 - 4, M.y0 + 12, { size: "fsXs", colour: colors.ink1, align: "right" });
   // the zoom box, joined to the trace below
   const P = L.trace;
   const bx0 = mx(ZOOM.rt0), bx1 = mx(ZOOM.rt1), by0 = my(ZOOM.mz1), by1 = my(ZOOM.mz0);
@@ -240,7 +244,7 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
   // hover: a spot on the map, or a point on the trace
   if (hoverSpot) {
     dot(ctx, hoverSpot.x, hoverSpot.y, 9, null, colors.ink1, 2);
-    tip(ctx, colors, w, hoverSpot.x, hoverSpot.y, [hoverSpot.m.name, `m/z ${hoverSpot.m.exact.toFixed(4)} · RT ${hoverSpot.rt.toFixed(2)} min`, `the file records ${fmt(hoverSpot.m.at[j])}`]);
+    tip(ctx, colors, w, hoverSpot.x, hoverSpot.y, [hoverSpot.m.name, `m/z ${hoverSpot.m.exact.toFixed(4)} · RT ${hoverSpot.rt.toFixed(2)} min`, `S/N ${hoverSpot.sn.toFixed(1)}: ${hoverSpot.sn >= 3 ? "above" : "below"} the line of 3`, `the file records ${fmt(hoverSpot.m.at[j])}`]);
   } else if (pointer && pointer.x >= P.x0 && pointer.x <= P.x1 && pointer.y >= P.y0 && pointer.y <= P.y1) {
     const t = E.RT0 + ((pointer.x - P.x0) / (P.x1 - P.x0)) * (E.RT1 - E.RT0);
     const i = Math.max(0, Math.min(tr.y.length - 1, Math.round((t - E.RT0) / E.DT)));
@@ -691,11 +695,11 @@ defineWidget({
     const { s, p } = stageOf("peaks", params, anim);
     const j = sampleIndex(params), tr = state.traces[j];
     const detected = s >= 2 || (s === 1 && p >= 1), integrated = s >= 2 && p >= 1;
-    const nMap = E.METS.filter((m) => m.at[j] > 0).length;
+    const nFile = E.METS.filter((m) => m.at[j] > 0).length, nMap = E.METS.filter((m) => m.at[j] > 0 && E.snOf(m.at[j]) >= 3).length;
     return [
       { label: "Peaks at m/z 131.035", value: detected ? `${tr.det.length}` : "–", note: detected ? tr.det.map((d) => `RT ${d.rt.toFixed(2)}, S/N ${d.sn.toFixed(1)}`).join(" · ") : "once detected" },
       { label: "Areas", value: integrated ? tr.det.map((d) => fmt(d.area)).join(" · ") : "–", note: integrated ? `the file records ${tr.det.map((d) => fmt(d.who.at[j])).join(" · ")}` : "once integrated" },
-      { label: "Detected in this sample", value: detected ? `${nMap} of 26` : "–", note: "the file records 0 for the rest" },
+      { label: "Above S/N 3 in this sample", value: detected ? `${nMap} of 26` : "–", note: `the file records ${nFile} as non-zero: the study measured each metabolite against its own detection limit` },
     ];
   },
 });

@@ -66,6 +66,8 @@ export const RT0 = 1.0, RT1 = 4.5, DT = 0.01;
 export const MAP_RT = 10;                            // the map's RT axis, min
 
 export const heightOf = (area) => area / NORM;
+/* a spot's signal-to-noise at the one noise level the page draws: its peak height over the noise SD */
+export const snOf = (area) => heightOf(area) / NOISE;
 
 function traceOf(rng, j) {
   const n = Math.round((RT1 - RT0) / DT) + 1;
