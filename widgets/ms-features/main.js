@@ -9,10 +9,11 @@
  * Ethylmalonic acid is 02-4's top hit; glutaric acid is detected in 30 of 179.
  *   1. three pages under Step, 02-1 cell 3's headings: Peaks · Alignment ·
  *      Identification, the feature table at the foot of Identification;
- *   2. Peaks: the sample's raw m/z × RT intensity, a zoom box joined to the
- *      trace at m/z 131.035; Detect rings each spot and brackets each peak's
- *      height in noise SDs; Integrate fills the areas and moves each into its
- *      row of the table;
+ *   2. Peaks: the sample's raw m/z × RT intensity over RT 0.8–5.6 min, and
+ *      under it, on the same RT axis, the trace of one row (m/z 131.035 by
+ *      default; a click on a spot, or Row, picks another); Detect rings each
+ *      spot at S/N 3 or more and brackets each peak's height in noise SDs;
+ *      Integrate fills the areas and moves each into its row of the table;
  *   3. Alignment: six samples' slices over one axis of every peak; Align moves
  *      a bracket one RT window wide from tick to tick, and a tick that lands
  *      inside joins the feature; a window change walks the bracket again;
@@ -93,17 +94,20 @@ function tip(ctx, colors, w, x, y, lines) {
 }
 
 /* ------------------------------------------------------------ the slice at m/z 131.035 */
-function sliceGeom(P, top) {
+/* the RT range a panel shows: the whole run on Peaks, the isomers' stretch on Alignment */
+const VIEW_RUN = [E.RT0, E.RT1], VIEW_ALIGN = [1, 4.5];
+function sliceGeom(P, top, view = VIEW_RUN) {
   return {
-    sx: (t) => P.x0 + ((t - E.RT0) / (E.RT1 - E.RT0)) * (P.x1 - P.x0),
+    sx: (t) => P.x0 + ((t - view[0]) / (view[1] - view[0])) * (P.x1 - P.x0),
     sy: (v) => P.y1 - (Math.min(v, top) / top) * (P.y1 - P.y0),
   };
 }
 /* `upTo` RT: peaks marked up to it (Detect); `fillTo` RT: areas shaded up to it (Integrate) */
-function drawSlice(ctx, colors, tr, P, { upTo = -1, fillTo = -1, top, ticks = true, band = false, brackets = false, peakColour = null, ring = null }) {
-  const { sx, sy } = sliceGeom(P, top);
+function drawSlice(ctx, colors, tr, P, { upTo = -1, fillTo = -1, top, ticks = true, band = false, brackets = false, peakColour = null, ring = null, view = VIEW_RUN, label = null }) {
+  const { sx, sy } = sliceGeom(P, top, view);
+  const inView = (i) => tr.rt[i] >= view[0] - 1e-9 && tr.rt[i] <= view[1] + 1e-9;
   rule(ctx, P.x0, P.y1, P.x1, P.y1, colors.axis);
-  if (ticks) for (let t = 1; t <= 4.5; t += 0.5) {
+  if (ticks) for (let t = Math.ceil(view[0] * 2) / 2; t <= view[1] + 1e-9; t += 0.5) {
     rule(ctx, sx(t), P.y1, sx(t), P.y1 + 3, colors.axis);
     if (Number.isInteger(t)) txt(ctx, colors, String(t), sx(t), P.y1 + 15, { size: "fsXs", colour: colors.ink3, align: "center" });
   }
@@ -117,10 +121,11 @@ function drawSlice(ctx, colors, tr, P, { upTo = -1, fillTo = -1, top, ticks = tr
     ctx.lineTo(sx(tr.rt[hi]), sy(E.BASE)); ctx.closePath(); ctx.fill(); ctx.restore();
     rule(ctx, sx(tr.rt[d.lo]), sy(E.BASE), sx(tr.rt[hi]), sy(E.BASE), colors.empirical, 1.4);
   }
-  poly(ctx, tr.rt.map(sx), tr.y.map(sy), colors.ink2, 1);
+  const idx = tr.rt.map((_, i) => i).filter(inView);
+  poly(ctx, idx.map((i) => sx(tr.rt[i])), idx.map((i) => sy(tr.y[i])), colors.ink2, 1);
   rule(ctx, P.x0, sy(E.THRESHOLD), P.x1, sy(E.THRESHOLD), colors.reference, 1.2, [5, 3]);
   for (const d of tr.det) {
-    if (d.rt > upTo) continue;
+    if (d.rt > upTo || !inView(d.i)) continue;
     const x = sx(d.rt), y = sy(d.h + E.BASE);
     if (brackets) {
       // the peak's height over the baseline, in noise SDs: S/N as a length
@@ -131,18 +136,36 @@ function drawSlice(ctx, colors, tr, P, { upTo = -1, fillTo = -1, top, ticks = tr
     }
     dot(ctx, x, y, 4, peakColour ? peakColour(d) : colors.empirical);
     if (ring === d) dot(ctx, x, y, 7, null, colors.ink1, 1.6);
+    if (label) label(d, x, Math.min(y, sy(E.THRESHOLD) - 26));
   }
   return { sx, sy };
 }
 
 /* ------------------------------------------------------------ the Peaks page */
+/* Round 2 (his picks, `_lab/ms-features-round2-mock.html`): the map and the
+   trace share one RT axis, so a moment is one x position on both and the hover
+   is one line through both panels; the row is a line one m/z thin (the draft's
+   10-m/z box enclosed malic and pyroglutamic acid, which the trace never shows);
+   a click on a spot, or the Row control, makes that spot's row the trace. */
 const peaksLayout = (w) => ({
   map: { x0: X0, x1: w - RIGHT, y0: 34, y1: 184 },
-  trace: { x0: X0, x1: w - RIGHT, y0: 250, y1: 390 },
-  table: { y: 444, xMz: 20, xRt: 92, xArea: 196 },
+  trace: { x0: X0, x1: w - RIGHT, y0: 240, y1: 384 },
+  table: { y: 440, xMz: 20, xRt: 92, xArea: 196 },
 });
-const ZOOM = { rt0: E.RT0, rt1: E.RT1, mz0: 126, mz1: 136 };
 const sampleIndex = (params) => Math.max(0, E.SAMPLES.findIndex((s) => s.id === params.sample));
+const rowIndex = (params) => Math.max(0, E.ROWS.findIndex((r) => r.key === params.row));
+const mapGeom = (M) => ({
+  mx: (t) => M.x0 + ((t - E.RT0) / (E.RT1 - E.RT0)) * (M.x1 - M.x0),
+  my: (m) => M.y1 - ((m - E.GRID.mz0) / (E.GRID.mz1 - E.GRID.mz0)) * (M.y1 - M.y0),
+});
+/* every spot the file records in this sample, inside the run: its place, its S/N at the page's noise, its row */
+function spotsOf(j, M) {
+  const { mx, my } = mapGeom(M);
+  return E.METS.filter((m) => m.at[j] > 0 && m.rt <= E.RT1).map((m) => ({
+    m, x: mx(m.rt + E.SHIFT[j]), y: my(m.exact), rt: m.rt + E.SHIFT[j], sn: E.snOf(m.at[j]),
+    key: E.ROWS.find((r) => r.mets.includes(m)).key,
+  }));
+}
 
 /* the raw grid as an image on the magnitude ramp, log intensity; cached per sample and theme */
 const mapCache = new Map();
@@ -176,58 +199,58 @@ function integrateClock(s, p, n) {
 }
 
 function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
-  const L = peaksLayout(w), j = sampleIndex(params), tr = state.traces[j], s0 = E.SAMPLES[j];
+  const L = peaksLayout(w), j = sampleIndex(params), r = rowIndex(params), row = E.ROWS[r];
+  const tr = state.traces[j][r], s0 = E.SAMPLES[j];
   const { s, p } = stageOf("peaks", params, anim);
-  // Detect sweeps RT 0 → 10 min across the map and the slice together
-  const detT = s >= 2 || (s === 1 && p >= 1) ? Infinity : s === 1 ? p * E.MAP_RT : -1;
+  // Detect sweeps the run's RT across the map and the trace together: one line through both
+  const detT = s >= 2 || (s === 1 && p >= 1) ? Infinity : s === 1 ? E.RT0 + p * (E.RT1 - E.RT0) : -1;
   const { fillTo, moved } = integrateClock(s, p, tr.det.length);
   const integrated = s >= 2 && p >= 1;
+  const M = L.map, P = L.trace, { mx, my } = mapGeom(M);
 
   txt(ctx, colors, `Sample ${s0.id} (${s0.cohort}): intensity at every m/z and RT`, 12, 18, { colour: colors.ink1, weight: "600" });
-  const M = L.map;
-  const mx = (t) => M.x0 + (t / E.MAP_RT) * (M.x1 - M.x0), my = (m) => M.y1 - ((m - E.GRID.mz0) / (E.GRID.mz1 - E.GRID.mz0)) * (M.y1 - M.y0);
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(mapImage(colors, state.grids[j], j), M.x0, M.y0, M.x1 - M.x0, M.y1 - M.y0); ctx.restore();
   rule(ctx, M.x0, M.y1, M.x1, M.y1, colors.axis); rule(ctx, M.x0, M.y0, M.x0, M.y1, colors.axis);
-  for (let t = 0; t <= E.MAP_RT; t += 2) { rule(ctx, mx(t), M.y1, mx(t), M.y1 + 3, colors.axis); txt(ctx, colors, String(t), mx(t), M.y1 + 14, { size: "fsXs", colour: colors.ink3, align: "center" }); }
+  for (let t = 1; t <= E.RT1; t += 1) { rule(ctx, mx(t), M.y1, mx(t), M.y1 + 3, colors.axis); txt(ctx, colors, String(t), mx(t), M.y1 + 14, { size: "fsXs", colour: colors.ink3, align: "center" }); }
   for (let m = 100; m <= 220; m += 40) { rule(ctx, M.x0 - 3, my(m), M.x0, my(m), colors.axis); txt(ctx, colors, String(m), M.x0 - 6, my(m) + 4, { size: "fsXs", colour: colors.ink3, align: "right" }); }
   txt(ctx, colors, "m/z", M.x0 - 6, M.y0 - 6, { size: "fsXs", colour: colors.ink3, align: "right" });
-  txt(ctx, colors, "RT (min)", M.x1, M.y1 + 28, { size: "fsXs", colour: colors.ink3, align: "right" });
+  txt(ctx, colors, `${E.LATE.length} of the 26 elute after ${E.RT1} min`, M.x0, M.y1 + 28, { size: "fsXs", colour: colors.ink3 });
   /* each spot the sweep has passed is ringed if it stands at S/N 3 or more — the
-     trace's rule, applied to every row (his call, 2026-10-08: the rings had marked
-     the file's non-zero values, three of which sit below the line at this noise
-     level); after Integrate, the ring is sized by its area. Every spot the file
-     records can be inspected, ringed or not. */
-  const spots = E.METS.filter((m) => m.at[j] > 0).map((m) => ({ m, x: mx(m.rt + E.SHIFT[j]), y: my(m.exact), rt: m.rt + E.SHIFT[j], sn: E.snOf(m.at[j]) }));
+     trace's rule, applied to every row (his call, 2026-10-08); after Integrate
+     the ring is sized by its area. Every spot can be inspected and clicked. */
+  const spots = spotsOf(j, M);
   let hoverSpot = null;
   for (const sp of spots) {
-    if (sp.rt > detT) continue;
-    if (sp.sn >= 3) dot(ctx, sp.x, sp.y, integrated ? Math.max(3, 1.5 + 1.6 * (Math.log10(sp.m.at[j]) - 3)) : 6, null, colors.ink1, 1.4);
     if (!hoverSpot && near(pointer, sp.x, sp.y, 9)) hoverSpot = sp;
+    if (sp.rt > detT || sp.sn < 3) continue;
+    dot(ctx, sp.x, sp.y, integrated ? Math.max(3, 1.5 + 1.6 * (Math.log10(sp.m.at[j]) - 3)) : 6, null, colors.ink1, 1.4);
   }
-  if (detT > 0 && detT < E.MAP_RT) rule(ctx, mx(detT), M.y0, mx(detT), M.y1, colors.ink1, 1.5);
   if (detT >= 0) txt(ctx, colors, `${spots.filter((sp) => sp.rt <= detT && sp.sn >= 3).length} above S/N 3`, M.x1 - 4, M.y0 + 12, { size: "fsXs", colour: colors.ink1, align: "right" });
-  // the zoom box, joined to the trace below
-  const P = L.trace;
-  const bx0 = mx(ZOOM.rt0), bx1 = mx(ZOOM.rt1), by0 = my(ZOOM.mz1), by1 = my(ZOOM.mz0);
-  frame(ctx, bx0, by0, bx1 - bx0, by1 - by0, colors.ink1, 1.4);
-  rule(ctx, bx0, by1, P.x0, P.y0 - 2, colors.ink3, 1, [3, 3]);
-  rule(ctx, bx1, by1, P.x1, P.y0 - 2, colors.ink3, 1, [3, 3]);
+  // the row: a line one m/z thin across the map
+  rule(ctx, M.x0, my(row.mz), M.x1, my(row.mz), colors.ink1, 1.4);
+  txt(ctx, colors, `m/z ${row.key}`, M.x1 - 4, my(row.mz) - 5, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
 
-  const g = drawSlice(ctx, colors, tr, P, { upTo: detT, fillTo, top: state.top[j], band: true, brackets: true });
-  txt(ctx, colors, "The box at m/z 131.035 ± 5 ppm: intensity against RT", P.x0 + 6, P.y0 + 14, { colour: colors.ink1, weight: "600" });
+  const names = row.mets.map((m) => short(m.name)).join(" and ");
+  txt(ctx, colors, `The row at m/z ${row.key} ± 5 ppm (${names}): intensity against RT`, 12, P.y0 - 10, { colour: colors.ink1, weight: "600" });
+  const g = drawSlice(ctx, colors, tr, P, {
+    upTo: detT, fillTo, top: state.top[j][r], band: true, brackets: true,
+    label: (d, x, y) => txt(ctx, colors, `${short(d.who.name)} · RT ${d.rt.toFixed(2)}`, x + 10, y + 4, { size: "fsXs", colour: colors.ink1, weight: "600" }),
+  });
   txt(ctx, colors, "S/N 3", P.x1 - 2, g.sy(E.THRESHOLD) - 5, { size: "fsXs", colour: colors.reference, align: "right" });
   txt(ctx, colors, "noise ±1 SD", P.x0 + 4, g.sy(E.BASE - E.NOISE) + 13, { size: "fsXs", colour: colors.reference });
-  if (detT > E.RT0 && detT < E.RT1) rule(ctx, g.sx(detT), P.y0, g.sx(detT), P.y1, colors.ink1, 1.5);
   txt(ctx, colors, "retention time (min)", (P.x0 + P.x1) / 2, P.y1 + 30, { size: "fsXs", colour: colors.ink3, align: "center" });
+  // the sweep: one line through both panels
+  if (detT > E.RT0 && detT < E.RT1) rule(ctx, mx(detT), M.y0, mx(detT), P.y1, colors.ink1, 1.5);
 
   // the table: a row per peak; m/z and RT once detected, the area once it has arrived
   const T = L.table;
   txt(ctx, colors, "m/z", T.xMz, T.y, { size: "fsXs", colour: colors.ink3, mono: true });
   txt(ctx, colors, "RT", T.xRt, T.y, { size: "fsXs", colour: colors.ink3, mono: true });
   txt(ctx, colors, "area", T.xArea, T.y, { size: "fsXs", colour: colors.ink3, mono: true, align: "right" });
+  if (!tr.det.length && detT === Infinity) txt(ctx, colors, "no peak at S/N 3 or more in this row", T.xMz, T.y + 18, { size: "fsXs", colour: colors.ink3 });
   tr.det.forEach((d, k) => {
     const ry = T.y + 18 + k * 16, seen = d.rt <= detT;
-    txt(ctx, colors, seen ? "131.035" : "–", T.xMz, ry, { size: "fsXs", colour: seen ? colors.ink1 : colors.ink3, mono: true });
+    txt(ctx, colors, seen ? row.key : "–", T.xMz, ry, { size: "fsXs", colour: seen ? colors.ink1 : colors.ink3, mono: true });
     txt(ctx, colors, seen ? d.rt.toFixed(2) : "–", T.xRt, ry, { size: "fsXs", colour: seen ? colors.ink1 : colors.ink3, mono: true });
     // the area: by the peak once filled, then down its own column and along its row (an L, one mover at a time)
     const filled = fillTo >= tr.rt[d.hi], e = moved(k);
@@ -239,18 +262,29 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
     txt(ctx, colors, fmt(d.area), x, y, { size: "fsXs", colour: colors.empirical, mono: true, weight: "600" });
     if (e === 0) txt(ctx, colors, "–", T.xArea, ry, { size: "fsXs", colour: colors.ink3, mono: true, align: "right" });
   });
-  tr.det.forEach((d) => { if (d.rt <= detT) txt(ctx, colors, `RT ${d.rt.toFixed(2)}`, g.sx(d.rt) + 10, Math.min(g.sy(d.h + E.BASE), g.sy(E.THRESHOLD) - 26) + 4, { size: "fsXs", colour: colors.ink1, weight: "600" }); });
 
-  // hover: a spot on the map, or a point on the trace
-  if (hoverSpot) {
-    dot(ctx, hoverSpot.x, hoverSpot.y, 9, null, colors.ink1, 2);
-    tip(ctx, colors, w, hoverSpot.x, hoverSpot.y, [hoverSpot.m.name, `m/z ${hoverSpot.m.exact.toFixed(4)} · RT ${hoverSpot.rt.toFixed(2)} min`, `S/N ${hoverSpot.sn.toFixed(1)}: ${hoverSpot.sn >= 3 ? "above" : "below"} the line of 3`, `the file records ${fmt(hoverSpot.m.at[j])}`]);
-  } else if (pointer && pointer.x >= P.x0 && pointer.x <= P.x1 && pointer.y >= P.y0 && pointer.y <= P.y1) {
+  // hover: one vertical line through both panels at the pointer's RT; a spot, or the trace, inspected
+  const overMap = pointer && pointer.x >= M.x0 && pointer.x <= M.x1 && pointer.y >= M.y0 && pointer.y <= M.y1;
+  const overTrace = pointer && pointer.x >= P.x0 && pointer.x <= P.x1 && pointer.y >= P.y0 - 4 && pointer.y <= P.y1;
+  if (overMap || overTrace) {
     const t = E.RT0 + ((pointer.x - P.x0) / (P.x1 - P.x0)) * (E.RT1 - E.RT0);
     const i = Math.max(0, Math.min(tr.y.length - 1, Math.round((t - E.RT0) / E.DT)));
-    rule(ctx, g.sx(tr.rt[i]), P.y0, g.sx(tr.rt[i]), P.y1, colors.ink3, 1);
-    dot(ctx, g.sx(tr.rt[i]), g.sy(tr.y[i]), 3, colors.ink1);
-    tip(ctx, colors, w, g.sx(tr.rt[i]), g.sy(tr.y[i]), [`RT ${tr.rt[i].toFixed(2)} min`, `intensity ${fmt(tr.y[i])}`, `${((tr.y[i] - E.BASE) / E.NOISE).toFixed(1)} noise SDs over the baseline`]);
+    const x = hoverSpot ? hoverSpot.x : g.sx(tr.rt[i]);
+    rule(ctx, x, M.y0, x, P.y1, colors.ink3, 1);
+    dot(ctx, x, my(row.mz), 3, colors.ink1);
+    if (hoverSpot) {
+      dot(ctx, hoverSpot.x, hoverSpot.y, 9, null, colors.ink1, 2);
+      const here = hoverSpot.key === row.key;
+      tip(ctx, colors, w, hoverSpot.x, hoverSpot.y, [
+        hoverSpot.m.name,
+        `m/z ${hoverSpot.m.exact.toFixed(4)} · RT ${hoverSpot.rt.toFixed(2)} min`,
+        `S/N ${hoverSpot.sn.toFixed(1)}: ${hoverSpot.sn >= 3 ? "above" : "below"} the line of 3 · the file records ${fmt(hoverSpot.m.at[j])}`,
+        here ? "its row is the trace below" : "a click makes its row the trace below",
+      ]);
+    } else {
+      dot(ctx, g.sx(tr.rt[i]), g.sy(tr.y[i]), 3, colors.ink1);
+      if (overTrace) tip(ctx, colors, w, g.sx(tr.rt[i]), g.sy(tr.y[i]), [`RT ${tr.rt[i].toFixed(2)} min`, `intensity ${fmt(tr.y[i])}`, `${((tr.y[i] - E.BASE) / E.NOISE).toFixed(1)} noise SDs over the baseline`]);
+    }
   }
 }
 
@@ -260,23 +294,23 @@ const alignLayout = (w) => ({ x0: XA, x1: w - RIGHT, y0: 40, row: 44, axis: 40 +
 function walkT(params, anim) {
   const { s, p } = stageOf("alignment", params, anim);
   if (s < 1) return -1;
-  if (p < 1) return E.RT0 + p * (E.RT1 - E.RT0);
-  if (anim && anim.walk < 1) return E.RT0 + anim.walk * (E.RT1 - E.RT0);
+  if (p < 1) return VIEW_ALIGN[0] + p * (VIEW_ALIGN[1] - VIEW_ALIGN[0]);
+  if (anim && anim.walk < 1) return VIEW_ALIGN[0] + anim.walk * (VIEW_ALIGN[1] - VIEW_ALIGN[0]);
   return Infinity;
 }
 function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
   const L = alignLayout(w), win = Number(params.window), fs = state.features[params.window];
   const T = walkT(params, anim);
-  const sx = (t) => L.x0 + ((t - E.RT0) / (E.RT1 - E.RT0)) * (L.x1 - L.x0);
+  const sx = (t) => L.x0 + ((t - VIEW_ALIGN[0]) / (VIEW_ALIGN[1] - VIEW_ALIGN[0])) * (L.x1 - L.x0);
   const ay = L.axis;
-  const peaks = state.traces.flatMap((t) => t.det);
+  const peaks = state.t131.flatMap((t) => t.det);
   txt(ctx, colors, "m/z 131.035 in six samples, each trace on its own scale", 12, 18, { colour: colors.ink1, weight: "600" });
 
   // hover: a peak first, else a feature band
   let hoverPeak = null, hoverFeature = null;
   if (pointer) {
-    state.traces.forEach((tr, j) => {
-      const P = { x0: L.x0, x1: L.x1, y0: L.y0 + j * L.row + 3, y1: L.y0 + (j + 1) * L.row - 3 }, g = sliceGeom(P, state.top[j]);
+    state.t131.forEach((tr, j) => {
+      const P = { x0: L.x0, x1: L.x1, y0: L.y0 + j * L.row + 3, y1: L.y0 + (j + 1) * L.row - 3 }, g = sliceGeom(P, state.top131[j], VIEW_ALIGN);
       tr.det.forEach((d) => { if (!hoverPeak && near(pointer, g.sx(d.rt), g.sy(d.h + E.BASE), 8)) hoverPeak = d; });
       tr.det.forEach((d) => { if (!hoverPeak && near(pointer, sx(d.rt), ay, 6)) hoverPeak = d; });
     });
@@ -293,9 +327,9 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
   });
   E.SAMPLES.forEach((s0, j) => {
     const P = { x0: L.x0, x1: L.x1, y0: L.y0 + j * L.row + 3, y1: L.y0 + (j + 1) * L.row - 3 };
-    drawSlice(ctx, colors, state.traces[j], P, { upTo: Infinity, top: state.top[j], ticks: false, peakColour: (d) => colourOf.get(d) ?? colors.ink1, ring: hoverPeak });
+    drawSlice(ctx, colors, state.t131[j], P, { upTo: Infinity, top: state.top131[j], ticks: false, view: VIEW_ALIGN, peakColour: (d) => colourOf.get(d) ?? colors.ink1, ring: hoverPeak });
     if (hoverFeature) {
-      const g = sliceGeom(P, state.top[j]);
+      const g = sliceGeom(P, state.top131[j], VIEW_ALIGN);
       hoverFeature.peaks.filter((pk) => pk.j === j).forEach((pk) => dot(ctx, g.sx(pk.rt), g.sy(pk.h + E.BASE), 7, null, colors.ink1, 1.6));
     }
     txt(ctx, colors, s0.id.slice(-3), L.x0 - 8, P.y1 - 12, { size: "fsXs", colour: colors.ink1, align: "right", mono: true });
@@ -308,12 +342,12 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
   peaks.forEach((pk) => rule(ctx, sx(pk.rt), ay - 9, sx(pk.rt), ay + 9, colourOf.get(pk) ?? colors.ink1, hoverPeak === pk ? 3.5 : 2));
   for (let t = 1; t <= 4; t += 1) txt(ctx, colors, String(t), sx(t), ay + 24, { size: "fsXs", colour: colors.ink3, align: "center" });
   txt(ctx, colors, "retention time (min)", (L.x0 + L.x1) / 2, ay + 42, { size: "fsXs", colour: colors.ink3, align: "center" });
-  if (T >= E.RT0 && T < Infinity) {
+  if (T >= VIEW_ALIGN[0] && T < Infinity) {
     /* the bracket starts at the latest tick passed and reaches one window to the
        right: the next tick joins that feature if it lands inside */
     const last = peaks.map((pk) => pk.rt).filter((r) => r <= T).sort((a, b) => b - a)[0];
     if (last != null) {
-      const bx = sx(last), bw = sx(E.RT0 + win) - sx(E.RT0);
+      const bx = sx(last), bw = sx(VIEW_ALIGN[0] + win) - sx(VIEW_ALIGN[0]);
       rule(ctx, bx, ay - 16, bx + bw, ay - 16, colors.ink1, 2);
       rule(ctx, bx, ay - 20, bx, ay - 12, colors.ink1, 2);
       rule(ctx, bx + bw, ay - 20, bx + bw, ay - 12, colors.ink1, 2);
@@ -529,6 +563,11 @@ defineWidget({
       detail: "six serum samples of MTBLS6038, with the areas its file records",
       options: E.SAMPLES.map((s0) => ({ value: s0.id, label: sampleLabel(s0) })),
     },
+    row: {
+      type: "select", label: "Row", display: true, default: E.ROWS[E.ROW_131].key, when: { param: "page", equals: "peaks" },
+      detail: "the m/z whose intensity is drawn against RT below the map; a click on a spot selects its row",
+      options: E.ROWS.map((r) => ({ value: r.key, label: `${r.key} · ${r.mets.map((m) => m.name).join(", ")}` })),
+    },
     alignSec: { type: "section", label: "Grouping", when: { param: "page", equals: "alignment" } },
     window: {
       type: "segmented", label: "RT window", display: true, default: "0.3", when: { param: "page", equals: "alignment" },
@@ -577,12 +616,13 @@ defineWidget({
 
   /* Pure and seeded: six traces and their peaks, six raw maps, the features at every window, the formulas. */
   compute: ({ rng }) => {
-    const traces = E.simulate(rng);
+    const traces = E.simulate(rng);                  // [sample][row]
     const grids = E.SAMPLES.map((_, j) => E.rawGrid(rng, j));
-    const top = traces.map((t) => Math.max(...t.y) * 1.08);
-    const features = Object.fromEntries(E.WINDOWS.map((v) => [v, E.group(traces, Number(v))]));
+    const top = traces.map((rows) => rows.map((t) => Math.max(...t.y, E.THRESHOLD + 4 * E.NOISE) * 1.08));
+    const t131 = traces.map((rows) => rows[E.ROW_131]), top131 = top.map((rows) => rows[E.ROW_131]);
+    const features = Object.fromEntries(E.WINDOWS.map((v) => [v, E.group(t131, Number(v))]));
     return {
-      traces, grids, top, features,
+      traces, grids, top, t131, top131, features,
       formulasWide: E.formulas(E.FEATURE_MZ, 0.6),
       formulasUnit: E.formulas(E.FEATURE_MZ, 0.5),
       formulasPpm: E.formulas(E.FEATURE_MZ, E.tolDa("ppm", E.FEATURE_MZ)),
@@ -656,9 +696,11 @@ defineWidget({
     },
   },
 
-  /* a row of the feature table selects that feature */
+  /* a spot on the map selects its row (Peaks); a row of the feature table selects that feature (Identification) */
   regions: ({ w, params, state }) => {
-    if (!state || params.page !== "identification") return [];
+    if (!state) return [];
+    if (params.page === "peaks") return spotsOf(sampleIndex(params), peaksLayout(w).map).map((sp) => ({ x: sp.x - 8, y: sp.y - 8, w: 16, h: 16, set: { row: sp.key }, label: sp.m.name }));
+    if (params.page !== "identification") return [];
     const L = idLayout(w);
     return state.features[params.window].map((g, r) => ({ x: 8, y: L.table + 14 + r * 17, w: w - RIGHT - 4, h: 16, set: { feature: String(r + 1) }, label: `Feature ${r + 1}` }));
   },
@@ -673,7 +715,7 @@ defineWidget({
   readout: ({ params, state, anim }) => {
     if (params.page === "alignment") {
       const { s, p } = stageOf("alignment", params, anim), done = s >= 1 && p >= 1;
-      const fs = state.features[params.window], n = state.traces.reduce((a, t) => a + t.det.length, 0);
+      const fs = state.features[params.window], n = state.t131.reduce((a, t) => a + t.det.length, 0);
       const big = E.largest(fs);
       return [
         { label: "Peaks at m/z 131.035", value: `${n}`, note: "above S/N 3, in the six samples" },
@@ -693,12 +735,12 @@ defineWidget({
       ];
     }
     const { s, p } = stageOf("peaks", params, anim);
-    const j = sampleIndex(params), tr = state.traces[j];
+    const j = sampleIndex(params), r = rowIndex(params), tr = state.traces[j][r];
     const detected = s >= 2 || (s === 1 && p >= 1), integrated = s >= 2 && p >= 1;
     const nFile = E.METS.filter((m) => m.at[j] > 0).length, nMap = E.METS.filter((m) => m.at[j] > 0 && E.snOf(m.at[j]) >= 3).length;
     return [
-      { label: "Peaks at m/z 131.035", value: detected ? `${tr.det.length}` : "–", note: detected ? tr.det.map((d) => `RT ${d.rt.toFixed(2)}, S/N ${d.sn.toFixed(1)}`).join(" · ") : "once detected" },
-      { label: "Areas", value: integrated ? tr.det.map((d) => fmt(d.area)).join(" · ") : "–", note: integrated ? `the file records ${tr.det.map((d) => fmt(d.who.at[j])).join(" · ")}` : "once integrated" },
+      { label: `Peaks at m/z ${E.ROWS[r].key}`, value: detected ? `${tr.det.length}` : "–", note: detected ? (tr.det.length ? tr.det.map((d) => `RT ${d.rt.toFixed(2)}, S/N ${d.sn.toFixed(1)}`).join(" · ") : "none at S/N 3 or more") : "once detected" },
+      { label: "Areas", value: integrated && tr.det.length ? tr.det.map((d) => fmt(d.area)).join(" · ") : "–", note: integrated ? (tr.det.length ? `the file records ${tr.det.map((d) => fmt(d.who.at[j])).join(" · ")}` : "no peak to integrate in this row") : "once integrated" },
       { label: "Above S/N 3 in this sample", value: detected ? `${nMap} of 26` : "–", note: `the file records ${nFile} as non-zero: the study measured each metabolite against its own detection limit` },
     ];
   },

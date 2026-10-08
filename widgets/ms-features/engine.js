@@ -62,21 +62,37 @@ export const BASE = 3 * NOISE;                       // the baseline under the n
 export const THRESHOLD = BASE + 3 * NOISE;           // S/N 3
 /* run-to-run RT shifts, one per sample, fixed: what alignment has to absorb */
 export const SHIFT = [-0.10, 0.06, 0.03, -0.05, 0.11, -0.12];
-export const RT0 = 1.0, RT1 = 4.5, DT = 0.01;
-export const MAP_RT = 10;                            // the map's RT axis, min
+/* The run as the page draws it: RT 0.8–5.6 min, where 21 of the 26 elute.
+   Round 2, his pick: the map and the trace share this one axis, so a moment is
+   one x position on both; the five later eluters are named in a note. */
+export const RT0 = 0.8, RT1 = 5.6, DT = 0.01;
+export const LATE = METS.filter((m) => m.rt > RT1);
 
 export const heightOf = (area) => area / NORM;
 /* a spot's signal-to-noise at the one noise level the page draws: its peak height over the noise SD */
 export const snOf = (area) => heightOf(area) / NOISE;
 
-function traceOf(rng, j) {
+/* The rows of the map: one per distinct exact m/z inside the run. Isomers share
+   a row, which is the point of the last page. Keyed by the m/z to 3 decimals,
+   the value a link carries. */
+export const ROWS = (() => {
+  const rows = [];
+  for (const m of METS.filter((x) => x.rt <= RT1)) {
+    const r = rows.find((q) => Math.abs(q.mz - m.exact) < 1e-3);
+    if (r) r.mets.push(m); else rows.push({ mz: m.exact, mets: [m] });
+  }
+  return rows.sort((a, b) => a.mz - b.mz).map((r) => ({ ...r, key: r.mz.toFixed(3) }));
+})();
+export const ROW_131 = ROWS.findIndex((r) => r.mets.includes(ETH));
+
+function traceOf(rng, j, row) {
   const n = Math.round((RT1 - RT0) / DT) + 1;
   const white = Array.from({ length: n + 4 }, () => rng.normal());
   let sm = Array.from({ length: n }, (_, i) => (white[i] + white[i + 1] + white[i + 2] + white[i + 3] + white[i + 4]) / 5);
   const sd = Math.sqrt(sm.reduce((s, v) => s + v * v, 0) / n);
   sm = sm.map((v) => (v / sd) * NOISE);
   const rt = Array.from({ length: n }, (_, i) => RT0 + i * DT);
-  const truth = SLICE.map((m) => ({ m, rt: m.rt + SHIFT[j], area: m.at[j] }));
+  const truth = row.mets.map((m) => ({ m, rt: m.rt + SHIFT[j], area: m.at[j] }));
   const y = rt.map((t, i) => BASE + sm[i] + truth.reduce((s, p) => s + heightOf(p.area) * Math.exp(-0.5 * ((t - p.rt) / SIG) ** 2), 0));
   return { rt, y, truth };
 }
@@ -98,37 +114,38 @@ export function detect(tr) {
   return out;
 }
 
-/* Smoothed noise at S/N 3 passes a bump now and then. The trace for a sample is
-   drawn again until its detections are exactly the MAF's non-zero peaks, so the
-   page is about the two compounds, not the bumps; every draw is from `rng`. */
+/* Smoothed noise at S/N 3 passes a bump now and then. A row's trace is drawn
+   again until its detections are exactly the file's non-zero peaks that stand
+   at S/N 3 or more at this noise level (a peak below it adds its signal and is
+   not found), so the page is about the metabolites, not the bumps; every draw
+   is from `rng`. Returns traces[sample][row]. */
 export function simulate(rng) {
-  return SAMPLES.map((_, j) => {
+  return SAMPLES.map((_, j) => ROWS.map((row, r) => {
     for (let tries = 0; tries < 400; tries += 1) {
-      const tr = traceOf(rng, j), det = detect(tr), want = tr.truth.filter((p) => p.area > 0);
+      const tr = traceOf(rng, j, row), det = detect(tr), want = tr.truth.filter((p) => p.area > 0 && snOf(p.area) >= 3);
       if (det.length === want.length && want.every((p) => det.some((d) => Math.abs(d.rt - p.rt) < 0.05))) {
-        det.forEach((d) => { d.j = j; d.who = tr.truth.reduce((a, b) => (Math.abs(b.rt - d.rt) < Math.abs(a.rt - d.rt) ? b : a)).m; });
+        det.forEach((d) => { d.j = j; d.who = want.reduce((a, b) => (Math.abs(b.rt - d.rt) < Math.abs(a.rt - d.rt) ? b : a)).m; });
         return { ...tr, det };
       }
     }
-    throw new Error(`ms-features: no clean trace for sample ${j}`);
-  });
+    throw new Error(`ms-features: no clean trace for sample ${j}, row ${row.key}`);
+  }));
 }
 
 /* ------------------------------------------------------------ the raw run, as a map */
-/* Intensity on an m/z × RT grid for one sample (round 1, his pick: the page
-   opens on the raw run, so Detect has something to find). Noise in every cell;
-   a spot at each metabolite the file records as non-zero, its height the
-   trace's. A spot is drawn 1.8× wider in RT than the trace's peak, so a peak a
-   few seconds wide is visible on a 10-minute axis. */
-export const GRID = { nRt: 500, nMz: 150, rt1: MAP_RT, mz0: 80, mz1: 230 };
+/* Intensity on an m/z × RT grid for one sample over the run's RT (round 1, his
+   pick: the page opens on the raw run, so Detect has something to find). Noise
+   in every cell; a spot at each metabolite the file records as non-zero, as tall
+   and as wide in RT as its peak on the trace. */
+export const GRID = { nRt: 480, nMz: 150, rt0: RT0, rt1: RT1, mz0: 80, mz1: 230 };
 export function rawGrid(rng, j) {
-  const { nRt, nMz, rt1, mz0, mz1 } = GRID, I = new Float32Array(nRt * nMz);
+  const { nRt, nMz, rt0, rt1, mz0, mz1 } = GRID, I = new Float32Array(nRt * nMz);
   for (let i = 0; i < I.length; i++) I[i] = Math.abs(rng.normal()) * NOISE;
-  const sRt = (1.8 * SIG) / (rt1 / nRt), sMz = 1.4 * (nMz / (mz1 - mz0));
+  const sRt = SIG / ((rt1 - rt0) / nRt), sMz = 1.4 * (nMz / (mz1 - mz0));
   for (const m of METS) {
     const a = m.at[j];
     if (a <= 0) continue;
-    const cx = ((m.rt + SHIFT[j]) / rt1) * nRt, cy = ((m.exact - mz0) / (mz1 - mz0)) * nMz;
+    const cx = ((m.rt + SHIFT[j] - rt0) / (rt1 - rt0)) * nRt, cy = ((m.exact - mz0) / (mz1 - mz0)) * nMz;
     for (let x = Math.floor(cx - 4 * sRt); x <= cx + 4 * sRt; x++) for (let y = Math.floor(cy - 3 * sMz); y <= cy + 3 * sMz; y++) {
       if (x < 0 || y < 0 || x >= nRt || y >= nMz) continue;
       I[y * nRt + x] += heightOf(a) * Math.exp(-0.5 * ((x - cx) / sRt) ** 2) * Math.exp(-0.5 * ((y - cy) / sMz) ** 2);
