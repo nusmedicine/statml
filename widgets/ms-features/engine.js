@@ -112,6 +112,29 @@ export function simulate(rng) {
   });
 }
 
+/* ------------------------------------------------------------ the raw run, as a map */
+/* Intensity on an m/z × RT grid for one sample (round 1, his pick: the page
+   opens on the raw run, so Detect has something to find). Noise in every cell;
+   a spot at each metabolite the file records as non-zero, its height the
+   trace's. A spot is drawn 1.8× wider in RT than the trace's peak, so a peak a
+   few seconds wide is visible on a 10-minute axis. */
+export const GRID = { nRt: 500, nMz: 150, rt1: MAP_RT, mz0: 80, mz1: 230 };
+export function rawGrid(rng, j) {
+  const { nRt, nMz, rt1, mz0, mz1 } = GRID, I = new Float32Array(nRt * nMz);
+  for (let i = 0; i < I.length; i++) I[i] = Math.abs(rng.normal()) * NOISE;
+  const sRt = (1.8 * SIG) / (rt1 / nRt), sMz = 1.4 * (nMz / (mz1 - mz0));
+  for (const m of METS) {
+    const a = m.at[j];
+    if (a <= 0) continue;
+    const cx = ((m.rt + SHIFT[j]) / rt1) * nRt, cy = ((m.exact - mz0) / (mz1 - mz0)) * nMz;
+    for (let x = Math.floor(cx - 4 * sRt); x <= cx + 4 * sRt; x++) for (let y = Math.floor(cy - 3 * sMz); y <= cy + 3 * sMz; y++) {
+      if (x < 0 || y < 0 || x >= nRt || y >= nMz) continue;
+      I[y * nRt + x] += heightOf(a) * Math.exp(-0.5 * ((x - cx) / sRt) ** 2) * Math.exp(-0.5 * ((y - cy) / sMz) ** 2);
+    }
+  }
+  return I;
+}
+
 /* ------------------------------------------------------------ alignment */
 export const WINDOWS = ["0.05", "0.3", "1.5"];
 /* Peaks are sorted by RT and chained: a peak within the window of the previous
