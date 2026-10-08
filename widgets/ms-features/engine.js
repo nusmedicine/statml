@@ -50,6 +50,8 @@ export function formulas(target, tol) {
   return out.sort((a, b) => a.mz - b.mz);
 }
 
+/* the measured m/z of a row: its exact [M−H]⁻ plus the same 1.6 ppm error (round 4: every row is identified) */
+export const measuredMz = (exact) => exact * (1 + 1.6e-6);
 /* the database is the lesson's 26: every metabolite within the tolerance of the feature */
 export const candidates = (mz, tol) => METS.filter((m) => Math.abs(m.exact - mz) <= tolDa(tol, mz));
 export const RT_TOL = 0.1;                           // min, against a standard
@@ -176,8 +178,9 @@ export function group(traces, window) {
 export const largest = (features) => features.reduce((a, b) => (b.total > a.total ? b : a));
 
 /* ------------------------------------------------------------ identification */
-export function identify(feature, tol) {
-  const cands = candidates(FEATURE_MZ, tol);
+/* a feature at a row's measured m/z: the 26 within the tolerance, then those whose standard's RT is within ±0.1 min */
+export function identify(feature, tol, mz = FEATURE_MZ) {
+  const cands = candidates(mz, tol);
   const byRt = cands.filter((m) => Math.abs(feature.rt - m.rt) <= RT_TOL);
   return { cands, byRt };
 }

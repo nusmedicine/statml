@@ -23,14 +23,26 @@
  *      reached; Match mass, then Match RT;
  *   5. no metabolite is named before Identification (round 3, his call: page 1
  *      had named the two peaks, the answer the last page exists to reach);
- *   6. hover inspects everything named in the round 1 mock's § 4.
+ *   6. hover inspects everything named in the round 1 mock's § 4;
+ *   7. one Row is followed through the three pages (round 4, his pick), and
+ *      Identification opens on every feature of the run on the Peaks map's axes,
+ *      with the table of every feature at its foot.
  * Round 1 (his picks, `_lab/ms-features-round1-mock.html`): all four the
  * recommendation. The press clock is 91's: only a page switch ends a press.
  */
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as E from "./engine.js";
+import { makeRng } from "../core/rng.js";
 
-const H_PEAKS = 500, H_ALIGN = 416, H_ID = 560;
+const H_PEAKS = 500, H_ALIGN = 416;
+/* The Identification page's table holds every feature of the run, so its height
+   is the feature count's; a height reads only the parameters, so the run is
+   simulated once here as compute() does it (core seeds compute's rng with 1,
+   this widget having no seed), and compute() checks that the counts agree. */
+const COUNTS = (() => {
+  const t = E.simulate(makeRng(1));
+  return Object.fromEntries(E.WINDOWS.map((v) => [v, E.ROWS.reduce((n, _, r) => n + E.group(t.map((x) => x[r]), Number(v)).length, 0)]));
+})();
 const DETECT_MS = 3000, INTEGRATE_MS = 2600, ALIGN_MS = 3000, MASS_MS = 1500, RTM_MS = 1200;
 const WALK_MS = 1500, ZOOM_MS = 900;                 // the eases: a window change, a tolerance change
 const RIGHT = 20, X0 = 56, XA = 112;
@@ -97,8 +109,8 @@ function tip(ctx, colors, w, x, y, lines) {
 }
 
 /* ------------------------------------------------------------ the slice at m/z 131.035 */
-/* the RT range a panel shows: the whole run on Peaks, the isomers' stretch on Alignment */
-const VIEW_RUN = [E.RT0, E.RT1], VIEW_ALIGN = [1, 4.5];
+/* the RT range a panel shows: the whole run on Peaks, the row's own stretch on Alignment */
+const VIEW_RUN = [E.RT0, E.RT1];
 function sliceGeom(P, top, view = VIEW_RUN) {
   return {
     sx: (t) => P.x0 + ((t - view[0]) / (view[1] - view[0])) * (P.x1 - P.x0),
@@ -291,30 +303,44 @@ function drawPeaks(ctx, colors, w, params, state, anim, pointer) {
 }
 
 /* ------------------------------------------------------------ the Alignment page */
+/* Round 4 (his pick): the row chosen on Peaks is followed here and on
+   Identification; 131.035, the isomer pair, by default. */
 /* a feature is its m/z and its RT: the mean RT of its peaks, after grouping */
-const featurePair = (f) => `m/z 131.035 · RT ${f.rt.toFixed(2)}`;
+const featurePair = (f, row) => `m/z ${row.key} · RT ${f.rt.toFixed(2)}`;
 const alignLayout = (w) => ({ x0: XA, x1: w - RIGHT, y0: 40, row: 44, axis: 40 + 44 * 6 + 40 });
+/* the RT range the page shows for a row: its peaks in every sample, half a minute
+   either side, at least 2.5 min wide, inside the run */
+function viewOf(state, r) {
+  const rts = state.traces.flatMap((rows) => rows[r].det.map((d) => d.rt));
+  if (!rts.length) return [E.RT0, E.RT1];
+  let lo = Math.min(...rts) - 0.5, hi = Math.max(...rts) + 0.5;
+  if (hi - lo < 2.5) { const c = (lo + hi) / 2; lo = c - 1.25; hi = c + 1.25; }
+  if (lo < E.RT0) { hi += E.RT0 - lo; lo = E.RT0; }
+  if (hi > E.RT1) { lo -= hi - E.RT1; hi = E.RT1; }
+  return [Math.max(E.RT0, lo), hi];
+}
 /* how far the bracket has walked: the press, or the walk again after a window change */
-function walkT(params, anim) {
+function walkT(params, anim, view) {
   const { s, p } = stageOf("alignment", params, anim);
   if (s < 1) return -1;
-  if (p < 1) return VIEW_ALIGN[0] + p * (VIEW_ALIGN[1] - VIEW_ALIGN[0]);
-  if (anim && anim.walk < 1) return VIEW_ALIGN[0] + anim.walk * (VIEW_ALIGN[1] - VIEW_ALIGN[0]);
+  if (p < 1) return view[0] + p * (view[1] - view[0]);
+  if (anim && anim.walk < 1) return view[0] + anim.walk * (view[1] - view[0]);
   return Infinity;
 }
 function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
-  const L = alignLayout(w), win = Number(params.window), fs = state.features[params.window];
-  const T = walkT(params, anim);
-  const sx = (t) => L.x0 + ((t - VIEW_ALIGN[0]) / (VIEW_ALIGN[1] - VIEW_ALIGN[0])) * (L.x1 - L.x0);
+  const L = alignLayout(w), win = Number(params.window), r = rowIndex(params), row = E.ROWS[r];
+  const fs = state.features[params.window][r], tRow = state.traces.map((rows) => rows[r]), topRow = state.top.map((rows) => rows[r]);
+  const view = viewOf(state, r), T = walkT(params, anim, view);
+  const sx = (t) => L.x0 + ((t - view[0]) / (view[1] - view[0])) * (L.x1 - L.x0);
   const ay = L.axis;
-  const peaks = state.t131.flatMap((t) => t.det);
-  txt(ctx, colors, "The row at m/z 131.035 in six samples, each trace on its own scale", 12, 18, { colour: colors.ink1, weight: "600" });
+  const peaks = tRow.flatMap((t) => t.det);
+  txt(ctx, colors, `The row at m/z ${row.key} in six samples, each trace on its own scale`, 12, 18, { colour: colors.ink1, weight: "600" });
 
   // hover: a peak first, else a feature band
   let hoverPeak = null, hoverFeature = null;
   if (pointer) {
-    state.t131.forEach((tr, j) => {
-      const P = { x0: L.x0, x1: L.x1, y0: L.y0 + j * L.row + 3, y1: L.y0 + (j + 1) * L.row - 3 }, g = sliceGeom(P, state.top131[j], VIEW_ALIGN);
+    tRow.forEach((tr, j) => {
+      const P = { x0: L.x0, x1: L.x1, y0: L.y0 + j * L.row + 3, y1: L.y0 + (j + 1) * L.row - 3 }, g = sliceGeom(P, topRow[j], view);
       tr.det.forEach((d) => { if (!hoverPeak && near(pointer, g.sx(d.rt), g.sy(d.h + E.BASE), 8)) hoverPeak = d; });
       tr.det.forEach((d) => { if (!hoverPeak && near(pointer, sx(d.rt), ay, 6)) hoverPeak = d; });
     });
@@ -327,41 +353,42 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
      without touching — five features at 0.05 min — every band takes its
      number instead, and a line under the axis gives each number's pair. */
   ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-  const centre = (f) => (sx(f.lo) + sx(f.hi)) / 2, half = (f) => ctx.measureText(featurePair(f)).width / 2;
+  const centre = (f) => (sx(f.lo) + sx(f.hi)) / 2, half = (f) => ctx.measureText(featurePair(f, row)).width / 2;
   const pairsFit = fs.every((f, k) => centre(f) - half(f) >= 4 && centre(f) + half(f) <= w - 4 && (k === 0 || centre(f) - half(f) > centre(fs[k - 1]) + half(fs[k - 1]) + 8));
   const colourOf = new Map(), shown = [];
   fs.forEach((f) => {
     if (T < f.lo) return;
     const hi = Math.min(f.hi, T), c = colors.clusters[f.k % colors.clusters.length];
     box(ctx, sx(f.lo) - 6, L.y0 - 4, sx(hi) - sx(f.lo) + 12, ay + 12 - (L.y0 - 4), c, hoverFeature === f ? 0.34 : 0.18);
-    txt(ctx, colors, pairsFit ? featurePair(f) : `${f.k + 1}`, centre(f), L.y0 - 10, { size: "fsXs", colour: c, weight: "600", align: "center" });
+    txt(ctx, colors, pairsFit ? featurePair(f, row) : `${f.k + 1}`, centre(f), L.y0 - 10, { size: "fsXs", colour: c, weight: "600", align: "center" });
     shown.push(f);
     f.peaks.forEach((pk) => { if (pk.rt <= T) colourOf.set(pk, c); });
   });
-  if (!pairsFit && shown.length) txt(ctx, colors, `m/z 131.035 · ${shown.map((f) => `${f.k + 1}: RT ${f.rt.toFixed(2)}`).join(" · ")}`, L.x0, ay + 60, { size: "fsXs", colour: colors.ink2 });
+  if (!pairsFit && shown.length) txt(ctx, colors, `m/z ${row.key} · ${shown.map((f) => `${f.k + 1}: RT ${f.rt.toFixed(2)}`).join(" · ")}`, L.x0, ay + 60, { size: "fsXs", colour: colors.ink2 });
   E.SAMPLES.forEach((s0, j) => {
     const P = { x0: L.x0, x1: L.x1, y0: L.y0 + j * L.row + 3, y1: L.y0 + (j + 1) * L.row - 3 };
-    drawSlice(ctx, colors, state.t131[j], P, { upTo: Infinity, top: state.top131[j], ticks: false, view: VIEW_ALIGN, peakColour: (d) => colourOf.get(d) ?? colors.ink1, ring: hoverPeak });
+    drawSlice(ctx, colors, tRow[j], P, { upTo: Infinity, top: topRow[j], ticks: false, view, peakColour: (d) => colourOf.get(d) ?? colors.ink1, ring: hoverPeak });
     if (hoverFeature) {
-      const g = sliceGeom(P, state.top131[j], VIEW_ALIGN);
+      const g = sliceGeom(P, topRow[j], view);
       hoverFeature.peaks.filter((pk) => pk.j === j).forEach((pk) => dot(ctx, g.sx(pk.rt), g.sy(pk.h + E.BASE), 7, null, colors.ink1, 1.6));
     }
     txt(ctx, colors, s0.id.slice(-3), L.x0 - 8, P.y1 - 12, { size: "fsXs", colour: colors.ink1, align: "right", mono: true });
     txt(ctx, colors, groupWord(s0.cohort), L.x0 - 8, P.y1 + 1, { size: "fsXs", colour: colors.ink3, align: "right" });
   });
+  if (!peaks.length) txt(ctx, colors, "no peak at S/N 3 or more in this row, in any of the six samples", (L.x0 + L.x1) / 2, L.y0 + 3 * L.row, { colour: colors.ink2, align: "center" });
 
   // every peak on one RT axis, and the bracket one window wide
   txt(ctx, colors, "every peak", L.x0 - 8, ay + 4, { size: "fsXs", colour: colors.ink2, align: "right" });
   rule(ctx, L.x0, ay, L.x1, ay, colors.axis);
   peaks.forEach((pk) => rule(ctx, sx(pk.rt), ay - 9, sx(pk.rt), ay + 9, colourOf.get(pk) ?? colors.ink1, hoverPeak === pk ? 3.5 : 2));
-  for (let t = 1; t <= 4; t += 1) txt(ctx, colors, String(t), sx(t), ay + 24, { size: "fsXs", colour: colors.ink3, align: "center" });
+  for (let t = Math.ceil(view[0]); t <= view[1]; t += 1) txt(ctx, colors, String(t), sx(t), ay + 24, { size: "fsXs", colour: colors.ink3, align: "center" });
   txt(ctx, colors, "retention time (min)", (L.x0 + L.x1) / 2, ay + 42, { size: "fsXs", colour: colors.ink3, align: "center" });
-  if (T >= VIEW_ALIGN[0] && T < Infinity) {
+  if (T >= view[0] && T < Infinity) {
     /* the bracket starts at the latest tick passed and reaches one window to the
        right: the next tick joins that feature if it lands inside */
-    const last = peaks.map((pk) => pk.rt).filter((r) => r <= T).sort((a, b) => b - a)[0];
+    const last = peaks.map((pk) => pk.rt).filter((x) => x <= T).sort((a, b) => b - a)[0];
     if (last != null) {
-      const bx = sx(last), bw = sx(VIEW_ALIGN[0] + win) - sx(VIEW_ALIGN[0]);
+      const bx = sx(last), bw = sx(view[0] + win) - sx(view[0]);
       rule(ctx, bx, ay - 16, bx + bw, ay - 16, colors.ink1, 2);
       rule(ctx, bx, ay - 20, bx, ay - 12, colors.ink1, 2);
       rule(ctx, bx + bw, ay - 20, bx + bw, ay - 12, colors.ink1, 2);
@@ -371,16 +398,25 @@ function drawAlignment(ctx, colors, w, params, state, anim, pointer) {
 
   if (hoverPeak) {
     const s0 = E.SAMPLES[hoverPeak.j], f = fs.find((g) => g.peaks.includes(hoverPeak));
-    tip(ctx, colors, w, pointer.x, pointer.y, [`${s0.id} · ${s0.cohort}`, `RT ${hoverPeak.rt.toFixed(2)} min · area ${fmt(hoverPeak.area)}`, f && T === Infinity ? `in the feature ${featurePair(f)}` : "not yet grouped"]);
+    tip(ctx, colors, w, pointer.x, pointer.y, [`${s0.id} · ${s0.cohort}`, `RT ${hoverPeak.rt.toFixed(2)} min · area ${fmt(hoverPeak.area)}`, f && T === Infinity ? `in the feature ${featurePair(f, row)}` : "not yet grouped"]);
   } else if (hoverFeature) {
     const n = new Set(hoverFeature.peaks.map((pk) => pk.j)).size;
-    tip(ctx, colors, w, pointer.x, pointer.y, [featurePair(hoverFeature), `its peaks from RT ${hoverFeature.lo.toFixed(2)} to ${hoverFeature.hi.toFixed(2)} min`, `${hoverFeature.peaks.length} peaks in ${n} sample${n === 1 ? "" : "s"}`]);
+    tip(ctx, colors, w, pointer.x, pointer.y, [featurePair(hoverFeature, row), `its peaks from RT ${hoverFeature.lo.toFixed(2)} to ${hoverFeature.hi.toFixed(2)} min`, `${hoverFeature.peaks.length} peaks in ${n} sample${n === 1 ? "" : "s"}`]);
   }
 }
 
 /* ------------------------------------------------------------ the Identification page */
-const idLayout = (w) => ({ x0: 24, x1: w - RIGHT - LEVEL_W, lx: w - RIGHT, ruler: 86, cards: 164, rt: 368, table: 444 });
+/* Round 4 (his picks, `_lab/ms-features-round4-mock.html`): on top, every
+   feature of the run on the Peaks map's axes, so the page the student started
+   on is where the names arrive; Match mass marks each feature's candidates
+   among the 26, Match RT names each that sits on its standard's RT. Under it,
+   the funnel for the row followed through the pages (a click on a feature
+   picks it), and at the foot the table of every feature. */
+const B = 236;                                       // where the funnel starts, under the overview
+const idLayout = (w) => ({ x0: 24, x1: w - RIGHT - LEVEL_W, lx: w - RIGHT, title: B, ruler: B + 66, cards: B + 144, rt: B + 348, table: B + 424 });
+const ovLayout = (w) => ({ x0: X0, x1: w - RIGHT, y0: 34, y1: 174 });
 const HALF = { unit: 0.6, ppm: 0.012 };              // the ruler's half-width in Da at each tolerance
+const TABLE_ROW = 15;
 /* skeletal formulas from the MAF's SMILES: glutaric OC(=O)CCCC(O)=O, ethylmalonic CCC(C(O)=O)C(O)=O */
 function skeleton(ctx, colors, x, y, name) {
   const s = 20, dx = s * Math.cos(Math.PI / 6), dy = s * Math.sin(Math.PI / 6);
@@ -403,59 +439,94 @@ function skeleton(ctx, colors, x, y, name) {
     acid(c1, true, false); acid(c2, false, false);
   }
 }
-/* Round 3 (his picks, `_lab/ms-features-round3-mock.html`): no Feature control.
-   Rows 1 and 2 are the same for every feature in the row, since they share the
-   m/z; row 3 drops every feature onto the RT axis against both standards, and
-   a feature inside a standard's ±0.1 min takes that standard's name. */
-function nameOf(f, stage, tol) {
-  if (stage < 1) return { name: "–", by: "–" };
-  const { cands, byRt } = E.identify(f, tol);
-  if (stage >= 2 && byRt.length === 1) return { name: byRt[0].name, by: "m/z, RT", hit: true };
-  return { name: cands.map((m) => short(m.name)).join(" or "), by: "m/z" };
+const SKELETONS = new Set(["Glutaric acid", "Ethylmalonic acid"]);
+
+/* what a feature has been matched to, as far as the presses have gone */
+function nameOf(x, stage, tol) {
+  if (stage < 1) return { name: "–", by: "–", n: null };
+  const { cands, byRt } = E.identify(x.f, tol, E.measuredMz(x.row.mz));
+  if (stage >= 2 && byRt.length === 1) return { name: byRt[0].name, by: "m/z, RT", hit: true, n: cands.length };
+  return { name: cands.length ? cands.map((m) => short(m.name)).join(" or ") : "none of the 26", by: "m/z", n: cands.length };
 }
 const rtList = (fs) => fs.map((f) => f.rt.toFixed(2)).join(", ");
+
+/* the overview: every feature of the run at its m/z and RT */
+function drawOverview(ctx, colors, w, params, state, stage, rowNow, pointer) {
+  const M = ovLayout(w), { mx, my } = mapGeom(M), tol = params.tolerance;
+  const all = state.featuresAll[params.window];
+  txt(ctx, colors, `Every feature of the run (RT window ${params.window} min): its m/z and RT`, 12, 18, { colour: colors.ink1, weight: "600" });
+  box(ctx, M.x0, M.y0, M.x1 - M.x0, M.y1 - M.y0, colors.surface2);
+  rule(ctx, M.x0, M.y1, M.x1, M.y1, colors.axis); rule(ctx, M.x0, M.y0, M.x0, M.y1, colors.axis);
+  for (let t = 1; t <= E.RT1; t += 1) txt(ctx, colors, String(t), mx(t), M.y1 + 14, { size: "fsXs", colour: colors.ink3, align: "center" });
+  for (let m = 100; m <= 220; m += 40) txt(ctx, colors, String(m), M.x0 - 6, my(m) + 4, { size: "fsXs", colour: colors.ink3, align: "right" });
+  txt(ctx, colors, "m/z", M.x0 - 6, M.y0 - 6, { size: "fsXs", colour: colors.ink3, align: "right" });
+  txt(ctx, colors, "RT (min)", M.x1, M.y1 + 28, { size: "fsXs", colour: colors.ink3, align: "right" });
+  rule(ctx, M.x0, my(rowNow.mz), M.x1, my(rowNow.mz), colors.ink1, 1.3);
+  txt(ctx, colors, `m/z ${rowNow.key}: the row below`, M.x1 - 4, my(rowNow.mz) - 5, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
+  let hover = null, named = 0, multi = 0;
+  for (const x of all) {
+    const px = mx(x.f.rt), py = my(x.row.mz), nm = nameOf(x, stage, tol), here = x.row === rowNow;
+    if (stage === 0) dot(ctx, px, py, 4.5, colors.empirical);
+    else if (stage === 1) {
+      if (nm.n > 1) { multi++; dot(ctx, px, py, 6, null, colors.ink1, 1.6); txt(ctx, colors, String(nm.n), px + 8, py + 4, { size: "fsXs", colour: colors.ink1, weight: "700" }); }
+      else dot(ctx, px, py, 4.5, colors.ink1);
+    } else if (nm.hit) {
+      named++; dot(ctx, px, py, 5, colors.highlight);
+      if (here) txt(ctx, colors, short(nm.name), px, py - 9, { size: "fsXs", colour: colors.highlight, weight: "600", align: "center" });
+    } else { dot(ctx, px, py, 6, null, colors.ink1, 1.6); txt(ctx, colors, "?", px, py - 10, { size: "fsXs", colour: colors.ink1, weight: "700", align: "center" }); }
+    if (!hover && near(pointer, px, py, 8)) hover = { x, px, py, nm };
+  }
+  const head = stage === 0 ? `${all.length} features` : stage === 1 ? `${multi} with more than one candidate · ${all.length - multi} with one` : `${named} of ${all.length} named`;
+  txt(ctx, colors, head, M.x1 - 4, M.y0 + 14, { colour: colors.ink1, weight: "700", align: "right" });
+  txt(ctx, colors, "candidates from the study's 26 metabolites; a database of every known metabolite holds more per formula", 12, M.y1 + 46, { size: "fsXs", colour: colors.ink3 });
+  return hover;
+}
+
 function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
-  const L = idLayout(w), tol = params.tolerance;
-  const fs = state.features[params.window];
+  const L = idLayout(w), tol = params.tolerance, r = rowIndex(params), row = E.ROWS[r];
+  const mz = E.measuredMz(row.mz), forms = state.formulas[r];
+  const fs = state.features[params.window][r];
   const { s, p } = stageOf("identification", params, anim);
   const massP = s >= 2 || (s === 1 && p >= 1) ? 1 : s === 1 ? p : 0;
   const rtP = s >= 2 ? p : 0;
+  const stage = massP >= 1 ? (rtP >= 1 ? 2 : 1) : 0;
   const level = (y, n, sub, on) => {
     txt(ctx, colors, n, L.lx, y, { colour: on ? colors.ink1 : colors.ink3, weight: "700", align: "right" });
     txt(ctx, colors, sub, L.lx, y + 14, { size: "fsXs", colour: colors.ink3, align: "right" });
   };
-  txt(ctx, colors, `The features at m/z 131.035 (RT window ${params.window} min): RT ${rtList(fs)}`, 12, 20, { colour: colors.ink1, weight: "600" });
+  const hoverOv = drawOverview(ctx, colors, w, params, state, stage, row, pointer);
+  txt(ctx, colors, fs.length ? `The features at m/z ${row.key} (RT window ${params.window} min): RT ${rtList(fs)}` : `m/z ${row.key}: no feature in this row`, 12, L.title, { colour: colors.ink1, weight: "600" });
 
   // 1 · formulas within the tolerance: a ruler of every CHNOS formula's [M−H]⁻, zoomed by a tolerance change
   const z = anim && anim.zoom.t < 1 ? { from: anim.zoom.from, e: easeInOut(anim.zoom.t) } : null;
   const lerpLog = (a, b, e) => Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * e);
   const half = z ? lerpLog(HALF[z.from], HALF[tol], z.e) : HALF[tol];
-  const winD = z ? lerpLog(E.tolDa(z.from, E.FEATURE_MZ), E.tolDa(tol, E.FEATURE_MZ), z.e) : E.tolDa(tol, E.FEATURE_MZ);
-  const lo = E.FEATURE_MZ - half, hi = E.FEATURE_MZ + half;
+  const winD = z ? lerpLog(E.tolDa(z.from, mz), E.tolDa(tol, mz), z.e) : E.tolDa(tol, mz);
+  const lo = mz - half, hi = mz + half;
   const rx = (m) => L.x0 + ((m - lo) / (hi - lo)) * (L.x1 - L.x0), ry = L.ruler;
-  txt(ctx, colors, `1 · Mass: CHNOS formulas within ${tol === "unit" ? "±0.5 Da" : "±5 ppm"} of the measured m/z`, 12, 48, { colour: colors.ink1, weight: "600" });
+  txt(ctx, colors, `1 · Mass: CHNOS formulas within ${tol === "unit" ? "±0.5 Da" : "±5 ppm"} of the measured m/z`, 12, L.title + 28, { colour: colors.ink1, weight: "600" });
   rule(ctx, L.x0, ry + 10, L.x1, ry + 10, colors.axis);
   [lo, hi].forEach((m) => txt(ctx, colors, m.toFixed(half > 0.1 ? 2 : 3), rx(m), ry + 24, { size: "fsXs", colour: colors.ink3, align: "center", mono: true }));
-  txt(ctx, colors, `measured ${E.FEATURE_MZ.toFixed(4)}`, rx(E.FEATURE_MZ), ry + 24, { size: "fsXs", colour: colors.empirical, align: "center", mono: true, weight: "600" });
+  txt(ctx, colors, `measured ${mz.toFixed(4)}`, rx(mz), ry + 24, { size: "fsXs", colour: colors.empirical, align: "center", mono: true, weight: "600" });
   const shownHalf = winD * easeInOut(massP);
-  if (massP > 0) box(ctx, rx(E.FEATURE_MZ - shownHalf), ry - 16, Math.max(2, rx(E.FEATURE_MZ + shownHalf) - rx(E.FEATURE_MZ - shownHalf)), 26, colors.highlight, 0.18);
+  if (massP > 0) box(ctx, rx(mz - shownHalf), ry - 16, Math.max(2, rx(mz + shownHalf) - rx(mz - shownHalf)), 26, colors.highlight, 0.18);
   let hoverTick = null;
-  for (const fm of state.formulasWide) {
+  for (const fm of forms.wide) {
     const x = rx(fm.mz);
     if (x < L.x0 || x > L.x1) continue;
-    const inside = massP > 0 && Math.abs(fm.mz - E.FEATURE_MZ) <= shownHalf;
+    const inside = massP > 0 && Math.abs(fm.mz - mz) <= shownHalf;
     rule(ctx, x, ry - 12, x, ry + 10, inside ? colors.ink1 : colors.ink3, 1.2);
     if (pointer && Math.abs(pointer.x - x) <= 3 && Math.abs(pointer.y - ry) <= 16) hoverTick = { fm, x };
   }
-  rule(ctx, rx(E.FEATURE_MZ), ry - 18, rx(E.FEATURE_MZ), ry + 14, colors.empirical, 2);
+  rule(ctx, rx(mz), ry - 18, rx(mz), ry + 14, colors.empirical, 2);
   if (massP >= 1 && !z) {
-    const nIn = (tol === "unit" ? state.formulasUnit : state.formulasPpm).length;
-    txt(ctx, colors, tol === "unit" ? `${nIn} formulas` : `1 formula: ${state.formulasPpm[0].f}`, L.x1, 48, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
-    level(68, tol === "unit" ? "level 5" : "level 4", tol === "unit" ? "exact mass" : "molecular formula", true);
+    const nIn = forms[tol].length;
+    txt(ctx, colors, nIn === 1 ? `1 formula: ${forms[tol][0].f}` : `${nIn} formulas`, L.x1, L.title + 28, { size: "fsXs", colour: colors.ink1, weight: "600", align: "right" });
+    level(L.title + 48, nIn === 1 ? "level 4" : "level 5", nIn === 1 ? "molecular formula" : "exact mass", true);
   }
 
-  // 2 · of the study's 26 metabolites, those within the tolerance, drawn as structures
-  const cands = E.candidates(E.FEATURE_MZ, tol);
+  // 2 · of the study's 26 metabolites, those within the tolerance
+  const cands = E.candidates(mz, tol);
   const named = (m) => rtP >= 1 && fs.some((f) => Math.abs(f.rt - m.rt) <= E.RT_TOL);
   txt(ctx, colors, "2 · Of the study's 26 metabolites, those within the tolerance", 12, L.cards - 12, { colour: colors.ink1, weight: "600" });
   if (massP >= 1) {
@@ -465,20 +536,24 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
       box(ctx, bx, L.cards, cw, 110, colors.surface2);
       if (on) frame(ctx, bx, L.cards, cw, 110, colors.highlight, 2);
       txt(ctx, colors, m.name, bx + 8, L.cards + 17, { colour: on ? colors.highlight : colors.ink1, weight: "600" });
-      txt(ctx, colors, `${m.formula} · ${E.ppmOf(E.FEATURE_MZ, m.exact).toFixed(1)} ppm`, bx + 8, L.cards + 32, { size: "fsXs", colour: colors.ink2, mono: true });
-      skeleton(ctx, colors, bx + cw / 2 - 2 * 17.3, L.cards + 66, m.name);
+      txt(ctx, colors, `${m.formula} · ${E.ppmOf(mz, m.exact).toFixed(1)} ppm`, bx + 8, L.cards + 32, { size: "fsXs", colour: colors.ink2, mono: true });
+      if (SKELETONS.has(m.name)) skeleton(ctx, colors, bx + cw / 2 - 2 * 17.3, L.cards + 66, m.name);
+      else txt(ctx, colors, `standard's RT ${m.rt} min`, bx + 8, L.cards + 52, { size: "fsXs", colour: colors.ink2 });
     });
-    level(L.cards + 16, "level 3", `${cands.length} candidates`, true);
+    if (!cands.length) txt(ctx, colors, "none of the 26 lies within the tolerance", L.x0, L.cards + 20, { colour: colors.ink2 });
+    level(L.cards + 16, "level 3", `${cands.length} candidate${cands.length === 1 ? "" : "s"}`, true);
   }
 
   // 3 · every feature's RT against each candidate's standard
-  const T0 = 1.5, T1 = 4.0, tx = (t) => L.x0 + ((t - T0) / (T1 - T0)) * (L.x1 - L.x0), ty = L.rt;
+  const rts = [...fs.map((f) => f.rt), ...cands.map((m) => m.rt)];
+  let T0 = rts.length ? Math.min(...rts) - 0.5 : 1.5, T1 = rts.length ? Math.max(...rts) + 0.5 : 4;
+  if (T1 - T0 < 2.5) { const c = (T0 + T1) / 2; T0 = c - 1.25; T1 = c + 1.25; }
+  const tx = (t) => L.x0 + ((t - T0) / (T1 - T0)) * (L.x1 - L.x0), ty = L.rt;
   txt(ctx, colors, `3 · Retention time: every feature against each standard (±${E.RT_TOL} min)`, 12, ty - 70, { colour: colors.ink1, weight: "600" });
   rule(ctx, L.x0, ty, L.x1, ty, colors.axis);
-  for (let t = T0; t <= T1 + 1e-9; t += 0.5) txt(ctx, colors, t.toFixed(1), tx(t), ty + 14, { size: "fsXs", colour: colors.ink3, align: "center" });
+  for (let t = Math.ceil(T0 * 2) / 2; t <= T1 + 1e-9; t += 0.5) txt(ctx, colors, t.toFixed(1), tx(t), ty + 14, { size: "fsXs", colour: colors.ink3, align: "center" });
   let hoverStd = null, hoverDot = null;
-  // a table row under the pointer rings its feature's dot
-  const rowOver = pointer ? fs.find((g, r) => { const y = L.table + 26 + r * 17; return pointer.y >= y - 12 && pointer.y < y + 4 && pointer.x >= 8; }) : null;
+  const rowOver = pointer ? state.featuresAll[params.window].find((x, k) => { const y = L.table + 26 + k * TABLE_ROW; return pointer.y >= y - 11 && pointer.y < y + 4 && pointer.x >= 8; }) : null;
   if (rtP > 0) {
     cands.forEach((m) => {
       const hit = named(m);
@@ -490,43 +565,48 @@ function drawIdentification(ctx, colors, w, params, state, anim, pointer) {
     // every feature drops onto its RT, each in its own vertical lane
     const y = ty - 62 + 50 * easeInOut(clamp01(rtP));
     fs.forEach((f, k) => {
-      const fx = tx(Math.max(T0, Math.min(T1, f.rt)));
+      const fx = tx(f.rt);
       dot(ctx, fx, y, 5, colors.empirical);
-      if (rowOver === f) dot(ctx, fx, y, 9, null, colors.ink1, 2);
+      if (rowOver && rowOver.f === f) dot(ctx, fx, y, 9, null, colors.ink1, 2);
       if (rtP >= 1) txt(ctx, colors, f.rt.toFixed(2), fx, ty + 28 + (k % 2) * 13, { size: "fsXs", colour: colors.empirical, align: "center", weight: "600" });
       if (near(pointer, fx, y, 8)) hoverDot = { f, fx, y };
     });
     if (rtP >= 1) {
-      const nNamed = fs.filter((f) => E.identify(f, tol).byRt.length === 1).length;
+      const nNamed = fs.filter((f) => E.identify(f, tol, mz).byRt.length === 1).length;
       level(ty - 66, nNamed ? "level 1" : "level 3", nNamed ? `${nNamed} of ${fs.length} named` : "no feature within ±0.1", nNamed > 0);
       txt(ctx, colors, nNamed ? "with the standard's MS2" : "of a standard", L.lx, ty - 38, { size: "fsXs", colour: colors.ink3, align: "right" });
     }
   }
 
-  // the feature table: one row a feature, the names as far as the presses have gone
-  const stage = massP >= 1 ? (rtP >= 1 ? 2 : 1) : 0;
-  txt(ctx, colors, `The feature table (RT window ${params.window} min)`, 12, L.table - 10, { colour: colors.ink1, weight: "600" });
-  txt(ctx, colors, "areas in six samples, by the last digits of each ID", w - RIGHT, L.table - 10, { size: "fsXs", colour: colors.ink3, align: "right" });
-  const cols = tableCols(w);
-  ["m/z", "RT", "name", "matched by", ...E.SAMPLES.map((s0) => s0.id.slice(-3))].forEach((c, k) => txt(ctx, colors, c, cols[k], L.table + 8, { size: "fsXs", colour: colors.ink3, mono: true, align: k >= 4 ? "right" : "left" }));
-  fs.forEach((g, r) => {
-    const y = L.table + 26 + r * 17, nm = nameOf(g, stage, tol);
-    if (rowOver === g) box(ctx, 8, y - 12, w - RIGHT - 4, 16, colors.surface2);
-    const cells = ["131.035", g.rt.toFixed(2), nm.hit ? short(nm.name) : nm.name, nm.by, ...g.area.map((a) => (a > 0 ? `${Math.round(a / 1000)}k` : "0"))];
-    cells.forEach((c, k) => txt(ctx, colors, c, cols[k], y, { size: "fsXs", mono: k !== 2, align: k >= 4 ? "right" : "left", colour: k === 2 && nm.hit ? colors.highlight : colors.ink1 }));
+  // the feature table: every feature of the run, the row followed shaded, names as far as the presses have gone
+  const all = state.featuresAll[params.window];
+  txt(ctx, colors, `The feature table: every feature of the run (RT window ${params.window} min)`, 12, L.table - 10, { colour: colors.ink1, weight: "600" });
+  const cols = [16, 82, 128, 214, 300, w - RIGHT - 120, w - RIGHT];
+  ["m/z", "RT", "formulas", "candidates", "name", "matched by", "samples"].forEach((c, k) => txt(ctx, colors, c, cols[k], L.table + 8, { size: "fsXs", colour: colors.ink3, mono: true, align: k === 6 ? "right" : "left" }));
+  all.forEach((x, k) => {
+    const y = L.table + 26 + k * TABLE_ROW, nm = nameOf(x, stage, tol), here = x.row === row;
+    if (here || rowOver === x) box(ctx, 8, y - 11, w - RIGHT - 4, TABLE_ROW, colors.surface2, rowOver === x ? 1 : 0.6);
+    const cells = [x.row.key, x.f.rt.toFixed(2), stage >= 1 ? String(state.formulas[x.r][tol].length) : "–", stage >= 1 ? String(nm.n) : "–", nm.hit ? short(nm.name) : nm.name, nm.by, `${new Set(x.f.peaks.map((pk) => pk.j)).size} of 6`];
+    cells.forEach((c, j) => txt(ctx, colors, c, cols[j], y, { size: "fsXs", mono: j !== 4, align: j === 6 ? "right" : "left", colour: j === 4 && nm.hit ? colors.highlight : colors.ink1, weight: here && j === 4 ? "600" : "" }));
   });
 
-  if (hoverTick) {
+  if (hoverOv) {
+    dot(ctx, hoverOv.px, hoverOv.py, 9, null, colors.ink1, 2);
+    const nm = hoverOv.nm, lines = [`m/z ${hoverOv.x.row.key} · RT ${hoverOv.x.f.rt.toFixed(2)}`];
+    if (stage >= 1) lines.push(`${nm.n} of the 26 within ${tol === "unit" ? "±0.5 Da" : "±5 ppm"}`);
+    if (stage >= 2) lines.push(nm.hit ? `named ${nm.name.toLowerCase()}: its standard's RT` : "within ±0.1 min of no standard");
+    lines.push(hoverOv.x.row === row ? "its row is the one below" : "a click makes its row the one below");
+    tip(ctx, colors, w, hoverOv.px, hoverOv.py, lines);
+  } else if (hoverTick) {
     rule(ctx, hoverTick.x, ry - 14, hoverTick.x, ry + 12, colors.ink1, 3);
-    tip(ctx, colors, w, hoverTick.x, ry - 14, [hoverTick.fm.f, `m/z ${hoverTick.fm.mz.toFixed(4)}`, `${E.ppmOf(hoverTick.fm.mz, E.FEATURE_MZ).toFixed(0)} ppm from the measured m/z`]);
+    tip(ctx, colors, w, hoverTick.x, ry - 14, [hoverTick.fm.f, `m/z ${hoverTick.fm.mz.toFixed(4)}`, `${E.ppmOf(hoverTick.fm.mz, mz).toFixed(0)} ppm from the measured m/z`]);
   } else if (hoverDot) {
-    const { byRt } = E.identify(hoverDot.f, tol);
-    tip(ctx, colors, w, hoverDot.fx, hoverDot.y, [`m/z 131.035 · RT ${hoverDot.f.rt.toFixed(2)}`, byRt.length === 1 ? `within ±${E.RT_TOL} min of the ${short(byRt[0].name).toLowerCase()} standard (${byRt[0].rt})` : `within ±${E.RT_TOL} min of neither standard`]);
+    const { byRt } = E.identify(hoverDot.f, tol, mz);
+    tip(ctx, colors, w, hoverDot.fx, hoverDot.y, [`m/z ${row.key} · RT ${hoverDot.f.rt.toFixed(2)}`, byRt.length === 1 ? `within ±${E.RT_TOL} min of the ${short(byRt[0].name).toLowerCase()} standard (${byRt[0].rt})` : `within ±${E.RT_TOL} min of no standard`]);
   } else if (hoverStd) {
     tip(ctx, colors, w, tx(hoverStd.rt), ty - 46, [`${hoverStd.name}, the standard`, `RT ${hoverStd.rt} min, run on the same column`]);
   }
 }
-const tableCols = (w) => { const r = w - RIGHT; return [16, 82, 122, 280, ...E.SAMPLES.map((_, j) => r - (E.SAMPLES.length - 1 - j) * 42)]; };
 
 /* ------------------------------------------------------------ the formula card */
 const MATHML = mathmlRenders();
@@ -573,12 +653,18 @@ defineWidget({
   layout: "side",
   status: "draft",
   pointer: true,
-  height: (p) => (p.page === "identification" ? H_ID : p.page === "alignment" ? H_ALIGN : H_PEAKS),
+  height: (p) => (p.page === "identification" ? B + 424 + 26 + (COUNTS[p.window] ?? 11) * TABLE_ROW + 10 : p.page === "alignment" ? H_ALIGN : H_PEAKS),
 
   params: {
     page: {
       role: "page", type: "segmented", label: "Step", display: true, default: "peaks",
       options: [{ value: "peaks", label: "Peaks" }, { value: "alignment", label: "Alignment" }, { value: "identification", label: "Identification" }],
+    },
+    rowSec: { type: "section", label: "The row" },
+    row: {
+      type: "select", label: "Row", display: true, default: E.ROWS[E.ROW_131].key,
+      detail: "the m/z followed through the three steps, with the RT of each metabolite MTBLS6038 reports at it; a click on a spot (Peaks) or a feature (Identification) selects its row",
+      options: E.ROWS.map((r) => ({ value: r.key, label: `${r.key} · RT ${r.mets.map((m) => m.rt.toFixed(2)).join(", ")}` })),
     },
     peaksSec: { type: "section", label: "The sample", when: { param: "page", equals: "peaks" } },
     sample: {
@@ -586,15 +672,10 @@ defineWidget({
       detail: "six serum samples of MTBLS6038, with the areas its file records",
       options: E.SAMPLES.map((s0) => ({ value: s0.id, label: sampleLabel(s0) })),
     },
-    row: {
-      type: "select", label: "Row", display: true, default: E.ROWS[E.ROW_131].key, when: { param: "page", equals: "peaks" },
-      detail: "the m/z whose intensity is drawn against RT below the map, with the RT of each metabolite MTBLS6038 reports at it; a click on a spot selects its row",
-      options: E.ROWS.map((r) => ({ value: r.key, label: `${r.key} · RT ${r.mets.map((m) => m.rt.toFixed(2)).join(", ")}` })),
-    },
     alignSec: { type: "section", label: "Grouping", when: { param: "page", equals: "alignment" } },
     window: {
       type: "segmented", label: "RT window", display: true, default: "0.3", when: { param: "page", equals: "alignment" },
-      detail: "the largest gap in retention time between two peaks of one feature, in minutes; this page and the next follow the row at m/z 131.035",
+      detail: "the largest gap in retention time between two peaks of one feature, in minutes",
       options: E.WINDOWS.map((v) => ({ value: v, label: v })),
     },
     idSec: { type: "section", label: "Matching", when: { param: "page", equals: "identification" } },
@@ -637,14 +718,11 @@ defineWidget({
     const traces = E.simulate(rng);                  // [sample][row]
     const grids = E.SAMPLES.map((_, j) => E.rawGrid(rng, j));
     const top = traces.map((rows) => rows.map((t) => Math.max(...t.y, E.THRESHOLD + 4 * E.NOISE) * 1.08));
-    const t131 = traces.map((rows) => rows[E.ROW_131]), top131 = top.map((rows) => rows[E.ROW_131]);
-    const features = Object.fromEntries(E.WINDOWS.map((v) => [v, E.group(t131, Number(v))]));
-    return {
-      traces, grids, top, t131, top131, features,
-      formulasWide: E.formulas(E.FEATURE_MZ, 0.6),
-      formulasUnit: E.formulas(E.FEATURE_MZ, 0.5),
-      formulasPpm: E.formulas(E.FEATURE_MZ, E.tolDa("ppm", E.FEATURE_MZ)),
-    };
+    const features = Object.fromEntries(E.WINDOWS.map((v) => [v, E.ROWS.map((_, r) => E.group(traces.map((rows) => rows[r]), Number(v)))]));
+    const featuresAll = Object.fromEntries(E.WINDOWS.map((v) => [v, features[v].flatMap((fs, r) => fs.map((f) => ({ r, row: E.ROWS[r], f }))).sort((a, b) => a.row.mz - b.row.mz || a.f.rt - b.f.rt)]));
+    for (const v of E.WINDOWS) if (featuresAll[v].length !== COUNTS[v]) console.error(`ms-features: ${featuresAll[v].length} features at ${v} min, the height expects ${COUNTS[v]}`);
+    const formulas = E.ROWS.map((row) => { const mz = E.measuredMz(row.mz); return { wide: E.formulas(mz, 0.6), unit: E.formulas(mz, 0.5), ppm: E.formulas(mz, E.tolDa("ppm", mz)) }; });
+    return { traces, grids, top, features, featuresAll, formulas };
   },
 
   animation: {
@@ -714,10 +792,14 @@ defineWidget({
     },
   },
 
-  /* a spot on the map selects its row (Peaks) */
+  /* a spot on the map (Peaks) or a feature on the overview (Identification) selects its row */
   regions: ({ w, params, state }) => {
     if (!state) return [];
     if (params.page === "peaks") return spotsOf(sampleIndex(params), peaksLayout(w).map).map((sp) => ({ x: sp.x - 8, y: sp.y - 8, w: 16, h: 16, set: { row: sp.key }, label: `m/z ${sp.key}, RT ${sp.rt.toFixed(2)}` }));
+    if (params.page === "identification") {
+      const { mx, my } = mapGeom(ovLayout(w));
+      return state.featuresAll[params.window].map((x) => ({ x: mx(x.f.rt) - 8, y: my(x.row.mz) - 8, w: 16, h: 16, set: { row: x.row.key }, label: `m/z ${x.row.key}, RT ${x.f.rt.toFixed(2)}` }));
+    }
     return [];
   },
 
@@ -729,26 +811,28 @@ defineWidget({
   },
 
   readout: ({ params, state, anim }) => {
+    const rr = rowIndex(params), rowR = E.ROWS[rr];
     if (params.page === "alignment") {
       const { s, p } = stageOf("alignment", params, anim), done = s >= 1 && p >= 1;
-      const fs = state.features[params.window], n = state.t131.reduce((a, t) => a + t.det.length, 0);
+      const fs = state.features[params.window][rr], n = state.traces.reduce((a, rows) => a + rows[rr].det.length, 0);
       const nSamples = (f) => new Set(f.peaks.map((pk) => pk.j)).size;
       return [
-        { label: "Peaks at m/z 131.035", value: `${n}`, note: "above S/N 3, in the six samples" },
+        { label: `Peaks at m/z ${rowR.key}`, value: `${n}`, note: "above S/N 3, in the six samples" },
         { label: "Features", value: done ? `${fs.length}` : "–", note: done ? `RT window ${params.window} min` : "once the peaks are grouped" },
-        { label: "Feature RTs", value: done ? fs.map((f) => f.rt.toFixed(2)).join(" · ") : "–", note: done ? `m/z 131.035, found in ${fs.map((f) => nSamples(f)).join(" · ")} of the six samples` : "once the peaks are grouped" },
+        { label: "Feature RTs", value: done && fs.length ? fs.map((f) => f.rt.toFixed(2)).join(" · ") : "–", note: done ? (fs.length ? `m/z ${rowR.key}, found in ${fs.map((f) => nSamples(f)).join(" · ")} of the six samples` : "no peak to group in this row") : "once the peaks are grouped" },
       ];
     }
     if (params.page === "identification") {
       const { s, p } = stageOf("identification", params, anim);
       const stage = s >= 2 && p >= 1 ? 2 : s >= 1 && (s >= 2 || p >= 1) ? 1 : 0;
-      const tol = params.tolerance, fs = state.features[params.window], cands = E.candidates(E.FEATURE_MZ, tol);
-      const nF = (tol === "unit" ? state.formulasUnit : state.formulasPpm).length;
-      const named = fs.map((f) => ({ f, hit: E.identify(f, tol).byRt }));
+      const tol = params.tolerance, mz = E.measuredMz(rowR.mz), cands = E.candidates(mz, tol);
+      const nF = state.formulas[rr][tol].length, all = state.featuresAll[params.window];
+      const named = all.filter((x) => E.identify(x.f, tol, E.measuredMz(x.row.mz)).byRt.length === 1).length;
+      const mine = state.features[params.window][rr].map((f) => ({ f, hit: E.identify(f, tol, mz).byRt }));
       return [
-        { label: "Formulas within the tolerance", value: stage >= 1 ? `${nF}` : "–", note: tol === "unit" ? "±0.5 Da: CHNOS, [M−H]⁻" : "±5 ppm: CHNOS, [M−H]⁻" },
-        { label: "Candidates among the 26", value: stage >= 1 ? `${cands.length}` : "–", note: stage >= 1 ? cands.map((m) => m.name).join(", ") : "once matched by mass" },
-        { label: "Features named", value: stage >= 2 ? `${named.filter((n) => n.hit.length === 1).length} of ${fs.length}` : "–", note: stage >= 2 ? named.map((n) => `RT ${n.f.rt.toFixed(2)}: ${n.hit.length === 1 ? n.hit[0].name.toLowerCase() : "neither standard"}`).join(" · ") : "once matched by RT" },
+        { label: `Formulas at m/z ${rowR.key}`, value: stage >= 1 ? `${nF}` : "–", note: tol === "unit" ? "±0.5 Da: CHNOS, [M−H]⁻" : "±5 ppm: CHNOS, [M−H]⁻" },
+        { label: "Candidates among the 26", value: stage >= 1 ? `${cands.length}` : "–", note: stage >= 1 ? (cands.map((m) => m.name).join(", ") || "none") : "once matched by mass" },
+        { label: "Features named in the run", value: stage >= 2 ? `${named} of ${all.length}` : "–", note: stage >= 2 ? (mine.map((x) => `RT ${x.f.rt.toFixed(2)}: ${x.hit.length === 1 ? x.hit[0].name.toLowerCase() : "no standard"}`).join(" · ") || `no feature at m/z ${rowR.key}`) : "once matched by RT" },
       ];
     }
     const { s, p } = stageOf("peaks", params, anim);
