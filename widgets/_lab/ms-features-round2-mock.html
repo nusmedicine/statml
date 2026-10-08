@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 93 — ms-features round 2: the map and its row</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1900px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 116ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  ol.note { color: var(--ink-2); font-size: var(--fs-sm); max-width: 112ch; margin: 0 0 var(--sp-3); }
+  ol.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 116ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 116ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 93 &middot; <code>ms-features</code> &middot; round 2: the map and its row</h1>
+
+  <h2>1 &middot; Why only two retention times light up</h2>
+  <ol class="note">
+    <li><b>Each spot is one metabolite at its own m/z.</b> The strong spots at RT 1.2&ndash;1.7 are lactic acid (m/z 89), malic acid (133),
+      pyroglutamic acid (128), succinic acid (117) and citric acid (191). They are in other rows of the map.</li>
+    <li><b>The trace is one row only: m/z 131.035 &plusmn; 5 ppm</b>, a strip 0.0013 m/z tall. Only two metabolites have an ion at that m/z: glutaric acid
+      and ethylmalonic acid, the isomer pair. So the trace has two peaks, at 2.17 and 3.44, and the other spots never enter it.</li>
+    <li><b>The draft's box made it look otherwise.</b> It was drawn 10 m/z tall (126&ndash;136), so it enclosed malic acid (133, RT 1.25) and pyroglutamic
+      acid (128, RT 1.39). Those are two strong spots inside the box, absent from the trace. The box claimed more than the trace shows.</li>
+    <li><b>The axes did not line up either.</b> The map runs 0&ndash;10 min and the trace 1&ndash;4.5 min, so RT 2.17 sits at different x positions in the two
+      panels (your arrows). A hover on one could not point at the same moment on the other.</li>
+  </ol>
+  <p class="note">Every frame below is drawn from the draft's engine, sample 932, after Integrate, at the widget's 610px. Each shows a hover at RT 3.44,
+    to show how the two panels agree.</p>
+
+  <h2>2 &middot; Four ways to draw the row</h2>
+  <div class="row" id="armRow"></div>
+  <p class="rec"><b>B and D recommended together.</b> <b>B</b> puts the map and the trace on <b>one RT axis</b>, the trace directly under the map, so a moment
+    is one x position on both. The hover is a single vertical line through both panels and needs no syncing. The cost is that the map shows
+    RT 0.8&ndash;5.6 min rather than 0&ndash;10: the two late eluters (phenyllactic acid at 7.9 and suberic acid at 8.9) leave the picture, and a note in
+    the corner says so. The row is a <b>line one m/z thin</b>, not a box. <b>D</b> lets a click on any spot make its row the trace, and the page's
+    m/z follows. Clicking lactic acid's spot gives one tall peak at RT 1.39 in this sample; clicking malic acid's gives one at 1.31. This answers "why only two" by
+    letting the reader try another row. Detect and Integrate then work on whichever row is chosen. The Alignment and Identification pages
+    stay on m/z 131.035, so the isomer story is unchanged. <b>C</b>, a draggable RT window over a 0&ndash;10 map, keeps the whole run but adds a
+    gesture to learn and still leaves two x scales. It solves the zoom, and the zoom was not the confusion.</p>
+
+  <h2>3 &middot; Your calls</h2>
+  <p class="q"><b class="h">3.1 &middot; The axes</b> A &middot; keep the 0&ndash;10 map and the zoomed trace, hover marked on both &nbsp;|&nbsp;
+    <b>B &middot; one shared RT axis, 0.8&ndash;5.6 min (recommended)</b> &nbsp;|&nbsp; C &middot; a draggable RT window on a 0&ndash;10 map</p>
+  <p class="q"><b class="h">3.2 &middot; The row</b> <b>A &middot; a line one m/z thin, not a 10-m/z box (recommended, with any of the above)</b></p>
+  <p class="q"><b class="h">3.3 &middot; Choosing the row</b> <b>D &middot; a click on a spot makes its row the trace; a Row control lists the spots by name (recommended)</b>
+    &nbsp;|&nbsp; fixed at m/z 131.035</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../ms-features/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 610;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub) { const b = el("div", "cand"); b.style.width = `${W}px`; b.appendChild(el("h3", null, title)); b.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(b); return b; }
+function canvasIn(b, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; b.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+const rgb = (c) => { const m = String(c).trim().match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.1) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const fmt = (x) => Math.round(x).toLocaleString("en-GB");
+function tip(ctx, x, y, lines) {
+  ctx.save(); ctx.font = `11px ${T.font}`;
+  const w = Math.max(...lines.map((s) => ctx.measureText(s).width)) + 16, h = lines.length * 15 + 8;
+  const bx = Math.min(x + 10, W - w - 6), by = Math.max(4, y - h - 8);
+  rect(ctx, bx, by, w, h, T.surface2, T.ink3);
+  lines.forEach((s, i) => label(ctx, s, bx + 8, by + 17 + i * 15, { size: 11, colour: i ? T.ink2 : T.ink1, weight: i ? "" : "600" }));
+  ctx.restore();
+}
+
+const rng = makeRng(1);
+E.simulate(rng);                                           // the same draws the widget makes first
+const J = 1, grid = E.rawGrid(rng, J);
+const spots = E.METS.filter((m) => m.at[J] > 0).map((m) => ({ m, rt: m.rt + E.SHIFT[J], sn: E.snOf(m.at[J]) }));
+
+/* the map image, cropped to an RT range */
+function mapImg(rt0, rt1) {
+  const { nRt, nMz, rt1: R } = E.GRID, i0 = Math.floor((rt0 / R) * nRt), i1 = Math.ceil((rt1 / R) * nRt);
+  const c = document.createElement("canvas"); c.width = i1 - i0; c.height = nMz;
+  const g = c.getContext("2d"), img = g.createImageData(i1 - i0, nMz);
+  const a = rgb(T.surface3), b = rgb(T.magnitude), lo = Math.log10(E.NOISE * 1.2), hi = Math.log10(E.heightOf(40000));
+  for (let y = 0; y < nMz; y++) for (let x = i0; x < i1; x++) {
+    const f = Math.max(0, Math.min(1, (Math.log10(Math.max(grid[y * nRt + x], 1)) - lo) / (hi - lo))), k = ((nMz - 1 - y) * (i1 - i0) + (x - i0)) * 4;
+    for (let ch = 0; ch < 3; ch++) img.data[k + ch] = a[ch] + (b[ch] - a[ch]) * f; img.data[k + 3] = 255;
+  }
+  g.putImageData(img, 0, 0); return c;
+}
+function drawMap(ctx, M, rt0, rt1, { row = 131.035, rowThin = true, box = null, hoverRt = null, ringRow = false }) {
+  const mx = (t) => M.x0 + ((t - rt0) / (rt1 - rt0)) * (M.x1 - M.x0), my = (m) => M.y1 - ((m - 80) / 150) * (M.y1 - M.y0);
+  ctx.drawImage(mapImg(rt0, rt1), M.x0, M.y0, M.x1 - M.x0, M.y1 - M.y0);
+  line(ctx, M.x0, M.y1, M.x1, M.y1, T.axis); line(ctx, M.x0, M.y0, M.x0, M.y1, T.axis);
+  for (let t = Math.ceil(rt0); t <= rt1; t += 1) label(ctx, String(t), mx(t), M.y1 + 13, { size: 10, colour: T.ink3, align: "center" });
+  for (let m = 100; m <= 220; m += 40) label(ctx, String(m), M.x0 - 6, my(m) + 3, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "m/z", M.x0 - 6, M.y0 - 5, { size: 10, colour: T.ink3, align: "right" });
+  spots.forEach((s) => { if (s.rt >= rt0 && s.rt <= rt1 && s.sn >= 3) dot(ctx, mx(s.rt), my(s.m.exact), 6, null, T.ink1, 1.3); });
+  if (rowThin) {
+    line(ctx, M.x0, my(row), M.x1, my(row), T.ink1, 1.3);
+    label(ctx, `m/z ${row.toFixed(3)}`, M.x1 - 4, my(row) - 5, { size: 10, colour: T.ink1, align: "right", weight: "600" });
+  }
+  if (box) rect(ctx, mx(box[0]), my(box[3]), mx(box[1]) - mx(box[0]), my(box[2]) - my(box[3]), null, T.ink1, 1.4);
+  if (hoverRt != null) { line(ctx, mx(hoverRt), M.y0, mx(hoverRt), M.y1, T.ink3, 1); dot(ctx, mx(hoverRt), my(row), 4, T.ink1); }
+  return { mx, my };
+}
+/* a simulated trace at one row: every metabolite within 5 ppm of it, over the RT range */
+function traceAt(row, rt0, rt1, seed) {
+  const r = makeRng(seed), n = Math.round((rt1 - rt0) / E.DT) + 1;
+  const white = Array.from({ length: n + 4 }, () => r.normal());
+  let sm = Array.from({ length: n }, (_, i) => (white[i] + white[i + 1] + white[i + 2] + white[i + 3] + white[i + 4]) / 5);
+  const sd = Math.sqrt(sm.reduce((s, v) => s + v * v, 0) / n); sm = sm.map((v) => (v / sd) * E.NOISE);
+  const here = E.METS.filter((m) => Math.abs(m.exact - row) <= row * 5e-6 && m.at[J] > 0);
+  const rt = Array.from({ length: n }, (_, i) => rt0 + i * E.DT);
+  const y = rt.map((t, i) => E.BASE + sm[i] + here.reduce((s, m) => s + E.heightOf(m.at[J]) * Math.exp(-0.5 * ((t - m.rt - E.SHIFT[J]) / E.SIG) ** 2), 0));
+  return { rt, y, here };
+}
+/* the first noise seed from `s` on which every peak in the row stands clear of S/N 3, as the widget's own redraw does */
+function cleanTrace(row, rt0, rt1, s) {
+  for (let k = s; ; k++) {
+    const tr = traceAt(row, rt0, rt1, k);
+    if (tr.here.every((m) => { const t = m.rt + E.SHIFT[J]; if (t < rt0 || t > rt1) return true; return tr.y[Math.round((t - rt0) / E.DT)] >= E.BASE + 3.5 * E.NOISE; })) return tr;
+  }
+}
+function drawTrace(ctx, P, tr, rt0, rt1, { hoverRt = null, title = "" } = {}) {
+  const top = Math.max(...tr.y) * 1.1;
+  const sx = (t) => P.x0 + ((t - rt0) / (rt1 - rt0)) * (P.x1 - P.x0), sy = (v) => P.y1 - (Math.min(v, top) / top) * (P.y1 - P.y0);
+  line(ctx, P.x0, P.y1, P.x1, P.y1, T.axis);
+  for (let t = Math.ceil(rt0); t <= rt1; t += 1) label(ctx, String(t), sx(t), P.y1 + 13, { size: 10, colour: T.ink3, align: "center" });
+  rect(ctx, P.x0, sy(E.BASE + E.NOISE), P.x1 - P.x0, sy(E.BASE - E.NOISE) - sy(E.BASE + E.NOISE), wash(T.reference, 0.16));
+  polyline(ctx, tr.rt.map(sx), tr.y.map(sy), T.ink2);
+  line(ctx, P.x0, sy(E.THRESHOLD), P.x1, sy(E.THRESHOLD), T.reference, 1.2, [5, 3]);
+  tr.here.forEach((m) => { const t = m.rt + E.SHIFT[J]; if (t < rt0 || t > rt1) return; const i = Math.round((t - rt0) / E.DT); dot(ctx, sx(t), sy(tr.y[i]), 4, T.empirical); label(ctx, `${m.name.replace(" acid", "")} · RT ${t.toFixed(2)}`, sx(t) + 8, Math.max(P.y0 + 12, sy(tr.y[i]) + 4), { size: 10, colour: T.ink1, weight: "600" }); });
+  label(ctx, title, P.x0 + 4, P.y0 - 6, { colour: T.ink1, weight: "600" });
+  if (hoverRt != null) {
+    const i = Math.round((hoverRt - rt0) / E.DT);
+    line(ctx, sx(hoverRt), P.y0, sx(hoverRt), P.y1, T.ink3, 1); dot(ctx, sx(hoverRt), sy(tr.y[i]), 3, T.ink1);
+    tip(ctx, sx(hoverRt), sy(tr.y[i]), [`RT ${hoverRt.toFixed(2)} min`, `${((tr.y[i] - E.BASE) / E.NOISE).toFixed(1)} noise SDs over the baseline`]);
+  }
+  return { sx, sy };
+}
+const HR = 3.44;
+
+/* ---- A: the 0–10 map kept, the row thin, the hover marked on both */
+{
+  const b = cand("armRow", "A · the 0–10 map kept; the row a thin line; the hover marked on both", "the trace still zooms to 1–4.5, so the two panels place RT 3.44 at different x");
+  const ctx = canvasIn(b, W, 420);
+  label(ctx, "Sample 932: intensity at every m/z and RT", 12, 16, { colour: T.ink1, weight: "600" });
+  const M = { x0: 56, x1: W - 20, y0: 30, y1: 170 };
+  const g = drawMap(ctx, M, 0, 10, { hoverRt: HR });
+  line(ctx, g.mx(1), g.my(131.035), 56, 236, T.ink3, 1, [3, 3]); line(ctx, g.mx(4.5), g.my(131.035), W - 20, 236, T.ink3, 1, [3, 3]);
+  drawTrace(ctx, { x0: 56, x1: W - 20, y0: 250, y1: 380 }, cleanTrace(131.035, 1, 4.5, 11), 1, 4.5, { hoverRt: HR, title: "The row at m/z 131.035 ± 5 ppm, 1–4.5 min" });
+}
+/* ---- B: one shared RT axis */
+{
+  const b = cand("armRow", "B · one shared RT axis, 0.8–5.6 min; the row a thin line; one hover line through both", "a moment is one x position on both panels; phenyllactic (7.9) and suberic (8.9) fall outside, noted in the corner");
+  const ctx = canvasIn(b, W, 420);
+  label(ctx, "Sample 932: intensity at every m/z and RT", 12, 16, { colour: T.ink1, weight: "600" });
+  label(ctx, "RT 0.8–5.6 min; 2 later in other samples", W - 22, 16, { size: 10, colour: T.ink3, align: "right" });
+  const M = { x0: 56, x1: W - 20, y0: 30, y1: 190 };
+  const g = drawMap(ctx, M, 0.8, 5.6, {});
+  const P = { x0: 56, x1: W - 20, y0: 240, y1: 380 };
+  const t = drawTrace(ctx, P, cleanTrace(131.035, 0.8, 5.6, 11), 0.8, 5.6, { title: "The row at m/z 131.035 ± 5 ppm" });
+  line(ctx, g.mx(HR), M.y0, g.mx(HR), P.y1, T.ink3, 1);
+  dot(ctx, g.mx(HR), g.my(131.035), 4, T.ink1);
+  tip(ctx, g.mx(HR), 236, [`RT ${HR.toFixed(2)} min`, "Ethylmalonic acid's spot above; its peak below"]);
+  label(ctx, "retention time (min)", (56 + W - 20) / 2, 408, { size: 10, colour: T.ink3, align: "center" });
+}
+/* ---- C: a draggable RT window */
+{
+  const b = cand("armRow", "C · a draggable RT window on the 0–10 map", "drag the box's edges or body along RT; the trace below is the window; the m/z stays 131.035");
+  const ctx = canvasIn(b, W, 420);
+  label(ctx, "Sample 932: intensity at every m/z and RT", 12, 16, { colour: T.ink1, weight: "600" });
+  const M = { x0: 56, x1: W - 20, y0: 30, y1: 170 };
+  const g = drawMap(ctx, M, 0, 10, { hoverRt: HR });
+  const x0 = g.mx(1.8), x1 = g.mx(3.8), y = g.my(131.035);
+  rect(ctx, x0, y - 7, x1 - x0, 14, wash(T.ink1, 0.12), T.ink1, 1.4);
+  rect(ctx, x0 - 3, y - 9, 6, 18, T.ink1); rect(ctx, x1 - 3, y - 9, 6, 18, T.ink1);
+  label(ctx, "⇔ drag", (x0 + x1) / 2, y + 22, { size: 10, colour: T.ink1, align: "center" });
+  line(ctx, x0, y + 7, 56, 236, T.ink3, 1, [3, 3]); line(ctx, x1, y + 7, W - 20, 236, T.ink3, 1, [3, 3]);
+  drawTrace(ctx, { x0: 56, x1: W - 20, y0: 250, y1: 380 }, cleanTrace(131.035, 1.8, 3.8, 11), 1.8, 3.8, { hoverRt: HR, title: "The window: m/z 131.035, RT 1.8–3.8" });
+}
+/* ---- D: a click on a spot makes its row the trace (on B's shared axis) */
+{
+  const lac = E.METS.find((m) => m.name === "Malic acid");
+  const b = cand("armRow", "D · on B: a click on malic acid's spot makes its row the trace", "the row line jumps to m/z 133.014; one peak, at RT 1.31 in this sample; Detect and Integrate then work on this row");
+  const ctx = canvasIn(b, W, 420);
+  label(ctx, "Sample 932: intensity at every m/z and RT", 12, 16, { colour: T.ink1, weight: "600" });
+  const M = { x0: 56, x1: W - 20, y0: 30, y1: 190 };
+  const g = drawMap(ctx, M, 0.8, 5.6, { row: lac.exact });
+  dot(ctx, g.mx(lac.rt + E.SHIFT[J]), g.my(lac.exact), 9, null, T.ink1, 2.2);
+  label(ctx, "click", g.mx(lac.rt + E.SHIFT[J]) + 12, g.my(lac.exact) + 18, { size: 10, colour: T.ink1, weight: "600" });
+  drawTrace(ctx, { x0: 56, x1: W - 20, y0: 240, y1: 380 }, cleanTrace(lac.exact, 0.8, 5.6, 12), 0.8, 5.6, { title: `The row at m/z ${lac.exact.toFixed(3)} ± 5 ppm` });
+  label(ctx, "retention time (min)", (56 + W - 20) / 2, 408, { size: 10, colour: T.ink3, align: "center" });
+}
+</script>
+</body>
+</html>
