@@ -122,9 +122,12 @@ const S = {
   keyTest: "test",
   splitStatus: [
     "the dataset grouped by scaffold, before the split",
-    (kind) => (kind === "label" ? "80% of the molecules to train, assigned one at a time; 20% held out" : "80% of the scaffold groups to train, each group whole; 20% held out"),
+    (kind) => (kind === "label" ? "80% of the molecules to train, assigned one at a time; 20% held out, on the right" : "80% of the scaffold groups to train, each group whole; 20% held out, on the right"),
     (kind) => (kind === "label" ? "the held-out molecules halved into validation and test, one at a time" : "the held-out groups halved into validation and test, each group whole"),
   ],
+  colBand: (range, narrow) => (narrow ? `${range} per scaffold` : `${range} molecule${range === "1" ? "" : "s"} per scaffold`),
+  colHead: (side, n, share) => (side === 0 ? `Train · ${fmtN(n)} molecules (${Math.round(100 * share)}%)` : `Held out · ${fmtN(n)} (${Math.round(100 * share)}%)`),
+  hoverPair: (n, a, inTrain, inHeld) => `${n} molecules · ${a} active · train ${inTrain} · held out ${inHeld}`,
   barTitle: ["Train", "Validation", "Test"],
   barY: "Proportion",
   barX: "Activity label",
@@ -132,7 +135,7 @@ const S = {
   /* Evaluate */
   evStatus: [
     (kind) => `the ${kind === "label" ? "label" : "scaffold"} split's test set`,
-    "ringed: a scaffold found in both test and training",
+    "ringed: a scaffold found in both test and training, in both columns",
   ],
   scoreHead: "Macro F1 of the GCN on the test set · one dot a seed",
   colName: { label: "Label split", scaffold: "Scaffold split" },
@@ -290,6 +293,108 @@ const partsOf = (kind, seed) => {
   return PARTS[key];
 };
 
+/* TRAIN AND HELD OUT AS TWO COLUMNS (round 3, his pick B from
+   `_lab/scaffold-split-groups-mock.html`, with hover pairing). Split 80 / 20
+   moves every molecule out of the one grid into two columns, Train left and
+   Held out right, each in the same size bands, the bands level across the gap
+   so a size class reads straight across. A scaffold cut by the split appears
+   in both columns as two pieces, each as WIDE as the whole block, so a strip
+   of benzene on the right reads as benzene. Inside a band each column flows
+   its own pieces: putting a scaffold's two pieces on one row needs a held-out
+   column as wide as Train (a row of five large blocks has held-out strips
+   about 300px wide), so hovering a piece rings its other piece instead. Split
+   50 / 50 colours the held-out column in place, validation and test. */
+const COL_L = 362, COL_GAP = 18, COL_R = GRID_W - COL_L - COL_GAP, HEAD_H = 20;
+/* the move's staging, as fractions of the press: held-out cells start over the
+   first MOVE.held, Train's from MOVE.train on; each cell takes MOVE.each */
+const MOVE = { held: 0.4, train: 0.5, each: 0.12 };
+const PAIRS = {};
+function pairOf(kind, seed) {
+  const key = `${kind}${seed}`;
+  if (PAIRS[key]) return PAIRS[key];
+  const split = SPLITS[kind][seed];
+  const pos = new Array(N), outlines = [], caps = [];
+  const sides = [[0, COL_L], [COL_L + COL_GAP, COL_R]].map(([x0, width], side) => {
+    const byGroup = new Map();
+    for (let k = 0; k < N; k++) if ((split[k] === "0") === (side === 0)) {
+      const g = GRID.groupOf[k];
+      if (!byGroup.has(g)) byGroup.set(g, []);
+      byGroup.get(g).push(k);
+    }
+    return { x0, width, byGroup, n: [...byGroup.values()].reduce((t, ks) => t + ks.length, 0) };
+  });
+  let y = HEAD_H;
+  BANDS.forEach(([lo, hi, range]) => {
+    const per = sides.map((sd) => [...sd.byGroup.keys()].filter((g) => GROUPS[g][0] >= lo && GROUPS[g][0] <= hi));
+    if (!per[0].length && !per[1].length) return;
+    caps.push({ rule: y });
+    let bottom = y + CAP_H;
+    sides.forEach((sd, side) => {
+      caps.push({ text: S.colBand(range, side === 1), x: sd.x0, y: y + CAP_H - 6 });
+      let yy = y + CAP_H;
+      if (lo === 1) {
+        const sc = Math.floor((sd.width + 1) / PITCH);
+        per[side].forEach((g, j) => { pos[sd.byGroup.get(g)[0]] = [sd.x0 + (j % sc) * PITCH, yy + Math.floor(j / sc) * PITCH]; });
+        bottom = Math.max(bottom, yy + Math.ceil(per[side].length / sc) * PITCH);
+        return;
+      }
+      let x = 0, rowH = 0;
+      per[side].forEach((g) => {
+        const ks = sd.byGroup.get(g), cols = Math.min(Math.ceil(Math.sqrt(GROUPS[g][0])), Math.floor((sd.width + 1) / PITCH));
+        const rows = Math.ceil(ks.length / cols), bw = cols * PITCH - 1, bh = rows * PITCH - 1;
+        if (x + bw > sd.width) { x = 0; yy += rowH + GAP; rowH = 0; }
+        ks.forEach((k, j) => { pos[k] = [sd.x0 + x + (j % cols) * PITCH, yy + Math.floor(j / cols) * PITCH]; });
+        outlines.push({ x: sd.x0 + x, y: yy, w: bw, h: bh, g, side });
+        x += bw + GAP; rowH = Math.max(rowH, bh);
+      });
+      bottom = Math.max(bottom, yy + rowH);
+    });
+    y = bottom + BAND_GAP;
+  });
+  const heads = sides.map((sd, side) => ({ text: S.colHead(side, sd.n, sd.n / N), x: sd.x0 }));
+  /* the order the move takes: held-out cells leave first, then Train closes up */
+  const held = [], train = [];
+  for (let k = 0; k < N; k++) (split[k] === "0" ? train : held).push(k);
+  const start = new Float32Array(N);
+  held.forEach((k, i) => { start[k] = MOVE.held * (i / held.length); });
+  train.forEach((k, i) => { start[k] = MOVE.train + (1 - MOVE.train - MOVE.each) * (i / train.length); });
+  PAIRS[key] = { pos, outlines, caps, heads, h: y, start, n: sides.map((sd) => sd.n) };
+  return PAIRS[key];
+}
+
+/** every cell at posOf(k), coloured fillOf(k), an active marked inside it */
+function drawCells(ctx, colors, b, posOf, fillOf) {
+  ctx.save(); ctx.translate(b.x0, b.y0); ctx.scale(b.sc, b.sc);
+  for (let k = 0; k < N; k++) {
+    const [x, y] = posOf(k);
+    ctx.fillStyle = fillOf(k); ctx.fillRect(x, y, CELL, CELL);
+    if (LABELS[k] === "1") { ctx.fillStyle = colors.ink1; ctx.fillRect(x + 1, y + 1, CELL - 2, CELL - 2); }
+  }
+  ctx.restore();
+}
+/** the two columns' rules, captions, headings and outlines; pairG frames both pieces of one scaffold */
+function drawPairFrame(ctx, colors, b, P, { ring = null, pairG = null } = {}) {
+  ctx.save(); ctx.translate(b.x0, b.y0); ctx.scale(b.sc, b.sc);
+  for (const c of P.caps) {
+    if (c.rule != null) line(ctx, 0, c.rule - 4, GRID_W, c.rule - 4, colors.grid);
+    else txt(ctx, colors, c.text, c.x, c.y, { fill: colors.ink3 });
+  }
+  P.heads.forEach((hd) => txt(ctx, colors, hd.text, hd.x, 13, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1 }));
+  P.outlines.forEach((o, i) => {
+    const paired = pairG != null && o.g === pairG, on = ring && ring(o, i);
+    rect(ctx, o.x - 2, o.y - 2, o.w + 4, o.h + 4, null, paired ? colors.ink1 : on ? colors.highlight : colors.ink3, paired ? 2.5 : on ? 2 : 1);
+  });
+  ctx.restore();
+}
+/** the piece under the pointer in the two columns: { g, side }, side null for a one-molecule scaffold */
+function pieceAt(b, P, p) {
+  if (!p) return null;
+  const x = (p.x - b.x0) / b.sc, y = (p.y - b.y0) / b.sc;
+  for (const o of P.outlines) if (x >= o.x - 2 && x <= o.x + o.w + 2 && y >= o.y - 2 && y <= o.y + o.h + 2) return { g: o.g, side: o.side };
+  for (let k = N - GRID.nSingles; k < N; k++) { const [cx, cy] = P.pos[k]; if (x >= cx && x < cx + PITCH && y >= cy && y < cy + PITCH) return { g: GRID.groupOf[k], side: null }; }
+  return null;
+}
+
 /** paint every cell; fillOf(k) gives its colour, ringed groups get a highlight frame */
 function drawGrid(ctx, colors, b, fillOf, { ring = null, labels = true } = {}) {
   ctx.save(); ctx.translate(b.x0, b.y0); ctx.scale(b.sc, b.sc);
@@ -371,7 +476,7 @@ function drawMol(ctx, colors, m, P, { only = false, dimSide = false } = {}) {
 
 /* ------------------------------------------------------------- timing */
 
-const DUR = { scaffold: 2400, split: 2200, evaluate: 2000 };
+const DUR = { scaffold: 2400, split: 3400, evaluate: 2000 };
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 /** each example and each split is its own stage, with its own presses (94's stageOf) */
@@ -393,8 +498,9 @@ const H_SCAF = MOL_H + 30 + GRID.h + 14;
 /* the key on one line, the status on its own line under it: beside the key it was cut off at the harness's 534px */
 const GRID_TOP = 48;
 const BARS_H = 138, SCORE_H = 170;
-const H_SPLIT = GRID_TOP + GRID.h + 26 + BARS_H;
-const H_EVAL = GRID_TOP + GRID.h + 26 + SCORE_H;
+/* the two columns' height depends on the split and the seed, so these read the parameters */
+const H_SPLIT = (params) => GRID_TOP + Math.max(GRID.h, pairOf(params.split, Number(params.seed)).h) + 26 + BARS_H;
+const H_EVAL = (params) => GRID_TOP + pairOf(params.split, Number(params.seed)).h + 26 + SCORE_H;
 const leftW = (w) => Math.min(270, w * 0.48);
 
 /* ------------------------------------------------------------ Scaffold */
@@ -466,14 +572,8 @@ function drawSplit(ctx, colors, w, params, anim, pointer) {
   const beat = shownStep(anim, stage), t = inFlight(anim, stage);
   const pc = partColor(colors);
   /* the state of cell k: -1 not yet split, 3 held out, else its part */
-  const stateOf = (k) => {
-    const part = +split[k];
-    const after1 = part === 0 ? 0 : 3, after2 = part;
-    if (beat >= 2) return after2;
-    if (beat === 1) return t != null && swept(k, t) ? after2 : after1;
-    return t != null && swept(k, t) ? after1 : -1;
-  };
-  const fillOf = (k) => { const s = stateOf(k); return s < 0 ? colors.surface3 : s === 3 ? colors.ink3 : pc[s]; };
+  /* before Split 80 / 20, the one grid, every cell not yet split */
+  const fillOf = () => colors.surface3;
 
   /* the key names only what is drawn */
   const reached = beat + (t != null ? 1 : 0);
@@ -486,16 +586,35 @@ function drawSplit(ctx, colors, w, params, anim, pointer) {
   const status = reached === 0 ? S.splitStatus[0] : S.splitStatus[Math.min(2, reached)](kind);
   txt(ctx, colors, status, 12, 36, { fill: colors.ink3, maxW: w - 24 });
 
-  const b = gridBox(w, GRID_TOP);
-  drawGrid(ctx, colors, b, fillOf);
-
-  /* cell 30's figure, once all three parts exist */
-  if (beat >= 2) drawBars(ctx, colors, w, GRID_TOP + GRID.h * b.sc + 22, st, pc);
-
-  const hov = groupAt(b, pointer);
-  if (hov) {
-    const [n, a] = GROUPS[hov.g];
-    hoverLabel(ctx, colors, beat >= 2 ? S.hoverParts(n, a, partsOf(kind, seed)[hov.g]) : S.hoverGroup(n, a), pointer.x, pointer.y, w);
+  const b = gridBox(w, GRID_TOP), P = pairOf(kind, seed);
+  if (beat === 0 && t == null) {
+    drawGrid(ctx, colors, b, fillOf);
+    const hov = groupAt(b, pointer);
+    if (hov) hoverLabel(ctx, colors, S.hoverGroup(...GROUPS[hov.g]), pointer.x, pointer.y, w);
+  } else if (beat === 0) {
+    /* the move: each cell eases from the one grid to its column, held-out cells first */
+    const at = (k) => {
+      const u = ease(Math.max(0, Math.min(1, (t - P.start[k]) / MOVE.each)));
+      const p0 = GRID.cellAt[k], p1 = P.pos[k];
+      return [lerp(p0[0], p1[0], u), lerp(p0[1], p1[1], u)];
+    };
+    drawCells(ctx, colors, b, at, (k) => (t >= P.start[k] ? (split[k] === "0" ? pc[0] : colors.ink3) : colors.surface3));
+  } else {
+    /* settled in the two columns; Split 50 / 50 colours the held-out column in place */
+    const fillCol = (k) => {
+      const part = +split[k];
+      if (part === 0) return pc[0];
+      return beat >= 2 || (t != null && swept(k, t)) ? pc[part] : colors.ink3;
+    };
+    drawCells(ctx, colors, b, (k) => P.pos[k], fillCol);
+    const hov = t == null ? pieceAt(b, P, pointer) : null;
+    drawPairFrame(ctx, colors, b, P, { pairG: hov && hov.side != null ? hov.g : null });
+    /* cell 30's figure, once all three parts exist */
+    if (beat >= 2) drawBars(ctx, colors, w, GRID_TOP + P.h * b.sc + 22, st, pc);
+    if (hov) {
+      const [n, a] = GROUPS[hov.g], pr = partsOf(kind, seed)[hov.g];
+      hoverLabel(ctx, colors, beat >= 2 ? S.hoverParts(n, a, pr) : S.hoverPair(n, a, pr[0], pr[1] + pr[2]), pointer.x, pointer.y, w);
+    }
   }
 }
 
@@ -532,26 +651,28 @@ function drawEvaluate(ctx, colors, w, params, anim, pointer) {
   const kind = params.split, seed = Number(params.seed), stage = stageOf(params);
   const split = SPLITS[kind][seed], parts = partsOf(kind, seed);
   const beat = shownStep(anim, stage), t = inFlight(anim, stage), pc = partColor(colors);
-  /* the test set is the subject: train and validation washed back */
-  const fillOf = (k) => { const p = +split[k]; return p === 2 ? pc[2] : wash(pc[p], 0.35); };
+  const P = pairOf(kind, seed);
+  /* the test set is the subject: validation washed back; Train keeps its colour, it is what test is compared with */
+  const fillOf = (k) => { const p = +split[k]; return p === 1 ? wash(pc[1], 0.35) : pc[p]; };
   const sharedGroup = (g) => parts[g][2] > 0 && parts[g][0] > 0;
-  /* Compare rings the shared blocks in the grid's order, as a sweep */
-  const ringOn = beat >= 1 ? sharedGroup : beat === 0 && t != null ? (g) => sharedGroup(g) && swept(GRID.blockOfGroup.get(g).start, t) : null;
+  /* Compare rings both pieces of every shared scaffold, in the columns' order, as a sweep */
+  const ringOn = beat >= 1 ? (o) => sharedGroup(o.g) : t != null ? (o, i) => sharedGroup(o.g) && t >= (i / P.outlines.length) * SWEEP_END : null;
 
   let x = 12;
-  x = keyItem(ctx, colors, x, 16, wash(pc[0], 0.35), S.keyTrain);
+  x = keyItem(ctx, colors, x, 16, pc[0], S.keyTrain);
   x = keyItem(ctx, colors, x, 16, wash(pc[1], 0.35), S.keyVal);
   x = keyItem(ctx, colors, x, 16, pc[2], S.keyTest);
   x = keyItem(ctx, colors, x, 16, colors.surface3, S.active, { active: true });
   txt(ctx, colors, beat >= 1 || t != null ? S.evStatus[1] : S.evStatus[0](kind), 12, 36, { fill: beat >= 1 || t != null ? colors.ink1 : colors.ink3, maxW: w - 24 });
 
   const b = gridBox(w, GRID_TOP);
-  drawGrid(ctx, colors, b, fillOf, { ring: ringOn });
+  drawCells(ctx, colors, b, (k) => P.pos[k], fillOf);
+  const hov = pieceAt(b, P, pointer);
+  drawPairFrame(ctx, colors, b, P, { ring: ringOn, pairG: hov && hov.side != null ? hov.g : null });
 
-  /* under the grid as drawn: a grid scaled to a narrow canvas left a gap above the chart */
-  drawScores(ctx, colors, w, GRID_TOP + GRID.h * b.sc + 22, params, anim);
+  /* under the columns as drawn: a grid scaled to a narrow canvas left a gap above the chart */
+  drawScores(ctx, colors, w, GRID_TOP + P.h * b.sc + 22, params, anim);
 
-  const hov = groupAt(b, pointer);
   if (hov) { const [n, a] = GROUPS[hov.g]; hoverLabel(ctx, colors, S.hoverParts(n, a, parts[hov.g]), pointer.x, pointer.y, w); }
 }
 
@@ -596,7 +717,7 @@ defineWidget({
   subtitle: S.subtitle,
   credit: "Molecule data: Stokes et al., Cell 2020, via FinGAT",
   layout: "side",
-  height: (params) => (params.page === "scaffold" ? H_SCAF : params.page === "split" ? H_SPLIT : H_EVAL),
+  height: (params) => (params.page === "scaffold" ? H_SCAF : params.page === "split" ? H_SPLIT(params) : H_EVAL(params)),
   pointer: true,
 
   params: {
