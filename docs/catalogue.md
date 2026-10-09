@@ -24470,7 +24470,7 @@ public display — unchecked), model (a forest table computed ahead), and claim
 2026-10-09: "all recommendations, build 94 first".** 97's data still waits on
 the terms check.
 
-### Slot 94 · `graph-representation` — Graphs: Representation — DRAFT 2026-10-09
+### Slot 94 · `graph-representation` — Graphs: Representation — SHIPPED 2026-10-09
 
 Two pages under **Step**. The draft's Graph page was a press an edge along
 cell 25's chain; **round 1 (2026-10-09) replaced it with a constructor** on
@@ -24519,8 +24519,16 @@ all 18 presses with no NaN; the text-overlap sweep 27 states clean at 900 and
 pointer events (pick, join, A cell, typed field all write one parameter);
 the Molecule count held through every Graph change; the sweep 63 states
 clean at 900 (48 Graph states: 3 · 4 · 6 nodes, empty, chain, complete,
-pick pending); the switch probe 6 switches, 0 flagged. Draft status, no
-fingerprint states yet (baseline after his review).
+pick pending); the switch probe 6 switches, 0 flagged.
+
+**SHIPPED 2026-10-09 on his "tested ok"** (and "keep the diagonal off": a
+self-edge is never in a molecule and is what GCN adds, so it belongs to 95's
+Aggregate page). Twelve fingerprint states, identical over three runs and
+12/12 MATCH: five Graph (empty, chain, six directed shuffled, complete, a
+pick pending), four Molecule, one driven (Play mid-run), two hit-driven (a
+cell of A adds C–D; a click on D picks it). The harness frame is 900 wide,
+so the Graph canvas is 549 there: hit points are node D (219, 125) and A's
+cell [2][3] (478, 104). NEXT: 95 `message-passing`.
 
 ---
 

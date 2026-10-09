@@ -540,7 +540,7 @@ function drawMolecule(ctx, colors, w, h, st, anim, pointer) {
 
 defineWidget({
   slug: "graph-representation",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Graphs: Representation",
   subtitle: S.subtitle,
   layout: "side",
