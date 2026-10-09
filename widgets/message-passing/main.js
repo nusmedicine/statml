@@ -15,17 +15,19 @@
    (the draft's Step ran Aggregate · Layers · Readout while Example showed on
    Aggregate only, and Layers and Readout switched molecule unannounced).
 
-     BASICS · GRAPH       one layer on five nodes (illustrative features),
-                          node 1 of degree 3 so its weights differ: Aggregate
-                          sends every node's row along each edge and round its
-                          self-loop, each sized by the weight its receiver
-                          gives it, and every node's row becomes its sum; the
+     BASICS · GRAPH       one layer on his figure's three-node chain
+                          (illustrative features; five nodes in round 4, back
+                          to three in round 5, "easier to demonstrate").
+                          Aggregate sends every node's row along each edge
+                          and round its self-loop at once, each sized by the
+                          weight its receiver gives it, and every node's row
+                          becomes its sum (round 5, his pick A over a focus on
+                          node 1 alone and over input/output copies); the
                           weighted edges into the picked node carry an
-                          arrowhead into it (his red arrows). Transform drops
-                          the five sums into one stack H, crosses the one W a
-                          column at a time, passes ELU, and each row rises
-                          back to its node. The table is the picked node's
-                          close-up. No Layers or Readout here: every idea once.
+                          arrowhead into it. Transform drops the sums into one
+                          stack H, crosses the one W, passes ELU, and each row
+                          rises back to its node. The table is the picked
+                          node's close-up. No Layers or Readout here.
      MOLECULE · AGGREGATE caffeine, the same layer at scale: Atom, Layer
                           GCN · GAT, Weights Untrained · Trained (GAT only;
                           an untrained GAT's α is a plain average, measured,
@@ -36,14 +38,18 @@
                           and a receptive-field cloud on layer 0 (after Kipf
                           & Welling 2017, Figure 1), the likeness drawing and
                           the curve under it going on to eight.
-     MOLECULE · READOUT   caffeine after the lesson's two layers, one row of
-                          cells an atom (the first 8 of 16 numbers, each
-                          column on its own scale); Pool collapses the rows
-                          into one row — the vector the lesson's classifier
-                          reads to predict y. Pooling Sum · Mean · Max, Max
-                          the lesson's, framed in the rows it came from. The
-                          two acids that max cannot tell apart were cut on his
-                          call (the measurement stays in the catalogue).
+     MOLECULE · READOUT   caffeine's atom vectors from the LAYERS PAGE'S OWN
+                          network after Layers 1–8 (the lesson's 2 the
+                          default; round 5 — the draft pooled a second network
+                          after a fixed two, beside Layers' eight), one row of
+                          cells an atom (the first 8 of 16 numbers, one scale
+                          for every cell, so rows grown alike look alike);
+                          Pool collapses them into one row, the vector the
+                          classifier reads to predict y; a strip names the
+                          pipeline, x → layers → pool → classifier → y.
+                          Pooling Sum · Mean · Max, Max the lesson's, framed
+                          in the rows it came from. The two acids max cannot
+                          tell apart were cut on his call (round 4).
 
    Earlier rounds the same day: messages on every edge at once (round 1, his
    "less tedious than atom by atom"); slower, bigger (2); Transform through
@@ -70,15 +76,14 @@ const POOLS = [{ value: "sum", label: "Sum" }, { value: "mean", label: "Mean" },
 const ON = (page) => ({ param: "page", equals: page });
 const ATOM_OPTS = CAFFEINE.atoms.map((a, i) => ({ value: String(i), label: `${i} · ${a.el}` }));
 
-/* THE BASICS GRAPH: five nodes, three illustrative features each; node 1 has
-   three neighbours (degrees 1, 1, 2), so GCN's weights into it differ. `at`
-   is a fraction of the width and a y in px (from the mock, 550 wide). */
+/* THE BASICS GRAPH: his figure's three-node chain, three illustrative
+   features each (round 5: back from five nodes, "easier to demonstrate").
+   `at` is a fraction of the width and a y in px. */
 const BASIC = {
   atoms: [
-    { x: [0.2, 0.8, 0.5], at: [0.13, 150] }, { x: [0.8, 0.4, 0.8], at: [0.42, 150] }, { x: [0.3, 0.6, 0.2], at: [0.26, 262] },
-    { x: [0.9, 0.2, 0.8], at: [0.71, 150] }, { x: [0.5, 0.9, 0.3], at: [0.89, 240] },
+    { x: [0.2, 0.8, 0.5], at: [0.17, 150] }, { x: [0.8, 0.4, 0.8], at: [0.5, 150] }, { x: [0.9, 0.2, 0.8], at: [0.83, 150] },
   ].map((a, i) => ({ el: String(i), ...a })),
-  bonds: [[0, 1, "SINGLE"], [1, 2, "SINGLE"], [1, 3, "SINGLE"], [3, 4, "SINGLE"]],
+  bonds: [[0, 1, "SINGLE"], [1, 2, "SINGLE"]],
 };
 const NODE_OPTS = BASIC.atoms.map((_, i) => ({ value: String(i), label: String(i) }));
 const STEPS = { graph: 2, aggregate: 2, layers: 8, readout: 1 };
@@ -172,8 +177,11 @@ const S = {
 
   /* Readout */
   capRdMol: "caffeine",
-  capRows: "one row an atom · h after the lesson's 2 layers",
-  rowsNote: (n) => `the first ${SHOW} of ${n} numbers · each column on its own scale`,
+  capRows: (k) => `one row an atom · h after ${k} layer${k === 1 ? "" : "s"}`,
+  rowsNote: (n) => `the first ${SHOW} of ${n} numbers · one scale for every cell`,
+  depthLabel: "Layers",
+  depthDetail: "how many layers run before the atoms' vectors are pooled: the same network as the Layers page; the lesson's model runs 2",
+  pipeX: "x", pipeLayer: (i) => `layer ${i}`, pipePool: "pool", pipeCls: "classifier", pipeY: "y", pipeGap: "…",
   poolRule: { sum: "Pool: the sum of each column", mean: "Pool: the mean of each column", max: "Pool: the largest of each column" },
   pooledName: { sum: "sum", mean: "mean", max: "max" },
   oneVector: "one vector for the molecule, whatever its size",
@@ -201,7 +209,7 @@ const S = {
   tileUnlike: "Atoms unlike",
   tileUnlikeNote: (v0) => `the mean cosine distance between atoms: ${v0} before any layer, 0 when every vector points the same way`,
   tileRows: "Atom vectors",
-  tileRowsNote: (n, d) => `${n} rows of ${d} numbers, one an atom, after the lesson's 2 layers`,
+  tileRowsNote: (n, d, k, u) => `${n} rows of ${d} numbers, one an atom, after ${k} layer${k === 1 ? "" : "s"}; how unlike they are: ${u}`,
   tilePooled: "Pooled vector",
   tilePooledNote: {
     sum: "adds the rows: a molecule with more atoms gives larger numbers",
@@ -215,7 +223,7 @@ const S = {
   sumGraph: (i, beat) => `a five-node graph, node ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W and passed through ELU" : ""}`,
   sumAgg: (i, beat) => `caffeine, atom ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W and passed through ELU" : ""}`,
   sumLay: (k, i, n) => `caffeine after ${k} layer${k === 1 ? "" : "s"}: atom ${i} has gathered from ${n} of 14 atoms, and the atoms' vectors grow alike`,
-  sumRd: (pooled, kind) => (pooled ? `caffeine's 14 atom vectors ${kind}-pooled into one vector` : "caffeine's 14 atom vectors after two layers, one row an atom"),
+  sumRd: (pooled, kind, k) => (pooled ? `caffeine's 14 atom vectors after ${k} layer${k === 1 ? "" : "s"}, ${kind}-pooled into one vector` : `caffeine's 14 atom vectors after ${k} layer${k === 1 ? "" : "s"}, one row an atom`),
 };
 
 /* ------------------------------------------------------ drawing helpers */
@@ -395,7 +403,6 @@ function compute({ params, rng }) {
      control never changes a number it does not concern */
   const Wbasic = glorot(rng, 3, 3), Wcaf = glorot(rng, 5, 5);
   const Wlay = [...Array(K_MAX).keys()].map((k) => glorot(rng, k === 0 ? 5 : HIDDEN, HIDDEN));
-  const Wrd = [0, 1].map((k) => glorot(rng, k === 0 ? 5 : HIDDEN, HIDDEN));
 
   /* Basics and Aggregate: one layer each */
   const g = layerOn(BASIC, Number(params.node), "gcn", "untrained", Wbasic);
@@ -413,14 +420,16 @@ function compute({ params, rng }) {
   const nbrs = cafA.map((r) => r.map((v, j) => (v ? j : -1)).filter((j) => j >= 0));
   const layMsgs = cafA.flatMap((row, r) => row.map((v, s) => (v ? { s, r, w: cafP[r][s] } : null)).filter(Boolean));
 
-  /* Readout: caffeine's atom vectors after the lesson's two layers, on x as
-     the lesson feeds it; each drawn column on its own scale */
-  const rows = stack(cafP, CAFFEINE.atoms.map((a) => a.x), Wrd)[LESSON_LAYERS];
+  /* Readout: THE LAYERS PAGE'S OWN VECTORS after `depth` layers (round 5: the
+     draft pooled a second network after a fixed two, beside a Layers page that
+     ran to eight on another — two answers to "which vectors"). One colour scale
+     for every cell (his pick), so rows that have grown alike look alike. */
+  const depth = Number(params.depth), rows = H[depth];
   const pooled = Object.fromEntries(POOLS.map(({ value }) => [value, pool(rows, value)]));
-  const colLo = rows[0].map((_, k) => Math.min(...rows.map((r) => r[k])));
+  const all = rows.flat(), lo = Math.min(...all), hi = Math.max(...all);
   const colHi = rows[0].map((_, k) => Math.max(...rows.map((r) => r[k])));
   const argmax = rows[0].map((_, k) => rows.findIndex((r) => r[k] === colHi[k]));
-  const rd = { rows, pooled, colLo, colHi, argmax };
+  const rd = { depth, rows, pooled, lo, hi, argmax, unlike: unlike[depth] };
 
   return { g, c, H, hops, likeness, unlike, diameter, nbrs, layMsgs, rd, agreeTop: GAT_RUN.agree };
 }
@@ -506,7 +515,7 @@ function eluIcon(ctx, colors, x, y, w = 48, h = 40) {
    through ELU (0.60–0.76) and the rows rise back to their nodes one at a
    time, the last first (0.78–1): moving together, their paths crossed
    (tweens-move-in-lanes). */
-const BAND = { hy: 318, c: 18, cW: 34 };
+const BAND = { hy: 262, c: 18, cW: 34 };
 function band(w) {
   const hx = 24, wX = hx + 3 * BAND.c + 30;
   return { hx, wX, oX: wX + 3 * BAND.cW + 28, eluX: w - 150, finX: w - 84 };
@@ -603,7 +612,7 @@ function drawInputTable(ctx, colors, w, { x0, ty, mol, a, kind, beat, graph }) {
 
 /* ============================================================ geometry */
 
-const H_GRAPH = 640, H_CAF = 344, H_LAY = 530, H_RD = 420;
+const H_GRAPH = 572, H_CAF = 344, H_LAY = 530, H_RD = 456;
 const leftW = (w) => Math.min(w * 0.47, 330);
 const basicPoints = (w) => BASIC.atoms.map((a) => [a.at[0] * w, a.at[1]]);
 const cafPoints = (w) => molPoints(CAFFEINE, 16, 42, leftW(w) - 28, 250);
@@ -661,7 +670,7 @@ function drawGraph(ctx, colors, w, h, params, g, anim, pointer) {
   ring(ctx, P[a.i][0], P[a.i][1], NODE_R + 7, colors.highlight);
 
   drawBand(ctx, colors, w, g, P, tr);
-  drawInputTable(ctx, colors, w, { x0: 12, ty: 418, mol, a, kind: "gcn", beat, graph: true });
+  drawInputTable(ctx, colors, w, { x0: 12, ty: 350, mol, a, kind: "gcn", beat, graph: true });
 
   if (hov != null) hoverLabel(ctx, colors, S.nodeHover(hov, A[hov].reduce((s, v) => s + v, 0)), P[hov][0], P[hov][1], w);
   const status = tr != null ? S.trMoving.graph : msgU != null ? S.aggMoving : beat === 0 ? S.aggStatus[0]("node", a.i, a.deg) : beat === 1 ? S.aggStatus[1]("node", a.i, fmt(a.w.reduce((s, v) => s + v, 0))) : S.aggStatus[2]("node", a.i);
@@ -839,18 +848,37 @@ function drawLayers(ctx, colors, w, h, params, st, anim, pointer) {
    drops into the pooled row, one column after another, through the gap under
    the rows — its own lane (0.3–1). The pooled row then feeds the classifier
    that predicts y. A hover on an atom or a row lights both. */
-const RDG = { molTop: 30, rowTop: 34, rh: 15 };
+const RDG = { molTop: 60, rowTop: 64, rh: 15, stripY: 6 };
 function rdGeom(w) {
   const rx = leftW(w) + 44, c = Math.min(26, (w - rx - 12) / SHOW);
   const rowsEnd = RDG.rowTop + CAFFEINE.atoms.length * RDG.rh, poolY = rowsEnd + 36;
   return { rx, c, rowsEnd, poolY, clsY: poolY + 64 };
 }
 const rdPoints = (w) => molPoints(CAFFEINE, 12, RDG.molTop, leftW(w) - 24, 220, 52);
+/* THE PIPELINE the lesson builds, as a strip across the top: x, the layers
+   run, pool, the classifier, y; past three layers the middle is elided so the
+   strip stays one line. The layers wear --c-group-a's wash, the one thing the
+   Layers control changes. */
+function drawPipeline(ctx, colors, w, k) {
+  const ls = [...Array(k).keys()].map((i) => S.pipeLayer(i + 1)), mid = k > 3 ? [ls[0], S.pipeGap, ls.at(-1)] : ls;
+  const items = [S.pipeX, ...mid, S.pipePool, S.pipeCls, S.pipeY];
+  ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`;
+  let x = 12;
+  items.forEach((s, i) => {
+    const bw = ctx.measureText(s).width + 14, layer = s.startsWith("layer") || s === S.pipeGap;
+    rect(ctx, x, RDG.stripY, bw, 20, layer ? wash(colors.groupA, 0.18) : colors.surface2, colors.grid);
+    txt(ctx, colors, s, x + bw / 2, RDG.stripY + 10.5, { fill: colors.ink1, align: "center", baseline: "middle" });
+    x += bw;
+    if (i < items.length - 1) { txt(ctx, colors, "→", x + 8, RDG.stripY + 10.5, { fill: colors.ink3, align: "center", baseline: "middle" }); x += 16; }
+  });
+  ctx.restore();
+}
 
 function drawReadout(ctx, colors, w, h, params, rd, anim, pointer) {
   const pooledNow = shownStep(anim, "readout") >= 1, t = phase(anim, "readout"), pk = params.pooling;
   const g = rdGeom(w), P = rdPoints(w), N = CAFFEINE.atoms.length;
-  const scaleK = (v, k) => ramp(colors, (v - rd.colLo[k]) / (rd.colHi[k] - rd.colLo[k] || 1));
+  const scaleK = (v) => ramp(colors, (v - rd.lo) / (rd.hi - rd.lo || 1));
+  drawPipeline(ctx, colors, w, rd.depth);
   let hov = null;
   if (pointer) {
     P.forEach(([x, y], i) => { if (Math.hypot(pointer.x - x, pointer.y - y) <= 12) hov = i; });
@@ -858,7 +886,7 @@ function drawReadout(ctx, colors, w, h, params, rd, anim, pointer) {
   }
 
   /* the molecule */
-  txt(ctx, colors, S.capRdMol, 12, 16, { font: capFont(colors), fill: colors.ink1 });
+  txt(ctx, colors, S.capRdMol, 12, RDG.molTop - 14, { font: capFont(colors), fill: colors.ink1 });
   CAFFEINE.bonds.forEach(([i, j, type]) => bond(ctx, P[i], P[j], type, colors.ink2, 1.3));
   CAFFEINE.atoms.forEach((at, i) => {
     node(ctx, colors, P[i][0], P[i][1], 11, at.el, { fill: hov === i ? wash(colors.groupA, 0.4) : null });
@@ -866,13 +894,13 @@ function drawReadout(ctx, colors, w, h, params, rd, anim, pointer) {
   });
 
   /* the rows, one an atom */
-  txt(ctx, colors, S.capRows, g.rx - 40, 16, { font: capFont(colors), fill: colors.ink1, maxW: w - g.rx + 28 });
+  txt(ctx, colors, S.capRows(rd.depth), g.rx - 40, RDG.rowTop - 14, { font: capFont(colors), fill: colors.ink1, maxW: w - g.rx + 28 });
   const framed = pk === "max" && (pooledNow || (t != null && t > 0.02));
   rd.rows.forEach((r, i) => {
     const y = RDG.rowTop + i * RDG.rh;
     if (hov === i) rect(ctx, g.rx - 42, y, 7 + SHOW * g.c + 44, RDG.rh, wash(colors.groupA, 0.22));
     txt(ctx, colors, `${i} ${CAFFEINE.atoms[i].el}`, g.rx - 6, y + RDG.rh / 2 + 1, { font: monoFont(colors), fill: hov === i ? colors.ink1 : colors.ink3, align: "right", baseline: "middle" });
-    r.slice(0, SHOW).forEach((v, k) => rect(ctx, g.rx + k * g.c, y, g.c, RDG.rh, scaleK(v, k), colors.grid));
+    r.slice(0, SHOW).forEach((v, k) => rect(ctx, g.rx + k * g.c, y, g.c, RDG.rh, scaleK(v), colors.grid));
   });
   if (framed) for (let k = 0; k < SHOW; k++) rect(ctx, g.rx + k * g.c, RDG.rowTop + rd.argmax[k] * RDG.rh, g.c, RDG.rh, null, colors.highlight, 2);
   txt(ctx, colors, S.rowsNote(rd.rows[0].length), g.rx, g.rowsEnd + 12, { fill: colors.ink3, maxW: w - g.rx - 8 });
@@ -886,7 +914,7 @@ function drawReadout(ctx, colors, w, h, params, rd, anim, pointer) {
       const q = pooledNow ? 1 : ease(seg(t, 0.3 + 0.07 * k, 0.44 + 0.07 * k));
       if (q <= 0) continue;
       const y = lerp(g.rowsEnd, g.poolY, q);
-      rect(ctx, g.rx + k * g.c, y, g.c, 18, scaleK(p[k], k), colors.ink1, 1.2);
+      rect(ctx, g.rx + k * g.c, y, g.c, 18, scaleK(p[k]), colors.ink1, 1.2);
       if (q >= 1) txt(ctx, colors, fmt(p[k], 1), g.rx + k * g.c + g.c / 2, g.poolY + 30, { font: monoFont(colors), fill: colors.ink2, align: "center" });
     }
   }
@@ -929,6 +957,7 @@ defineWidget({
     layer: { type: "segmented", label: S.layerLabel, detail: S.layerDetail, options: LAYERS, default: "gcn", display: true, when: ON("aggregate") },
     weights: { type: "segmented", label: S.weightsLabel, detail: S.weightsDetail, options: WEIGHTS, default: "untrained", display: true, when: { all: [ON("aggregate"), { param: "layer", equals: "gat" }] } },
     from: { type: "select", label: S.fromLabel, detail: S.fromDetail, options: ATOM_OPTS, default: "9", display: true, when: ON("layers") },
+    depth: { type: "choice", label: S.depthLabel, detail: S.depthDetail, options: [...Array(K_MAX).keys()].map((k) => ({ value: String(k + 1), label: String(k + 1) })), default: String(LESSON_LAYERS), display: true, when: ON("readout") },
     pooling: { type: "segmented", label: S.poolLabel, detail: S.poolDetail, options: POOLS, default: "max", display: true, when: ON("readout") },
     /* authoring escape hatch, first render only: presses already made on the page the link opens */
     shown: { type: "int", min: 0, max: K_MAX, default: 0, hidden: true },
@@ -1013,7 +1042,7 @@ defineWidget({
     if (params.page === "readout") {
       const rd = state.rd, pooled = shownStep(anim, "readout") >= 1;
       return [
-        { label: S.tileRows, value: `${rd.rows.length} × ${rd.rows[0].length}`, note: S.tileRowsNote(rd.rows.length, rd.rows[0].length) },
+        { label: S.tileRows, value: `${rd.rows.length} × ${rd.rows[0].length}`, note: S.tileRowsNote(rd.rows.length, rd.rows[0].length, rd.depth, fmt(rd.unlike)) },
         { label: S.tilePooled, value: pooled ? `1 × ${rd.rows[0].length}` : S.tileWait, note: S.tilePooledNote[params.pooling] },
         { label: S.tileY, value: String(CAFFEINE.y), note: S.tileYNote },
       ];
@@ -1035,7 +1064,7 @@ defineWidget({
   summary({ params, state, anim }) {
     if (params.page === "graph") return S.sumGraph(state.g.agg.i, shownStep(anim, "graph"));
     if (params.page === "layers") return S.sumLay(shownStep(anim, "layers"), Number(params.from), state.hops.filter((d) => d <= shownStep(anim, "layers")).length);
-    if (params.page === "readout") return S.sumRd(shownStep(anim, "readout") >= 1, params.pooling);
+    if (params.page === "readout") return S.sumRd(shownStep(anim, "readout") >= 1, params.pooling, Number(params.depth));
     return S.sumAgg(state.c.agg.i, shownStep(anim, "aggregate"));
   },
 });
