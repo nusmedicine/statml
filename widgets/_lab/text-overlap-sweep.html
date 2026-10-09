@@ -25,6 +25,13 @@
 const Q = new URLSearchParams(location.search);
 const slug = Q.get("slug") || "sequence-encoding", W = Number(Q.get("w") || 900);
 const STATES = {
+  /* widget 95's round 6 (2026-10-09): every page at every press count, every control */
+  "message-passing": [
+    ...["0", "1", "2"].flatMap((n) => [0, 1, 2].map((s) => `?page=graph&node=${n}&shown=${s}`)),
+    ...["0", "1", "9", "13"].flatMap((a) => ["gcn", "gat&weights=untrained", "gat&weights=trained"].flatMap((l) => [0, 1, 2].map((s) => `?page=aggregate&atom=${a}&layer=${l}&shown=${s}`))),
+    ...["9", "4", "13"].flatMap((f) => [0, 1, 2, 3, 4].map((s) => `?page=layers&from=${f}&shown=${s}`)),
+    ...["1", "2", "3", "4"].flatMap((d) => ["sum", "mean", "max"].flatMap((p) => [0, 1].map((s) => `?page=readout&depth=${d}&pooling=${p}&shown=${s}`))),
+  ],
   /* widget 94's draft (2026-10-09): each page at every press count that changes a caption, every edges/order/string */
   "graph-representation": [
     /* the Graph page built by clicking (2026-10-09): empty, cell 25's chain, a dense six, a pick pending */
