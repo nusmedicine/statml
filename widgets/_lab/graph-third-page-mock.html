@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 94's third page, a graph that is not a molecule — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>94's third page &middot; a graph that is not a molecule &middot; mock</h1>
+  <p class="note">
+    His ask: <i>"mock another page for a non-molecular example … want to inspire students that graphs are versatile … patients? omics?"</i>
+    09-1 cell 0 lists four domains — clinical (an EHR graph), biomedical knowledge (drug–protein–disease), systems biology (PPI,
+    gene regulation) and molecular. The Graph page is abstract and the Molecule page is the molecular one, so the third page
+    should be a domain where <b>the nodes, the edges and what is predicted all differ</b> from a molecule. Three candidates, drawn at
+    the widget's 550px, each as it would open filled (a widget opens empty). Nothing here is copy.
+  </p>
+
+  <table>
+    <tr><th></th><th>nodes</th><th>edges</th><th>a GNN predicts</th><th>what it adds to the widget</th></tr>
+    <tr><td>Molecule (now)</td><td>atoms, one type</td><td>bonds, given by chemistry</td><td>a label for the whole graph</td><td>—</td></tr>
+    <tr><td><b>A · EHR</b></td><td>patients and diagnoses, two types</td><td>"was diagnosed with", from joining tables</td><td>a missing edge: a diagnosis to come</td><td>tables students already joined in 02-1 become a graph; two node types</td></tr>
+    <tr><td><b>B · Patients by omics</b></td><td>patients, one type</td><td><b>built</b>: each patient to its k most similar</td><td>a label for each node: an unknown subtype</td><td>the edges are a modelling choice, not a given; k changes the graph</td></tr>
+    <tr><td><b>C · Knowledge graph</b></td><td>drugs, proteins, diseases</td><td>typed: targets, is associated with</td><td>a missing edge: drug repurposing</td><td>three node types and edge types; edge_attr as the relation</td></tr>
+  </table>
+
+  <h2>A &middot; EHR: the tables of PHM5005 02-1 as a graph</h2>
+  <p class="note">Your <code>tidy_patient</code>, <code>tidy_visit</code> and <code>tidy_diagnosis</code> (4 patients, 9 visits, 16 diagnoses), joined
+    on VisitID and PatientID: one node per patient and per diagnosis, one edge per patient–diagnosis pair. Patients 2 and 4 are linked
+    only through URTI. Node features differ by type (age and sex for a patient; none for a diagnosis but its one-hot).</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; Patients by their omics profile: the edges are built</h2>
+  <p class="note">Twelve tumours measured on two genes (log2 expression of <i>ESR1</i> and <i>ERBB2</i>; simulated, two subtypes), drawn where
+    their measurements put them, so the drawing is the feature space. Each patient is joined to its <b>k</b> nearest; the edge
+    weight is the similarity. Some subtypes are known, the rest are <b>unknown</b> — the node-level task of 09-1 cell 24's table
+    (<i>predict disease subtype for each patient</i>), and the setting GCN was introduced for. Left k = 2, right k = 4: the edges
+    joining two subtypes grow with k. Patient similarity networks are an established method; fusing one per omics type is
+    similarity network fusion (Wang et al., <i>Nature Methods</i> 2014), which reaches PHM5003 10's multi-omics.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; A knowledge graph: drugs, proteins, diseases</h2>
+  <p class="note">Three node types and two relations (a drug <i>targets</i> a protein; a protein <i>is associated with</i> a disease), the relation
+    one-hot in <code>edge_attr</code>. The dashed edge is the kind of link a model is asked for: a drug and a disease with no edge yet.
+    Illustrative, not curated.</p>
+  <div class="row" id="rowC"></div>
+
+  <p class="rec"><b>Recommended: B, Patients.</b> It is the one candidate that teaches something the other two pages cannot: in a molecule the
+    edges are given, here they are <b>chosen</b>, and the same patients make a different graph at a different k. It also carries the other
+    task level — a label per node, some unknown — and it is the bridge to PHM5003 10 (subtypes from omics). A is the warmest callback
+    but tiny (four patients) and its lesson is a join; C is the most "inspiring" picture and the least checkable. A Patients page
+    would sit between Graph and Molecule, with <b>k</b> 1&ndash;4 and the same hover; still no training (that is 95).</p>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">1 &middot; The example</b>
+    A &middot; EHR (02-1's tables) &nbsp;|&nbsp; <b>B &middot; patients by omics, edges built by k nearest (recommended)</b> &nbsp;|&nbsp; C &middot; knowledge graph &nbsp;|&nbsp; none</p>
+  <p class="q"><b class="h">2 &middot; Where it goes</b>
+    <b>A &middot; Graph · Patients · Molecule (recommended: abstract, then built from data, then chemistry)</b> &nbsp;|&nbsp; B &middot; last</p>
+  <p class="q"><b class="h">3 &middot; If B: the controls</b>
+    <b>A &middot; k 1&ndash;4, Labels known Some · None (recommended)</b> &nbsp;|&nbsp; B &middot; k only &nbsp;|&nbsp; C &middot; k and a similarity threshold</p>
+  <p class="q"><b class="h">4 &middot; If B: the genes</b>
+    <b>A &middot; ESR1 and ERBB2, two breast-cancer subtypes (recommended: the two axes mean something)</b> &nbsp;|&nbsp; B &middot; Gene 1, Gene 2</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens(), DPR = window.devicePixelRatio || 1, W = 550;
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function cand(row, title, sub, h) {
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(row).appendChild(box);
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, a, b, c, d, col, w = 1, dash = null) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function box(ctx, x, y, w, h, fill, stroke) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.3; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function node(ctx, x, y, name, { r = 13, fill = T.surface2, stroke = T.ink1, shape = "circle" } = {}) {
+  if (shape === "square") box(ctx, x - r, y - r, 2 * r, 2 * r, fill, stroke);
+  else if (shape === "diamond") { ctx.save(); ctx.beginPath(); ctx.moveTo(x, y - r - 2); ctx.lineTo(x + r + 2, y); ctx.lineTo(x, y + r + 2); ctx.lineTo(x - r - 2, y); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.3; ctx.stroke(); ctx.restore(); }
+  else dot(ctx, x, y, r, fill, stroke, 1.4);
+  label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 });
+}
+function matrix(ctx, x, y, M, { cw = 18, ch = 16, size = 10, fmt = String, hl = () => false } = {}) {
+  const rows = M.length, cols = M[0].length, x1 = x + cols * cw + 6, y1 = y + rows * ch;
+  for (const [bx, d] of [[x, 1], [x1, -1]]) { line(ctx, bx, y, bx, y1, T.ink2, 1.2); line(ctx, bx, y, bx + 4 * d, y, T.ink2, 1.2); line(ctx, bx, y1, bx + 4 * d, y1, T.ink2, 1.2); }
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+    if (hl(i, j)) box(ctx, x + 3 + j * cw + 1, y + i * ch + 1, cw - 2, ch - 2, wash(T.groupA, 0.3));
+    label(ctx, fmt(M[i][j]), x + 3 + j * cw + cw / 2, y + i * ch + ch / 2 + 0.5, { align: "center", baseline: "middle", mono: true, size });
+  }
+  return x1;
+}
+
+/* ============================================================ A · EHR */
+{
+  const ctx = cand("rowA", "EHR · patients and diagnoses, two node types", "tidy_patient ⨝ tidy_visit ⨝ tidy_diagnosis · 4 patients, 7 diagnoses, 8 edges\npatients as circles, diagnoses as squares", 330);
+  const P = { 1: ["HPT", "DM"], 2: ["URTI", "Asthma"], 3: ["IHD", "Hyperlipidemia"], 4: ["URTI", "Gastroenteritis"] };
+  const age = { 1: 64, 2: 15, 3: 0, 4: 0 }, sex = { 1: "M", 2: "F" };
+  const diags = ["DM", "HPT", "IHD", "Hyperlipidemia", "URTI", "Asthma", "Gastroenteritis"];
+  const px = 60, dx = 250, pY = (i) => 60 + i * 62, dY = (k) => 40 + k * 40;
+  label(ctx, "patients", px, 26, { align: "center", size: 10, colour: T.ink3 });
+  label(ctx, "diagnoses", dx, 26, { align: "center", size: 10, colour: T.ink3 });
+  const edges = [];
+  Object.entries(P).forEach(([p, ds], i) => ds.forEach((d) => edges.push([i, diags.indexOf(d)])));
+  for (const [i, k] of edges) { const shared = diags[k] === "URTI"; line(ctx, px + 13, pY(i), dx - 40, dY(k), shared ? T.groupA : T.ink2, shared ? 2.2 : 1.4); }
+  [1, 2, 3, 4].forEach((p, i) => node(ctx, px, pY(i), `P${p}`, { fill: p === 2 || p === 4 ? wash(T.groupA, 0.3) : T.surface2 }));
+  diags.forEach((d, k) => { box(ctx, dx - 40, dY(k) - 11, 80, 22, diags[k] === "URTI" ? wash(T.groupA, 0.3) : T.surface2, T.ink1); label(ctx, d, dx, dY(k) + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 }); });
+  label(ctx, "edge_index · patient → diagnosis", 330, 40, { size: 10, colour: T.ink3, mono: true });
+  const E = edges.map(([i, k]) => [i, 4 + k]);
+  matrix(ctx, 330, 48, [E.map((e) => e[0]), E.map((e) => e[1])], { cw: 22 });
+  label(ctx, "nodes 0–3 patients, 4–10 diagnoses", 330, 98, { size: 9, colour: T.ink3 });
+  label(ctx, "x · age, sex | one-hot", 330, 130, { size: 10, colour: T.ink3, mono: true });
+  label(ctx, "two node types need two feature", 330, 150, { size: 9, colour: T.ink3 });
+  label(ctx, "matrices (a heterogeneous graph)", 330, 162, { size: 9, colour: T.ink3 });
+  label(ctx, "P2 and P4 share only URTI: the one path", 330, 200, { size: 10, colour: T.ink1 });
+  label(ctx, "between two patients goes through a diagnosis", 330, 214, { size: 10, colour: T.ink1 });
+  label(ctx, "a missing edge to predict: P3 → DM?", 330, 250, { size: 10, colour: T.ink2 });
+  line(ctx, px + 13, pY(2), dx - 40, dY(0), T.highlight, 1.4, [4, 4]);
+  label(ctx, "the data: 4 patients — enough to read, too few to learn from", 12, 318, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================ B · patients by omics */
+{
+  let s = 9; const r = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const g = () => Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r());
+  /* subtype 0: ESR1 high, ERBB2 low (luminal-like); subtype 1: ERBB2 high (HER2-like) */
+  const pts = [];
+  for (let i = 0; i < 12; i++) { const t = i < 6 ? 0 : 1; pts.push({ t, x: t ? 4.6 + g() : 6.8 + g(), y: t ? 6.6 + g() : 4.2 + g(), known: [0, 2, 6, 9].includes(i) }); }
+  const knn = (k) => {
+    const set = new Set();
+    pts.forEach((p, i) => pts.map((q, j) => [j, Math.hypot(p.x - q.x, p.y - q.y)]).filter(([j]) => j !== i).sort((a, b) => a[1] - b[1]).slice(0, k)
+      .forEach(([j]) => set.add(i < j ? `${i},${j}` : `${j},${i}`)));
+    return [...set].map((e) => e.split(",").map(Number));
+  };
+  for (const k of [2, 4]) {
+    const E = knn(k), cross = E.filter(([i, j]) => pts[i].t !== pts[j].t).length;
+    const ctx = cand("rowB", `Patients · k = ${k} nearest`, `12 tumours on two genes · ${E.length} edges, ${cross} joining two subtypes\nfilled: subtype known · open: unknown, to predict`, 330);
+    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y), lo = [Math.min(...xs) - 0.4, Math.min(...ys) - 0.4], hi = [Math.max(...xs) + 0.4, Math.max(...ys) + 0.4];
+    const x0 = 50, y0 = 30, w = 300, h = 250, sx = (v) => x0 + ((v - lo[0]) / (hi[0] - lo[0])) * w, sy = (v) => y0 + h - ((v - lo[1]) / (hi[1] - lo[1])) * h;
+    line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis); line(ctx, x0, y0, x0, y0 + h, T.axis);
+    label(ctx, "ESR1 expression (log2)", x0 + w / 2, y0 + h + 22, { align: "center", size: 10, colour: T.ink3 });
+    ctx.save(); ctx.translate(x0 - 20, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, "ERBB2 expression (log2)", 0, 0, { align: "center", size: 10, colour: T.ink3 }); ctx.restore();
+    for (const [i, j] of E) { const c = pts[i].t !== pts[j].t; line(ctx, sx(pts[i].x), sy(pts[i].y), sx(pts[j].x), sy(pts[j].y), c ? T.extreme : T.ink3, c ? 1.8 : 1.2); }
+    pts.forEach((p, i) => {
+      const col = p.t ? T.clusters[1] : T.clusters[0];
+      dot(ctx, sx(p.x), sy(p.y), 9, p.known ? col : T.surface, p.known ? T.ink1 : T.unknown, p.known ? 1.2 : 2);
+      label(ctx, String(i), sx(p.x), sy(p.y) + 0.5, { align: "center", baseline: "middle", size: 9, weight: "600", colour: p.known ? T.surface : T.ink2 });
+    });
+    const tx = 370;
+    label(ctx, "y · subtype", tx, 40, { size: 10, colour: T.ink3, mono: true });
+    pts.forEach((p, i) => label(ctx, `${String(i).padStart(2)}  ${p.known ? (p.t ? "HER2-like" : "luminal") : "?"}`, tx, 58 + i * 15, { size: 10, mono: true, colour: p.known ? T.ink1 : T.ink3 }));
+    label(ctx, "red: an edge joining two subtypes", tx, 248, { size: 9, colour: T.extreme });
+    label(ctx, "(by the true subtypes: a widget hides them)", tx, 260, { size: 9, colour: T.ink3 });
+    label(ctx, `edge_index · [2, ${2 * E.length}]`, tx, 276, { size: 10, colour: T.ink3, mono: true });
+    label(ctx, "edge_attr · similarity", tx, 292, { size: 10, colour: T.ink3, mono: true });
+  }
+}
+
+/* ===================================================== C · knowledge graph */
+{
+  const ctx = cand("rowC", "Knowledge graph · three node types, two relations", "circles drugs · diamonds proteins · squares diseases\nsolid: targets · dashed grey: is associated with · dashed highlight: a link to predict", 330);
+  const N = {
+    Metformin: [70, 70, "circle"], Aspirin: [70, 160, "circle"], Atorvastatin: [70, 250, "circle"],
+    AMPK: [230, 60, "diamond"], "COX-1": [230, 150, "diamond"], HMGCR: [230, 240, "diamond"],
+    "Type 2 diabetes": [400, 60, "square"], "Heart disease": [400, 165, "square"], "Colorectal cancer": [400, 270, "square"],
+  };
+  const tg = [["Metformin", "AMPK"], ["Aspirin", "COX-1"], ["Atorvastatin", "HMGCR"]];
+  const as = [["AMPK", "Type 2 diabetes"], ["COX-1", "Heart disease"], ["HMGCR", "Heart disease"], ["COX-1", "Colorectal cancer"], ["AMPK", "Colorectal cancer"]];
+  for (const [a, b] of tg) line(ctx, N[a][0], N[a][1], N[b][0], N[b][1], T.ink1, 2);
+  for (const [a, b] of as) line(ctx, N[a][0], N[a][1], N[b][0], N[b][1], T.ink3, 1.4, [5, 3]);
+  line(ctx, N.Metformin[0], N.Metformin[1], N["Colorectal cancer"][0], N["Colorectal cancer"][1], T.highlight, 1.6, [3, 3]);
+  for (const [k, [x, y, shape]] of Object.entries(N)) {
+    if (shape === "square") { box(ctx, x - 55, y - 12, 110, 24, T.surface2, T.ink1); label(ctx, k, x, y + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 }); }
+    else if (shape === "diamond") node(ctx, x, y, k, { shape, r: 20 });
+    else { box(ctx, x - 48, y - 12, 96, 24, null, null); dot(ctx, x, y, 0); ctx.save(); ctx.beginPath(); ctx.ellipse(x, y, 46, 13, 0, 0, 2 * Math.PI); ctx.fillStyle = T.surface2; ctx.fill(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore(); label(ctx, k, x, y + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 }); }
+  }
+  label(ctx, "edge_attr · [targets, associated with] one-hot", 12, 318, { size: 9, colour: T.ink3, mono: true });
+}
+</script>
+</body>
+</html>
