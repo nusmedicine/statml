@@ -34,7 +34,7 @@
 
   <h2>A &middot; stacked: Train above, Held out below</h2>
   <div class="row" id="rowA"></div>
-  <h2>B &middot; side by side: Train left, Held out right</h2>
+  <h2>B &middot; side by side, bands aligned (round 2): each size class starts level in both columns</h2>
   <div class="row" id="rowB"></div>
 
   <h2>What the move shows</h2>
@@ -92,10 +92,55 @@ function layout(cells, x0, y0, width, title) {
   return { pos, outlines, caps, head, bottom: y };
 }
 
+/* B, round 2 (his "aligned into blocks for both"): the two columns share each band's top, so a
+   size class sits level across the gap; inside a band each column flows its own pieces */
+function layoutPair(trainCells, heldCells, xL, wL, xR, wR, y0) {
+  const sides = [[trainCells, xL, wL], [heldCells, xR, wR]].map(([cells, x0, width]) => {
+    const byGroup = new Map();
+    for (const k of cells) { const g = groupOf[k]; if (!byGroup.has(g)) byGroup.set(g, []); byGroup.get(g).push(k); }
+    return { cells, x0, width, byGroup, pos: new Map(), outlines: [], caps: [] };
+  });
+  let y = y0 + HEAD_H;
+  BANDS.forEach(([lo, hi, range]) => {
+    const per = sides.map((sd) => [...sd.byGroup.keys()].filter((g) => GROUPS[g][0] >= lo && GROUPS[g][0] <= hi));
+    if (!per[0].length && !per[1].length) return;
+    let bottom = y + CAP_H;
+    sides.forEach((sd, i) => {
+      const narrow = sd.width < 200;
+      sd.caps.push({ text: narrow ? `${range} per scaffold` : `${range} molecule${range === "1" ? "" : "s"} per scaffold`, x: sd.x0, y: y + CAP_H - 5 });
+      let yy = y + CAP_H;
+      if (lo === 1) {
+        const sc = Math.floor((sd.width + 1) / PITCH);
+        per[i].forEach((g, j) => sd.pos.set(sd.byGroup.get(g)[0], [sd.x0 + (j % sc) * PITCH, yy + Math.floor(j / sc) * PITCH]));
+        bottom = Math.max(bottom, yy + Math.ceil(per[i].length / sc) * PITCH);
+        return;
+      }
+      let x = 0, rowH = 0;
+      per[i].forEach((g) => {
+        const ks = sd.byGroup.get(g), cols = Math.min(colsOf(GROUPS[g][0]), Math.floor((sd.width + 1) / PITCH));
+        const rows = Math.ceil(ks.length / cols), bw = cols * PITCH - 1, bh = rows * PITCH - 1;
+        if (x + bw > sd.width) { x = 0; yy += rowH + GAP; rowH = 0; }
+        ks.forEach((k, j) => sd.pos.set(k, [sd.x0 + x + (j % cols) * PITCH, yy + Math.floor(j / cols) * PITCH]));
+        sd.outlines.push({ x: sd.x0 + x, y: yy, w: bw, h: bh, g });
+        x += bw + GAP; rowH = Math.max(rowH, bh);
+      });
+      bottom = Math.max(bottom, yy + rowH);
+    });
+    /* a faint rule across both columns at each band's top */
+    sides[0].caps[sides[0].caps.length - 1].rule = { x1: xL, x2: xR + wR, y: y + 1 };
+    y = bottom + BAND_GAP;
+  });
+  const pct = (c) => Math.round((100 * c.length) / N);
+  sides[0].head = { text: `Train · ${fmt(sides[0].cells.length)} molecules (${pct(sides[0].cells)}%)`, x: xL, y: y0 + 13 };
+  sides[1].head = { text: `Held out · ${fmt(sides[1].cells.length)} (${pct(sides[1].cells)}%)`, x: xR, y: y0 + 13 };
+  sides.forEach((sd) => { sd.bottom = y; });
+  return sides;
+}
+
 const all = [...Array(N).keys()];
 const fmt = (v) => v.toLocaleString("en");
-const titleTrain = (c, s) => `Train · ${fmt(c.length)} molecules · ${fmt(s)} scaffolds`;
-const titleHeld = (c, s, narrow) => (narrow ? `Held out · ${fmt(c.length)}` : `Held out · ${fmt(c.length)} molecules · ${fmt(s)} scaffolds`);
+const titleTrain = (c, s) => `Train · ${fmt(c.length)} molecules (${Math.round(100 * c.length / N)}%) · ${fmt(s)} scaffolds`;
+const titleHeld = (c, s, narrow) => (narrow ? `Held out · ${fmt(c.length)}` : `Held out · ${fmt(c.length)} molecules (${Math.round(100 * c.length / N)}%) · ${fmt(s)} scaffolds`);
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 function plan(kind, arm) {
@@ -107,8 +152,7 @@ function plan(kind, arm) {
     A = layout(train, 12, 4, 520, titleTrain);
     B = layout(held, 12, A.bottom + 10, 520, titleHeld);
   } else {
-    A = layout(train, 12, 4, 372, titleTrain);
-    B = layout(held, 12 + 372 + 16, 4, 520 - 372 - 16, titleHeld);
+    [A, B] = layoutPair(train, held, 12, 362, 12 + 362 + 18, 520 - 362 - 18, 4);
   }
   const shared = new Set(A.outlines.map((o) => o.g).filter((g) => B.outlines.some((o) => o.g === g)));
   return { s, before, A, B, shared, h: Math.max(before.bottom, A.bottom, B.bottom) + 8, train, held };
@@ -135,7 +179,10 @@ function draw(ctx, P, t) {
       ctx.save(); ctx.strokeStyle = both ? T.highlight : T.ink3; ctx.lineWidth = both ? 2 : 1;
       ctx.strokeRect(o.x - 1.5, o.y - 1.5, o.w + 3, o.h + 3); ctx.restore();
     }
-    lay.caps.forEach((c) => txt(ctx, c.text, c.x, c.y, { fill: T.ink3, size: 10 }));
+    lay.caps.forEach((c) => {
+      if (c.rule) { ctx.save(); ctx.strokeStyle = T.grid; ctx.beginPath(); ctx.moveTo(c.rule.x1, c.rule.y - 4); ctx.lineTo(c.rule.x2, c.rule.y - 4); ctx.stroke(); ctx.restore(); }
+      txt(ctx, c.text, c.x, c.y, { fill: T.ink3, size: 10 });
+    });
     txt(ctx, lay.head.text, lay.head.x, lay.head.y, { fill: T.ink1, bold: true });
   }
   if (t === 1) txt(ctx, `ringed: a scaffold with molecules in both groups (${P.shared.size})`, 12, P.h + 22, { fill: T.ink1 });
