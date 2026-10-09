@@ -63,6 +63,12 @@
    "it disappears ... concatenated? summed?"); nodes are opaque, so an edge
    no longer shows through a washed node; every rail control eases (core's
    `anim.easing`): the picked ring slides, values move to their new values.
+   Round 7: Graph's Transform is two presses, Multiply by W and Apply ELU,
+   the ELU plot the matrix's height and level with it, shown with its press
+   (his pick A, `_lab/message-passing-transform-mock.html`); W is labelled
+   as learned in training, here its random start; a MathML card above the
+   figure gives each page's equation, the part a press reached in
+   --c-highlight.
 
    Nothing trains in the page: compute() runs the layers on seeded weights
    (core's rng, seed 1) and the trained α is data. Presses reveal what
@@ -70,7 +76,7 @@
    another page's presses.
    ========================================================================= */
 
-import { defineWidget } from "../core/index.js";
+import { defineWidget, mathmlRenders } from "../core/index.js";
 import { CAFFEINE, X_MEAN, X_SD, FILE_SPREAD, FILE_N, ALPHA, GAT_RUN } from "./data.js";
 
 const PAGES = [
@@ -96,7 +102,7 @@ const BASIC = {
 };
 const NODE_OPTS = BASIC.atoms.map((_, i) => ({ value: String(i), label: String(i) }));
 const K_MAX = 4, HIDDEN = 16, LESSON_LAYERS = 2, SHOW = 8;
-const STEPS = { graph: 2, aggregate: 2, layers: K_MAX, readout: 1 };
+const STEPS = { graph: 3, aggregate: 2, layers: K_MAX, readout: 1 };
 const COLS5 = ["Z", "ar", "hyb", "H", "q"];
 
 /* -------------------------------------------------------------- strings */
@@ -122,7 +128,7 @@ const S = {
   stepLabel: {
     param: "page",
     labels: {
-      graph: { anim: "beat", labels: { 0: "Aggregate", 1: "Transform" }, default: "Transform" },
+      graph: { anim: "beat", labels: { 0: "Aggregate", 1: "Multiply by W", 2: "Apply ELU" }, default: "Apply ELU" },
       aggregate: { anim: "beat", labels: { 0: "Aggregate", 1: "Transform" }, default: "Transform" },
       layers: "Add a layer",
       readout: "Pool",
@@ -132,7 +138,7 @@ const S = {
   stepTitle: {
     param: "page",
     labels: {
-      graph: { anim: "beat", labels: { 0: "Send every node's row along its edges, weight it and sum", 1: "Multiply every sum by the one W, then apply the activation" }, default: "Multiply every sum by the one W, then apply the activation" },
+      graph: { anim: "beat", labels: { 0: "Send every node's row along its edges, weight it and sum", 1: "Multiply every node's sum by the one W", 2: "Pass every number through ELU, the activation" }, default: "Pass every number through ELU, the activation" },
       aggregate: { anim: "beat", labels: { 0: "Send every atom's row along its bonds, weight it and sum", 1: "Multiply the sum by W, then apply the activation" }, default: "Multiply the sum by W, then apply the activation" },
       layers: "Run one more layer on every atom",
       readout: "Pool the atoms' vectors into one",
@@ -157,9 +163,22 @@ const S = {
   aggWeigh: "each node now holds its inputs, one row each, and a weight for each row",
   aggAdd: "each node adds its weighted rows: one row of 3 numbers, the size of x",
   molMoving: "every atom sends its row along each of its bonds; each arrives scaled by its weight",
-  trMoving: { graph: "every node's sum through the same W, then ELU", aggregate: "the sum times each column of W, then ELU" },
-  wLabel: "W · one for every node",
-  hwLabel: "= H·W",
+  trMoving: { aggregate: "the sum times each column of W, then ELU" },
+  mulMoving: "every node's sum into one stack H, then H times each column of W",
+  eluMoving: "each number through ELU: a positive one stays, a negative one moves toward −1",
+  homeMoving: "each row of h′ back to its node",
+  grStatus: [
+    (i, d) => `node ${i} · ${d} neighbour${d === 1 ? "" : "s"} and itself`,
+    (i, s) => `node ${i} · its inputs weighted and summed · the weights sum to ${s}`,
+    (i) => `node ${i} · its sum × W: one row of 3 numbers`,
+    (i) => `node ${i} · ELU of its sum × W: h${i}′, its row after one layer`,
+  ],
+  wLabel: "W",
+  wNote: "learned in training · here, its random starting values",
+  hLabel: "H",
+  hwLabel: "H·W",
+  rowOutAll: "h′",
+  rowPre: "sum·W",
   eluLabel: "ELU",
   aggNote: {
     graph: "the same sum in any order of the inputs · every node does this at once in a layer",
@@ -169,6 +188,24 @@ const S = {
   },
   aggHover: (i, el, d) => `${el} · atom ${i} · degree ${d} · click to pick`,
   nodeHover: (i, d) => `node ${i} · degree ${d} · click to pick`,
+
+  mathNote: {
+    graph: (kind, s) => [
+      "one layer updates node i from its inputs, its neighbours N(i) and itself: xⱼ is node j's row, dᵢ its degree counting the self-loop, W a matrix learned in training (here, its random starting values)",
+      "Aggregate: each input's row times its weight 1/√(dᵢdⱼ), summed into one row the size of x",
+      "Multiply by W: that row times W, the same W for every node",
+      "Apply ELU: each number v stays if v > 0 and becomes eᵛ − 1 if not; the result is hᵢ′, node i's row after one layer",
+    ][s],
+    aggregate: (kind, s) => [
+      kind === "gat"
+        ? "the same layer on caffeine with GAT's weights: αᵢⱼ is a softmax over atom i's inputs of a score that training sets; xⱼ is atom j's row, W a matrix learned in training (here, its random starting values)"
+        : "the same layer on caffeine: xⱼ is atom j's row, dᵢ its degree counting the self-loop, W a matrix learned in training (here, its random starting values)",
+      `Aggregate: each input's row times its weight ${kind === "gat" ? "αᵢⱼ" : "1/√(dᵢdⱼ)"}, summed into one row the size of x`,
+      "Transform: the sum times W, then ELU on each number: hᵢ′, atom i's row after one layer",
+    ][s],
+    layers: "every atom at once: row i of ÂH is atom i's weighted sum, as on Graph; H⁽⁰⁾ is x, one row an atom, and each layer has its own W, learned in training (here, random starting values)",
+    readout: (pk, k) => `${{ sum: "h<sub>G</sub> adds the atoms' rows", mean: "h<sub>G</sub> averages the atoms' rows", max: "h<sub>G</sub> keeps each number's largest value over the atoms" }[pk]}, each row after ${k} layer${k === 1 ? "" : "s"}: one vector for the molecule; ŷ is the classifier's prediction of y`,
+  },
 
   /* Layers */
   capReach: (n, N) => `gathered from: ${n} of ${N} atoms`,
@@ -230,7 +267,7 @@ const S = {
   tileYNote: "caffeine's label in the lesson's file; the classifier is trained to predict it from the pooled vector",
   tileWait: "—",
 
-  sumGraph: (i, beat) => `a three-node chain, node ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W and passed through ELU" : ""}`,
+  sumGraph: (i, beat) => `a three-node chain, node ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W" : ""}${beat >= 3 ? ", then passed through ELU" : ""}`,
   sumAgg: (i, beat) => `caffeine, atom ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W and passed through ELU" : ""}`,
   sumLay: (k, i, n) => `caffeine after ${k} layer${k === 1 ? "" : "s"}: atom ${i} has gathered from ${n} of 14 atoms, and the atoms' vectors grow alike`,
   sumRd: (pooled, kind, k) => (pooled ? `caffeine's 14 atom vectors after ${k} layer${k === 1 ? "" : "s"}, ${kind}-pooled into one vector` : `caffeine's 14 atom vectors after ${k} layer${k === 1 ? "" : "s"}, one row an atom`),
@@ -470,7 +507,7 @@ const lerpArr = (a, b, t) => b.map((v, k) => a[k] + (v - a[k]) * t);
 const lerpPt = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 const stepsOf = (stage) => STEPS[stage] ?? 0;
 function durOf(stage, beat) {
-  if (stage === "graph") return beat === 1 ? 5200 : 5600;
+  if (stage === "graph") return [0, 5200, 4200, 6000][beat];
   if (stage === "aggregate") return beat === 1 ? MOVE_MS : 3600;
   if (stage === "layers") return 2600;
   return 1600;
@@ -525,62 +562,100 @@ function edgeInto(ctx, colors, from, to, wgt, rTo, { label = true, head = 11 } =
 function cellRow(ctx, colors, x, y, row, c, scale, { stroke = null, lw = 1, ch = c } = {}) {
   row.forEach((v, k) => rect(ctx, x + k * c, y, c, ch, ramp(colors, (v - scale[0]) / (scale[1] - scale[0])), stroke ?? colors.ink1, lw));
 }
-/** the ELU curve in a small box, the activation's own shape */
-function eluIcon(ctx, colors, x, y, w = 48, h = 40) {
-  rect(ctx, x, y, w, h, colors.surface2, colors.grid);
-  const sx = (v) => x + 4 + ((v + 2) / 3.2) * (w - 8), sy = (v) => y + h - 6 - ((v + 1) / 2.2) * (h - 12);
-  ctx.save(); ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1.4; ctx.beginPath();
-  for (let q = 0; q <= 30; q++) { const v = -2 + (3.2 * q) / 30, e = v > 0 ? v : Math.expm1(v); q ? ctx.lineTo(sx(v), sy(e)) : ctx.moveTo(sx(v), sy(e)); }
-  ctx.stroke(); ctx.restore();
-  txt(ctx, colors, S.eluLabel, x + w / 2, y - 5, { fill: colors.ink3, align: "center" });
-}
-
-/* THE GRAPH'S TRANSFORM (round 3, his pick C; five rows since round 4): the
-   band under the drawing holds W and the ELU gate. A press drops the sums
-   into one stack H, one node after another (0–0.22), W's columns light one
-   at a time while H·W fills a column at a time (0.24–0.58), H·W slides
-   through ELU (0.60–0.76) and the rows rise back to their nodes one at a
-   time, the last first (0.78–1): moving together, their paths crossed
-   (tweens-move-in-lanes). */
-const BAND = { hy: 292, c: 18, cW: 34 };
+/* THE GRAPH'S TRANSFORM, TWO PRESSES (round 7, his pick A from
+   `_lab/message-passing-transform-mock.html`: one press did both, too fast,
+   and the ELU box floated beside W with nothing passing through it). The
+   band under the drawing holds H, W, H·W, the ELU plot and h′, every block
+   the matrix's height, the plot level with W (his "same height and align
+   with the matrix").
+   Multiply by W: the sums drop from their nodes into one stack H, one node
+   after another (0–0.25); W's columns light one at a time while H·W fills a
+   column at a time (0.3–0.95).
+   Apply ELU: the plot appears with its press. Each number of H·W leaves its
+   row at the row's right end, so it crosses no cell, and drops to its place
+   on the plot's axis (0–0.22); it climbs or falls to the curve, a dashed
+   guide behind it (0.24–0.5); it crosses to its cell of h′ (0.52–0.72).
+   The rows of h′ then rise back to their nodes one at a time, the last
+   first (0.76–1): moving together, their paths crossed
+   (tweens-move-in-lanes). The plot spans −1.1 to 1.1 on both axes, which
+   holds every number of H·W the chain makes (−0.32 to 0.88). */
+const BAND_Y = 292, ELU_SPAN = 1.1;
 function band(w) {
-  const hx = 24, wX = hx + 3 * BAND.c + 30;
-  return { hx, wX, oX: wX + 3 * BAND.cW + 28, eluX: w - 150, finX: w - 84 };
+  const c = Math.max(12, Math.min(28, Math.floor((w - 164) / 17.3))), cW = Math.round(c * 1.43);
+  const hx = 24, wX = hx + 3 * c + 34, oX = wX + 3 * cW + 34, pX = oX + 3 * c + 30, finX = w - 12 - 3 * c;
+  return { c, cW, hx, wX, oX, pX, pW: finX - 30 - pX, finX, hy: BAND_Y, h: 3 * c };
 }
-const SLOT_C = 22;
-const slotOf = (P, i) => [P[i][0] - 1.5 * SLOT_C, P[i][1] - 62];
-function drawBand(ctx, colors, w, g, P, t) {
-  const b = band(w), W = g.W, sc = g.scale, c = BAND.c, hy = BAND.hy, n = g.all.length;
-  const col = t != null && t > 0.24 && t < 0.58 ? Math.min(2, Math.floor(seg(t, 0.24, 0.58) * 3)) : -1;
+function eluMap(b) {
+  const u = (v) => (Math.max(-ELU_SPAN, Math.min(ELU_SPAN, v)) + ELU_SPAN) / (2 * ELU_SPAN);
+  return { sx: (v) => b.pX + u(v) * b.pW, sy: (v) => b.hy + b.h - u(v) * b.h };
+}
+/** the ELU plot: its curve, the axes, the −1 it flattens toward */
+function drawEluPlot(ctx, colors, b) {
+  const { sx, sy } = eluMap(b), S1 = ELU_SPAN;
+  rect(ctx, b.pX, b.hy, b.pW, b.h, colors.surface2, colors.grid);
+  line(ctx, sx(-S1), sy(0), sx(S1), sy(0), colors.axis); line(ctx, sx(0), sy(-S1), sx(0), sy(S1), colors.axis);
+  line(ctx, sx(-S1), sy(-1), sx(S1), sy(-1), colors.grid, 1, [3, 3]);
+  txt(ctx, colors, "−1", sx(-S1) + 3, sy(-1) - 3, { font: monoFont(colors), fill: colors.ink3 });
+  const xs = [...Array(41).keys()].map((q) => -S1 + (2 * S1 * q) / 40);
+  polyline(ctx, xs.map(sx), xs.map((v) => sy(v > 0 ? v : Math.expm1(v))), colors.ink2, 1.6);
+  txt(ctx, colors, S.eluLabel, b.pX, b.hy - 8, { fill: colors.ink3 });
+}
+/* `tm` is Multiply by W in flight, `ta` Apply ELU; `beat` the settled press count */
+function drawBand(ctx, colors, w, g, P, beat, tm, ta) {
+  const b = band(w), W = g.W, sc = g.scale, c = b.c, hy = b.hy, n = g.all.length;
+  const showH = tm != null || (beat === 2 && ta == null) || (ta != null && ta < 0.76);
+  const col = tm != null && tm > 0.3 && tm < 0.95 ? Math.min(2, Math.floor(seg(tm, 0.3, 0.95) * 3)) : -1;
+  /* W, and where it comes from */
   txt(ctx, colors, S.wLabel, b.wX, hy - 8, { fill: colors.ink3 });
   W.forEach((r, i) => r.forEach((v, k) => {
-    rect(ctx, b.wX + k * BAND.cW, hy + i * 22, BAND.cW, 22, k === col ? wash(colors.highlight, 0.3) : colors.surface2, colors.grid);
-    txt(ctx, colors, fmt(v), b.wX + k * BAND.cW + BAND.cW / 2, hy + i * 22 + 12, { font: monoFont(colors), fill: k === col ? colors.ink1 : colors.ink2, align: "center", baseline: "middle" });
+    rect(ctx, b.wX + k * b.cW, hy + i * c, b.cW, c, k === col ? wash(colors.highlight, 0.3) : colors.surface2, colors.grid);
+    if (b.cW >= 30) txt(ctx, colors, fmt(v), b.wX + k * b.cW + b.cW / 2, hy + i * c + c / 2 + 0.5, { font: monoFont(colors), fill: k === col ? colors.ink1 : colors.ink2, align: "center", baseline: "middle" });
   }));
-  eluIcon(ctx, colors, b.eluX, hy + 10);
-  if (t == null) return;
-  txt(ctx, colors, "H", b.hx + 1.5 * c, hy - 8, { fill: colors.ink3, align: "center" });
-  txt(ctx, colors, "×", b.wX - 15, hy + 33, { font: capFont(colors), fill: colors.ink2, align: "center" });
-  const p2 = seg(t, 0.24, 0.58), p3 = ease(seg(t, 0.6, 0.76));
-  for (let i = 0; i < n; i++) {
-    const u = g.all[i], [sx, sy] = slotOf(P, i), ty = hy + i * c;
-    if (t < 0.24) {
-      const q = ease(seg(t, (0.22 * i) / n, (0.22 * (i + 1)) / n));
-      if (q > 0) cellRow(ctx, colors, lerp(sx, b.hx, q), lerp(sy, ty, q), u.sum, lerp(SLOT_C, c, q), sc);
-      continue;
-    }
-    cellRow(ctx, colors, b.hx, ty, u.sum, c, sc, { stroke: colors.grid });
-    if (t < 0.78) {
-      const done = t < 0.58 ? Math.min(3, Math.floor(p2 * 3 + 1e-9)) : 3;
-      const ox = t < 0.6 ? b.oX : lerp(b.oX, b.finX, p3), row = t < 0.68 ? u.pre : u.out;
-      row.forEach((v, k) => rect(ctx, ox + k * c, ty, c, c, k < done ? ramp(colors, (v - sc[0]) / (sc[1] - sc[0])) : null, colors.ink2));
-    } else {
-      const span = 0.22 / n, q = ease(seg(t, 0.78 + (n - 1 - i) * span, 0.78 + (n - i) * span));
-      cellRow(ctx, colors, lerp(b.finX, sx, q), lerp(ty, sy, q), u.out, lerp(c, SLOT_C, q), sc, { stroke: i === g.agg.i ? colors.highlight : null, lw: i === g.agg.i ? 1.6 : 1 });
+  txt(ctx, colors, S.wNote, b.wX, hy + b.h + 14, { fill: colors.ink3, maxW: w - b.wX - 12 });
+  if (ta != null || beat >= 3) drawEluPlot(ctx, colors, b);
+  if (showH) {
+    txt(ctx, colors, S.hLabel, b.hx, hy - 8, { fill: colors.ink3 });
+    txt(ctx, colors, S.hwLabel, b.oX, hy - 8, { fill: colors.ink3 });
+    txt(ctx, colors, "×", b.wX - 17, hy + b.h / 2 + 5, { font: capFont(colors), fill: colors.ink2, align: "center" });
+    txt(ctx, colors, "=", b.oX - 17, hy + b.h / 2 + 5, { font: capFont(colors), fill: colors.ink2, align: "center" });
+    const done = tm == null || tm >= 0.95 ? 3 : Math.min(3, Math.floor(seg(tm, 0.3, 0.95) * 3 + 1e-9));
+    for (let i = 0; i < n; i++) {
+      const u = g.all[i], ty = hy + i * c;
+      if (tm != null && tm < 0.25) {
+        const q = ease(seg(tm, (0.22 * i) / n, (0.22 * (i + 1)) / n)), [sx, sy] = slotOf(P, i);
+        cellRow(ctx, colors, lerp(sx, b.hx, q), lerp(sy, ty, q), u.sum, lerp(SLOT_C, c, q), sc);
+        continue;
+      }
+      cellRow(ctx, colors, b.hx, ty, u.sum, c, sc, { stroke: colors.grid });
+      u.pre.forEach((v, k) => rect(ctx, b.oX + k * c, ty, c, c, k < done ? ramp(colors, (v - sc[0]) / (sc[1] - sc[0])) : null, colors.grid));
     }
   }
-  if (t >= 0.24 && t < 0.6) txt(ctx, colors, S.hwLabel, b.oX, hy - 8, { fill: colors.ink3 });
+  if (ta == null) return;
+  /* Apply ELU: each number to the axis, to the curve, to h′; then the rows home */
+  const { sx, sy } = eluMap(b);
+  if (ta < 0.76) {
+    txt(ctx, colors, S.rowOutAll, b.finX, hy - 8, { fill: colors.ink3 });
+    g.all.forEach((u, i) => u.pre.forEach((v, k) => {
+      const y = u.out[k], ex = b.oX + 3 * c + 6, ey = hy + i * c + c / 2;
+      if (ta >= 0.24) line(ctx, sx(v), sy(0), sx(v), ta < 0.5 ? lerp(sy(0), sy(y), ease(seg(ta, 0.24, 0.5))) : sy(y), colors.ink3, 1, [2, 2]);
+      let X, Y;
+      if (ta < 0.24) { const q = ease(seg(ta, 0.02, 0.22)); X = lerp(ex, sx(v), q); Y = lerp(ey, sy(0), q); }
+      else if (ta < 0.52) { X = sx(v); Y = lerp(sy(0), sy(y), ease(seg(ta, 0.24, 0.5))); }
+      else if (ta < 0.72) { const q = ease(seg(ta, 0.52, 0.72)); X = lerp(sx(v), b.finX + k * c + c / 2, q); Y = lerp(sy(y), hy + i * c + c / 2, q); }
+      else { rect(ctx, b.finX + k * c, hy + i * c, c, c, ramp(colors, (y - sc[0]) / (sc[1] - sc[0])), colors.grid); return; }
+      dot(ctx, X, Y, 3.5, colors.ink1, colors.surface, 1);
+    }));
+    return;
+  }
+  for (let i = 0; i < n; i++) {
+    const u = g.all[i], [sx0, sy0] = slotOf(P, i), span = 0.24 / n;
+    const q = ease(seg(ta, 0.76 + (n - 1 - i) * span, 0.76 + (n - i) * span));
+    cellRow(ctx, colors, lerp(b.finX, sx0, q), lerp(hy + i * c, sy0, q), u.out, lerp(c, SLOT_C, q), sc, { stroke: i === g.agg.i ? colors.highlight : null, lw: i === g.agg.i ? 1.6 : 1 });
+  }
 }
+
+const SLOT_C = 22;
+const slotOf = (P, i) => [P[i][0] - 1.5 * SLOT_C, P[i][1] - 62];
 
 /* CAFFEINE'S TRANSFORM: the picked atom's row only (14 rows do not fit a
    stack), inside its table. W sits under the sum row, one column of W under
@@ -630,20 +705,83 @@ function drawInputTable(ctx, colors, w, { x0, ty, mol, a, kind, beat, graph }) {
     txt(ctx, colors, S.rowSum, x0, yS + 14, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
     a.sum.forEach((v, c) => txt(ctx, colors, fmt(v, graph ? 2 : 1), colX(c) + cw / 2, yS + 14, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
   }
-  if (graph && beat >= 2) {
-    txt(ctx, colors, S.rowOut(a.i), x0, yS + 38, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
-    a.out.forEach((v, c) => txt(ctx, colors, fmt(v, 2), colX(c) + cw / 2, yS + 38, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
-  }
+  if (graph) [[2, S.rowPre, a.pre], [3, S.rowOut(a.i), a.out]].forEach(([at, name, row], q) => {
+    if (beat < at) return;
+    txt(ctx, colors, name, x0, yS + 38 + 24 * q, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
+    row.forEach((v, c) => txt(ctx, colors, fmt(v, 2), colX(c) + cw / 2, yS + 38 + 24 * q, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
+  });
   return { yS, cw, colX, x0 };
 }
 
 /* ============================================================ geometry */
 
-const H_GRAPH = 602, H_CAF = 344, H_LAY = 630, H_RD = 456;
+const H_GRAPH = 652, H_CAF = 344, H_LAY = 630, H_RD = 456;
 const leftW = (w) => Math.min(w * 0.47, 330);
 const basicPoints = (w) => BASIC.atoms.map((a) => [a.at[0] * w, a.at[1]]);
 const cafPoints = (w) => molPoints(CAFFEINE, 16, 42, leftW(w) - 28, 250);
 const NODE_R = 18, LOOP = { dy: 31, r: 12 };
+
+/* ------------------------------------------------------ the formula card */
+/* THE EQUATION OF WHAT THE PAGE BUILDS (round 7, his "include the mathml
+   formula for the aggregation and W and activation function so we can see
+   what we are trying to achieve"): MathML above the figure, as limma's and
+   deseq2's. On Graph and Aggregate the part the last press did (or the one
+   in flight) is in --c-highlight, so the equation marks the step reached.
+   Symbols only; the numbers are in the figure. */
+const MATHML = mathmlRenders();
+const HL = (on, s) => (on ? `<mrow style="color:var(--c-highlight)">${s}</mrow>` : s);
+const MSUB = (v, s) => `<msub><mi>${v}</mi>${s}</msub>`;
+const SUP_K = (v, k) => `<msup><mi>${v}</mi><mrow><mo>(</mo>${k}<mo>)</mo></mrow></msup>`;
+const ELU_M = `<mi mathvariant="normal">ELU</mi>`;
+const SUM_N = `<munder><mo>∑</mo><mrow><mi>j</mi><mo>∈</mo><mi>N</mi><mo>(</mo><mi>i</mi><mo>)</mo><mo>∪</mo><mo>{</mo><mi>i</mi><mo>}</mo></mrow></munder>`;
+const W_GCN = `<mfrac><mn>1</mn><msqrt>${MSUB("d", "<mi>i</mi>")}${MSUB("d", "<mi>j</mi>")}</msqrt></mfrac>`;
+const W_GAT = `<msub><mi>α</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>`;
+const HI_NEW = `<msubsup><mi>h</mi><mi>i</mi><mo>′</mo></msubsup>`;
+/** one layer, with the parts `on` holds marked: agg, W, act */
+function layerMath(kind, on) {
+  const agg = `<mrow><mo>(</mo>${SUM_N}${kind === "gat" ? W_GAT : W_GCN}${MSUB("x", "<mi>j</mi>")}<mo>)</mo></mrow>`;
+  return `<math display="block"><mrow>${HI_NEW}<mo>=</mo>${HL(on.has("act"), ELU_M)}<mo>(</mo>${HL(on.has("agg"), agg)}${HL(on.has("W"), "<mi>W</mi>")}<mo>)</mo></mrow></math>`;
+}
+const layerPlain = (kind) => `hᵢ′ = ELU( ( Σ_{j ∈ N(i) ∪ {i}} ${kind === "gat" ? "αᵢⱼ" : "1/√(dᵢdⱼ)"} xⱼ ) W )`;
+const AHAT = `<mover><mi>A</mi><mo>^</mo></mover>`, DHALF = `<msup><mi>D</mi><mrow><mo>−</mo><mn>1</mn><mo>/</mo><mn>2</mn></mrow></msup>`;
+const POOL_M = {
+  sum: `<munder><mo>∑</mo><mi>i</mi></munder>`,
+  mean: `<mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder>`,
+  max: `<munder><mo movablelimits="false">max</mo><mi>i</mi></munder>`,
+};
+function formulaFor(params, anim) {
+  const page = params.page;
+  if (page === "graph" || page === "aggregate") {
+    const kind = page === "graph" ? "gcn" : params.layer;
+    const inFlight = anim && anim.stage === page && anim.t < 1;
+    const s = anim ? (inFlight ? anim.n[page] : shownStep(anim, page)) : 0;
+    /* Graph: Aggregate · Multiply by W · Apply ELU; Aggregate (caffeine): Aggregate · Transform */
+    const parts = page === "graph" ? [[], ["agg"], ["W"], ["act"]][s] : [[], ["agg"], ["W", "act"]][s];
+    const key = `${page}-${kind}-${s}`;
+    return { key, math: layerMath(kind, new Set(parts)), plain: layerPlain(kind), note: S.mathNote[page](kind, s) };
+  }
+  if (page === "layers") {
+    const math = `<math display="block"><mrow>${SUP_K("H", "<mi>k</mi>")}<mo>=</mo>${ELU_M}<mo>(</mo>${AHAT}${SUP_K("H", "<mi>k</mi><mo>−</mo><mn>1</mn>")}${SUP_K("W", "<mi>k</mi>")}<mo>)</mo><mo>,</mo><mspace width="0.8em"></mspace>${AHAT}<mo>=</mo>${DHALF}<mo>(</mo><mi>A</mi><mo>+</mo><mi>I</mi><mo>)</mo>${DHALF}</mrow></math>`;
+    return { key: "layers", math, plain: "H⁽ᵏ⁾ = ELU( Â H⁽ᵏ⁻¹⁾ W⁽ᵏ⁾ ),   Â = D^−½ (A + I) D^−½", note: S.mathNote.layers };
+  }
+  const k = Number(params.depth), pk = params.pooling;
+  const math = `<math display="block"><mrow>${MSUB("h", "<mi>G</mi>")}<mo>=</mo>${POOL_M[pk]}<msubsup><mi>h</mi><mi>i</mi><mrow><mo>(</mo><mn>${k}</mn><mo>)</mo></mrow></msubsup><mo>,</mo><mspace width="0.8em"></mspace><mover><mi>y</mi><mo>^</mo></mover><mo>=</mo><mtext>classifier</mtext><mo>(</mo>${MSUB("h", "<mi>G</mi>")}<mo>)</mo></mrow></math>`;
+  const plain = `h_G = ${{ sum: "Σᵢ", mean: "(1/n) Σᵢ", max: "maxᵢ" }[pk]} hᵢ⁽${k}⁾,   ŷ = classifier(h_G)`;
+  return { key: `readout-${k}-${pk}`, math, plain, note: S.mathNote.readout(pk, k) };
+}
+let mathHost = null, mathKey = null;
+function renderFormula(F) {
+  if (!mathHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    mathHost = document.createElement("div");
+    mathHost.className = "w-math";
+    figure.parentNode.insertBefore(mathHost, figure);
+  }
+  if (mathKey === F.key) return;
+  mathKey = F.key;
+  mathHost.innerHTML = `<div class="w-math-eq"><span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span></div><div class="w-math-note">${F.note}</div>`;
+}
 
 /* ================================================================ Graph */
 
@@ -694,7 +832,7 @@ function drawInbox(ctx, colors, g, P, t, pick) {
 
 function drawGraph(ctx, colors, w, h, params, g, anim, pointer) {
   const beat = shownStep(anim, "graph"), a = g.agg, mol = BASIC;
-  const tr = anim.n.graph === 2 ? phase(anim, "graph") : null;
+  const tm = anim.n.graph === 2 ? phase(anim, "graph") : null, ta = anim.n.graph === 3 ? phase(anim, "graph") : null;
   const ag = anim.n.graph === 1 ? phase(anim, "graph") : null, landed = ag != null && ag >= AG.add;
   const P = basicPoints(w), A = adjacency(mol), nb = new Set(a.inputs.slice(1));
   /* the ease: a new Node slides the ring from the one it leaves */
@@ -718,9 +856,10 @@ function drawGraph(ctx, colors, w, h, params, g, anim, pointer) {
     txt(ctx, colors, `${S.selfTag} ${fmt(a.w[0])}`, px, py + LOOP.dy + LOOP.r + 18, { font: boldMono(colors), fill: colors.ink1, align: "center", halo: true });
   }
   /* every node's row: x, then after Aggregate its sum, after Transform its h′;
-     while Aggregate runs the rows are in the inboxes, while Transform runs in the band */
+     while Aggregate runs the rows are in the inboxes; from Multiply by W until
+     Apply ELU sends them home they are in the band */
   const rows = landed ? g.all.map((u) => u.sum) : beat === 0 ? mol.atoms.map((at) => at.x) : g.all.map((u) => (beat === 1 ? u.sum : u.out));
-  if (tr == null && (ag == null || landed)) rows.forEach((row, i) => {
+  if (tm == null && ta == null && beat !== 2 && (ag == null || landed)) rows.forEach((row, i) => {
     const [x0, y0] = slotOf(P, i);
     cellRow(ctx, colors, x0, y0, row, SLOT_C, g.scale);
     txt(ctx, colors, row.map((v) => fmt(v, beat === 0 && !landed ? 1 : 2)).join(" "), P[i][0], y0 - 6, { font: monoFont(colors), fill: colors.ink3, align: "center" });
@@ -732,11 +871,12 @@ function drawGraph(ctx, colors, w, h, params, g, anim, pointer) {
   });
   ring(ctx, rp[0], rp[1], NODE_R + 7, colors.highlight);
 
-  drawBand(ctx, colors, w, g, P, tr);
-  drawInputTable(ctx, colors, w, { x0: 12, ty: 380, mol, a, kind: "gcn", beat, graph: true });
+  drawBand(ctx, colors, w, g, P, beat, tm, ta);
+  drawInputTable(ctx, colors, w, { x0: 12, ty: 412, mol, a, kind: "gcn", beat, graph: true });
 
   if (hov != null) hoverLabel(ctx, colors, S.nodeHover(hov, A[hov].reduce((s, v) => s + v, 0)), P[hov][0], P[hov][1], w);
-  const status = tr != null ? S.trMoving.graph : ag != null ? (ag < AG.send ? S.aggSend : ag < AG.weigh ? S.aggWeigh : S.aggAdd) : beat === 0 ? S.aggStatus[0]("node", a.i, a.deg) : beat === 1 ? S.aggStatus[1]("node", a.i, fmt(a.w.reduce((s, v) => s + v, 0))) : S.aggStatus[2]("node", a.i);
+  const status = tm != null ? S.mulMoving : ta != null ? (ta < 0.76 ? S.eluMoving : S.homeMoving) : ag != null ? (ag < AG.send ? S.aggSend : ag < AG.weigh ? S.aggWeigh : S.aggAdd)
+    : S.grStatus[beat](a.i, beat === 0 ? a.deg : fmt(a.w.reduce((s, v) => s + v, 0)));
   txt(ctx, colors, status, 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
   txt(ctx, colors, S.aggNote.graph, 12, h - 11, { fill: colors.ink3, maxW: w - 24 });
 }
@@ -1136,6 +1276,7 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, h, params, state, anim, pointer }) {
+    renderFormula(formulaFor(params, anim));
     if (params.page === "graph") drawGraph(ctx, colors, w, h, params, state.g, anim, pointer);
     else if (params.page === "layers") drawLayers(ctx, colors, w, h, params, state, anim, pointer);
     else if (params.page === "readout") drawReadout(ctx, colors, w, h, params, state.rd, anim, pointer);
