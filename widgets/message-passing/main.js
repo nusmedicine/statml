@@ -151,7 +151,7 @@ const S = {
   /* Graph and Aggregate */
   capGraph: "the graph · click a node",
   capMol: "the molecule · click an atom",
-  capTable: (u) => `the picked ${u}'s inputs · rows of x`,
+  capTable: (u) => `the picked ${u}'s update · its inputs are rows of x`,
   headWeight: { gcn: "1/√(dᵢdⱼ)", gat: "α" },
   selfTag: "self",
   rowSum: "sum",
@@ -159,7 +159,7 @@ const S = {
   aggStatus: [
     (u, i, d) => `${u} ${i} · ${d} neighbour${d === 1 ? "" : "s"} and itself`,
     (u, i, s) => `${u} ${i} · its inputs weighted and summed · the weights sum to ${s}`,
-    (u, i) => `${u} ${i} · the sum × W, then ELU: h${i}′, its vector after one layer`,
+    (u, i) => `${u} ${i} · the sum × W, then ELU: h${i}′, its row after one layer`,
   ],
   aggSend: "every node keeps its own row and sends a copy along each of its edges",
   aggWeigh: "each node now holds its inputs, one row each, and a weight for each row",
@@ -184,7 +184,7 @@ const S = {
   eluLabel: "ELU",
   aggNote: {
     graph: "the same sum in any order of the inputs · every node does this at once in a layer",
-    gcn: "the weight depends on the two degrees only: a double and a single bond between atoms of the same degrees weigh the same",
+    gcn: "the weight depends on the two degrees only: the bond type does not change it",
     untrained: "untrained, every α is close to 1/(inputs): GAT starts as an average",
     trained: "after training, α weights some inputs more · the trained GAT also reads the bond features, which GCN does not",
   },
@@ -231,7 +231,7 @@ const S = {
   depthLabel: "Layers",
   depthDetail: "how many layers run before the atoms' vectors are pooled: the same network as the Layers page; the trained GAT runs 2",
   pipeX: "x", pipeLayer: (i) => `layer ${i}`, pipePool: "pool", pipeCls: "classifier", pipeY: "y", pipeGap: "…",
-  poolRule: { sum: "Pool: the sum of each column", mean: "Pool: the mean of each column", max: "Pool: the largest of each column" },
+  poolRule: { sum: "Pool: the sum of each column", mean: "Pool: the mean of each column", max: "Pool: the largest of each column, framed in its row" },
   pooledName: { sum: "sum", mean: "mean", max: "max" },
   oneVector: "one vector for the molecule, whatever its size",
   classifier: "classifier",
@@ -669,9 +669,10 @@ function drawCafTransform(ctx, colors, c, geo, t, beat) {
   const wy = geo.yS + 30, rh = 11, preY = wy + cols * rh + 8, outY = preY + 40;
   const col = t != null && t < 0.6 ? Math.min(cols - 1, Math.floor(seg(t, 0, 0.6) * cols)) : -1;
   const wvals = W.flat(), wlo = Math.min(...wvals), whi = Math.max(...wvals);
-  txt(ctx, colors, "W", geo.x0, wy + (cols * rh) / 2 + 3, { font: boldMono(colors), fill: colors.ink3 });
+  /* W's and ELU's names sit against the grid, right-aligned: at the table's left edge atom 0's number ran into "W" (the walk-through, 2026-10-09) */
+  txt(ctx, colors, "W", geo.colX(0) - 6, wy + (cols * rh) / 2 + 3, { font: boldMono(colors), fill: colors.ink3, align: "right" });
   W.forEach((r, q) => r.forEach((v, k) => rect(ctx, geo.colX(k) + 1, wy + q * rh, geo.cw - 2, rh, k === col ? wash(colors.highlight, 0.45) : ramp(colors, (v - wlo) / (whi - wlo)), colors.grid)));
-  txt(ctx, colors, S.eluLabel, geo.x0, (preY + outY) / 2 + 12, { fill: colors.ink3 });
+  txt(ctx, colors, S.eluLabel, geo.colX(0) - 6, (preY + outY) / 2 + 12, { fill: colors.ink3, align: "right" });
   if (t != null && beat === 1) {
     const done = Math.min(cols, Math.floor(seg(t, 0, 0.6) * cols + 1e-9));
     const m = ease(seg(t, 0.62, 1)), y = lerp(preY, outY, m), row = m < 0.5 ? a.pre : a.out;
@@ -1209,7 +1210,9 @@ defineWidget({
     if (params.page === "graph") return [{ token: "highlight", label: "The node updated", mark: "dot" }, { token: "group-a", label: "Its neighbours", mark: "dot" }];
     if (params.page === "aggregate") return [{ token: "highlight", label: "The atom updated", mark: "dot" }, { token: "group-a", label: "Its neighbours", mark: "dot" }];
     if (params.page === "layers") return [{ token: "group-a", label: "Gathered from", mark: "dot" }, { token: "empirical", label: "Caffeine", mark: "line" }, { token: "reference", label: `Mean of ${FILE_N.toLocaleString("en")} molecules in the E. coli screen`, mark: "dash" }];
-    return params.pooling === "max" ? [{ token: "highlight", label: "The largest value of each column", mark: "hollow" }] : [];
+    /* none: the max frames appear only with Pool, and a legend reads params alone, so it named
+       frames not yet drawn (the walk-through); the Pool caption names them when they appear */
+    return [];
   },
 
   compute,
