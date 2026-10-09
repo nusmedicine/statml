@@ -24614,9 +24614,10 @@ probe 8 switches, 0 flagged; a press on Molecule survives its split view and
 back. **Nineteen fingerprint states** (five Graph, two Patients, one
 Interactions, four Molecule incl. bronopol, three split views, one driven,
 three hit-driven incl. a click on bronopol's row at (200, 80)), identical
-over three runs and 19/19 MATCH. **Open before the push:** six SMILES and
-their labels from FinGAT's `training_data.csv` (no licence file; the labels
-trace to Stokes et al. 2020) now appear on the page.
+over three runs and 19/19 MATCH. **Data terms:** six SMILES and their
+labels from FinGAT's `training_data.csv` (no licence file; the labels trace
+to Stokes et al. 2020) appear on the page; on his call it pushed with the
+`credit` line "Molecule data: Stokes et al., Cell 2020, via FinGAT".
 
 ---
 

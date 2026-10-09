@@ -1211,6 +1211,10 @@ defineWidget({
   status: "shipped",
   title: "Deep Learning - Graphs: Representation",
   subtitle: S.subtitle,
+  /* the six molecules and their labels come from the lesson's file: FinGAT's
+     training_data.csv, whose labels are Stokes et al.'s screen (no licence file
+     in the repo; six rows shown, credited on his call, 2026-10-09) */
+  credit: "Molecule data: Stokes et al., Cell 2020, via FinGAT",
   layout: "side",
   height: (params) => (isSplit(params) ? splitsHeight(params.page) : params.page === "molecule" ? H_MOL : params.page === "patients" ? H_PAT : params.page === "interactions" ? H_INT : H_GRAPH),
   pointer: true,
