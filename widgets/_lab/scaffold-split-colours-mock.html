@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 97 validation and test colours — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  table { border-collapse: separate; border-spacing: 10px 6px; }
+  th { font-size: var(--fs-sm); color: var(--ink-2); font-weight: 600; text-align: left; vertical-align: bottom; }
+  td { vertical-align: top; }
+  td.arm { font-size: var(--fs-sm); color: var(--ink-1); max-width: 26ch; }
+  td.arm b { display: block; }
+  canvas { display: block; border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>97 &middot; validation and test after Split 50 / 50 &middot; colour options</h1>
+  <p class="note">The held-out column only, at the widget's cell size, the label split at seed 42 (the most mixed case: 233 validation,
+    234 test, cut into small pieces). Each arm in the light and dark themes, and each as a person with <b>deuteranopia</b> (the
+    commonest red&ndash;green colour blindness) sees it, by the Machado et al. 2009 matrix. Train stays <code>--c-group-a</code> blue in
+    every arm and is not shown.</p>
+  <table id="t"></table>
+  <p class="q" id="rec"><b>Recommendation: E, measured.</b> The contrast under each panel is the WCAG ratio between the validation
+    and test colours, as seen and under deuteranopia. A, as built, is 1.05:1 in the dark theme: amber and red at the same lightness,
+    which is why they looked alike. B, which I expected to win, is no better (1.06&ndash;1.26:1): the grey sits at the red's lightness.
+    C turns both cells olive under deuteranopia. D keeps A's colours but adds a shape cue. <b>E is 2.6&ndash;3.4:1 in every
+    panel</b>, and it is the validation colour the Evaluate page already uses, so Split and Evaluate would agree. The cell-30 bars
+    would use the same pale amber for Validation.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { GROUPS, LABELS, SPLITS } from "../scaffold-split/data.js";
+
+const DPR = window.devicePixelRatio || 1;
+const PITCH = 6, CELL = 5, GAP = 5, COLW = 140, N = LABELS.length;
+const groupOf = []; GROUPS.forEach(([n], g) => { for (let j = 0; j < n; j++) groupOf.push(g); });
+const split = SPLITS.label[42];
+
+/* the held-out cells as the widget's column lays them out: pieces by scaffold, largest first */
+const held = []; for (let k = 0; k < N; k++) if (split[k] !== "0") held.push(k);
+const byG = new Map(); for (const k of held) { const g = groupOf[k]; if (!byG.has(g)) byG.set(g, []); byG.get(g).push(k); }
+const pos = new Map(), outlines = [];
+let x = 0, y = 4, rowH = 0;
+const multi = [...byG.keys()].filter((g) => GROUPS[g][0] > 1), single = [...byG.keys()].filter((g) => GROUPS[g][0] === 1);
+for (const g of multi) {
+  const ks = byG.get(g), cols = Math.min(Math.ceil(Math.sqrt(GROUPS[g][0])), Math.floor((COLW + 1) / PITCH));
+  const rows = Math.ceil(ks.length / cols), bw = cols * PITCH - 1, bh = rows * PITCH - 1;
+  if (x + bw > COLW) { x = 0; y += rowH + GAP; rowH = 0; }
+  ks.forEach((k, j) => pos.set(k, [x + (j % cols) * PITCH, y + Math.floor(j / cols) * PITCH]));
+  outlines.push([x, y, bw, bh]); x += bw + GAP; rowH = Math.max(rowH, bh);
+}
+y += rowH + 12;
+const sc = Math.floor((COLW + 1) / PITCH);
+single.forEach((g, j) => pos.set(byG.get(g)[0], [(j % sc) * PITCH, y + Math.floor(j / sc) * PITCH]));
+const H = y + Math.ceil(single.length / sc) * PITCH + 26;
+
+const ARMS = [
+  { key: "A", name: "A · as built", desc: "validation --c-group-b (amber), test --c-holdout (red)", val: (T) => ({ fill: T.groupB }) },
+  { key: "B", name: "B · validation stays grey", desc: "validation keeps the held-out grey (--ink-3), only test turns red", val: (T) => ({ fill: T.ink3 }) },
+  { key: "C", name: "C · validation green", desc: "validation --c-group-c (green), test red", val: (T) => ({ fill: T.groupC }) },
+  { key: "D", name: "D · validation hollow", desc: "validation an amber outline on the surface, test a filled red cell", val: (T) => ({ fill: null, stroke: T.groupB }) },
+  { key: "E", name: "E · validation pale", desc: "validation --c-group-b washed to 35% over the surface, as Evaluate already draws it; test red", val: (T) => ({ fill: blend(T.groupB, T.surface, 0.35) }) },
+];
+function hex(c) { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; }
+function blend(c, bg, a) { const p = hex(c), q = hex(bg); return `#${p.map((v, i) => Math.round(q[i] + (v - q[i]) * a).toString(16).padStart(2, "0")).join("")}`; }
+
+/* deuteranopia, Machado, Oliveira & Fernandes 2009, severity 1.0, on linear RGB */
+const M = [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]];
+const toLin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+const toSrgb = (v) => Math.round(255 * Math.min(1, Math.max(0, v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055)));
+function simulate(ctx, w, h) {
+  const img = ctx.getImageData(0, 0, w * DPR, h * DPR), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = toLin(d[i]), g = toLin(d[i + 1]), b = toLin(d[i + 2]);
+    d[i] = toSrgb(M[0][0] * r + M[0][1] * g + M[0][2] * b);
+    d[i + 1] = toSrgb(M[1][0] * r + M[1][1] * g + M[1][2] * b);
+    d[i + 2] = toSrgb(M[2][0] * r + M[2][1] * g + M[2][2] * b);
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+function lum(rgb) { return 0.2126 * toLin(rgb[0]) + 0.7152 * toLin(rgb[1]) + 0.0722 * toLin(rgb[2]); }
+function deut(rgb) { const l = rgb.map(toLin); return M.map((row) => toSrgb(row[0] * l[0] + row[1] * l[1] + row[2] * l[2])); }
+function ratio(a, b) { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+function contrast(T, arm, cvd) {
+  const v = arm.val(T), a = hex(v.fill ?? v.stroke), b = hex(T.holdout);
+  return ratio(cvd ? deut(a) : a, cvd ? deut(b) : b).toFixed(2);
+}
+function render(T, arm, cvd) {
+  const W = COLW + 16, c = document.createElement("canvas");
+  c.width = W * DPR; c.height = H * DPR; c.style.width = `${W}px`; c.style.height = `${H}px`;
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, W, H);
+  ctx.translate(8, 4);
+  const v = arm.val(T);
+  for (const k of held) {
+    const [px, py] = pos.get(k);
+    if (split[k] === "2") { ctx.fillStyle = T.holdout; ctx.fillRect(px, py, CELL, CELL); }
+    else if (v.fill) { ctx.fillStyle = v.fill; ctx.fillRect(px, py, CELL, CELL); }
+    else { ctx.strokeStyle = v.stroke; ctx.lineWidth = 1; ctx.strokeRect(px + 0.5, py + 0.5, CELL - 1, CELL - 1); }
+    if (LABELS[k] === "1") { ctx.fillStyle = T.ink1; ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2); }
+  }
+  ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+  for (const [ox, oy, ow, oh] of outlines) ctx.strokeRect(ox - 1.5, oy - 1.5, ow + 3, oh + 3);
+  /* the key, as the widget would print it */
+  const ky = H - 16;
+  const sw = (xx, fill, stroke, word) => {
+    if (fill) { ctx.fillStyle = fill; ctx.fillRect(xx, ky - 8, 9, 9); } else { ctx.strokeStyle = stroke; ctx.strokeRect(xx + 0.5, ky - 7.5, 8, 8); }
+    ctx.fillStyle = T.ink1; ctx.font = `11px ${T.font}`; ctx.fillText(word, xx + 12, ky);
+  };
+  sw(0, v.fill, v.stroke, "validation"); sw(78, T.holdout, null, "test");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (cvd) simulate(ctx, W, H);
+  return c;
+}
+
+const root = document.documentElement, was = root.dataset.theme;
+const themes = {};
+for (const th of ["light", "dark"]) { root.dataset.theme = th; themes[th] = readTokens(); }
+if (was) root.dataset.theme = was; else delete root.dataset.theme;
+
+const t = document.getElementById("t");
+const head = document.createElement("tr");
+["", "light", "light · deuteranopia", "dark", "dark · deuteranopia"].forEach((h) => { const th = document.createElement("th"); th.textContent = h; head.appendChild(th); });
+t.appendChild(head);
+for (const arm of ARMS) {
+  const tr = document.createElement("tr");
+  const td0 = document.createElement("td"); td0.className = "arm"; td0.innerHTML = `<b>${arm.name}</b>${arm.desc}`; tr.appendChild(td0);
+  for (const [th, cvd] of [["light", false], ["light", true], ["dark", false], ["dark", true]]) {
+    const td = document.createElement("td"); td.appendChild(render(themes[th], arm, cvd));
+    const n = document.createElement("div"); n.style.cssText = "font-size:11px;color:var(--ink-2);margin-top:3px";
+    n.textContent = `contrast with test ${contrast(themes[th], arm, cvd)}:1${arm.key === "D" ? " (outline vs fill: a shape cue too)" : ""}`;
+    td.appendChild(n); tr.appendChild(td);
+  }
+  t.appendChild(tr);
+}
+</script>
+</body>
+</html>
