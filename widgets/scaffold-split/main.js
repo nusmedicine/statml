@@ -111,7 +111,7 @@ const S = {
   fileCapRing: "one block a scaffold · ringed: the example's scaffold",
   benzene: (n) => `benzene · ${n}`,
   empty: (n) => `no ring · ${n}`,
-  singles: (n) => `${n} scaffolds that hold one molecule each`,
+  band: (b) => `${b.count} scaffold${b.count === 1 ? "" : "s"} with ${b.range} molecule${b.range === "1" ? "" : "s"} each`,
   active: "active",
 
   /* Split */
@@ -239,26 +239,41 @@ function keyItem(ctx, colors, x, y, fill, word, { active = false } = {}) {
    group of two or more is a square-ish block of 5px cells, outlined, largest
    first; the single-molecule scaffolds follow as loose cells. The grid's order
    is data.js's: group by group, actives first inside a group. */
-const PITCH = 6, CELL = 5, GAP = 5, GRID_W = 520, NAME_H = 14;
+const PITCH = 6, CELL = 5, GAP = 5, GRID_W = 520, NAME_H = 14, CAP_H = 16, BAND_GAP = 10;
+/* BANDS BY GROUP SIZE, EACH LABELLED (his pick A, round 1): the draft wrapped
+   one flow of blocks into rows whose edges fell wherever the box shape
+   changed, so the rows read as categories they were not (one mixed groups of
+   7, 6, 5 and 4). Now a band is a size class, captioned with how many
+   scaffolds it holds, and the separation says how lopsided the screen is. */
+const BANDS = [[13, Infinity, "13 or more"], [7, 12, "7–12"], [4, 6, "4–6"], [3, 3, "3"], [2, 2, "2"], [1, 1, "1"]];
 const GRID = (() => {
-  const blocks = [], cellAt = new Array(N), groupOf = new Array(N);
-  let x = 0, y = 0, rowH = 0, row = 0, k = 0;
-  GROUPS.forEach(([n], g) => {
-    if (n === 1) return;
-    const cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols), bw = cols * PITCH - 1, bh = rows * PITCH - 1;
-    if (x + bw > GRID_W) { x = 0; y += rowH + GAP + (row === 0 ? NAME_H : 0); rowH = 0; row += 1; }
-    blocks.push({ g, x, y, w: bw, h: bh, start: k, n });
-    for (let j = 0; j < n; j++) { cellAt[k] = [x + (j % cols) * PITCH, y + Math.floor(j / cols) * PITCH]; groupOf[k] = g; k += 1; }
-    x += bw + GAP; rowH = Math.max(rowH, bh);
-  });
-  const singleTop = y + rowH + GAP + 16, cols = Math.floor((GRID_W + 1) / PITCH);
-  let j = 0;
-  GROUPS.forEach(([n], g) => {
-    if (n !== 1) return;
-    cellAt[k] = [(j % cols) * PITCH, singleTop + Math.floor(j / cols) * PITCH]; groupOf[k] = g; k += 1; j += 1;
+  const blocks = [], bands = [], cellAt = new Array(N), groupOf = new Array(N);
+  const scols = Math.floor((GRID_W + 1) / PITCH);
+  let y = 0, k = 0, singleTop = 0, nSingles = 0;
+  BANDS.forEach(([lo, hi, range], bi) => {
+    const gs = GROUPS.map(([n], g) => [n, g]).filter(([n]) => n >= lo && n <= hi);
+    if (!gs.length) return;
+    bands.push({ y, range, count: gs.length, single: lo === 1 });
+    y += CAP_H;
+    if (lo === 1) {
+      singleTop = y; nSingles = gs.length;
+      gs.forEach(([, g], j) => { cellAt[k] = [(j % scols) * PITCH, y + Math.floor(j / scols) * PITCH]; groupOf[k] = g; k += 1; });
+      y += Math.ceil(gs.length / scols) * PITCH;
+      return;
+    }
+    let x = 0, rowH = 0, row = 0;
+    gs.forEach(([n, g]) => {
+      const cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols), bw = cols * PITCH - 1, bh = rows * PITCH - 1;
+      /* the first band's first row carries the two block names under it */
+      if (x + bw > GRID_W) { x = 0; y += rowH + GAP + (bi === 0 && row === 0 ? NAME_H : 0); rowH = 0; row += 1; }
+      blocks.push({ g, x, y, w: bw, h: bh, start: k, n });
+      for (let j = 0; j < n; j++) { cellAt[k] = [x + (j % cols) * PITCH, y + Math.floor(j / cols) * PITCH]; groupOf[k] = g; k += 1; }
+      x += bw + GAP; rowH = Math.max(rowH, bh);
+    });
+    y += rowH + (bi === 0 && row === 0 ? NAME_H : 0) + BAND_GAP;
   });
   const blockOfGroup = new Map(blocks.map((b) => [b.g, b]));
-  return { blocks, blockOfGroup, cellAt, groupOf, singleTop, nSingles: j, h: singleTop + Math.ceil(j / cols) * PITCH };
+  return { blocks, bands, blockOfGroup, cellAt, groupOf, singleTop, nSingles, h: y };
 })();
 /** where the grid sits, and how much it is scaled, at this canvas width */
 const gridBox = (w, top) => { const sc = Math.min(1, (w - 16) / GRID_W); return { x0: (w - GRID_W * sc) / 2, y0: top, sc }; };
@@ -291,7 +306,7 @@ function drawGrid(ctx, colors, b, fillOf, { ring = null, labels = true } = {}) {
     const bz = GRID.blockOfGroup.get(NAMED.benzene), em = GRID.blockOfGroup.get(NAMED.empty);
     txt(ctx, colors, S.benzene(GROUPS[NAMED.benzene][0]), bz.x, bz.y + bz.h + 13, { fill: colors.ink2 });
     txt(ctx, colors, S.empty(GROUPS[NAMED.empty][0]), em.x, em.y + em.h + 13, { fill: colors.ink2 });
-    txt(ctx, colors, S.singles(GRID.nSingles), 0, GRID.singleTop - 5, { fill: colors.ink3 });
+    for (const band of GRID.bands) txt(ctx, colors, S.band(band), 0, band.y + CAP_H - 6, { fill: colors.ink3 });
   }
   ctx.restore();
 }
@@ -375,7 +390,8 @@ const swept = (k, t) => t >= (k / N) * SWEEP_END;
 
 const MOL_H = 356;
 const H_SCAF = MOL_H + 30 + GRID.h + 14;
-const GRID_TOP = 30;
+/* the key on one line, the status on its own line under it: beside the key it was cut off at the harness's 534px */
+const GRID_TOP = 48;
 const BARS_H = 138, SCORE_H = 170;
 const H_SPLIT = GRID_TOP + GRID.h + 26 + BARS_H;
 const H_EVAL = GRID_TOP + GRID.h + 26 + SCORE_H;
@@ -468,13 +484,13 @@ function drawSplit(ctx, colors, w, params, anim, pointer) {
   if (reached >= 2) { x = keyItem(ctx, colors, x, 16, pc[1], S.keyVal); x = keyItem(ctx, colors, x, 16, pc[2], S.keyTest); }
   x = keyItem(ctx, colors, x, 16, colors.surface3, S.active, { active: true });
   const status = reached === 0 ? S.splitStatus[0] : S.splitStatus[Math.min(2, reached)](kind);
-  txt(ctx, colors, status, x + 4, 17, { fill: colors.ink3, maxW: w - x - 10 });
+  txt(ctx, colors, status, 12, 36, { fill: colors.ink3, maxW: w - 24 });
 
   const b = gridBox(w, GRID_TOP);
   drawGrid(ctx, colors, b, fillOf);
 
   /* cell 30's figure, once all three parts exist */
-  if (beat >= 2) drawBars(ctx, colors, w, GRID_TOP + GRID.h + 22, st, pc);
+  if (beat >= 2) drawBars(ctx, colors, w, GRID_TOP + GRID.h * b.sc + 22, st, pc);
 
   const hov = groupAt(b, pointer);
   if (hov) {
@@ -527,12 +543,13 @@ function drawEvaluate(ctx, colors, w, params, anim, pointer) {
   x = keyItem(ctx, colors, x, 16, wash(pc[1], 0.35), S.keyVal);
   x = keyItem(ctx, colors, x, 16, pc[2], S.keyTest);
   x = keyItem(ctx, colors, x, 16, colors.surface3, S.active, { active: true });
-  txt(ctx, colors, beat >= 1 || t != null ? S.evStatus[1] : S.evStatus[0](kind), x + 4, 17, { fill: beat >= 1 || t != null ? colors.ink1 : colors.ink3, maxW: w - x - 10 });
+  txt(ctx, colors, beat >= 1 || t != null ? S.evStatus[1] : S.evStatus[0](kind), 12, 36, { fill: beat >= 1 || t != null ? colors.ink1 : colors.ink3, maxW: w - 24 });
 
   const b = gridBox(w, GRID_TOP);
   drawGrid(ctx, colors, b, fillOf, { ring: ringOn });
 
-  drawScores(ctx, colors, w, GRID_TOP + GRID.h + 22, params, anim);
+  /* under the grid as drawn: a grid scaled to a narrow canvas left a gap above the chart */
+  drawScores(ctx, colors, w, GRID_TOP + GRID.h * b.sc + 22, params, anim);
 
   const hov = groupAt(b, pointer);
   if (hov) { const [n, a] = GROUPS[hov.g]; hoverLabel(ctx, colors, S.hoverParts(n, a, parts[hov.g]), pointer.x, pointer.y, w); }
