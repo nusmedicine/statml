@@ -1385,7 +1385,7 @@
     {
       "slug": "message-passing",
       "title": "Deep Learning - Graphs: Message Passing",
-      "blurb": "A GNN layer gathers each node's neighbours; stacked layers reach further and make nodes alike; a readout pools them.",
+      "blurb": "A GNN layer aggregates neighbours, multiplies by W, applies an activation; k layers cover k hops; a readout pools them.",
       "course": "PHM5005",
       "topics": [
         "graph neural network",

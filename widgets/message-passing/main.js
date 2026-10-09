@@ -109,7 +109,8 @@ const COLS5 = ["Z", "ar", "hyb", "H", "q"];
 
 const S = {
   subtitle:
-    "A graph neural network layer updates each node from its neighbours and itself: GCN weights the neighbours by their degrees, GAT learns the weights. " +
+    "A graph neural network layer updates each node from its neighbours and itself: it aggregates their vectors, multiplies by a learned matrix W and applies an activation. " +
+    "GCN weights the neighbours by their degrees; GAT learns the weights by attention. " +
     "After k layers a node has gathered from every node within k edges, and with more layers the nodes' vectors become alike. A readout pools them into one vector for the graph.",
   pageLabel: "",
   nodeLabel: "Node",
@@ -124,7 +125,7 @@ const S = {
   fromLabel: "Atom",
   fromDetail: "the atom whose reach is drawn; a click on an atom picks it too",
   poolLabel: "Pooling",
-  poolDetail: "how the atoms' vectors become one: the sum, the mean or the largest value of each number; the lesson pools with max",
+  poolDetail: "how the atoms' vectors become one: the sum, the mean or the largest value of each number",
 
   stepLabel: {
     param: "page",
@@ -185,7 +186,7 @@ const S = {
     graph: "the same sum in any order of the inputs · every node does this at once in a layer",
     gcn: "the weight depends on the two degrees only: a double and a single bond between atoms of the same degrees weigh the same",
     untrained: "untrained, every α is close to 1/(inputs): GAT starts as an average",
-    trained: "after training, α weights some inputs more · the lesson's GAT also reads the bond features, which GCN does not",
+    trained: "after training, α weights some inputs more · the trained GAT also reads the bond features, which GCN does not",
   },
   aggHover: (i, el, d) => `${el} · atom ${i} · degree ${d} · click to pick`,
   nodeHover: (i, d) => `node ${i} · degree ${d} · click to pick`,
@@ -210,17 +211,17 @@ const S = {
 
   /* Layers */
   capReach: (n, N) => `gathered from: ${n} of ${N} atoms`,
-  capAlike: (i) => `alike to atom ${i}`,
-  keyLo: "unrelated",
-  keyHi: "same direction",
-  curveY: "atoms unlike",
+  capAlike: (i) => `cosine similarity to atom ${i}`,
+  keyLo: "cosine 0",
+  keyHi: "cosine 1",
+  curveY: "cosine distance",
   curveX: "layers",
-  curveLesson: "the lesson's 2",
+  curveLesson: "the trained GAT's 2",
   layMoving: (k) => `layer ${k} · every atom sends its vector to each neighbour`,
   sheet0: "layer 0 · x",
   sheetK: (k) => `layer ${k}`,
   layStatus: (k, i, n, N) => (k === 0 ? `no layer yet · atom ${i} holds only its own row of x` : `after ${k} layer${k === 1 ? "" : "s"} · atom ${i} has gathered from ${n} of ${N} atoms`),
-  layNote: "likeness: the cosine of two atoms' vectors · unlike: 1 minus it, averaged over every pair of atoms",
+  layNote: "cosine similarity of two atoms' vectors · cosine distance: 1 minus it, averaged over every pair of atoms",
   layHover: (i, el, hop) => `${el} · atom ${i} · ${hop} bond${hop === 1 ? "" : "s"} away · click to pick`,
 
   /* Readout */
@@ -228,7 +229,7 @@ const S = {
   capRows: (k) => `one row an atom · h after ${k} layer${k === 1 ? "" : "s"}`,
   rowsNote: (n) => `the first ${SHOW} of ${n} numbers · one scale for every cell`,
   depthLabel: "Layers",
-  depthDetail: "how many layers run before the atoms' vectors are pooled: the same network as the Layers page; the lesson's model runs 2",
+  depthDetail: "how many layers run before the atoms' vectors are pooled: the same network as the Layers page; the trained GAT runs 2",
   pipeX: "x", pipeLayer: (i) => `layer ${i}`, pipePool: "pool", pipeCls: "classifier", pipeY: "y", pipeGap: "…",
   poolRule: { sum: "Pool: the sum of each column", mean: "Pool: the mean of each column", max: "Pool: the largest of each column" },
   pooledName: { sum: "sum", mean: "mean", max: "max" },
@@ -236,7 +237,7 @@ const S = {
   classifier: "classifier",
   rdStatus: ["each atom a vector · Pool turns the 14 into one", "pooled · the one vector the classifier reads"],
   rdMoving: "each column pooled into one number",
-  rdNote: (y) => `caffeine's label in the lesson's file: y = ${y}, it did not stop E. coli growing · the lesson trains W and the classifier together`,
+  rdNote: (y) => `caffeine's label in the E. coli screen: y = ${y}, it did not stop E. coli growing · training fits W and the classifier together`,
   rdHover: (i, el) => `${el} · atom ${i} · its row`,
 
   /* tiles */
@@ -246,18 +247,18 @@ const S = {
   tileSumNote: { gcn: "1/√(dᵢ dⱼ) sums to 1 only when every input has the node's own degree", gat: "a softmax over the inputs, so α sums to 1" },
   tileTop: "Largest weight",
   tileTopNote: {
-    gcn: "GCN favours the input with the fewest neighbours",
+    gcn: "GCN's largest weight goes to the input with the fewest neighbours",
     untrained: "untrained: the largest α is close to the others",
-    trained: (agree) => `learned on the lesson's file; two more training runs give the same top input for ${agree} of caffeine's 14 atoms`,
+    trained: (agree) => `learned on 2,335 molecules; two more training runs give the same top input for ${agree} of caffeine's 14 atoms`,
   },
   tileLayers: "Layers",
-  tileLayersNote: "the lesson's GCN and GAT stack 2",
+  tileLayersNote: "the trained GAT behind GAT's α stacks 2",
   tileReach: "Gathered from",
   tileReachNote: (d) => `the atoms within k bonds; caffeine's longest shortest path is ${d} bonds`,
-  tileUnlike: "Atoms unlike",
-  tileUnlikeNote: (v0) => `the mean cosine distance between atoms: ${v0} before any layer, 0 when every vector points the same way`,
+  tileUnlike: "Cosine distance",
+  tileUnlikeNote: (v0) => `the mean over every pair of atoms: ${v0} before any layer, 0 when every vector points the same way`,
   tileRows: "Atom vectors",
-  tileRowsNote: (n, d, k, u) => `${n} rows of ${d} numbers, one an atom, after ${k} layer${k === 1 ? "" : "s"}; how unlike they are: ${u}`,
+  tileRowsNote: (n, d, k, u) => `${n} rows of ${d} numbers, one an atom, after ${k} layer${k === 1 ? "" : "s"}; their mean cosine distance: ${u}`,
   tilePooled: "Pooled vector",
   tilePooledNote: {
     sum: "adds the rows: a molecule with more atoms gives larger numbers",
@@ -265,7 +266,7 @@ const S = {
     max: "keeps the largest value of each number: which atom it came from drops out",
   },
   tileY: "y",
-  tileYNote: "caffeine's label in the lesson's file; the classifier is trained to predict it from the pooled vector",
+  tileYNote: "caffeine's label in the E. coli screen; the classifier is trained to predict it from the pooled vector",
   tileWait: "—",
 
   sumGraph: (i, beat) => `a three-node chain, node ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W" : ""}${beat >= 3 ? ", then passed through ELU" : ""}`,
@@ -457,7 +458,7 @@ function compute({ params, rng }) {
 
   /* Basics and Aggregate: one layer each */
   const g = layerOn(BASIC, Number(params.node), "gcn", "untrained", Wbasic);
-  const c = layerOn(CAFFEINE, Number(params.atom), params.layer, params.weights, Wcaf);
+  const c = layerOn(CAFFEINE, Number(params.atom), params.layer, params.alpha, Wcaf);
 
   /* Layers: the five columns standardised with the file's statistics */
   const cafA = adjacency(CAFFEINE), cafP = gcnP(cafA);
@@ -499,7 +500,7 @@ const MOVE_MS = 1700;   /* slowed on his word, round 2 */
    ring slides to its new node, a value goes to its new value — and switches
    the rest at once (tween-only-movement). */
 const EASE_MS = 700;
-const TWEENED = ["node", "atom", "layer", "weights", "from", "depth", "pooling"];
+const TWEENED = ["node", "atom", "layer", "alpha", "from", "depth", "pooling"];
 /** the reading a rail change left, while the ease runs; null when settled */
 const ezFrom = (anim) => (anim?.ez && anim.ez.t < 1 ? anim.ez : null);
 /** how far that ease has gone, eased; 1 when settled */
@@ -922,7 +923,7 @@ function drawAggregate(ctx, colors, w, h, params, c0, anim, pointer) {
   if (hov != null) hoverLabel(ctx, colors, S.aggHover(hov, mol.atoms[hov].el, A[hov].reduce((s, v) => s + v, 0)), P[hov][0], P[hov][1], w);
   const status = tr != null ? S.trMoving.aggregate : msgU != null ? S.molMoving : beat === 0 ? S.aggStatus[0]("atom", a.i, a.deg) : beat === 1 ? S.aggStatus[1]("atom", a.i, fmt(a.w.reduce((s, v) => s + v, 0))) : S.aggStatus[2]("atom", a.i);
   txt(ctx, colors, status, 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
-  txt(ctx, colors, kind === "gcn" ? S.aggNote.gcn : S.aggNote[params.weights], 12, h - 11, { fill: colors.ink3, maxW: w - 24 });
+  txt(ctx, colors, kind === "gcn" ? S.aggNote.gcn : S.aggNote[params.alpha], 12, h - 11, { fill: colors.ink3, maxW: w - 24 });
 }
 
 /* =============================================================== Layers */
@@ -1195,7 +1196,8 @@ defineWidget({
     node: { type: "segmented", label: S.nodeLabel, detail: S.nodeDetail, options: NODE_OPTS, default: "1", display: true, when: ON("graph") },
     atom: { type: "select", label: S.atomLabel, detail: S.atomDetail, options: ATOM_OPTS, default: "1", display: true, when: ON("aggregate") },
     layer: { type: "segmented", label: S.layerLabel, detail: S.layerDetail, options: LAYERS, default: "gcn", display: true, when: ON("aggregate") },
-    weights: { type: "segmented", label: S.weightsLabel, detail: S.weightsDetail, options: WEIGHTS, default: "untrained", display: true, when: { all: [ON("aggregate"), { param: "layer", equals: "gat" }] } },
+    /* the key is `alpha`, the control's word (round 9, the copy audit: it was `weights`) */
+    alpha: { type: "segmented", label: S.weightsLabel, detail: S.weightsDetail, options: WEIGHTS, default: "untrained", display: true, when: { all: [ON("aggregate"), { param: "layer", equals: "gat" }] } },
     from: { type: "select", label: S.fromLabel, detail: S.fromDetail, options: ATOM_OPTS, default: "9", display: true, when: ON("layers") },
     depth: { type: "choice", label: S.depthLabel, detail: S.depthDetail, options: [...Array(K_MAX).keys()].map((k) => ({ value: String(k + 1), label: String(k + 1) })), default: String(LESSON_LAYERS), display: true, when: ON("readout") },
     pooling: { type: "segmented", label: S.poolLabel, detail: S.poolDetail, options: POOLS, default: "max", display: true, when: ON("readout") },
@@ -1206,7 +1208,7 @@ defineWidget({
   legend: ({ params }) => {
     if (params.page === "graph") return [{ token: "highlight", label: "The node updated", mark: "dot" }, { token: "group-a", label: "Its neighbours", mark: "dot" }];
     if (params.page === "aggregate") return [{ token: "highlight", label: "The atom updated", mark: "dot" }, { token: "group-a", label: "Its neighbours", mark: "dot" }];
-    if (params.page === "layers") return [{ token: "group-a", label: "Gathered from", mark: "dot" }, { token: "empirical", label: "Caffeine", mark: "line" }, { token: "reference", label: `The file's ${FILE_N.toLocaleString("en")} molecules, mean`, mark: "dash" }];
+    if (params.page === "layers") return [{ token: "group-a", label: "Gathered from", mark: "dot" }, { token: "empirical", label: "Caffeine", mark: "line" }, { token: "reference", label: `Mean of ${FILE_N.toLocaleString("en")} molecules in the E. coli screen`, mark: "dash" }];
     return params.pooling === "max" ? [{ token: "highlight", label: "The largest value of each column", mark: "hollow" }] : [];
   },
 
@@ -1315,7 +1317,7 @@ defineWidget({
     const big = Math.max(...a.w), tops = a.inputs.filter((_, k) => a.w[k] > big - 1e-9);
     const others = tops.filter((j) => j !== a.i), self = tops.includes(a.i);
     const who = [...(self ? [S.selfTag] : []), ...(others.length ? [`${unit}${others.length > 1 ? "s" : ""} ${others.join(" and ")}`] : [])].join(" and ");
-    const topNote = kind === "gat" ? (params.weights === "trained" ? S.tileTopNote.trained(state.agreeTop) : S.tileTopNote.untrained) : S.tileTopNote.gcn;
+    const topNote = kind === "gat" ? (params.alpha === "trained" ? S.tileTopNote.trained(state.agreeTop) : S.tileTopNote.untrained) : S.tileTopNote.gcn;
     return [
       { label: S.tileInputs, value: String(a.inputs.length), note: S.tileInputsNote(a.deg) },
       { label: S.tileSum, value: beat >= 1 ? fmt(a.w.reduce((s, v) => s + v, 0)) : S.tileWait, note: S.tileSumNote[kind] },
