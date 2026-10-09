@@ -27,7 +27,9 @@ const slug = Q.get("slug") || "sequence-encoding", W = Number(Q.get("w") || 900)
 const STATES = {
   /* widget 94's draft (2026-10-09): each page at every press count that changes a caption, every edges/order/string */
   "graph-representation": [
-    ...["undirected", "directed"].flatMap((e) => ["abcd", "cadb"].flatMap((o) => [0, 1, 3].map((n) => `?edges=${e}&order=${o}&shown=${n}`))),
+    /* the Graph page built by clicking (2026-10-09): empty, cell 25's chain, a dense six, a pick pending */
+    ...["undirected", "directed"].flatMap((e) => ["abc", "shuffled"].flatMap((o) => ["3", "4", "6"].flatMap((n) =>
+      ["", "AB,BC,CD", "AB,AC,AD,AE,AF,BC,BD,BE,BF,CD,CE,CF,DE,DF,EF", "AB,BA,BC,CD|D"].map((g) => `?edges=${e}&order=${o}&nodes=${n}&graph=${g}`)))),
     ...["first", "canonical", "other"].flatMap((sm) => [0, 1, 7, 14, 15].map((n) => `?page=molecule&smiles=${sm}&shown=${n}`)),
   ],
   /* widget 67 after the notebook-order restructure, 2026-09-26: page 1's

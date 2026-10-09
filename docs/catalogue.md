@@ -24472,17 +24472,33 @@ the terms check.
 
 ### Slot 94 · `graph-representation` — Graphs: Representation — DRAFT 2026-10-09
 
-Two pages under **Step**, one press a step, nothing animated but the pacing
-(appearances switch at once).
+Two pages under **Step**. The draft's Graph page was a press an edge along
+cell 25's chain; **round 1 (2026-10-09) replaced it with a constructor** on
+his question "is a drag and drop graph constructor worthwhile or feasible,
+limited to like 6 nodes?" — answered with `_lab/graph-constructor-mock.html`
+(83eb93c), two prototypes on core unchanged, and his five calls, all the
+recommendation: construction replaces the press; click two nodes (not a dot
+per pair: 15 crowd the drawing at six nodes, 30 directed); Nodes 3–6; no
+node dragging (positions would be a parameter, core's drag cannot say which
+node was grabbed, the harness has no drag); a Density tile.
 
-- **Graph** — 09-1 cell 25's four proteins A – B – C – D with their two
-  features as cells over each node, `x` [4, 2], `A` [4, 4] and `edge_index`.
-  **Next edge** adds an edge: its cells in A and its column(s) in
-  `edge_index` fill, the newest in `--c-highlight`. **Edges** Undirected ·
-  Directed (data: resets); **Order** *A, B, C, D* · *C, A, D, B* (display:
-  keeps the count) renumbers the same four nodes and every table changes
-  while the drawing does not. Hover a node: its row of x, its row and column
-  of A and its entries in `edge_index` light in `--c-group-a`.
+- **Graph** — 3–6 nodes (cell 25's four proteins and E, F with made-up
+  features), opening with no edge. A click on a node and then another joins
+  or parts them (directed: source first; the pending pick ringed); a click
+  on an off-diagonal cell of A does the same; the **Edge list** field takes
+  them typed. All three write ONE `text` parameter, `graph` ("AB,BC", the
+  pick after a bar, "AB|C", hidden from the field), so the link carries the
+  graph; regions compute their value from the parameters, which keeps a
+  click inside core's one-parameter rule. `x`, A and `edge_index` (sorted by
+  source then target, as PyG keeps it) follow at once; tiles Edges ·
+  Density (09-1 cell 13's 2M / N(N − 1), M / N(N − 1) directed) · A
+  symmetric or not. **Edges** Undirected · Directed; **Order** In order ·
+  Shuffled renumbers and the drawing stays. Every Graph control is
+  `display`, so none resets the Molecule press; `anim.inert` on this page
+  takes Step and Play out of the row (Reset stays: back to the link's graph).
+  Six node slots searched (600,000 draws) so nodes are 40 px apart, feature
+  cells clear, and no node lies on another pair's edge. Hover a node: its
+  degree as a row sum of A.
 - **Molecule** — caffeine: the string one character a cell with each atom's
   number under it; the drawing (atoms as nodes, aromatic as solid + dashed);
   `x` [14, 5] with cell 11's five features (hybridization as RDKit's enum
@@ -24499,8 +24515,12 @@ Two pages under **Step**, one press a step, nothing animated but the pacing
 `_lab/graph-representation-data.py` (RDKit; the drawing is made once for the
 first string and the others matched onto it). Checks at draft: fillText over
 all 18 presses with no NaN; the text-overlap sweep 27 states clean at 900 and
-1200; the switch probe 3 switches, 0 flagged. Draft status, no fingerprint
-states yet (baseline after his review).
+1200; the switch probe 3 switches, 0 flagged. Round 1: clicks driven as real
+pointer events (pick, join, A cell, typed field all write one parameter);
+the Molecule count held through every Graph change; the sweep 63 states
+clean at 900 (48 Graph states: 3 · 4 · 6 nodes, empty, chain, complete,
+pick pending); the switch probe 6 switches, 0 flagged. Draft status, no
+fingerprint states yet (baseline after his review).
 
 ---
 

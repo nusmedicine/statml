@@ -15,11 +15,17 @@
    Two pages under Step (his picks from `_lab/graph-arc-mock.html`, all the
    recommendation, 2026-10-09):
 
-     GRAPH     09-1 cell 25's four proteins, A – B – C – D, two features each.
-               A press adds the next edge: its cells in A and its column(s) in
-               `edge_index` fill. Undirected stores an edge both ways (A is
-               symmetric), directed once. ORDER numbers the same four nodes
-               another way: every table changes, the drawing does not.
+     GRAPH     a graph the reader builds (his picks from
+               `_lab/graph-constructor-mock.html`, all the recommendation,
+               2026-10-09): 3–6 nodes, 09-1 cell 25's four proteins and two
+               more, each with two features, opening with no edge. A click on
+               a node and then another joins or parts them (directed: source
+               first); a click on a cell of A does the same; the Edge list
+               field takes them typed. `x`, A and `edge_index` (sorted by
+               source then target, as PyG keeps it) follow at once, with the
+               density, 09-1 cell 13's 2M / N(N − 1). ORDER numbers the same
+               nodes another way: every table changes, the drawing does not.
+               No press on this page (core's `anim.inert`).
      MOLECULE  caffeine (09-2 cell 6). The string above the drawing, each
                atom's number under its character; `x` (cell 11's five
                features), then `edge_index` and `edge_attr` with one column a
@@ -31,8 +37,18 @@
 
    Numbering from 0 everywhere, as PyG (his call 5.3). Atoms drawn as nodes,
    a filled circle with the element, carbon included (5.4). Nothing trains:
-   compute() is the tables; the press reveals them (invariant 2). Each stage
-   keeps its own count, so a page switch and back finds it where it was.
+   compute() is the tables; on Molecule the press reveals them (invariant 2),
+   and its count survives a visit to the Graph page.
+
+   THE GRAPH IS ONE PARAMETER, `graph`, a `text` field of node pairs, source
+   then target, "AB,BC": the link carries the graph and the field is the
+   keyboard path to it. A region computes its value from the parameters, so
+   a click is one write to one parameter, inside core's one-parameter rule.
+   The first click of a pair is a pending pick, and a second parameter for it
+   would make the second click write two; so the pick rides in the same
+   string after a bar, "AB,BC|C", and the field's `show` leaves it out. Every
+   Graph-page control is `display`: none of them may reset the Molecule
+   page's press.
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
@@ -40,16 +56,23 @@ import { CAFFEINE } from "./data.js";
 
 const PAGES = [{ value: "graph", label: "Graph" }, { value: "molecule", label: "Molecule" }];
 const EDGES = [{ value: "undirected", label: "Undirected" }, { value: "directed", label: "Directed" }];
-/* the node numbered 0, 1, 2, 3 in turn */
-const ORDERS = [{ value: "abcd", label: "A, B, C, D" }, { value: "cadb", label: "C, A, D, B" }];
+const ORDERS = [{ value: "abc", label: "In order" }, { value: "shuffled", label: "Shuffled" }];
+const COUNTS = ["3", "4", "5", "6"].map((v) => ({ value: v, label: v }));
 const STRINGS = [{ value: "first", label: "Original" }, { value: "canonical", label: "Canonical" }, { value: "other", label: "Random" }];
 const STEP_MS = 240, RUN_MS = 520;
 const ON = (page) => ({ param: "page", equals: page });
 
-/* 09-1 cell 25: four proteins, two features each, a chain */
-const PROTEINS = ["A", "B", "C", "D"];
-const FEATURES = [[1.2, 0.3], [0.8, 0.9], [1.1, 0.4], [0.5, 1.2]];
-const CHAIN = [[0, 1], [1, 2], [2, 3]];
+/* 09-1 cell 25's four proteins, two features each, and E and F, whose
+   features are made up for this page */
+const NAMES = ["A", "B", "C", "D", "E", "F"];
+const FEATURES = [[1.2, 0.3], [0.8, 0.9], [1.1, 0.4], [0.5, 1.2], [0.9, 0.6], [1.3, 0.2]];
+/* where each node sits, as fractions of a 250 × 175 drawing box, A–D left to
+   right. Searched (600,000 draws, `_lab/graph-constructor.js`) so that, with
+   3.5 px to spare, nodes are 40 px apart, no node's feature cells cover
+   another node or its cells, and no node lies on the edge between two others */
+const SLOTS = [[0.156, 0.557], [0.425, 0.311], [0.696, 0.865], [0.883, 0.564], [0.711, 0.315], [0.137, 0.875]];
+/* the node numbered 0, 1, … when shuffled, filtered to the nodes on */
+const SHUFFLE = [2, 0, 3, 1, 5, 4];
 const BOND_TYPES = ["SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"];
 /* RDKit's numbers for hybridization, as 09-2 cell 11 stores them */
 const HYB = { 2: "sp", 3: "sp2", 4: "sp3" };
@@ -62,35 +85,38 @@ const S = {
     "Numbering the nodes in another order changes every table and leaves the graph the same. A molecule is such a graph, and its SMILES string records every bond, " +
     "though two bonded atoms can be written far apart.",
   pageLabel: "Step",
+  nodesLabel: "Nodes",
+  nodesDetail: "how many nodes the graph has; the features of E and F are made up",
   edgesLabel: "Edges",
   edgesDetail: "an edge that goes both ways, as a protein binding another, or one way, from a source to a target",
   orderLabel: "Order",
-  orderDetail: "which node is numbered 0, 1, 2 and 3; the graph is the same either way",
+  orderDetail: "which node is numbered 0, 1, 2, …; the graph is the same either way",
+  graphLabel: "Edge list",
+  graphDetail: "pairs of nodes, source then target, as A-B, B-C; in an undirected graph A-B and B-A are one edge",
   stringLabel: "SMILES",
   stringDetail: "caffeine written three ways: as first given, in RDKit's canonical form, and from an oxygen in a random order; each numbers the atoms in its own order",
 
-  stepLabel: { param: "page", labels: { molecule: "Next bond" }, default: "Next edge" },
-  stepTitle: { param: "page", labels: { graph: "Add the next edge to A and edge_index", molecule: "Add the next bond to edge_index and edge_attr" }, default: "Next edge" },
+  stepLabel: "Next bond",
+  stepTitle: "Add the next bond to edge_index and edge_attr",
   runLabel: "Play",
-  runTitle: { param: "page", labels: { graph: "Add the remaining edges in turn", molecule: "Add the remaining bonds in turn" }, default: "Play" },
+  runTitle: "Add the remaining bonds in turn",
 
   /* Graph */
-  capGraph: "the graph · four proteins, two features each",
-  capX: "x · [4, 2]",
-  capA: "A · [4, 4]",
+  capGraph: "the graph · click two nodes to join them",
+  capX: (n) => `x · [${n}, 2]`,
+  capA: (n) => `A · [${n}, ${n}] · click a cell`,
   capAHint: "row: source · column: target",
-  capEI: (k) => `edge_index · [2, ${k}]`,
+  capEI: (k, dir) => `edge_index · [2, ${k}]${dir ? "" : " · each edge both ways"} · sorted by source, then target`,
+  eiEmpty: "no edge yet",
   rowSrc: "source",
   rowTgt: "target",
-  graphStart: "no edge yet · the nodes, their features and their numbers",
-  graphStatus: (n, N, a, b, dir, cols) => `edge ${n} of ${N} · ${a} ${dir ? "→" : "–"} ${b} · ${cols}`,
-  colsOne: (k) => `column ${k} of edge_index`,
-  colsTwo: (k) => `columns ${k} and ${k + 1} of edge_index, one each way`,
+  graphStatus: (n, m, k) => `${n} nodes · ${m} edge${m === 1 ? "" : "s"} · ${k} column${k === 1 ? "" : "s"} of edge_index`,
   graphNote: {
     undirected: "an undirected edge is stored both ways, so A is symmetric and edge_index has two columns an edge",
     directed: "a directed edge is stored once, source then target, so A need not be symmetric",
   },
-  graphHover: (name, i, f) => `${name} · node ${i} · row ${i} of x · features ${f[0].toFixed(1)}, ${f[1].toFixed(1)}`,
+  graphPick: (name) => `${name} picked · click another node to join it, or ${name} again to let go`,
+  graphHover: (name, i, dir, d) => `${name} · node ${i}, row ${i} of x · ${dir ? "out-degree" : "degree"} ${d}, the sum of row ${i} of A`,
 
   /* Molecule */
   capString: "the string · one character a cell; an atom's number under its character",
@@ -106,12 +132,12 @@ const S = {
   molKey: "solid and dashed: aromatic · two lines: double",
 
   /* tiles */
-  tileNodes: "Nodes",
-  tileNodesNote: "rows of x, one a node, in the order numbered",
   tileEdges: "Edges",
   tileEdgesNote: { undirected: "two columns of edge_index each, one each way", directed: "one column of edge_index each, source then target" },
+  tileDensity: "Density",
+  tileDensityNote: { undirected: "2M / N(N − 1): the edges there are over the edges there could be", directed: "M / N(N − 1): the edges there are over the edges there could be" },
   tileA: "A",
-  tileAValue: { undirected: "symmetric", directed: "not symmetric" },
+  tileAValue: (sym) => (sym ? "symmetric" : "not symmetric"),
   tileANote: "A[i][j] is 1 when an edge runs from node i to node j",
   tileAtoms: "Atoms",
   tileAtomsNote: "rows of x, in the order the string names them; its columns: atomic number, aromatic, hybridization (RDKit's number for it), hydrogens, charge",
@@ -121,7 +147,7 @@ const S = {
   tileFarNote: "the widest gap in the string between two bonded atoms, counted in atoms, over the bonds added; 1 is next to each other",
   tileWait: "—",
 
-  sumGraph: (dir, n, N) => `four proteins in a chain, ${dir ? "directed" : "undirected"}, with their feature matrix, adjacency matrix and edge list; ${n === 0 ? "no edge added yet" : n < N ? `${n} of ${N} edges added` : "every edge added"}`,
+  sumGraph: (n, m, dir) => `a ${dir ? "directed" : "undirected"} graph of ${n} nodes and ${m} edge${m === 1 ? "" : "s"}, with its feature matrix, adjacency matrix and edge list`,
   sumMol: (smi, n, N) => `caffeine written as ${smi}, its atoms as nodes, with x, edge_index and edge_attr; ${n === 0 ? "no bond added yet" : n < N ? `${n} of ${N} bonds added` : "every bond added"}`,
 };
 
@@ -199,21 +225,57 @@ function matrix(ctx, colors, x, y, M, { cellW = 22, cellH = 18, hl = () => null,
 
 /* ============================================================== compute */
 
-/* Nothing here is random and nothing trains: the tables, in full, for the
-   stage the parameters name. The press decides how much of them is shown. */
-function graphTables(directed, order) {
-  /* index[name] = the number the node gets; at[i] = the node numbered i */
-  const at = order === "cadb" ? [2, 0, 3, 1] : [0, 1, 2, 3];
-  const index = []; at.forEach((p, i) => (index[p] = i));
-  const x = at.map((p) => FEATURES[p]);
-  const cols = [], perEdge = [];
-  for (const [a, b] of CHAIN) {
-    const k = cols.length;
-    cols.push([index[a], index[b]]);
-    if (!directed) cols.push([index[b], index[a]]);
-    perEdge.push({ a, b, first: k, count: directed ? 1 : 2 });
+/* THE EDGE LIST AS A STRING. Pairs of node names, source then target, after
+   a bar the pending pick of a two-click join. `parse` canonicalises whatever
+   was typed or linked; the region helpers below write the same form. */
+function parseGraph(t) {
+  const [body, pickRaw = ""] = String(t).toUpperCase().split("|");
+  const pairs = [];
+  for (const m of body.matchAll(/([A-F])\s*[-–>→]?\s*([A-F])/g)) {
+    const pq = m[1] + m[2];
+    if (m[1] !== m[2] && !pairs.includes(pq)) pairs.push(pq);
   }
-  return { kind: "graph", directed, at, index, x, cols, perEdge, steps: CHAIN.length };
+  const pick = /^[A-F]$/.test(pickRaw.trim()) ? pickRaw.trim() : "";
+  return pairs.join(",") + (pick ? `|${pick}` : "");
+}
+const pairsOf = (v) => String(v).split("|")[0].split(",").filter(Boolean);
+const pickOf = (v) => String(v).split("|")[1] ?? "";
+const joinPairs = (pairs, pick = "") => pairs.join(",") + (pick ? `|${pick}` : "");
+/** the edge p–q (undirected) or p→q (directed) toggled, any pick dropped */
+function toggled(v, p, q, directed) {
+  let pairs = pairsOf(v);
+  const has = directed ? pairs.includes(p + q) : pairs.includes(p + q) || pairs.includes(q + p);
+  if (has) pairs = pairs.filter((x) => (directed ? x !== p + q : x !== p + q && x !== q + p));
+  else pairs.push(directed ? p + q : [p, q].sort().join(""));
+  return joinPairs(pairs);
+}
+/** a click on node X: start a pick, finish one, or let it go */
+function nodeClick(v, X, directed) {
+  const pick = pickOf(v);
+  if (!pick) return joinPairs(pairsOf(v), X);
+  if (pick === X) return joinPairs(pairsOf(v));
+  return toggled(v, pick, X, directed);
+}
+
+/* Nothing here is random and nothing trains. An edge whose node is switched
+   off stays in the string and is not drawn, so switching it back restores it. */
+function graphTables(params) {
+  const n = Number(params.nodes), directed = params.edges === "directed";
+  /* at[i] = the node numbered i; index[p] = the number node p gets */
+  const at = params.order === "shuffled" ? SHUFFLE.filter((p) => p < n) : [...Array(n).keys()];
+  const index = []; at.forEach((p, i) => (index[p] = i));
+  const on = (c) => NAMES.indexOf(c) < n;
+  const set = new Set();
+  for (const pq of pairsOf(params.graph)) if (on(pq[0]) && on(pq[1])) set.add(directed ? pq : [pq[0], pq[1]].sort().join(""));
+  const edges = [...set].map((pq) => [NAMES.indexOf(pq[0]), NAMES.indexOf(pq[1])]);
+  /* edge_index sorted by source then target under this numbering, as PyG keeps it */
+  const cols = [];
+  for (const [a, b] of edges) { cols.push([index[a], index[b]]); if (!directed) cols.push([index[b], index[a]]); }
+  cols.sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+  const A = at.map(() => at.map(() => 0));
+  for (const [i, j] of cols) A[i][j] = 1;
+  const pick = pickOf(params.graph);
+  return { n, directed, at, index, edges, cols, A, x: at.map((p) => FEATURES[p]), pick: pick && on(pick) ? NAMES.indexOf(pick) : null };
 }
 /* WHICH CHARACTERS ARE A BOND. A bond between atoms written next to each
    other has no character of its own; a "=" is one, and a ring closure is two
@@ -255,7 +317,7 @@ function moleculeTables(which) {
 }
 function compute({ params }) {
   return {
-    graph: graphTables(params.edges === "directed", params.order),
+    graph: graphTables(params),
     molecule: moleculeTables(params.smiles),
   };
 }
@@ -265,80 +327,106 @@ function compute({ params }) {
 const stageOf = (params) => params.page;
 /** the press whose numbers are shown */
 const shownStep = (anim) => anim.n[anim.stage];
-const stepsOf = (state, stage) => state[stage].steps;
+const stepsOf = (state, stage) => (stage === "molecule" ? state.molecule.steps : 0);
 
 /* ================================================================ Graph */
 
-const G = { top: 24, drawH: 150, tableTop: 44, cellH: 20, eiTop: 214, statusFromBottom: 24 };
-const H_GRAPH = 300;
-/** the four nodes' places in the drawing, a zigzag like his figures */
-function graphPoints(w) {
-  const x0 = 24, x1 = Math.min(w * 0.46, 330), y0 = G.top + 58, y1 = G.top + 128;
-  return [0, 1, 2, 3].map((p) => [x0 + (p + 0.5) * ((x1 - x0) / 4), p % 2 ? y0 : y1]);
+const G = { cellH: 20, tableTop: 54, eiTop: 246 };
+const H_GRAPH = 330;
+/* the left part holds the drawing, the right part x and A; A's cells narrow
+   so six columns fit the narrowest side layout (534 px) */
+const leftW = (w) => Math.min(w * 0.47, 330);
+const drawBox = (w) => ({ x0: 12, y0: 26, w: leftW(w) - 24, h: 175 });
+const nodeAt = (w, p) => { const b = drawBox(w); return [b.x0 + SLOTS[p][0] * b.w, b.y0 + SLOTS[p][1] * b.h]; };
+const NODE_R = 14;
+function tablesGeom(w, n) {
+  const xX = leftW(w) + 8, xEnd = xX + 28 + 2 * 28 + 6, aX = xEnd + 30;
+  return { xX, aX, cell: Math.max(16, Math.min(22, (w - aX - 12 - 18) / n)) };
 }
 
-function drawGraph(ctx, colors, w, h, st, anim, pointer) {
-  const n = shownStep(anim), dir = st.directed, P = graphPoints(w);
-  const last = n > 0 ? st.perEdge[n - 1] : null;
-  const shownCols = n > 0 ? st.perEdge[n - 1].first + st.perEdge[n - 1].count : 0;
+/** the clickable targets: each node, and each off-diagonal cell of A */
+function graphRegions(w, params, st) {
+  const out = [], v = params.graph, { n, directed, at } = st;
+  for (let p = 0; p < n; p++) {
+    const [x, y] = nodeAt(w, p);
+    out.push({ x: x - 15, y: y - 15, w: 30, h: 30, label: NAMES[p], set: { graph: nodeClick(v, NAMES[p], directed) } });
+  }
+  const g = tablesGeom(w, n);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    if (i === j) continue;
+    out.push({ x: g.aX + 12 + 3 + j * g.cell, y: G.tableTop + i * G.cellH, w: g.cell, h: G.cellH, label: `A[${i}][${j}]`, set: { graph: toggled(v, NAMES[at[i]], NAMES[at[j]], directed) } });
+  }
+  return out;
+}
 
-  /* the hovered node, by name position */
-  let hov = null;
-  if (pointer) P.forEach(([x, y], p) => { if (Math.hypot(pointer.x - x, pointer.y - y) <= 16) hov = p; });
+function drawGraph(ctx, colors, w, h, st, pointer) {
+  const { n, directed, at, index, edges, cols, A, x, pick } = st;
+  let hov = null, hovCell = null;
+  const g = tablesGeom(w, n);
+  if (pointer) {
+    for (let p = 0; p < n; p++) { const [px, py] = nodeAt(w, p); if (Math.hypot(pointer.x - px, pointer.y - py) <= 15) hov = p; }
+    const cx = g.aX + 12 + 3;
+    if (pointer.x >= cx && pointer.x < cx + n * g.cell && pointer.y >= G.tableTop && pointer.y < G.tableTop + n * G.cellH) {
+      const i = Math.floor((pointer.y - G.tableTop) / G.cellH), j = Math.floor((pointer.x - cx) / g.cell);
+      if (i !== j) hovCell = [i, j];
+    }
+  }
+  txt(ctx, colors, S.capGraph, 12, 14, { font: capFont(colors), fill: colors.ink1, maxW: leftW(w) - 12 });
 
-  txt(ctx, colors, S.capGraph, 12, 14, { font: capFont(colors), fill: colors.ink1, maxW: Math.min(w * 0.46, 330) - 12 });
-  /* edges: added in ink, the latest in the highlight; the rest of the chain faint, so the shape reads before it is built */
-  CHAIN.forEach(([a, b], k) => {
-    const [xa, ya] = P[a], [xb, yb] = P[b], added = k < n, latest = k === n - 1;
-    const col = latest ? colors.highlight : added ? colors.ink1 : colors.grid;
-    const L = Math.hypot(xb - xa, yb - ya), ux = (xb - xa) / L, uy = (yb - ya) / L, r = 15;
-    line(ctx, xa + ux * r, ya + uy * r, xb - ux * (r + (dir && added ? 2 : 0)), yb - uy * (r + (dir && added ? 2 : 0)), col, added ? 2.2 : 1.2, added ? null : [4, 4]);
-    if (dir && added) arrowHead(ctx, xb - ux * r, yb - uy * r, Math.atan2(uy, ux), col);
+  /* the edge a click would toggle, dashed: from the pick to the hovered node, or a hovered cell's pair */
+  const preview = pick != null && hov != null && hov !== pick ? [pick, hov] : hovCell ? [at[hovCell[0]], at[hovCell[1]]] : null;
+  if (preview) { const [xa, ya] = nodeAt(w, preview[0]), [xb, yb] = nodeAt(w, preview[1]); line(ctx, xa, ya, xb, yb, colors.highlight, 1.4, [4, 4]); }
+
+  /* edges; a pair joined both ways when directed is two arrows side by side */
+  for (const [a, c] of edges) {
+    const [xa, ya] = nodeAt(w, a), [xb, yb] = nodeAt(w, c), L = Math.hypot(xb - xa, yb - ya), ux = (xb - xa) / L, uy = (yb - ya) / L;
+    const off = directed && edges.some(([s2, t2]) => s2 === c && t2 === a) ? 3.5 : 0, nx = -uy * off, ny = ux * off;
+    const end = NODE_R + (directed ? 3 : 0);
+    line(ctx, xa + ux * NODE_R + nx, ya + uy * NODE_R + ny, xb - ux * end + nx, yb - uy * end + ny, colors.ink1, 2);
+    if (directed) arrowHead(ctx, xb - ux * NODE_R + nx, yb - uy * NODE_R + ny, Math.atan2(uy, ux), colors.ink1);
+  }
+  /* nodes: the features above as two cells, the number at the lower right */
+  for (let p = 0; p < n; p++) {
+    const [px, py] = nodeAt(w, p), f = FEATURES[p];
+    for (let c = 0; c < 2; c++) rect(ctx, px - 14 + c * 14, py - 38, 14, 14, ramp(colors, f[c] / 1.3), colors.ink2);
+    node(ctx, colors, px, py, NODE_R, NAMES[p], {
+      fill: p === pick ? wash(colors.highlight, 0.45) : p === hov ? wash(colors.groupA, 0.35) : null,
+      stroke: p === pick ? colors.highlight : null, lw: p === pick ? 2.4 : 1.4,
+    });
+    txt(ctx, colors, String(index[p]), px + 17, py + 14, { font: boldMono(colors), fill: colors.ink2 });
+  }
+
+  /* x and A at the right */
+  const hi = (i) => hov != null && at[i] === hov;
+  txt(ctx, colors, S.capX(n), g.xX, 14, { font: capFont(colors), fill: colors.ink1 });
+  x.forEach((_, i) => txt(ctx, colors, `${i} ${NAMES[at[i]]}`, g.xX, G.tableTop + i * G.cellH + G.cellH / 2 + 1, { font: monoFont(colors), fill: hi(i) ? colors.ink1 : colors.ink3, baseline: "middle" }));
+  matrix(ctx, colors, g.xX + 28, G.tableTop, x, { cellW: 28, cellH: G.cellH, fmt: (v) => v.toFixed(1), hl: (i) => (hi(i) ? wash(colors.groupA, 0.3) : null) });
+  txt(ctx, colors, S.capA(n), g.aX, 14, { font: capFont(colors), fill: colors.ink1, maxW: w - g.aX - 8 });
+  for (let j = 0; j < n; j++) txt(ctx, colors, String(j), g.aX + 12 + 3 + j * g.cell + g.cell / 2, G.tableTop - 6, { font: monoFont(colors), fill: colors.ink3, align: "center" });
+  for (let i = 0; i < n; i++) txt(ctx, colors, String(i), g.aX, G.tableTop + i * G.cellH + G.cellH / 2 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
+  matrix(ctx, colors, g.aX + 12, G.tableTop, A.map((row, i) => row.map((v, j) => (i === j ? "·" : v))), {
+    cellW: g.cell, cellH: G.cellH,
+    hl: (i, j) => (hovCell && hovCell[0] === i && hovCell[1] === j ? wash(colors.highlight, 0.32) : hi(i) || hi(j) ? wash(colors.groupA, 0.22) : null),
   });
-  /* nodes: features above as two cells, the number below */
-  P.forEach(([x, y], p) => {
-    const f = FEATURES[p], isLast = last && (last.a === p || last.b === p);
-    for (let c = 0; c < 2; c++) rect(ctx, x - 14 + c * 14, y - 40, 14, 14, ramp(colors, f[c] / 1.3), colors.ink2);
-    node(ctx, colors, x, y, 14, PROTEINS[p], { fill: hov === p ? wash(colors.groupA, 0.35) : isLast ? wash(colors.highlight, 0.3) : null });
-    txt(ctx, colors, String(st.index[p]), x, y + 30, { font: boldMono(colors), fill: colors.ink2, align: "center" });
-  });
-
-  /* the tables at the right: x, then A */
-  const hi = (i) => (hov != null && st.at[i] === hov);
-  const xX = Math.min(w * 0.46, 330) + 24;
-  txt(ctx, colors, S.capX, xX, 14, { font: capFont(colors), fill: colors.ink1 });
-  st.x.forEach((_, i) => txt(ctx, colors, `${i} ${PROTEINS[st.at[i]]}`, xX, G.tableTop + i * G.cellH + G.cellH / 2 + 1, { font: monoFont(colors), fill: hi(i) ? colors.ink1 : colors.ink3, baseline: "middle" }));
-  const xEnd = matrix(ctx, colors, xX + 30, G.tableTop, st.x, { cellW: 30, cellH: G.cellH, fmt: (v) => v.toFixed(1), hl: (i) => (hi(i) ? wash(colors.groupA, 0.3) : null) });
-
-  const aX = xEnd + 34;
-  const A = [0, 1, 2, 3].map(() => [0, 0, 0, 0]);
-  for (let c = 0; c < shownCols; c++) A[st.cols[c][0]][st.cols[c][1]] = 1;
-  const lastCells = new Set();
-  if (last) for (let c = last.first; c < last.first + last.count; c++) lastCells.add(`${st.cols[c][0]},${st.cols[c][1]}`);
-  txt(ctx, colors, S.capA, aX, 14, { font: capFont(colors), fill: colors.ink1 });
-  [0, 1, 2, 3].forEach((j) => txt(ctx, colors, String(j), aX + 3 + 11 + j * 22 + 12, G.tableTop - 6, { font: monoFont(colors), fill: colors.ink3, align: "center" }));
-  [0, 1, 2, 3].forEach((i) => txt(ctx, colors, String(i), aX, G.tableTop + i * G.cellH + G.cellH / 2 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" }));
-  matrix(ctx, colors, aX + 12, G.tableTop, A, {
-    cellW: 22, cellH: G.cellH,
-    hl: (i, j) => (lastCells.has(`${i},${j}`) ? wash(colors.highlight, 0.32) : hi(i) || hi(j) ? wash(colors.groupA, 0.22) : null),
-  });
-  txt(ctx, colors, S.capAHint, aX, G.tableTop + 4 * G.cellH + 16, { fill: colors.ink3, maxW: w - aX - 12 });
+  txt(ctx, colors, S.capAHint, g.aX, G.tableTop + n * G.cellH + 14, { fill: colors.ink3, maxW: w - g.aX - 8 });
 
   /* the edge list, full width under the drawing */
-  const K = st.cols.length;
-  txt(ctx, colors, S.capEI(shownCols), 12, G.eiTop - 8, { font: capFont(colors), fill: colors.ink1 });
+  const K = cols.length;
+  txt(ctx, colors, S.capEI(K, directed), 12, G.eiTop - 8, { font: capFont(colors), fill: colors.ink1, maxW: w - 24 });
   txt(ctx, colors, S.rowSrc, 12, G.eiTop + G.cellH / 2 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
   txt(ctx, colors, S.rowTgt, 12, G.eiTop + G.cellH * 1.5 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
-  const EI = [st.cols.map((c, k) => (k < shownCols ? c[0] : null)), st.cols.map((c, k) => (k < shownCols ? c[1] : null))];
-  matrix(ctx, colors, 64, G.eiTop, EI, {
-    cellW: Math.min(30, (w - 64 - 20) / K), cellH: G.cellH,
-    hl: (i, k) => (k >= shownCols ? null : last && k >= last.first && k < last.first + last.count ? wash(colors.highlight, 0.32) : hov != null && st.at[EI[i][k]] === hov ? wash(colors.groupA, 0.22) : null),
-  });
+  if (K) {
+    matrix(ctx, colors, 64, G.eiTop, [cols.map((c) => c[0]), cols.map((c) => c[1])], {
+      cellW: Math.min(30, (w - 64 - 20) / K), cellH: G.cellH,
+      hl: (i, k) => (hov != null && at[cols[k][i]] === hov ? wash(colors.groupA, 0.25) : null),
+    });
+  } else txt(ctx, colors, S.eiEmpty, 70, G.eiTop + G.cellH + 4, { fill: colors.ink3 });
 
-  /* the status line and the note */
-  const cols = last ? (last.count === 1 ? S.colsOne(last.first) : S.colsTwo(last.first)) : "";
-  txt(ctx, colors, n === 0 ? S.graphStart : S.graphStatus(n, st.steps, PROTEINS[last.a], PROTEINS[last.b], dir, cols), 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
-  txt(ctx, colors, hov != null ? S.graphHover(PROTEINS[hov], st.index[hov], FEATURES[hov]) : S.graphNote[dir ? "directed" : "undirected"], 12, h - 11, { fill: hov != null ? colors.ink1 : colors.ink3, maxW: w - 24 });
+  /* the status line and the note: a pick, a hovered node, or the rule */
+  txt(ctx, colors, S.graphStatus(n, edges.length, K), 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
+  const note = hov != null ? S.graphHover(NAMES[hov], index[hov], directed, A[index[hov]].reduce((a, v) => a + v, 0))
+    : pick != null ? S.graphPick(NAMES[pick]) : S.graphNote[directed ? "directed" : "undirected"];
+  txt(ctx, colors, note, 12, h - 11, { fill: hov != null || pick != null ? colors.ink1 : colors.ink3, maxW: w - 24 });
 }
 
 /* ============================================================= Molecule */
@@ -461,14 +549,23 @@ defineWidget({
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "graph", display: true },
-    edges: { type: "segmented", label: S.edgesLabel, detail: S.edgesDetail, options: EDGES, default: "undirected", when: ON("graph") },
-    order: { type: "segmented", label: S.orderLabel, detail: S.orderDetail, options: ORDERS, default: "abcd", display: true, when: ON("graph") },
+    /* every Graph-page control is display: none may reset the Molecule page's press */
+    nodes: { type: "choice", label: S.nodesLabel, detail: S.nodesDetail, options: COUNTS, default: "4", display: true, when: ON("graph") },
+    edges: { type: "segmented", label: S.edgesLabel, detail: S.edgesDetail, options: EDGES, default: "undirected", display: true, when: ON("graph") },
+    order: { type: "segmented", label: S.orderLabel, detail: S.orderDetail, options: ORDERS, default: "abc", display: true, when: ON("graph") },
+    graph: {
+      type: "text", label: S.graphLabel, detail: S.graphDetail, maxLength: 120, default: "", display: true, when: ON("graph"),
+      parse: parseGraph,
+      show: (v) => pairsOf(v).map((pq) => `${pq[0]}-${pq[1]}`).join(", "),
+    },
     smiles: { type: "segmented", label: S.stringLabel, detail: S.stringDetail, options: STRINGS, default: "first", display: true, when: ON("molecule") },
-    /* authoring escape hatch, first render only: presses already taken on the page it opens with */
+    /* authoring escape hatch, first render only: bonds already added on the Molecule page */
     shown: { type: "int", min: 0, max: 15, default: 0, hidden: true },
   },
 
   compute,
+
+  regions: ({ w, params, state }) => (params.page === "graph" ? graphRegions(w, params, state?.graph ?? graphTables(params)) : []),
 
   animation: {
     stepLabel: S.stepLabel,
@@ -479,8 +576,10 @@ defineWidget({
     init: ({ params, state, fromScratch }) => {
       const stage = stageOf(params);
       const anim = { stage, n: { graph: 0, molecule: 0 }, t: 1, moving: false, halt: false };
-      anim.n[stage] = fromScratch ? 0 : Math.max(0, Math.min(stepsOf(state, stage), Number(params.shown) || 0));
+      anim.n.molecule = fromScratch ? 0 : Math.max(0, Math.min(state.molecule.steps, Number(params.shown) || 0));
       anim.done = anim.n[stage] >= stepsOf(state, stage);
+      /* the Graph page is built by clicking: core takes Step and Play out of the row */
+      anim.inert = stage === "graph";
       return anim;
     },
 
@@ -509,12 +608,13 @@ defineWidget({
       anim.stage = stage;
       anim.n[stage] = Math.min(anim.n[stage], stepsOf(state, stage));
       anim.done = anim.n[stage] >= stepsOf(state, stage);
+      anim.inert = stage === "graph";
     },
   },
 
   draw({ ctx, colors, w, h, params, state, anim, pointer }) {
     if (params.page === "molecule") drawMolecule(ctx, colors, w, h, state.molecule, anim, pointer);
-    else drawGraph(ctx, colors, w, h, state.graph, anim, pointer);
+    else drawGraph(ctx, colors, w, h, state.graph, pointer);
   },
 
   readout({ params, state, anim }) {
@@ -527,16 +627,18 @@ defineWidget({
         { label: S.tileFar, value: far == null ? S.tileWait : String(far), note: S.tileFarNote },
       ];
     }
-    const st = state.graph, n = anim.n.graph, key = st.directed ? "directed" : "undirected";
+    const st = state.graph, m = st.edges.length, key = st.directed ? "directed" : "undirected";
+    const sym = st.A.every((row, i) => row.every((v, j) => v === st.A[j][i]));
+    const density = (st.directed ? m : 2 * m) / (st.n * (st.n - 1));
     return [
-      { label: S.tileNodes, value: "4", note: S.tileNodesNote },
-      { label: S.tileEdges, value: `${n} of ${st.steps}`, note: S.tileEdgesNote[key] },
-      { label: S.tileA, value: S.tileAValue[key], note: S.tileANote },
+      { label: S.tileEdges, value: String(m), note: S.tileEdgesNote[key] },
+      { label: S.tileDensity, value: density.toFixed(2), note: S.tileDensityNote[key] },
+      { label: S.tileA, value: S.tileAValue(sym), note: S.tileANote },
     ];
   },
 
   summary({ params, state, anim }) {
     if (params.page === "molecule") return S.sumMol(state.molecule.smiles, anim.n.molecule, state.molecule.steps);
-    return S.sumGraph(state.graph.directed, anim.n.graph, state.graph.steps);
+    return S.sumGraph(state.graph.n, state.graph.edges.length, state.graph.directed);
   },
 });
