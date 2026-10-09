@@ -116,7 +116,7 @@ const S = {
   nodeLabel: "Node",
   nodeDetail: "the node whose update the table shows; a click on a node picks it too; the feature values are illustrative",
   atomLabel: "Atom",
-  atomDetail: "the atom whose update the table shows; a click on an atom picks it too",
+  atomDetail: "the atom whose update the table shows; a click on an atom picks it too; x's columns: Z atomic number, ar aromatic, hyb hybridization, H hydrogens, q charge",
   layerLabel: "Layer",
   layerDetail: "GCN weights each input by 1/√(dᵢ dⱼ), set by the two degrees; GAT weights it by α, a softmax over the inputs that training sets",
   /* round 9: "Weights" read as W too, which every page shows at its random start */
