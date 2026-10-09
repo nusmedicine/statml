@@ -564,7 +564,17 @@ function drawScaffold(ctx, colors, w, params, anim, pointer) {
 
 /* --------------------------------------------------------------- Split */
 
-const partColor = (colors) => [colors.groupA, colors.groupB, colors.holdout];
+/* VALIDATION IS PALE (round 4, his pick E from `_lab/scaffold-split-colours-mock.html`):
+   --c-group-b at full strength sat at --c-holdout's lightness, 1.05:1 in the dark
+   theme, so validation and test read as one colour in 5px cells. Washed to 35%
+   over the surface it is 2.6-3.4:1 against test in both themes and under
+   deuteranopia, and it is what Evaluate already drew. A solid blend, not an
+   rgba wash, so a cell, a bar and a key swatch are one colour. */
+const solid = (c, bg, a) => {
+  const p = rgb(c), q = rgb(bg);
+  return `rgb(${p.map((v, i) => Math.round(q[i] + (v - q[i]) * a)).join(",")})`;
+};
+const partColor = (colors) => [colors.groupA, solid(colors.groupB, colors.surface, 0.35), colors.holdout];
 
 function drawSplit(ctx, colors, w, params, anim, pointer) {
   const kind = params.split, seed = Number(params.seed), stage = stageOf(params);
@@ -652,15 +662,15 @@ function drawEvaluate(ctx, colors, w, params, anim, pointer) {
   const split = SPLITS[kind][seed], parts = partsOf(kind, seed);
   const beat = shownStep(anim, stage), t = inFlight(anim, stage), pc = partColor(colors);
   const P = pairOf(kind, seed);
-  /* the test set is the subject: validation washed back; Train keeps its colour, it is what test is compared with */
-  const fillOf = (k) => { const p = +split[k]; return p === 1 ? wash(pc[1], 0.35) : pc[p]; };
+  /* the parts' own colours: validation is already the pale one */
+  const fillOf = (k) => pc[+split[k]];
   const sharedGroup = (g) => parts[g][2] > 0 && parts[g][0] > 0;
   /* Compare rings both pieces of every shared scaffold, in the columns' order, as a sweep */
   const ringOn = beat >= 1 ? (o) => sharedGroup(o.g) : t != null ? (o, i) => sharedGroup(o.g) && t >= (i / P.outlines.length) * SWEEP_END : null;
 
   let x = 12;
   x = keyItem(ctx, colors, x, 16, pc[0], S.keyTrain);
-  x = keyItem(ctx, colors, x, 16, wash(pc[1], 0.35), S.keyVal);
+  x = keyItem(ctx, colors, x, 16, pc[1], S.keyVal);
   x = keyItem(ctx, colors, x, 16, pc[2], S.keyTest);
   x = keyItem(ctx, colors, x, 16, colors.surface3, S.active, { active: true });
   txt(ctx, colors, beat >= 1 || t != null ? S.evStatus[1] : S.evStatus[0](kind), 12, 36, { fill: beat >= 1 || t != null ? colors.ink1 : colors.ink3, maxW: w - 24 });
