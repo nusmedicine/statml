@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 95 message-passing — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+          border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 110ch; }
+  .tell ol { margin: 4px 0 0; padding-left: 26px; }
+  .tell li { margin-bottom: 4px; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 160ch; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 120px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+  img.fig { max-height: 220px; border: 1px solid var(--grid); background: #fff; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 95 &middot; <code>message-passing</code> &middot; Deep Learning - Graphs: Message Passing &middot; mock</h1>
+  <p class="note">
+    Picked on the arc mock (&sect;5.5&ndash;5.9, all the recommendation): three steps <b>Aggregate &middot; Layers &middot;
+    Readout</b>; your chain, then caffeine; a Layer control GCN &middot; GAT; untrained weights; suberic against azelaic acid
+    under max pooling. Before drawing, each claim was re-measured under the lesson's own layers, <code>GCNConv</code> and
+    <code>GATConv</code> written out from PyG's definitions (<code>_lab/message-passing-measure.py</code>), and the lesson's
+    GATNet was trained three times on its file (<code>_lab/message-passing-trained.py</code>). <b>One pick does not survive
+    the measurement</b>: untrained weights hold for hops, smoothing and pooling, but an untrained GAT's &alpha; is a plain
+    average (&sect;1, &sect;5.1). Molecules: caffeine as 94 draws it; the acids from the lesson's file. The mock draws filled
+    states so they can be judged; the widget opens empty. On-canvas strings are candidates for the copy audit.
+    Blue-ruled boxes are my recommendations, grey-ruled ones your calls (&sect;5), red-ruled ones the lesson (&sect;4).
+  </p>
+  <div class="row"><img class="fig" src="figs/dl-layer-gnn.png" alt=""><img class="fig" src="figs/dl-graph-predict-graph.png" alt=""></div>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings">loading&hellip;</div>
+
+  <h2>1 &middot; Aggregate &mdash; one node gathers from its neighbours and itself (09-1 cell 23; 09-2 cells 40, 63)</h2>
+  <p class="note"><b>Your figure, computed, numbered from 0 as 94 numbers.</b> A press Aggregates the picked node (a dashed
+    ring, its incoming arcs and its self-loop carrying the weights, the weighted rows summing to its new row), a second press
+    Transforms it (&times; W, then the activation: a row of new cells). The sum reads the same in any order, which is the
+    permutation point the lesson makes. Then caffeine, a click picks an atom; its rows are 94's <code>x</code> columns.</p>
+  <div class="row" id="g1a"></div>
+  <p class="note"><b>GAT, three ways.</b> The same atom with &alpha; in place of GCN's degree weights. Left: untrained (the
+    picked option, seeded): every &alpha; within a few hundredths of 1/(inputs). Middle: the lesson's GATNet trained here,
+    layer 1, mean of its four heads. Right: the same model's layer 2, one head.</p>
+  <div class="row" id="g1b"></div>
+  <p class="rec">GCN against GAT on one atom, the weights drawn on its bonds and in the table. For GAT, a <b>Weights:
+    Untrained &middot; Trained</b> control, trained being the lesson's GATNet trained ahead on its file (a table in
+    <code>data.js</code>, as 70's Rank and 65's network), <b>layer 1</b>. Measured: untrained, the largest &alpha; on an atom
+    exceeds 1/(inputs) by 0.012&ndash;0.018 on average over the file; trained, layer 1 by 0.18&ndash;0.26 and layer 2 by
+    0.49&ndash;0.57 (three runs). Layer 1's pattern holds across runs; layer 2's does not (&sect;0, &sect;5.2).</p>
+
+  <h2>2 &middot; Layers &mdash; each layer reaches one bond further, and the atoms grow alike (09-1 cell 23; 09-2 cell 40)</h2>
+  <p class="note">A press adds a layer. Left: the atoms the picked atom has gathered from after k layers. Right (arm A only):
+    how alike every atom's vector is to the picked atom's after k layers, on the magnitude ramp. Below: mean cosine distance
+    between the atoms, 0 when every atom carries the same direction. Computed on this page: caffeine's five columns
+    standardised over the file, GCN + ELU, seeded weights. Drawn at the lesson's 2 and at 6, when atom 9 (a methyl at
+    caffeine's diameter) has gathered from every atom.</p>
+  <div class="row" id="g2"></div>
+  <p class="rec">Arm A: reach and likeness side by side, the curve under them. Measured under the lesson's GCNConv + ELU with
+    the 39 features standardised over the file: caffeine's atoms fall from a cosine distance of 0.94 to 0.31&ndash;0.36 after
+    two layers and 0.02&ndash;0.03 by eight (three seeds); the file's single-piece molecules from 0.82 to 0.60 and 0.36 &mdash;
+    larger molecules smooth more slowly, and a salt's pieces never mix (0.91 to 0.63).</p>
+
+  <h2>3 &middot; Readout &mdash; the atoms pooled into one vector for the molecule (09-1 cell 24; 09-2 cells 40, 42)</h2>
+  <p class="note">Two presses run the lesson's two layers, the atoms recoloured after each (atoms with identical vectors share a
+    colour); a third press Pools. Suberic acid (8 carbons) and azelaic acid (9), both inactive in the file. Arm A tallies the
+    colours: max keeps which colours occur, mean in what shares, sum how many. Arm B draws the pooled vectors themselves.</p>
+  <div class="row" id="g3"></div>
+  <p class="rec">Arm A, Pooling <b>Sum &middot; Mean &middot; Max</b>, Max the default because it is the lesson's. Measured under
+    the lesson's 2-layer GCN on its 39 features: the two acids' max-pooled vectors are identical (largest difference 0.0), mean
+    differs by 0.023, sum by 1.56. Over the file, max pooling ties <b>8&ndash;9 pairs</b> (GCN, two seeds; GAT with bond features,
+    8), not the 4 the colour-refinement stand-in found; mean and sum tie none.</p>
+
+  <h2>4 &middot; What the lesson says, and what the measurement says (findings 11&ndash;15, after the arc mock's ten)</h2>
+  <div class="tell"><ol start="11">
+    <li><b>09-2 cell 63</b>'s GAT formula sums over N(i) without the atom itself; <code>GATConv</code> adds a self-loop by
+      default, and cell 64 keeps it, so each atom also attends to itself (the self-loop in your figure).</li>
+    <li><b>Cell 64</b> passes <code>edge_attr</code> to both GAT layers; cell 42's GCN gets none. GCN against GAT therefore
+      changes two things at once &mdash; learned weights and bond features &mdash; and the two models' F1 cannot say which helped.</li>
+    <li><b>Cell 32</b>'s features enter the first layer unscaled: atomic number (6 to 83) beside 0/1 columns. Before any layer,
+      caffeine's atoms have a mean cosine distance of 0.08 &mdash; every vector points the same way &mdash; against 0.94 with the
+      columns standardised. BatchNorm comes after the first convolution, not before it.</li>
+    <li><b>Cell 40</b> (<code>global_max_pool</code>, <i>suitable for smaller molecules</i>): under the lesson's untrained
+      2-layer GCN, max pooling gives identical vectors to 8&ndash;9 pairs of different molecules in the file &mdash; chain-length
+      homologues, and aminoglycoside salts that differ only in the number of sulfate counter-ions. Mean and sum tie none.
+      All tied pairs share a label, so no score in the lesson is affected.</li>
+    <li><b>Cell 63</b> (<i>attention scores provide a natural importance signal</i>): trained three times on the same data,
+      layer 2 puts &ge; 0.93 on one input for most atoms, but the three runs agree on that input for <span id="agree2">?</span>
+      of caffeine's 14 atoms; layer 1 agrees on <span id="agree1">?</span>. The signal is sharp and not reproducible &mdash;
+      87's point, on this lesson's model.</li>
+  </ol></div>
+
+  <h2>5 &middot; Your calls</h2>
+  <p class="q"><b class="h">5.1 &middot; GAT's &alpha; (reopens &sect;5.8 of the arc mock for GAT only)</b>
+    <b>A &middot; a Weights control Untrained &middot; Trained on GAT; trained is the lesson's GATNet trained ahead, a table in data.js (recommended: untrained shows GAT starts as an average, trained that it learns to weight)</b>
+    &nbsp;|&nbsp; B &middot; untrained only: &alpha; drawn, all near 1/(inputs) &nbsp;|&nbsp; C &middot; trained only</p>
+  <p class="q"><b class="h">5.2 &middot; Which trained layer</b>
+    <b>A &middot; layer 1, mean of its four heads: its rows are <code>x</code>, so the table is literal, and the pattern holds across runs (recommended)</b>
+    &nbsp;|&nbsp; B &middot; layer 2, one head, nearly one-hot &nbsp;|&nbsp; C &middot; both, a Layer 1 &middot; 2 control, with a note that layer 2's choice changes between runs</p>
+  <p class="q"><b class="h">5.3 &middot; The rows in the table</b>
+    <b>A &middot; 94's five columns of <code>x</code>, the table the reader has just seen (recommended)</b>
+    &nbsp;|&nbsp; B &middot; the model's 39 (cell 32), as a strip of cells without numbers</p>
+  <p class="q"><b class="h">5.4 &middot; Aggregate's presses</b>
+    <b>A &middot; Aggregate then Transform, for the picked node; a click picks another (recommended)</b>
+    &nbsp;|&nbsp; B &middot; Aggregate every node at once, as your figure, then Transform</p>
+  <p class="q"><b class="h">5.5 &middot; Layers' figure</b>
+    <b>A &middot; reach and likeness side by side, the curve under them (recommended)</b>
+    &nbsp;|&nbsp; B &middot; reach and the curve</p>
+  <p class="q"><b class="h">5.6 &middot; How a layer is added</b>
+    <b>A &middot; a press, 0 to 8 layers, the curve's marker stepping along (recommended)</b>
+    &nbsp;|&nbsp; B &middot; a Layers slider 0&ndash;8, in the link</p>
+  <p class="q"><b class="h">5.7 &middot; Readout's figure</b>
+    <b>A &middot; the colour tallies (recommended: they say why max ties)</b>
+    &nbsp;|&nbsp; B &middot; the pooled vectors &nbsp;|&nbsp; C &middot; both, tallies above vectors</p>
+  <p class="q"><b class="h">5.8 &middot; Readout's depth</b>
+    <b>A &middot; the lesson's two layers, by two presses (recommended)</b>
+    &nbsp;|&nbsp; B &middot; a Layers control 1&ndash;3; at <span id="sep3">?</span></p>
+  <p class="q"><b class="h">5.9 &middot; Settled unless you say otherwise</b>
+    the credit line as 94's (<i>Molecule data: Stokes et al., Cell 2020, via FinGAT</i>), since caffeine and the acids are rows
+    of the same file; colours as the arc mock's &sect;5.14 (picked <code>--c-highlight</code>, its inputs
+    <code>--c-group-a</code>, the atoms' classes <code>--c-cluster-a&hellip;f</code>, the rows on the <code>--c-magnitude</code>
+    ramp, the curve <code>--c-empirical</code> and the file's mean <code>--c-reference</code>).</p>
+
+  <h2>6 &middot; The rail, as proposed</h2>
+  <div class="rail"><span class="w">Step</span><span class="pg">Aggregate</span><span class="pg">Layers</span><span class="pg">Readout</span></div>
+  <div class="rail"><span class="w">Aggregate</span><span class="pg">Example: Chain &middot; Caffeine</span><span class="pg">Layer: GCN &middot; GAT</span><span class="pg">Weights: Untrained &middot; Trained</span><span class="n">Weights shows on GAT only; presses Aggregate &middot; Transform; a click picks a node</span></div>
+  <div class="rail"><span class="w">Layers</span><span class="n">presses Add a layer (0&ndash;8); a click picks an atom</span></div>
+  <div class="rail"><span class="w">Readout</span><span class="pg">Pooling: Sum &middot; Mean &middot; Max</span><span class="n">presses Layer 1 &middot; Layer 2 &middot; Pool; Pooling is display, so changing it keeps the presses</span></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.4, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function ring(ctx, x, y, r, colour, dash = [3, 3]) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+function arrowHead(ctx, x, y, ang, colour, head = 6) {
+  ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x, y);
+  ctx.lineTo(x - head * Math.cos(ang - 0.4), y - head * Math.sin(ang - 0.4)); ctx.lineTo(x - head * Math.cos(ang + 0.4), y - head * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function arrow(ctx, x1, y1, x2, y2, colour, width = 1.4, head = 6) { line(ctx, x1, y1, x2, y2, colour, width); arrowHead(ctx, x2, y2, Math.atan2(y2 - y1, x2 - x1), colour, head); }
+function frame(ctx, x0, y0, w, h, { xlab = "", ylab = "" } = {}) {
+  line(ctx, x0, y0, x0, y0 + h, T.axis); line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis);
+  if (xlab) label(ctx, xlab, x0 + w / 2, y0 + h + 28, { align: "center", colour: T.ink3, size: 10 });
+  if (ylab) { ctx.save(); ctx.translate(x0 - 30, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, ylab, 0, 0, { align: "center", colour: T.ink3, size: 10 }); ctx.restore(); }
+}
+function xTicks(ctx, sx, y, ticks, fmt = String) { for (const t of ticks) { line(ctx, sx(t), y, sx(t), y + 4, T.axis); label(ctx, fmt(t), sx(t), y + 15, { align: "center", size: 10, colour: T.ink3 }); } }
+function yTicks(ctx, sy, x, ticks, fmt = String) { for (const t of ticks) { line(ctx, x - 4, sy(t), x, sy(t), T.axis); label(ctx, fmt(t), x - 6, sy(t) + 3, { align: "right", size: 10, colour: T.ink3 }); } }
+const f = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+/* the magnitude ramp: --surface-3 to --c-magnitude */
+function ramp(v) { const a = rgb(T.surface3), b = rgb(T.magnitude); const t = Math.max(0, Math.min(1, v)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`; }
+function vecCells(ctx, x, y, vals, { cell = 14, lo = 0, hi = 1, stroke = T.ink1 } = {}) {
+  vals.forEach((v, i) => rect(ctx, x + i * cell, y, cell, cell, ramp((v - lo) / (hi - lo)), stroke, 1));
+}
+
+/* ---------------------------------------------------------------- the layer, as compute() would hold it */
+function mulberry(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function glorot(r, fin, fout) { const b = Math.sqrt(6 / (fin + fout)); return Array.from({ length: fin }, () => Array.from({ length: fout }, () => (2 * r() - 1) * b)); }
+function adjacency(mol) { const n = mol.atoms.length, A = Array.from({ length: n }, () => new Array(n).fill(0)); for (const [i, j] of mol.bonds) { A[i][j] = 1; A[j][i] = 1; } return A; }
+function gcnP(A) { const n = A.length, d = A.map((r) => r.reduce((s, v) => s + v, 0) + 1); return A.map((r, i) => r.map((v, j) => (v || i === j ? 1 / Math.sqrt(d[i] * d[j]) : 0))); }
+const matmul = (X, Wm) => X.map((r) => Wm[0].map((_, k) => r.reduce((s, v, q) => s + v * Wm[q][k], 0)));
+const elu = (H) => H.map((r) => r.map((v) => (v > 0 ? v : Math.expm1(v))));
+/* standardised with the FILE's column means and SDs (data.x_mean, x_sd): over the
+   molecule's own atoms instead, the shared part smoothing grows is removed first and
+   the curve barely moves for four layers (tried here first) */
+let XM = null, XS = null;
+const standardise = (X) => X.map((r) => r.map((v, k) => (v - XM[k]) / (XS[k] || 1)));
+function cos(a, b) { let s = 0, na = 0, nb = 0; for (let k = 0; k < a.length; k++) { s += a[k] * b[k]; na += a[k] * a[k]; nb += b[k] * b[k]; } return s / (Math.sqrt(na * nb) + 1e-12); }
+function spread(H) { let s = 0, c = 0; for (let i = 0; i < H.length; i++) for (let j = i + 1; j < H.length; j++) { s += 1 - cos(H[i], H[j]); c++; } return s / c; }
+/** H after 0..K layers of GCN + ELU, one seeded W per layer. */
+function layers(mol, X, K, seed = 1, hidden = 16) {
+  const P = gcnP(adjacency(mol)), r = mulberry(seed), out = [X];
+  let H = X;
+  for (let k = 0; k < K; k++) { H = elu(matmul(P, matmul(H, glorot(r, H[0].length, hidden)))); out.push(H); }
+  return out;
+}
+/** atoms with identical vectors get one class; shared across molecules through `reps`. */
+function classes(H, reps) {
+  return H.map((h) => { let c = reps.findIndex((r) => r.every((v, k) => Math.abs(v - h[k]) < 1e-9)); if (c < 0) { reps.push(h); c = reps.length - 1; } return c; });
+}
+function hopsFrom(A, s) {
+  const n = A.length, D = new Array(n).fill(Infinity); D[s] = 0; let fr = [s], k = 0;
+  while (fr.length) { k += 1; const nx = []; for (const u of fr) for (let v = 0; v < n; v++) if (A[u][v] && D[v] === Infinity) { D[v] = k; nx.push(v); } fr = nx; }
+  return D;
+}
+
+/* ---------------------------------------------------------------- molecules, drawn as 94 draws them */
+function node(ctx, x, y, name, { r = 11, fill = T.surface, stroke = T.ink1, ink = T.ink1, size = 10, lw = 1.4 } = {}) {
+  dot(ctx, x, y, r, fill, stroke, lw);
+  label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", colour: ink, size, weight: "600" });
+}
+function fit(mol, x0, y0, w, h, maxScale = 40) {
+  const xs = mol.atoms.map((a) => a.xy[0]), ys = mol.atoms.map((a) => a.xy[1]);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const s = Math.min(w / Math.max(maxx - minx, 1e-6), h / Math.max(maxy - miny, 1e-6), maxScale);
+  const ox = x0 + (w - (maxx - minx) * s) / 2, oy = y0 + (h - (maxy - miny) * s) / 2;
+  return mol.atoms.map((a) => [ox + (a.xy[0] - minx) * s, oy + (a.xy[1] - miny) * s]);
+}
+function drawBond(ctx, p, q, type, colour, width = 1.4) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L * 2.4, ny = dx / L * 2.4;
+  if (type === "DOUBLE") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, colour, width); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, colour, width); }
+  else if (type === "AROMATIC") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, colour, width); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, colour, width, [3, 2.5]); }
+  else line(ctx, p[0], p[1], q[0], q[1], colour, width);
+}
+function drawMol(ctx, mol, box, { r = 11, fill = () => T.surface, stroke = () => T.ink1, bondColour = () => T.ink2, bondWidth = () => 1.3, index = true, size = 10, maxScale = 40 } = {}) {
+  const P = fit(mol, box[0], box[1], box[2], box[3], maxScale);
+  mol.bonds.forEach((b, k) => drawBond(ctx, P[b[0]], P[b[1]], b[2], bondColour(b, k), bondWidth(b, k)));
+  mol.atoms.forEach((a, i) => {
+    node(ctx, P[i][0], P[i][1], a.el, { r, fill: fill(a, i), stroke: stroke(a, i), size });
+    if (index) label(ctx, String(i), P[i][0] + r + 1, P[i][1] - r + 2, { size: 9, colour: T.ink3, mono: true });
+  });
+  return P;
+}
+/* a weight label on the bond from the picked atom toward j, 62% of the way */
+function bondLabel(ctx, P, i, j, s) {
+  const x = P[i][0] + 0.5 * (P[j][0] - P[i][0]), y = P[i][1] + 0.5 * (P[j][1] - P[i][1]);
+  rect(ctx, x - 15, y - 7, 30, 13, T.surface);
+  label(ctx, s, x, y + 3, { align: "center", mono: true, size: 10.5, colour: T.ink1, weight: "600" });
+}
+
+/* ================================================================ data */
+const D = await fetch("message-passing-mock-data.json").then((r) => r.json()).catch(() => null);
+if (!D) { document.getElementById("findings").textContent = "run python widgets/_lab/message-passing-measure.py, message-passing-trained.py (seeds 42, 1, 2), then message-passing-data.py"; throw new Error("no data"); }
+const M = D.measure, caf = D.caffeine, [sub, aze] = D.acids;
+XM = D.x_mean; XS = D.x_sd;
+const COLS = ["Z", "ar", "hyb", "H", "q"];
+
+/* ================================================================ the trained-alpha tables */
+const runs = ["42", "1", "2"].filter((s) => D.trained[s]);
+function alphaOf(run, layer, i, trained = true) {
+  const rec = D.trained[run][trained ? "caffeine" : "caffeine_untrained"][layer][i];
+  const al = rec.alpha.map((hs) => hs.reduce((s, v) => s + v, 0) / hs.length);
+  return { from: rec.from, alpha: al };
+}
+const topOf = (o) => o.from[o.alpha.indexOf(Math.max(...o.alpha))];
+const agree = (layer) => caf.atoms.filter((_, i) => new Set(runs.map((r) => topOf(alphaOf(r, layer, i)))).size === 1).length;
+document.getElementById("agree1").textContent = String(agree("layer1"));
+document.getElementById("agree2").textContent = String(agree("layer2"));
+
+/* ================================================================ §0 findings */
+{
+  const caffX = standardise(caf.atoms.map((a) => a.x));
+  const curves = [1, 2, 3].map((s) => layers(caf, caffX, 8, s).map(spread));
+  // the acids under two and three layers, five columns, shared weights
+  const tie = (K, seed = 1) => {
+    const reps = [];
+    const Hs = [sub, aze].map((m) => layers(m, m.atoms.map((a) => a.x), K, seed).at(-1));
+    const cl = Hs.map((H) => classes(H, reps));
+    const pool = (H, kind) => H[0].map((_, k) => { const c = H.map((r) => r[k]); return kind === "max" ? Math.max(...c) : kind === "sum" ? c.reduce((s, v) => s + v, 0) : c.reduce((s, v) => s + v, 0) / c.length; });
+    const diff = (kind) => Math.max(...pool(Hs[0], kind).map((v, k) => Math.abs(v - pool(Hs[1], kind)[k])));
+    return { cl, max: diff("max"), mean: diff("mean"), sum: diff("sum"), n: reps.length };
+  };
+  const t2 = tie(2), t3 = tie(3);
+  document.getElementById("sep3").textContent =
+    `three layers max ${t3.max < 1e-9 ? "still ties" : "separates"} the acids (largest difference ${f(t3.max, 3)}), so depth would answer the pair and blur the pooling point`;
+  const g = M["M5_pooling_gcn_seed0"], g1 = M["M5_pooling_gcn_seed1"], ga = M["M5_pooling_gat_edge_seed0"];
+  const tr = runs.map((r) => `run ${r}: AUC ${D.trained[r].test_auc_last}, layer 1 +${D.trained[r].file.layer1.mean_max_alpha_minus_uniform}, layer 2 +${D.trained[r].file.layer2.mean_max_alpha_minus_uniform}`);
+  document.getElementById("findings").textContent = [
+    `features     cell 32's ${M.features.atom} atom columns (vocabulary sorted), 7 bond columns; the page draws 94's five (Z, aromatic, hybridization, H, charge)`,
+    `chain        GCN weights into node 1, self-loops counted: ${M.M1_chain_gcn_weights_into_node1.join(" · ")}   into node 0: ${M.M1_chain_gcn_weights_into_node0.slice(0, 2).join(" · ")}`,
+    `caffeine GCN weight on each bond, both directions alike, set by the degrees: ${[...new Set(M.M2_caffeine.gcn_weight_by_bond.map((b) => b[3]))].sort().join(" · ")} — a double and a single bond between atoms of the same degrees weigh the same`,
+    `GAT α        largest α on an atom minus 1/(inputs), mean over the file — untrained: layer 1 +${D.trained["42"].file_untrained.layer1.mean_max_alpha_minus_uniform}, layer 2 +${D.trained["42"].file_untrained.layer2.mean_max_alpha_minus_uniform}`,
+    `             trained (the lesson's GATNet, 30 epochs, AdamW 1e-3, class-weighted, a random 80/20 split): ${tr.join("; ")}`,
+    `             caffeine: the three runs agree on the top input for ${agree("layer1")} of 14 atoms in layer 1, ${agree("layer2")} of 14 in layer 2`,
+    `smoothing    raw cell-32 features, caffeine, GCN + ELU: ${M.M4_caffeine_spread.gcn_elu_seed0_to_seed4[0].slice(0, 6).join(" ")} — atoms alike before any layer (finding 13)`,
+    `             standardised over the file: ${M.M4b_caffeine_spread_standardised.gcn_elu_seeds_0_1_2[0].join(" ")} (layers 0–8)`,
+    `             file, single piece (${M.M4b_file_single_piece_gcn_elu_standardised.molecules}): ${M.M4b_file_single_piece_gcn_elu_standardised.mean.join(" ")};  salts (${M.M4b_file_salts_gcn_elu_standardised.molecules}): ${M.M4b_file_salts_gcn_elu_standardised.mean.join(" ")}`,
+    `             this page, caffeine's five columns, hidden 16: ${curves[0].map((v) => f(v)).join(" ")}`,
+    `pooling      pairs tied over the file after 2 layers — GCN seed 0: sum ${g.sum.pairs}, mean ${g.mean.pairs}, max ${g.max.pairs}; seed 1: max ${g1.max.pairs}; GAT with bond features: max ${ga.max.pairs}`,
+    `acids        39 columns: max differs by ${f(M.M6_acids_max_maxabsdiff, 3)}, mean ${f(M.M6_acids_mean_maxabsdiff, 3)}, sum ${f(M.M6_acids_sum_maxabsdiff, 2)}; ${M.M6_acids_class_count} classes of atom`,
+    `             this page, five columns: max ${f(t2.max, 3)}, mean ${f(t2.mean, 3)}, sum ${f(t2.sum, 2)}; ${t2.n} classes; with three layers max ${f(t3.max, 3)}`,
+  ].join("\n");
+}
+
+/* ================================================================ §1 Aggregate */
+{
+  // 1a · his chain, 0-based, self-loops counted
+  const box = cand("g1a", "Aggregate · the chain, GCN · node 1 picked, after Aggregate", "h₁′ = Σ over j in {0, 1, 2} of h_j / √(d₁ d_j), degrees counted with the self-loop: 2, 3, 2\nthen Transform: × W, then the activation", W);
+  const ctx = canvasIn(box, W, 330);
+  const H = [[0.2, 0.8, 0.5], [0.8, 0.4, 0.8], [0.9, 0.2, 0.8]];
+  const deg = [2, 3, 2], P = [[100, 118], [275, 118], [450, 118]];
+  label(ctx, "the graph", 14, 18, { weight: "600", colour: T.ink1, size: 11 });
+  ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5;
+  for (const [a, b] of [[0, 1], [1, 2]]) { ctx.beginPath(); ctx.moveTo(P[a][0], P[a][1]); ctx.quadraticCurveTo((P[a][0] + P[b][0]) / 2, P[a][1] - 26, P[b][0], P[b][1]); ctx.stroke(); }
+  ctx.restore();
+  const w = [0, 1, 2].map((j) => 1 / Math.sqrt(deg[1] * deg[j]));
+  // incoming arcs into node 1
+  for (const j of [0, 2]) {
+    const sx = P[j][0] + (j === 0 ? 20 : -20), ex = P[1][0] + (j === 0 ? -24 : 24);
+    ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(sx, P[1][1] + 22); ctx.quadraticCurveTo((sx + ex) / 2, P[1][1] + 40, ex, P[1][1] + 20); ctx.stroke(); ctx.restore();
+    arrowHead(ctx, ex, P[1][1] + 20, j === 0 ? -0.5 : Math.PI + 0.5, T.highlight);
+    label(ctx, f(w[j]), (sx + ex) / 2, P[1][1] + 50, { align: "center", mono: true, size: 11, colour: T.ink1, weight: "600" });
+  }
+  ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(P[1][0], P[1][1] + 26, 9, -0.2 * Math.PI, 1.2 * Math.PI, false); ctx.stroke(); ctx.restore();
+  label(ctx, `self ${f(w[1])}`, P[1][0], P[1][1] + 52, { align: "center", mono: true, size: 11, colour: T.ink1, weight: "600" });
+  P.forEach((p, i) => {
+    vecCells(ctx, p[0] - 21, p[1] - 58, H[i]);
+    label(ctx, H[i].map((v) => f(v, 1)).join(" "), p[0], p[1] - 64, { align: "center", mono: true, size: 9, colour: T.ink3 });
+    node(ctx, p[0], p[1], String(i), { r: 13, fill: i === 1 ? wash(T.highlight, 0.3) : wash(T.groupA, 0.25), size: 11 });
+  });
+  ring(ctx, P[1][0], P[1][1], 21, T.highlight);
+  // the sum, written out
+  const out = [0, 1, 2].map((c) => w[0] * H[0][c] + w[1] * H[1][c] + w[2] * H[2][c]);
+  label(ctx, "Aggregate · node 1", 14, 214, { weight: "600", colour: T.ink1, size: 11 });
+  const rowY = [232, 250, 268];
+  [0, 1, 2].forEach((j, k) => {
+    label(ctx, `${f(w[j])} ×`, 150, rowY[k] + 11, { align: "right", mono: true, size: 11, colour: T.ink1 });
+    vecCells(ctx, 158, rowY[k], H[j]);
+    label(ctx, `h${"₀₁₂"[j]}`, 212, rowY[k] + 11, { mono: true, size: 11, colour: T.ink2 });
+  });
+  line(ctx, 112, 287, 232, 287, T.ink2);
+  vecCells(ctx, 158, 292, out, { lo: 0, hi: 1.3 });
+  label(ctx, "= h₁′  " + out.map((v) => f(v)).join("  "), 212, 303, { mono: true, size: 11, colour: T.ink1, weight: "600" });
+  label(ctx, "the same sum in any order:", 360, 214, { size: 10, colour: T.ink3 });
+  label(ctx, "{0, 1, 2} = {2, 0, 1}", 360, 228, { size: 10, colour: T.ink3, mono: true });
+  label(ctx, "next press, Transform:", 360, 250, { size: 10, colour: T.ink3 });
+  label(ctx, "× W, then ELU", 360, 264, { size: 10, colour: T.ink3 });
+
+  // 1b · caffeine, GCN, the picked atom's table
+  const pick = 1;
+  const A = adjacency(caf), d = A.map((r) => r.reduce((s, v) => s + v, 0) + 1);
+  const nb = A[pick].map((v, j) => (v ? j : -1)).filter((j) => j >= 0);
+  const inputs = [pick, ...nb];
+  const gcnW = inputs.map((j) => 1 / Math.sqrt(d[pick] * d[j]));
+  drawWeighted("g1a", "Aggregate · caffeine, GCN · atom 1 picked", `weight 1 / √(dᵢ dⱼ) with self-loops: fixed by the degrees, the same for any bond type\nthe methyl carbon (one bond) counts more than a ring atom (three)`, inputs, gcnW, "weight");
+
+  // 1c · GAT three ways
+  const ua = alphaOf("42", "layer1", pick, false), ta = alphaOf("42", "layer1", pick), t2 = alphaOf("42", "layer2", pick);
+  const order = (o) => inputs.map((j) => o.alpha[o.from.indexOf(j)]);
+  drawWeighted("g1b", "GAT · untrained (seeded) · layer 1, mean of 4 heads", "α = softmax over the atom's inputs of a score from both rows\nuntrained: every α within a few hundredths of 1/4", inputs, order(ua), "α");
+  drawWeighted("g1b", "GAT · the lesson's GATNet trained · layer 1, mean of 4 heads", "trained 30 epochs on the lesson's file (run 42)\nthe three runs agree on the top input for this atom", inputs, order(ta), "α");
+  drawWeighted("g1b", "GAT · trained · layer 2, one head", "nearly all of α on one input\nthe three runs pick: " + runs.map((r) => `atom ${topOf(alphaOf(r, "layer2", pick))}`).join(", "), inputs, order(t2), "α", true);
+}
+
+function drawWeighted(rowId, title, sub, inputs, wts, word, hidden = false) {
+  const box = cand(rowId, title, sub, W);
+  const ctx = canvasIn(box, W, 300);
+  const pick = inputs[0], nb = inputs.slice(1);
+  const P = drawMol(ctx, caf, [16, 34, 244, 250], { maxScale: 64,
+    fill: (a, i) => (i === pick ? wash(T.highlight, 0.35) : nb.includes(i) ? wash(T.groupA, 0.3) : T.surface),
+    bondColour: (b) => ((b[0] === pick || b[1] === pick) ? T.ink1 : T.grid),
+    bondWidth: (b, k) => { if (b[0] !== pick && b[1] !== pick) return 1.2; const j = b[0] === pick ? b[1] : b[0]; return 1 + 5 * wts[inputs.indexOf(j)]; },
+  });
+  label(ctx, "the molecule", 14, 18, { weight: "600", colour: T.ink1, size: 11 });
+  ring(ctx, P[pick][0], P[pick][1], 18, T.highlight);
+  nb.forEach((j, k) => bondLabel(ctx, P, pick, j, f(wts[k + 1])));
+  // the table
+  const x0 = 300, y0 = 34, rh = 22, cw = 29;
+  label(ctx, hidden ? `layer 1's output · 1,024 numbers a row` : `x · 94's five columns`, x0, 18, { weight: "600", colour: T.ink1, size: 11 });
+  if (!hidden) COLS.forEach((c, k) => label(ctx, c, x0 + 46 + k * cw + cw / 2, y0 + 8, { align: "center", size: 10, colour: T.ink3, mono: true }));
+  label(ctx, word, x0 + 46 + 5 * cw + 30, y0 + 8, { align: "center", size: 10, colour: T.ink3 });
+  inputs.forEach((j, k) => {
+    const y = y0 + 14 + k * rh;
+    label(ctx, `${j} ${caf.atoms[j].el}${j === pick ? " self" : ""}`, x0, y + 14, { mono: true, size: 10.5, colour: T.ink1 });
+    if (!hidden) caf.atoms[j].x.forEach((v, c) => label(ctx, String(v), x0 + 46 + c * cw + cw / 2, y + 14, { align: "center", mono: true, size: 11, colour: T.ink2 }));
+    else for (let q = 0; q < 10; q++) rect(ctx, x0 + 46 + q * 14, y + 3, 14, 14, T.surface3, T.ink3, 1);   // no numbers: a row too long to print
+    label(ctx, `× ${f(wts[k])}`, x0 + 46 + 5 * cw + 30, y + 14, { align: "center", mono: true, size: 11, colour: T.ink1, weight: "600" });
+  });
+  const yS = y0 + 14 + inputs.length * rh + 4;
+  line(ctx, x0, yS, x0 + 46 + 5 * cw + 56, yS, T.ink2);
+  if (!hidden) {
+    const sum = [0, 1, 2, 3, 4].map((c) => inputs.reduce((s, j, k) => s + wts[k] * caf.atoms[j].x[c], 0));
+    label(ctx, `h${pick}′`, x0, yS + 18, { mono: true, size: 10.5, colour: T.ink1, weight: "600" });
+    sum.forEach((v, c) => label(ctx, f(v, 1), x0 + 46 + c * cw + cw / 2, yS + 18, { align: "center", mono: true, size: 11, colour: T.ink1, weight: "600" }));
+  }
+  label(ctx, `${word}s sum to ${f(wts.reduce((s, v) => s + v, 0))}`, x0, yS + 42, { size: 10, colour: T.ink3 });
+  label(ctx, "then × W and the activation", x0, yS + 58, { size: 10, colour: T.ink3 });
+}
+
+/* ================================================================ §2 Layers */
+{
+  const X = standardise(caf.atoms.map((a) => a.x));
+  const Hk = layers(caf, X, 8, 1), curve = Hk.map(spread);
+  const A = adjacency(caf), pick = 9, Dh = hopsFrom(A, pick);   // a methyl at caffeine's diameter, 6
+  const file = M.M4b_file_single_piece_gcn_elu_standardised.mean;
+  for (const arm of ["A", "B"]) for (const k of [2, 6]) {
+    const box = cand("g2", `Layers · arm ${arm} · after ${k} layers · atom ${pick} picked`, arm === "A"
+      ? "left: filled, the atoms within k bonds · right: each atom's likeness to the picked atom\n(cosine of their vectors, 0 to 1) · under: mean cosine distance between the atoms"
+      : "the atoms within k bonds, and the curve", W);
+    const ctx = canvasIn(box, W, 400);
+    const seen = Dh.filter((v) => v <= k).length;
+    const fillReach = (a, i) => (i === pick ? wash(T.highlight, 0.4) : Dh[i] <= k ? wash(T.groupA, 0.35) : T.surface);
+    if (arm === "A") {
+      label(ctx, `gathered from: ${seen} of ${caf.atoms.length} atoms`, 14, 18, { weight: "600", colour: T.ink1, size: 11 });
+      const P = drawMol(ctx, caf, [14, 30, 240, 180], { fill: fillReach, r: 10, size: 9, index: false });
+      ring(ctx, P[pick][0], P[pick][1], 16, T.highlight);
+      label(ctx, `alike to atom ${pick}`, 290, 18, { weight: "600", colour: T.ink1, size: 11 });
+      const sim = Hk[k].map((h) => cos(h, Hk[k][pick]));
+      const P2 = drawMol(ctx, caf, [290, 30, 240, 180], { fill: (a, i) => ramp(Math.max(0, sim[i])), r: 10, size: 9, index: false });
+      ring(ctx, P2[pick][0], P2[pick][1], 16, T.highlight);
+      // ramp key
+      for (let q = 0; q < 60; q++) rect(ctx, 400 + q * 2, 222, 2, 8, ramp(q / 59));
+      label(ctx, "unrelated", 396, 230, { align: "right", size: 9, colour: T.ink3 }); label(ctx, "same", 524, 230, { size: 9, colour: T.ink3 });
+    } else {
+      label(ctx, `gathered from: ${seen} of ${caf.atoms.length} atoms`, 14, 18, { weight: "600", colour: T.ink1, size: 11 });
+      const P = drawMol(ctx, caf, [100, 30, 340, 190], { fill: fillReach, r: 11, index: false });
+      ring(ctx, P[pick][0], P[pick][1], 17, T.highlight);
+    }
+    // the curve
+    const x0 = 64, y0 = 254, w = 460, h = 100, K = 8;
+    const sx = (v) => x0 + (v / K) * w, sy = (v) => y0 + h - (v / 1) * h;
+    frame(ctx, x0, y0, w, h, { xlab: "layers", ylab: "atoms unlike" });
+    xTicks(ctx, sx, y0 + h, [0, 1, 2, 3, 4, 5, 6, 7, 8]); yTicks(ctx, sy, x0, [0, 0.5, 1], (v) => f(v, 1));
+    polyline(ctx, file.map((_, i) => sx(i)), file.map((v) => sy(v)), T.reference, 1.4, [4, 3]);
+    label(ctx, "the file's mean", sx(8) - 2, sy(file[8]) - 6, { align: "right", size: 10, colour: T.ink3 });
+    polyline(ctx, curve.map((_, i) => sx(i)), curve.map((v) => sy(v)), T.empirical, 1.8);
+    label(ctx, "caffeine", sx(1) + 6, sy(curve[1]) - 4, { size: 10, colour: T.ink2 });
+    line(ctx, sx(2), y0, sx(2), y0 + h, T.grid, 1, [2, 3]);
+    label(ctx, "the lesson's 2", sx(2) + 3, y0 + 10, { size: 9, colour: T.ink3 });
+    dot(ctx, sx(k), sy(curve[k]), 4.5, T.highlight, T.surface, 1.5);
+    label(ctx, f(curve[k]), sx(k) + 7, sy(curve[k]) - 6, { mono: true, size: 10.5, colour: T.ink1, weight: "600" });
+  }
+}
+
+/* ================================================================ §3 Readout */
+{
+  const reps = [];
+  const Hs = [sub, aze].map((m) => layers(m, m.atoms.map((a) => a.x), 2, 1).at(-1));
+  const cl = Hs.map((H) => classes(H, reps));
+  const nC = reps.length;
+  const colour = (c) => T.clusters[c % 6];
+  const pool = (H, kind) => H[0].map((_, k) => { const c = H.map((r) => r[k]); return kind === "max" ? Math.max(...c) : kind === "sum" ? c.reduce((s, v) => s + v, 0) : c.reduce((s, v) => s + v, 0) / c.length; });
+  const verdict = (kind) => { const a = pool(Hs[0], kind), b = pool(Hs[1], kind); const dmax = Math.max(...a.map((v, k) => Math.abs(v - b[k]))); return dmax < 1e-9 ? "identical" : `differ by up to ${f(dmax, 3)}`; };
+
+  // one scale for both acids, so a bond is the same length in each and the extra CH2 reads as one more step
+  const span = (m, k) => Math.max(...m.atoms.map((a) => a.xy[k])) - Math.min(...m.atoms.map((a) => a.xy[k]));
+  const s = Math.min(44, ...[sub, aze].map((m) => Math.min(500 / span(m, 0), 64 / span(m, 1))));
+  function mols(ctx, y) {
+    [sub, aze].forEach((m, q) => {
+      label(ctx, `${m.name} · ${m.atoms.filter((a) => a.el === "C").length} carbons · inactive`, 14, y + q * 92, { weight: "600", colour: T.ink1, size: 11 });
+      drawMol(ctx, m, [20, y + 12 + q * 92, 500, 64], { fill: (a, i) => wash(colour(cl[q][i]), 0.55), r: 10, size: 9, index: false, maxScale: s });
+    });
+  }
+  for (const kind of ["max", "mean", "sum"]) {
+    const box = cand("g3", `Readout · arm A · ${kind} pooling, after Pool`, "atoms coloured by their vector after the lesson's two layers; one colour, one identical vector\nthe tally: what the pooled vector keeps of each molecule", W);
+    const ctx = canvasIn(box, W, 380);
+    mols(ctx, 18);
+    const y0 = 214;
+    label(ctx, kind === "max" ? "max keeps which colours occur" : kind === "mean" ? "mean keeps each colour's share" : "sum keeps how many of each colour", 14, y0, { weight: "600", colour: T.ink1, size: 11 });
+    [0, 1].forEach((q) => {
+      const y = y0 + 16 + q * 48;
+      const counts = Array.from({ length: nC }, (_, c) => cl[q].filter((v) => v === c).length);
+      label(ctx, q ? "azelaic" : "suberic", 14, y + 16, { size: 10.5, colour: T.ink2 });
+      let x = 80;
+      const n = cl[q].length;
+      counts.forEach((c, i) => {
+        const v = kind === "max" ? (c > 0 ? 1 : 0) : kind === "mean" ? c / n : c;
+        const wv = kind === "max" ? 60 : kind === "mean" ? v * 420 : v * 30;
+        rect(ctx, x, y + 2, Math.max(wv - 2, 1), 20, wash(colour(i), 0.7), T.ink1, 1);
+        const s = kind === "max" ? "✓" : kind === "mean" ? f(v, 2) : String(c);
+        label(ctx, s, x + wv / 2 - 1, y + 16, { align: "center", mono: true, size: 10, colour: T.ink1 });
+        x += wv;
+      });
+    });
+    label(ctx, `the two pooled vectors: ${verdict(kind)}`, 14, y0 + 130, { size: 11, colour: T.ink1, weight: "600" });
+    label(ctx, kind === "max" ? "a model reading max pools cannot tell these two molecules apart" : "these two molecules pool to different vectors", 14, y0 + 148, { size: 10, colour: T.ink3 });
+  }
+  const box = cand("g3", "Readout · arm B · the pooled vectors, first 16 numbers", "one row per molecule and pooling; the cells on the magnitude ramp, scaled per row pair", W);
+  const ctx = canvasIn(box, W, 380);
+  mols(ctx, 18);
+  ["max", "mean", "sum"].forEach((kind, r) => {
+    const a = pool(Hs[0], kind), b = pool(Hs[1], kind);
+    const lo = Math.min(...a, ...b), hi = Math.max(...a, ...b);
+    const y = 214 + r * 52;
+    label(ctx, kind, 14, y + 12, { size: 11, colour: T.ink1, weight: "600" });
+    vecCells(ctx, 80, y, a.slice(0, 16), { cell: 18, lo, hi }); vecCells(ctx, 80, y + 20, b.slice(0, 16), { cell: 18, lo, hi });
+    label(ctx, verdict(kind), 380, y + 24, { size: 10, colour: T.ink2 });
+  });
+}
+</script>
+</body>
+</html>

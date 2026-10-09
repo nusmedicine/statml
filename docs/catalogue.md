@@ -24619,6 +24619,63 @@ labels from FinGAT's `training_data.csv` (no licence file; the labels trace
 to Stokes et al. 2020) appear on the page; on his call it pushed with the
 `credit` line "Molecule data: Stokes et al., Cell 2020, via FinGAT".
 
+### Slot 95 · `message-passing` — Graphs: Message Passing — MEASURED AND MOCKED 2026-10-09, awaiting his picks
+
+The arc mock's five picks for 95 (§5.5–5.9: Aggregate · Layers · Readout;
+his chain then caffeine; GCN · GAT; untrained weights; suberic against
+azelaic acid under max) were re-measured under **the lesson's own layers**
+before drawing: `_lab/message-passing-measure.py` writes `GCNConv` and
+`GATConv` out from PyG's definitions (torch_geometric is not installed;
+self-loops, symmetric normalisation, glorot, GAT's LeakyReLU 0.2 and
+mean-filled self-loop `edge_attr`) on cell 32's 39 features with the
+vocabulary sorted; `_lab/message-passing-trained.py [seed]` trains cell 64's
+GATNet with cells 45–51's set-up (AdamW 1e-3, weight decay 1e-4,
+class-weighted, batch 64; 30 epochs on a random 80/20 split) for runs 42, 1
+and 2 (test AUC 0.86–0.87); `_lab/message-passing-data.py` writes the
+mock's data (caffeine as 94 draws it, the acids on one zig-zag, 94's five
+columns, the file's column means and SDs). Mock: `_lab/message-passing-mock.html`.
+
+- **Untrained weights hold for hops, smoothing and pooling, and fail for
+  GAT.** An untrained GAT's largest α on an atom exceeds 1/(inputs) by
+  0.018 (layer 1) and 0.012 (layer 2) on average over the file; on caffeine
+  the seeds agree on the top input at chance. Trained, layer 1 (mean of four
+  heads) exceeds uniform by 0.18–0.26 and the three runs agree on caffeine's
+  top input for 12 of 14 atoms (a methyl looks at its ring N and back);
+  layer 2 by 0.49–0.57, ≥ 0.93 on one input for most atoms, and the runs
+  agree for 2 of 14. Recommended: a Weights Untrained · Trained control on
+  GAT, layer 1, the trained α a table computed ahead.
+- **Oversmoothing holds, once the columns are scaled.** On cell 32's raw
+  features caffeine's atoms start at a mean cosine distance of 0.08 (the
+  atomic number dwarfs the 0/1 columns); standardised over the file, 0.94 →
+  0.31–0.36 after two layers → 0.02–0.03 by eight under GCNConv + ELU (three
+  seeds); the file's single-piece molecules 0.82 → 0.60 → 0.36, salts 0.91 →
+  0.63 (pieces never mix). Standardising over the molecule's own atoms
+  removes the shared part smoothing grows, and the curve barely moves for
+  four layers — the widget scales with the file's column statistics. A
+  norm-based measure was tried and dropped: the symmetric normalisation
+  converges to vectors parallel but scaled by √(degree + 1).
+- **Pooling holds, and the count grows.** The lesson's 2-layer GCN (two
+  seeds) ties 8–9 pairs under max, GAT with bond features 8, none under mean
+  or sum — the arc's colour-refinement stand-in found 4. The extra pairs
+  include aminoglycoside salts that differ only in their number of sulfate
+  counter-ions. Suberic/azelaic: max difference 0.0, mean 0.023, sum 1.56;
+  six classes of atom. With **three** layers max separates them (0.022 on the
+  mock's five columns), so Readout stays at the lesson's two.
+- **94's numbering moves the reach claim.** In 94's string atom 0 reaches
+  all 14 atoms after five layers; caffeine's diameter (6) runs from methyl
+  C9 or O13. The arc mock's "atom 0, six layers" used 09-2 cell 6's string.
+- **Notebook findings 11–15** (mock § 4): cell 63's GAT formula omits the
+  self-loop `GATConv` adds; cell 64 gives GAT `edge_attr` and cell 42's GCN
+  none, so the comparison changes two things at once; cell 32's features
+  enter unscaled; max pooling's 8–9 ties; cell 63's "natural importance
+  signal" against layer 2's run-to-run disagreement.
+
+Open calls, with the mock (§5): GAT's α (Weights control) · which trained
+layer · 94's five columns in the table · Aggregate's presses · Layers' figure
+(reach and likeness) · a press per layer · Readout's tallies · Readout's
+depth; settled unless he says otherwise: 94's credit line and the arc's
+colours.
+
 ---
 
 ## Two arcs, not one — now three
