@@ -260,7 +260,7 @@ const S = {
     trained: (agree) => `learned on 2,335 molecules; two more training runs give the same top input for ${agree} of caffeine's 14 atoms`,
   },
   tileLayers: "Layers",
-  tileLayersNote: "Readout pools after 2 by default; the trained GAT also stacks 2",
+  tileLayersNote: "Readout pools after 2 layers by default; the trained GAT also stacks 2",
   tileReach: "Gathered from",
   tileReachNote: (d) => `the atoms within k bonds; caffeine's longest shortest path is ${d} bonds`,
   tileUnlike: "Cosine distance",
