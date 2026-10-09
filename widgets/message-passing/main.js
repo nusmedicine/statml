@@ -191,20 +191,20 @@ const S = {
 
   mathNote: {
     graph: (kind, s) => [
-      "one layer updates node i from its inputs, its neighbours N(i) and itself: xⱼ is node j's row, dᵢ its degree counting the self-loop, W a matrix learned in training (here, its random starting values)",
-      "Aggregate: each input's row times its weight 1/√(dᵢdⱼ), summed into one row the size of x",
-      "Multiply by W: that row times W, the same W for every node",
-      "Apply ELU: each number v stays if v > 0 and becomes eᵛ − 1 if not; the result is hᵢ′, node i's row after one layer",
+      "one layer: node i's new row hᵢ′ from its neighbours N(i) and itself; hⱼ is node j's row (x before any layer), W a matrix learned in training (here, its random starting values), σ an activation",
+      "Aggregate, here GCN's: each input's row times 1/√(dᵢdⱼ), dᵢ the degree counting the self-loop, summed into one row the size of x",
+      "Multiply by W: the aggregated row times W, the same W for every node; the figure multiplies rows, H·W, as PyG does",
+      "Apply ELU, the σ here: each number v stays if v > 0 and becomes eᵛ − 1 if not; the result is hᵢ′, node i's row after one layer",
     ][s],
     aggregate: (kind, s) => [
+      "the same layer on caffeine: hⱼ is atom j's row, W a matrix learned in training (here, its random starting values), σ is ELU",
       kind === "gat"
-        ? "the same layer on caffeine with GAT's weights: αᵢⱼ is a softmax over atom i's inputs of a score that training sets; xⱼ is atom j's row, W a matrix learned in training (here, its random starting values)"
-        : "the same layer on caffeine: xⱼ is atom j's row, dᵢ its degree counting the self-loop, W a matrix learned in training (here, its random starting values)",
-      `Aggregate: each input's row times its weight ${kind === "gat" ? "αᵢⱼ" : "1/√(dᵢdⱼ)"}, summed into one row the size of x`,
-      "Transform: the sum times W, then ELU on each number: hᵢ′, atom i's row after one layer",
+        ? "Aggregate, here GAT's: each input's row times αᵢⱼ, a softmax over atom i's inputs of a score that training sets, summed into one row"
+        : "Aggregate, here GCN's: each input's row times 1/√(dᵢdⱼ), dᵢ the degree counting the self-loop, summed into one row",
+      "Transform: the aggregated row times W, then σ, here ELU: hᵢ′, atom i's row after one layer",
     ][s],
-    layers: "every atom at once: row i of ÂH is atom i's weighted sum, as on Graph; H⁽⁰⁾ is x, one row an atom, and each layer has its own W, learned in training (here, random starting values)",
-    readout: (pk, k) => `${{ sum: "h<sub>G</sub> adds the atoms' rows", mean: "h<sub>G</sub> averages the atoms' rows", max: "h<sub>G</sub> keeps each number's largest value over the atoms" }[pk]}, each row after ${k} layer${k === 1 ? "" : "s"}: one vector for the molecule; ŷ is the classifier's prediction of y`,
+    layers: "the layer applied again: layer l + 1 reads layer l's rows, and hᵢ⁽⁰⁾ is xᵢ; each layer has its own W⁽ˡ⁾, learned in training (here, random starting values); Aggregate is GCN's, σ is ELU",
+    readout: (pk, k) => `POOL, here ${{ sum: "the sum", mean: "the mean", max: "the largest value" }[pk]} of each number over the atoms' rows after ${k} layer${k === 1 ? "" : "s"}: one vector h<sub>G</sub> for the molecule; MLP is the classifier, ŷ<sub>G</sub> its prediction of y`,
   },
 
   /* Layers */
@@ -727,28 +727,26 @@ const NODE_R = 18, LOOP = { dy: 31, r: 12 };
    what we are trying to achieve"): MathML above the figure, as limma's and
    deseq2's. On Graph and Aggregate the part the last press did (or the one
    in flight) is in --c-highlight, so the equation marks the step reached.
-   Symbols only; the numbers are in the figure. */
+   Symbols only; the numbers are in the figure.
+   Round 8, his "use the more generic formula like sigma(W. aggregate...)":
+   the lesson's own forms, word for word — 09-1 cell 23's layer, 09-2 cell
+   18's layer index, 09-1 cell 24's POOL and MLP. What Aggregate and σ are
+   here (GCN's or GAT's weights, ELU) goes in the note under it. The layer
+   is written W · Aggregate, as the lesson writes it; the figure multiplies
+   rows, H·W, as PyG does — the note at Multiply by W says so. */
 const MATHML = mathmlRenders();
 const HL = (on, s) => (on ? `<mrow style="color:var(--c-highlight)">${s}</mrow>` : s);
-const MSUB = (v, s) => `<msub><mi>${v}</mi>${s}</msub>`;
-const SUP_K = (v, k) => `<msup><mi>${v}</mi><mrow><mo>(</mo>${k}<mo>)</mo></mrow></msup>`;
-const ELU_M = `<mi mathvariant="normal">ELU</mi>`;
-const SUM_N = `<munder><mo>∑</mo><mrow><mi>j</mi><mo>∈</mo><mi>N</mi><mo>(</mo><mi>i</mi><mo>)</mo><mo>∪</mo><mo>{</mo><mi>i</mi><mo>}</mo></mrow></munder>`;
-const W_GCN = `<mfrac><mn>1</mn><msqrt>${MSUB("d", "<mi>i</mi>")}${MSUB("d", "<mi>j</mi>")}</msqrt></mfrac>`;
-const W_GAT = `<msub><mi>α</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>`;
-const HI_NEW = `<msubsup><mi>h</mi><mi>i</mi><mo>′</mo></msubsup>`;
-/** one layer, with the parts `on` holds marked: agg, W, act */
-function layerMath(kind, on) {
-  const agg = `<mrow><mo>(</mo>${SUM_N}${kind === "gat" ? W_GAT : W_GCN}${MSUB("x", "<mi>j</mi>")}<mo>)</mo></mrow>`;
-  return `<math display="block"><mrow>${HI_NEW}<mo>=</mo>${HL(on.has("act"), ELU_M)}<mo>(</mo>${HL(on.has("agg"), agg)}${HL(on.has("W"), "<mi>W</mi>")}<mo>)</mo></mrow></math>`;
+const SUP_L = (v, sub, l) => `<msubsup><mi>${v}</mi>${sub}<mrow><mo>(</mo>${l}<mo>)</mo></mrow></msubsup>`;
+const SIGMA = "<mi>σ</mi>", AGG = `<mtext>Aggregate</mtext>`;
+/** σ( W · Aggregate( {h_j : j ∈ N(i)} ∪ {h_i} ) ), the parts `on` holds marked; `l` a layer index or null */
+function layerMath(on, l = null) {
+  const h = (s) => (l ? SUP_L("h", s, l) : `<msub><mi>h</mi>${s}</msub>`);
+  const lhs = l ? SUP_L("h", "<mi>i</mi>", `<mi>l</mi><mo>+</mo><mn>1</mn>`) : `<msubsup><mi>h</mi><mi>i</mi><mo>′</mo></msubsup>`;
+  const W = l ? `<msup><mi>W</mi><mrow><mo>(</mo>${l}<mo>)</mo></mrow></msup>` : "<mi>W</mi>";
+  const set = `<mo>{</mo>${h("<mi>j</mi>")}<mo>:</mo><mi>j</mi><mo>∈</mo><mi>N</mi><mo>(</mo><mi>i</mi><mo>)</mo><mo>}</mo><mo>∪</mo><mo>{</mo>${h("<mi>i</mi>")}<mo>}</mo>`;
+  return `<math display="block"><mrow>${lhs}<mo>=</mo>${HL(on.has("act"), SIGMA)}<mrow><mo>(</mo>${HL(on.has("W"), `${W}<mo>·</mo>`)}${HL(on.has("agg"), `${AGG}<mrow><mo>(</mo>${set}<mo>)</mo></mrow>`)}<mo>)</mo></mrow></mrow></math>`;
 }
-const layerPlain = (kind) => `hᵢ′ = ELU( ( Σ_{j ∈ N(i) ∪ {i}} ${kind === "gat" ? "αᵢⱼ" : "1/√(dᵢdⱼ)"} xⱼ ) W )`;
-const AHAT = `<mover><mi>A</mi><mo>^</mo></mover>`, DHALF = `<msup><mi>D</mi><mrow><mo>−</mo><mn>1</mn><mo>/</mo><mn>2</mn></mrow></msup>`;
-const POOL_M = {
-  sum: `<munder><mo>∑</mo><mi>i</mi></munder>`,
-  mean: `<mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder>`,
-  max: `<munder><mo movablelimits="false">max</mo><mi>i</mi></munder>`,
-};
+const LAYER_PLAIN = "hᵢ′ = σ( W · Aggregate( {hⱼ : j ∈ N(i)} ∪ {hᵢ} ) )";
 function formulaFor(params, anim) {
   const page = params.page;
   if (page === "graph" || page === "aggregate") {
@@ -757,17 +755,14 @@ function formulaFor(params, anim) {
     const s = anim ? (inFlight ? anim.n[page] : shownStep(anim, page)) : 0;
     /* Graph: Aggregate · Multiply by W · Apply ELU; Aggregate (caffeine): Aggregate · Transform */
     const parts = page === "graph" ? [[], ["agg"], ["W"], ["act"]][s] : [[], ["agg"], ["W", "act"]][s];
-    const key = `${page}-${kind}-${s}`;
-    return { key, math: layerMath(kind, new Set(parts)), plain: layerPlain(kind), note: S.mathNote[page](kind, s) };
+    return { key: `${page}-${kind}-${s}`, math: layerMath(new Set(parts)), plain: LAYER_PLAIN, note: S.mathNote[page](kind, s) };
   }
   if (page === "layers") {
-    const math = `<math display="block"><mrow>${SUP_K("H", "<mi>k</mi>")}<mo>=</mo>${ELU_M}<mo>(</mo>${AHAT}${SUP_K("H", "<mi>k</mi><mo>−</mo><mn>1</mn>")}${SUP_K("W", "<mi>k</mi>")}<mo>)</mo><mo>,</mo><mspace width="0.8em"></mspace>${AHAT}<mo>=</mo>${DHALF}<mo>(</mo><mi>A</mi><mo>+</mo><mi>I</mi><mo>)</mo>${DHALF}</mrow></math>`;
-    return { key: "layers", math, plain: "H⁽ᵏ⁾ = ELU( Â H⁽ᵏ⁻¹⁾ W⁽ᵏ⁾ ),   Â = D^−½ (A + I) D^−½", note: S.mathNote.layers };
+    return { key: "layers", math: layerMath(new Set(), "<mi>l</mi>"), plain: "hᵢ⁽ˡ⁺¹⁾ = σ( W⁽ˡ⁾ · Aggregate( {hⱼ⁽ˡ⁾ : j ∈ N(i)} ∪ {hᵢ⁽ˡ⁾} ) )", note: S.mathNote.layers };
   }
-  const k = Number(params.depth), pk = params.pooling;
-  const math = `<math display="block"><mrow>${MSUB("h", "<mi>G</mi>")}<mo>=</mo>${POOL_M[pk]}<msubsup><mi>h</mi><mi>i</mi><mrow><mo>(</mo><mn>${k}</mn><mo>)</mo></mrow></msubsup><mo>,</mo><mspace width="0.8em"></mspace><mover><mi>y</mi><mo>^</mo></mover><mo>=</mo><mtext>classifier</mtext><mo>(</mo>${MSUB("h", "<mi>G</mi>")}<mo>)</mo></mrow></math>`;
-  const plain = `h_G = ${{ sum: "Σᵢ", mean: "(1/n) Σᵢ", max: "maxᵢ" }[pk]} hᵢ⁽${k}⁾,   ŷ = classifier(h_G)`;
-  return { key: `readout-${k}-${pk}`, math, plain, note: S.mathNote.readout(pk, k) };
+  const k = Number(params.depth), pk = params.pooling, hG = "<msub><mi>h</mi><mi>G</mi></msub>";
+  const math = `<math display="block"><mrow>${hG}<mo>=</mo><mtext>POOL</mtext><mrow><mo>(</mo><mo>{</mo>${SUP_L("h", "<mi>i</mi>", `<mn>${k}</mn>`)}<mo>|</mo><mi>i</mi><mo>∈</mo><mi>G</mi><mo>}</mo><mo>)</mo></mrow><mo>,</mo><mspace width="1em"></mspace><msub><mover><mi>y</mi><mo>^</mo></mover><mi>G</mi></msub><mo>=</mo><mtext>MLP</mtext><mrow><mo>(</mo>${hG}<mo>)</mo></mrow></mrow></math>`;
+  return { key: `readout-${k}-${pk}`, math, plain: `h_G = POOL({hᵢ⁽${k}⁾ | i ∈ G}),   ŷ_G = MLP(h_G)`, note: S.mathNote.readout(pk, k) };
 }
 let mathHost = null, mathKey = null;
 function renderFormula(F) {
