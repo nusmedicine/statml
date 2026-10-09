@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · graph constructor — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  iframe { width: 100%; border: 1px solid var(--grid); background: var(--surface-1); display: block; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>A graph constructor for 94's Graph page &middot; mock</h1>
+  <p class="note">
+    Three live frames: the draft as it stands (a press adds the next edge of the four-protein chain), then the same page with
+    the press replaced by construction, clicked two ways. <b>The two prototypes run on core unchanged</b>: every edit &mdash;
+    a click in the drawing, a click in A, or typing in the <i>Edge list</i> field &mdash; writes one parameter, the edge list,
+    through core's region door, so the URL carries the graph (try <i>Copy link</i>). Nodes 3&ndash;6; E and F's features are
+    made up. Nothing here is copy.
+  </p>
+
+  <h2>0 &middot; The draft: a press an edge</h2>
+  <iframe data-src="../graph-representation/?page=graph" title="the draft"></iframe>
+
+  <h2>A &middot; Click a node, then another</h2>
+  <p class="note">The first click picks a node (ringed); the second joins the two, or parts them if they are joined; clicking the
+    picked node again lets it go. Directed: the first click is the source. Hover a node for its degree as a row sum of A.</p>
+  <iframe data-src="graph-constructor.html?mode=nodes&graph=" title="click two nodes"></iframe>
+
+  <h2>B &middot; Click a pair's dot</h2>
+  <p class="note">A dot on every pair the nodes can form (6 for four nodes, 15 for six); a click toggles that pair, and hovering one
+    previews the edge. Directed: two dots a pair, the one nearer the target. Six slots were searched so that no two dots fall within
+    15&nbsp;px.</p>
+  <iframe data-src="graph-constructor.html?mode=handles&graph=" title="click a pair's dot"></iframe>
+
+  <p class="rec"><b>Recommended: A, click two nodes</b>, with A clickable too. It is how one draws a graph on paper, a directed
+    edge is simply source then target, and it needs no targets beyond the nodes. B's fifteen dots crowd the drawing at six nodes
+    and thirty at six directed, and a dot sits on top of other edges where lines cross. Either way the change is confined to the
+    widget: no core change, one hit-driven fingerprint state.</p>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">1 &middot; The Graph page</b>
+    <b>A &middot; construction replaces the press, opening on four unconnected nodes (recommended)</b> &nbsp;|&nbsp;
+    B &middot; keep the press as it is &nbsp;|&nbsp; C &middot; both: the press builds cell 25's chain, then the reader edits it</p>
+  <p class="q"><b class="h">2 &middot; How to join two nodes</b>
+    <b>A &middot; click a node, then another (recommended)</b> &nbsp;|&nbsp; B &middot; click a pair's dot</p>
+  <p class="q"><b class="h">3 &middot; Nodes</b>
+    <b>A &middot; 3&ndash;6, default 4 (recommended)</b> &nbsp;|&nbsp; B &middot; fixed at cell 25's four</p>
+  <p class="q"><b class="h">4 &middot; Moving nodes by dragging</b>
+    A &middot; add it: the drawing changes and no table does, the counterpart of Order &nbsp;|&nbsp;
+    <b>B &middot; not now (recommended): positions become a parameter, core's drag cannot say which node was grabbed, and the fingerprint harness has no drag</b></p>
+  <p class="q"><b class="h">5 &middot; Density</b>
+    <b>A &middot; a tile, 2M / N(N &minus; 1), as 09-1 cell 13 computes it (recommended)</b> &nbsp;|&nbsp; B &middot; no</p>
+</main>
+<script>
+/* each frame's height from core's own report (statml:height), so nothing is clipped */
+const frames = [...document.querySelectorAll("iframe")];
+frames.forEach((f) => { f.style.height = "760px"; f.src = f.dataset.src; });
+addEventListener("message", (ev) => {
+  if (ev.data?.type !== "statml:height") return;
+  const f = frames.find((x) => x.contentWindow === ev.source);
+  if (f) f.style.height = `${ev.data.height + 4}px`;
+});
+</script>
+</body>
+</html>
