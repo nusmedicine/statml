@@ -24552,6 +24552,72 @@ and a cell of A says what a click would do. Every hover note measured under
 the 510 px of the narrowest layout. Twelve states re-baselined: three
 identical runs, 12/12 MATCH. NEXT: 95 `message-passing`.
 
+**Rounds 3–13, the same day (2026-10-09), all his picks, every one the
+recommendation unless noted.** The widget grew from two pages to a graph
+and three examples at the three task levels, each with its split.
+
+- **3 · SMILES control cut.** The caveat about SMILES losing information was
+  "not important at this point": the Original · Canonical · Random control
+  and the Furthest-apart tile went (Bond types took the tile).
+- **4 · A Patients page** (`_lab/graph-third-page-mock.html`, arm B of EHR ·
+  patients by omics · knowledge graph): twelve simulated tumours at their
+  log2 ESR1 and ERBB2, two subtypes, each joined to its k nearest (k 1–4),
+  `edge_weight` = exp(−d²/2). Realism checked against similarity network
+  fusion (Wang 2014), population graphs (Parisot 2018), Kipf & Welling 2017,
+  single-cell kNN graphs.
+- **5 · The pedagogical audit:** Step became Graph alone + an Examples
+  heading (core `group` + `groupHeads`); the Subtypes control's "predict"
+  wording was wrong under True — PyG keeps labels and the training mask as
+  two fields, so `y` and `train_mask` were drawn; `edge_attr` → `edge_weight`
+  (what GCNConv reads); a homophily tile (0.81 at k 2, 0.70 at k 4); a
+  two-genes caveat; Molecule `y · [1]`; subtitle B.
+- **6 · An Interactions page** (`_lab/graph-edge-page-mock.html`, A of PPI ·
+  drug–target · EHR): ten DNA-damage proteins, twelve interactions; the
+  edge task's tables `edge_label_index` and `edge_label`, RandomLinkSplit's
+  two moves as Split All · Held out · Negatives. Task-level tiles.
+- **7 · `test_mask` on Patients** — his question "held out like link
+  prediction, or fundamentally different?": a held-out node stays in the
+  graph with its y hidden, a held-out edge leaves it.
+- **8 · Copy audit:** Basics / Examples headings, no field label ("Step"
+  looked strange); node-, edge-, graph-level named in the label tiles;
+  blurb and subtitle 8a.
+- **9 · Six molecules** (`_lab/graph-molecules-mock.html`,
+  `_lab/graph-split-parity-mock.html`): a table on top from the lesson's
+  file with y and the lesson's scaffold split reproduced (seed 42); the
+  Molecule control is DATA, so a new molecule starts from bond 1; Batch
+  view mocked and dropped for a static split strip on every example page.
+  `data.js` now carries six molecules and the file's split counts; caffeine
+  is written as the FILE writes it, not as 09-2 cell 6 does.
+- **10–13 · The split separated from the representation.** He found the
+  strip read as part of the figure (`_lab/graph-split-separation-mock.html`
+  → a Splits page), then that split details on the example pages raised
+  questions (`_lab/graph-split-details-mock.html` → every trace of the split
+  on that page only), then that the Splits page's own Example control broke
+  "parent–child" (`_lab/graph-task-view-mock.html` → the split is a VIEW,
+  Show Representation · Split, of whichever example is selected; a stage of
+  its own so a switch ends a press), then that its three panels competed
+  with the split below (→ one band for the example's level). Round 12 also
+  gave proteins `x` (length in k aa and kinase, UniProt) and marked each
+  task with one query in `--c-unknown`: patient 1's subtype, the pair
+  MDM2–ATM (TP53–BRCA1 was picked; with the network narrowed for `x` its "?"
+  sat behind a pill and on ATM–CHEK2, so MDM2–ATM, a real interaction this
+  graph lacks). Homophily counts only edges between two known patients
+  (0.86 at k 2).
+- **Copy audit at the end:** the claudisms scan clean; six rows applied
+  (blurb "Graph tables that renumbering permutes; patients, proteins and
+  molecules as node, edge and graph tasks, with splits.", two stale
+  summaries, a phrase said three times, a doubled "validation", an awkward
+  detail); subtitle kept.
+
+Checks at the end: the text-overlap sweep 73 states clean at 900; the switch
+probe 8 switches, 0 flagged; a press on Molecule survives its split view and
+back. **Nineteen fingerprint states** (five Graph, two Patients, one
+Interactions, four Molecule incl. bronopol, three split views, one driven,
+three hit-driven incl. a click on bronopol's row at (200, 80)), identical
+over three runs and 19/19 MATCH. **Open before the push:** six SMILES and
+their labels from FinGAT's `training_data.csv` (no licence file; the labels
+trace to Stokes et al. 2020) now appear on the page.
+
 ---
 
 ## Two arcs, not one — now three

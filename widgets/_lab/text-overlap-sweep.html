@@ -30,7 +30,13 @@ const STATES = {
     /* the Graph page built by clicking (2026-10-09): empty, cell 25's chain, a dense six, a pick pending */
     ...["undirected", "directed"].flatMap((e) => ["abc", "shuffled"].flatMap((o) => ["3", "4", "6"].flatMap((n) =>
       ["", "AB,BC,CD", "AB,AC,AD,AE,AF,BC,BD,BE,BF,CD,CE,CF,DE,DF,EF", "AB,BA,BC,CD|D"].map((g) => `?edges=${e}&order=${o}&nodes=${n}&graph=${g}`)))),
-    ...["first", "canonical", "other"].flatMap((sm) => [0, 1, 7, 14, 15].map((n) => `?page=molecule&smiles=${sm}&shown=${n}`)),
+    ...[0, 1, 7, 14, 15].map((n) => `?page=molecule&shown=${n}`),
+    ...[["nitrofurazone", 14], ["chloroxine", 14], ["bronopol", 8], ["aspirin", 13], ["acetazolamide", 13]].flatMap(([m, n]) => [`?page=molecule&mol=${m}&shown=0`, `?page=molecule&mol=${m}&shown=${n}`]),
+    /* round 4: the Patients page, every k, known and true */
+    ...["1", "2", "3", "4"].map((k) => `?page=patients&k=${k}`),
+    "?page=interactions",
+    ...["patients", "interactions", "molecule"].map((e) => `?page=${e}&show=split`),
+    ...["held", "negatives"].map((v) => `?page=interactions&show=split&split=${v}`),
   ],
   /* widget 67 after the notebook-order restructure, 2026-09-26: page 1's
      readings, page 3's likelihood at every level and the tie, the axis view */

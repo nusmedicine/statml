@@ -12730,32 +12730,74 @@
       "tx": "76bdf364"
     },
     {
-      "$note": "graph-representation · Molecule, original string, no bond yet",
+      "$note": "graph-representation · Patients, k 2: patient 1 the query '?', red edges join two subtypes, homophily 0.86",
+      "slug": "graph-representation",
+      "state": "?theme=light&page=patients&shown=0",
+      "px": "9abe815d",
+      "tx": "78698b69"
+    },
+    {
+      "$note": "graph-representation · Patients, k 4: more edges, more of them joining two subtypes",
+      "slug": "graph-representation",
+      "state": "?theme=light&page=patients&k=4&shown=0",
+      "px": "cc863c65",
+      "tx": "54822ff5"
+    },
+    {
+      "$note": "graph-representation · Interactions: x beside the network, MDM2–ATM the query '?'",
+      "slug": "graph-representation",
+      "state": "?theme=light&page=interactions&shown=0",
+      "px": "19369560",
+      "tx": "b71253a9"
+    },
+    {
+      "$note": "graph-representation · Molecule, caffeine, no bond yet: the table on top",
       "slug": "graph-representation",
       "state": "?theme=light&page=molecule&shown=0",
-      "px": "83eb65d0",
-      "tx": "37a49b02"
+      "px": "4f8a6546",
+      "tx": "a1b5e21e"
     },
     {
-      "$note": "graph-representation · Molecule, original string, bond 14: the ring closure 13–1, both digits lit, 12 apart",
+      "$note": "graph-representation · Molecule, caffeine, bond 7 of 15",
       "slug": "graph-representation",
-      "state": "?theme=light&page=molecule&shown=14",
-      "px": "9ac6a146",
-      "tx": "6e1599b2"
+      "state": "?theme=light&page=molecule&shown=7",
+      "px": "a2c7af2e",
+      "tx": "cfc36ecf"
     },
     {
-      "$note": "graph-representation · Molecule, canonical string, every bond",
+      "$note": "graph-representation · Molecule, caffeine, every bond",
       "slug": "graph-representation",
-      "state": "?theme=light&page=molecule&smiles=canonical&shown=15",
-      "px": "5ce9c9a7",
-      "tx": "7ae1e3ee"
+      "state": "?theme=light&page=molecule&shown=15",
+      "px": "f68b93a0",
+      "tx": "c449403f"
     },
     {
-      "$note": "graph-representation · Molecule, random string, every bond",
+      "$note": "graph-representation · Molecule, bronopol, every bond: a tree, no ring",
       "slug": "graph-representation",
-      "state": "?theme=light&page=molecule&smiles=other&shown=15",
-      "px": "7fe012e5",
-      "tx": "3523a169"
+      "state": "?theme=light&page=molecule&mol=bronopol&shown=8",
+      "px": "00c3dcef",
+      "tx": "21e4edfc"
+    },
+    {
+      "$note": "graph-representation · Split view, Patients: the node-level band, rings on test_mask, both masks",
+      "slug": "graph-representation",
+      "state": "?theme=light&page=patients&show=split&shown=0",
+      "px": "9783b7fa",
+      "tx": "4efce1c4"
+    },
+    {
+      "$note": "graph-representation · Split view, Interactions, Negatives: held-out and negative pairs, edge_label_index",
+      "slug": "graph-representation",
+      "state": "?theme=light&page=interactions&show=split&split=negatives&shown=0",
+      "px": "672f375f",
+      "tx": "85829edd"
+    },
+    {
+      "$note": "graph-representation · Split view, Molecule: the graph-level band, the table with its split column",
+      "slug": "graph-representation",
+      "state": "?theme=light&page=molecule&show=split&shown=0",
+      "px": "acb9a1b1",
+      "tx": "aff456f3"
     },
     {
       "$note": "graph-representation · DRIVEN: Molecule, Play mid-run",
@@ -12766,8 +12808,8 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "435ac710",
-      "tx": "b4390cdd"
+      "px": "56c997bc",
+      "tx": "57bdb7b7"
     },
     {
       "$note": "graph-representation · HIT: a click on A's cell [2][3] adds C–D to the chain A–B–C",
@@ -12798,6 +12840,21 @@
       },
       "px": "98b0dff9",
       "tx": "585a1b62"
+    },
+    {
+      "$note": "graph-representation · HIT: a click on bronopol's row picks it, its bonds from the first",
+      "slug": "graph-representation",
+      "state": "?theme=light&page=molecule",
+      "drive": {
+        "hit": [
+          200,
+          80
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "fe97d055",
+      "tx": "e6956b5d"
     }
   ]
 }

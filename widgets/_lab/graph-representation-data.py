@@ -1,75 +1,96 @@
-"""Writes widgets/graph-representation/data.js: caffeine, written three ways.
+"""Writes widgets/graph-representation/data.js: six molecules from the lesson's file.
 
-Run:  python widgets/_lab/graph-representation-data.py   (RDKit 2026.03.6)
+Run:  python -I widgets/_lab/graph-representation-data.py   (RDKit 2026.03.6, scikit-learn 1.9.0)
 
 The widget draws, it does not parse: RDKit supplies, for each string, the
 atoms in the order the string names them, the five features 09-2 cell 11
 stores (atomic number, aromatic, hybridization as RDKit's enum number,
 hydrogens, formal charge), the bonds in the order mol.GetBonds() yields them
-(cell 12's loop), and where each atom's characters sit in the string. One
-2-D drawing is made for the first string and every other string's atoms are
-placed by matching them to it, so the picture never moves while the tables
-renumber. Regenerate after changing anything here; the file is committed.
-"""
-import json, os, re
-from rdkit import Chem
-from rdkit.Chem import rdDepictor
+(cell 12's loop), where each atom's characters sit in the string, and a 2-D
+drawing. Until round 3 (2026-10-09) it also wrote RDKit's canonical string
+and a random one, for a SMILES control that his call removed.
 
+Round 9 (2026-10-09, his picks from `_lab/graph-split-parity-mock.html`):
+six molecules instead of caffeine alone, each with its Activity and where
+the lesson's scaffold split puts it (cell 28 reproduced: GroupShuffleSplit
+0.2 then 0.5, random_state 42, on every row of the file, as the lesson keeps
+unparsed rows in df). Four are in train and two in test; every active
+molecule in the test set has 19 bonds or more, too many for the page's
+tables, so both test rows are inactive. Reads _lab/graph-fingat-training.csv
+(untracked; the file 09-2 cell 20 loads). Regenerate after changing anything
+here; the output is committed.
+"""
+import csv, json, os, re
+import numpy as np
+from rdkit import Chem, RDLogger
+from rdkit.Chem import rdDepictor
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from sklearn.model_selection import GroupShuffleSplit
+
+RDLogger.DisableLog("rdApp.*")
 rdDepictor.SetPreferCoordGen(True)
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "graph-representation", "data.js")
 TOKEN = re.compile(r"(\[[^\]]+]|Br|Cl|B|C|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|/|:|~|@|\?|>|\*|\$|%[0-9]{2}|[0-9])")
 ATOMISH = re.compile(r"^(\[.*]|Br|Cl|B|C|N|O|S|P|F|I|b|c|n|o|s|p|\*)$")
 
-FIRST = "Cn1cnc2n(C)c(=O)n(C)c(=O)c12"                       # 09-2 cell 6
-ref = Chem.MolFromSmiles(FIRST)
-rdDepictor.Compute2DCoords(ref)
-conf = ref.GetConformer()
-XY = [(conf.GetAtomPosition(i).x, -conf.GetAtomPosition(i).y) for i in range(ref.GetNumAtoms())]
+# the lesson's file and its split
+rows = []
+with open(os.path.join(HERE, "graph-fingat-training.csv"), encoding="utf-8-sig") as f:
+    r = csv.reader(f); next(r)
+    for row in r:
+        rows.append((row[0], int(row[1])))
 
-canonical = Chem.MolToSmiles(ref)
-# A third string that starts from an oxygen, chosen from RDKit's random
-# writes by a fixed rule (the shortest, then alphabetical), so reruns agree.
-pool = set()
-for k in range(20000):
-    s = Chem.MolToSmiles(ref, doRandom=True)
-    if s.startswith("O="):
-        pool.add(s)
-other = sorted(pool, key=lambda s: (len(s), s))[0]
+def scaffold(s):
+    m = Chem.MolFromSmiles(s)
+    return "" if m is None else Chem.MolToSmiles(MurckoScaffold.GetScaffoldForMol(m))
 
-def variant(smi):
+scaf = np.array([scaffold(s) for s, _ in rows]); y = np.array([v for _, v in rows])
+tr, vt = next(GroupShuffleSplit(test_size=0.2, random_state=42).split(y, groups=scaf))
+vr, ts = next(GroupShuffleSplit(test_size=0.5, random_state=42).split(vt, groups=scaf[vt]))
+split = {}
+for k, ix in (("train", tr), ("val", vt[vr]), ("test", vt[ts])):
+    for i in ix:
+        split[int(i)] = k
+
+# name, the file's row (1-based, the header row 1); caffeine as the file writes it,
+# where 09-2 cell 6 writes Cn1cnc2n(C)c(=O)n(C)c(=O)c12
+PICK = [("nitrofurazone", 56), ("chloroxine", 121), ("bronopol", 59), ("aspirin", 1407), ("caffeine", 438), ("acetazolamide", 1999)]
+
+def molecule(name, row):
+    smi, act = rows[row - 2]
     m = Chem.MolFromSmiles(smi)
-    match = m.GetSubstructMatch(ref)           # match[ref atom] = this string's atom
-    assert len(match) == ref.GetNumAtoms(), smi
-    where = {mi: ri for ri, mi in enumerate(match)}
+    rdDepictor.Compute2DCoords(m)
+    conf = m.GetConformer()
     toks, pos, chars = TOKEN.findall(smi), 0, []
-    assert "".join(toks) == smi
+    assert "".join(toks) == smi, smi
     for t in toks:
         if ATOMISH.match(t):
             chars.append([pos, len(t)])
         pos += len(t)
-    assert len(chars) == m.GetNumAtoms()
-    atoms = []
-    for a in m.GetAtoms():
-        x, y = XY[where[a.GetIdx()]]
-        atoms.append({
-            "el": a.GetSymbol(),
-            "x": [a.GetAtomicNum(), int(a.GetIsAromatic()), int(a.GetHybridization()), a.GetTotalNumHs(), a.GetFormalCharge()],
-            "xy": [round(x, 3), round(y, 3)],
-            "char": chars[a.GetIdx()],
-        })
+    assert len(chars) == m.GetNumAtoms(), smi
+    atoms = [{
+        "el": a.GetSymbol(),
+        "x": [a.GetAtomicNum(), int(a.GetIsAromatic()), int(a.GetHybridization()), a.GetTotalNumHs(), a.GetFormalCharge()],
+        "xy": [round(conf.GetAtomPosition(a.GetIdx()).x, 3), round(-conf.GetAtomPosition(a.GetIdx()).y, 3)],
+        "char": chars[a.GetIdx()],
+    } for a in m.GetAtoms()]
     bonds = [[b.GetBeginAtomIdx(), b.GetEndAtomIdx(), str(b.GetBondType())] for b in m.GetBonds()]
-    return {"smiles": smi, "atoms": atoms, "bonds": bonds}
+    return {"name": name, "smiles": smi, "y": act, "split": split[row - 2], "atoms": atoms, "bonds": bonds}
 
-data = {"first": variant(FIRST), "canonical": variant(canonical), "other": variant(other)}
-for k, v in data.items():
-    gaps = [abs(i - j) for i, j, _ in v["bonds"]]
-    print(f"{k:10s} {v['smiles']:32s} atoms {len(v['atoms'])} bonds {len(v['bonds'])} furthest {max(gaps)} non-adjacent {sum(g > 1 for g in gaps)}")
+data = [molecule(n, r) for n, r in PICK]
+for v in data:
+    print(f"{v['name']:14s} y={v['y']} {v['split']:5s} atoms {len(v['atoms']):2d} bonds {len(v['bonds']):2d}  {v['smiles']}")
+assert all(v["split"] in ("train", "test") for v in data)
+assert max(len(v["bonds"]) for v in data) <= 15
 
 body = json.dumps(data, separators=(",", ":"))
 with open(OUT, "w", encoding="utf-8", newline="\n") as f:
     f.write("/* GENERATED by widgets/_lab/graph-representation-data.py with RDKit 2026.03.6 — do not edit.\n"
-            "   Caffeine written three ways: the atoms in each string's order with 09-2 cell 11's five\n"
-            "   features, the bonds in mol.GetBonds() order, each atom's characters, one shared drawing. */\n")
-    f.write(f"export const CAFFEINE = {body};\n")
+            "   Six molecules from the lesson's file, each with its Activity (y) and where the lesson's\n"
+            "   scaffold split puts it: the atoms in the string's order with cell 11's five features,\n"
+            "   the bonds in mol.GetBonds() order, each atom's characters, a 2-D drawing. */\n")
+    f.write(f"export const MOLECULES = {body};\n")
+    f.write(f"/* the file the six come from: its rows, how many are active, and the lesson's split of it */\n"
+            f"export const FILE = {{ n: {len(rows)}, active: {int(y.sum())}, train: {len(tr)}, val: {len(vt[vr])}, test: {len(vt[ts])} }};\n")
 print("wrote", os.path.relpath(OUT), os.path.getsize(OUT), "bytes")

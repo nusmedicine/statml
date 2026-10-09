@@ -1367,7 +1367,7 @@
     {
       "slug": "graph-representation",
       "title": "Deep Learning - Graphs: Representation",
-      "blurb": "Nodes and edges as a feature matrix, an adjacency matrix and an edge list; a molecule as a graph of atoms and bonds.",
+      "blurb": "Graph tables that renumbering permutes; patients, proteins and molecules as node, edge and graph tasks, with splits.",
       "course": "PHM5005",
       "topics": [
         "graph",
