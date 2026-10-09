@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 95 message-passing — Transform and Layers, in motion</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  iframe { border: 1px solid var(--grid); width: 900px; height: 760px; background: var(--surface-1); }
+  .btns { display: flex; gap: 6px; margin: 6px 0 0; }
+  .btns button { font: inherit; font-size: var(--fs-sm); padding: 5px 14px; border: 1px solid var(--grid); border-radius: 4px; background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  .btns button:disabled { opacity: 0.45; cursor: default; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .src { font-size: var(--fs-sm); color: var(--ink-2); max-width: 112ch; }
+  .src li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 95 &middot; <code>message-passing</code> &middot; Transform and Layers, in motion &middot; mock</h1>
+  <p class="note">Round 2 of review. The chain is bigger and the messages slower in the draft already (8dfb5fe). This page is
+    the two things that need a picture first: <b>what Transform should look like</b> (the new h&prime; appearing barely noticed)
+    and <b>how a layer should be added</b> (flat redraws are not intuitive; 3-D stacked sheets? a cloud for the receptive field?).
+    Every arm runs live: press its own buttons. Numbers are the draft's own: the chain's GCN sums and its seeded W (core's
+    rng, seed 1), caffeine's bonds and GCN weights. The current draft is embedded in &sect;1 and &sect;2 for comparison.</p>
+
+  <h2>0 &middot; How others draw this (research, 2026-10-09)</h2>
+  <ul class="src">
+    <li><b>Distill, <i>A Gentle Introduction to GNNs</i></b> (Sanchez-Lengeling et al. 2021): hover a node to see which edges are
+      gathered and pooled into it; one layer is "graph in, graph out" with the same connectivity. Stacking and the receptive field
+      are stated in prose (three layers, three steps away), not animated.</li>
+    <li><b>Distill, <i>Understanding Convolutions on Graphs</i></b> (Daigavane et al. 2021): click a node to see its update
+      equation, sliders for the weights; the neighbourhood figure shows one hop only; K hops are prose again.</li>
+    <li><b>CS224W (Leskovec), lectures 5&ndash;6</b>: the <i>computation graph</i> &mdash; a node's K layers unrolled as a tree
+      from its neighbourhood, depth = layers; two nodes with the same tree get the same embedding (the point Readout makes).</li>
+    <li><b>Kipf &amp; Welling 2017, Figure 1</b>: the network drawn as copies of the graph, input layer &rarr; hidden layers
+      &rarr; output layer &mdash; the stacked-sheets picture you described.</li>
+  </ul>
+  <p class="note">So nobody I found animates the stack or the receptive field growing; the two static conventions are the
+    unrolled tree (CS224W) and stacked graph copies (Kipf &amp; Welling). Both are drawn below, animated, beside a flat cloud.</p>
+
+  <h2>1 &middot; Transform &mdash; making h&prime; arrive (09-1 cell 23: "then Transform")</h2>
+  <p class="note">Each arm starts after Aggregate (every node holds its sum) and has one press, <b>Transform</b>. The point to
+    carry: <b>one W for every node</b> (the same weights, as a CNN's kernel is the same at every pixel), then the activation.</p>
+  <div class="row" id="t"></div>
+  <p class="rec">Arm C. The three sums drop into one stack (H), a highlight sweeps W's columns while H&middot;W fills a column at
+    a time, the result slides through the ELU gate (negative values bend to just above &minus;1), and each new row rises back to
+    its own node. Every motion has its own lane, so nothing crosses. It is about 5 s; the caffeine page would keep the table
+    close-up (B) since 14 rows do not fit a stack.</p>
+
+  <h2>2 &middot; Layers &mdash; making the reach grow (09-1 cell 23: "Stacking Layers")</h2>
+  <p class="note">Caffeine, atom 9 (a methyl at the molecule's diameter). Each arm has <b>Add a layer</b>. The draft today
+    (A) is embedded at the end of the row.</p>
+  <div class="row" id="l"></div>
+  <p class="rec">Arm B, the stacked sheets, with the cloud on the bottom sheet. It draws "layer" as a thing you can count,
+    shows why the reach grows (each sheet only reads the one below it, one bond at a time), and the cloud is the answer to
+    "what has atom 9 seen" at a glance. The flat likeness drawing and the curve stay under it for oversmoothing. D, the
+    unrolled tree, is the textbook's own picture and shows something B does not &mdash; atoms counted again and again (by layer 3
+    the bottom row holds 19 entries, only 7 distinct atoms, atom 9 four times) &mdash; but a fourth layer needs about 60 and
+    outgrows 550 px.</p>
+
+  <h2>3 &middot; Your calls</h2>
+  <p class="q"><b class="h">3.1 &middot; Transform</b>
+    A &middot; as now, the rows switch &nbsp;|&nbsp; B &middot; the picked node's row through W, then ELU, then up to its node
+    &nbsp;|&nbsp; <b>C &middot; every node's row through ONE W together, then ELU, then each up to its own node (recommended)</b>
+    &nbsp;|&nbsp; D &middot; only the landing: h&prime; travels from the table to its node</p>
+  <p class="q"><b class="h">3.2 &middot; Layers</b>
+    A &middot; as now, flat &nbsp;|&nbsp; <b>B &middot; stacked sheets with the cone and the cloud (recommended)</b>
+    &nbsp;|&nbsp; C &middot; flat with the cloud &nbsp;|&nbsp; D &middot; the unrolled tree</p>
+  <p class="q"><b class="h">3.3 &middot; With B: how many sheets</b>
+    <b>A &middot; up to 4 (layers 0&ndash;3), the press then continues on the flat picture and the curve to 8 (recommended)</b>
+    &nbsp;|&nbsp; B &middot; up to 3 &nbsp;|&nbsp; C &middot; all 9, sheets thinner</p>
+  <p class="q"><b class="h">3.4 &middot; Readout's Add a layer</b>
+    <b>A &middot; keep it flat on the two acids, the same messages (recommended: the acids are about pooling)</b>
+    &nbsp;|&nbsp; B &middot; stacked sheets there too</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { CAFFEINE } from "../message-passing/data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function node(ctx, x, y, name, { r = 20, fill = T.surface, stroke = T.ink1, size = 12 } = {}) { dot(ctx, x, y, r, fill, stroke, 1.5); label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", colour: T.ink1, size, weight: "600" }); }
+function ring(ctx, x, y, r, colour) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+const f = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? (0).toFixed(d) : x.toFixed(d));
+function ramp(v) { const a = rgb(T.surface3), b = rgb(T.magnitude); const t = Math.max(0, Math.min(1, v)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`; }
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+const seg = (u, a, b) => Math.max(0, Math.min(1, (u - a) / (b - a)));   // sub-phase progress
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/* AN ARM: a canvas, a next-press button and a reset; `draw(ctx, beat, u)`
+   with `beat` presses completed and `u` the eased progress of the press in
+   flight (null when settled) */
+function arm(rowId, title, sub, { h, presses, labels, ms, draw }) {
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  const btns = el("div", "btns"), next = el("button"), reset = el("button", null, "Reset");
+  btns.append(next, reset); box.appendChild(btns); document.getElementById(rowId).appendChild(box);
+  let beat = 0, t0 = null, raf = null;
+  const paint = (u) => { ctx.clearRect(0, 0, W, h); draw(ctx, beat, u); };
+  const sync = () => { next.textContent = labels[Math.min(beat, labels.length - 1)]; next.disabled = beat >= presses || raf != null; };
+  next.onclick = () => {
+    if (beat >= presses || raf != null) return;
+    beat += 1; t0 = null; sync();
+    const dur = typeof ms === "function" ? ms(beat) : ms;
+    const step = (ts) => {
+      if (t0 == null) t0 = ts;
+      const t = Math.min(1, (ts - t0) / dur);
+      paint(t < 1 ? t : null);
+      if (t < 1) raf = requestAnimationFrame(step); else { raf = null; sync(); }
+    };
+    raf = requestAnimationFrame(step);
+  };
+  reset.onclick = () => { if (raf) cancelAnimationFrame(raf); raf = null; beat = 0; sync(); paint(null); };
+  sync(); paint(null);
+}
+
+/* ================================================================ the chain's numbers, as the draft computes them */
+const CX = [[0.2, 0.8, 0.5], [0.8, 0.4, 0.8], [0.9, 0.2, 0.8]];
+const CA = [[0, 1, 0], [1, 0, 1], [0, 1, 0]];
+const deg = CA.map((r) => r.reduce((s, v) => s + v, 0) + 1);
+const CP = CA.map((r, i) => r.map((v, j) => (v || i === j ? 1 / Math.sqrt(deg[i] * deg[j]) : 0)));
+const SUM = CP.map((r) => [0, 1, 2].map((c) => r.reduce((s, w, j) => s + w * CX[j][c], 0)));
+const rng = makeRng(1);
+const glorot = (fin, fout) => { const b = Math.sqrt(6 / (fin + fout)); return Array.from({ length: fin }, () => Array.from({ length: fout }, () => rng.uniform(-b, b))); };
+const WC = glorot(3, 3);
+const HW = SUM.map((r) => [0, 1, 2].map((k) => r.reduce((s, v, q) => s + v * WC[q][k], 0)));
+const OUT = HW.map((r) => r.map((v) => (v > 0 ? v : Math.expm1(v))));
+const LO = -1, HI = 1.2;
+const cellsAt = (ctx, x, y, row, c = 30, stroke = T.ink1, lw = 1) => row.forEach((v, k) => rect(ctx, x + k * c, y, c, c, ramp((v - LO) / (HI - LO)), stroke, lw));
+const numsAt = (ctx, x, y, row, c = 30) => label(ctx, row.map((v) => f(v)).join(" "), x + 1.5 * c, y - 6, { mono: true, size: 10, colour: T.ink3, align: "center" });
+
+/* the chain's frame: nodes across the top, each node's row above it */
+const NY = 112, NX = [0.17, 0.5, 0.83].map((p) => p * W);
+function chainFrame(ctx, rows, { pick = 1, hide = [] } = {}) {
+  label(ctx, "the graph", 14, 18, { weight: "600", colour: T.ink1 });
+  ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.6;
+  for (const [a, b] of [[0, 1], [1, 2]]) { ctx.beginPath(); ctx.moveTo(NX[a], NY); ctx.quadraticCurveTo((NX[a] + NX[b]) / 2, NY - 28, NX[b], NY); ctx.stroke(); }
+  ctx.restore();
+  rows.forEach((row, i) => { if (hide.includes(i)) return; cellsAt(ctx, NX[i] - 45, NY - 78, row); numsAt(ctx, NX[i] - 45, NY - 78, row); });
+  [0, 1, 2].forEach((i) => node(ctx, NX[i], NY, String(i), { fill: i === pick ? wash(T.highlight, 0.35) : wash(T.groupA, 0.3) }));
+  ring(ctx, NX[pick], NY, 27, T.highlight);
+}
+function wGrid(ctx, x, y, hl = -1, c = 34) {
+  label(ctx, "W · one for every node", x, y - 8, { size: 10, colour: T.ink3 });
+  WC.forEach((r, i) => r.forEach((v, k) => {
+    rect(ctx, x + k * c, y + i * 22, c, 22, k === hl ? wash(T.highlight, 0.3) : T.surface2, T.grid);
+    label(ctx, f(v), x + k * c + c / 2, y + i * 22 + 15, { mono: true, size: 10, align: "center", colour: k === hl ? T.ink1 : T.ink2 });
+  }));
+}
+function eluIcon(ctx, x, y, w = 52, h = 40) {
+  rect(ctx, x, y, w, h, T.surface2, T.grid);
+  const sx = (v) => x + 4 + ((v + 2) / 3.2) * (w - 8), sy = (v) => y + h - 6 - ((v + 1) / 2.2) * (h - 12);
+  ctx.save(); ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.4; ctx.beginPath();
+  for (let q = 0; q <= 30; q++) { const v = -2 + (3.2 * q) / 30, e = v > 0 ? v : Math.expm1(v); q ? ctx.lineTo(sx(v), sy(e)) : ctx.moveTo(sx(v), sy(e)); }
+  ctx.stroke(); ctx.restore();
+  label(ctx, "ELU", x + w / 2, y - 5, { size: 10, colour: T.ink3, align: "center" });
+}
+
+/* ---------------------------------------------------------------- Transform A · as now */
+arm("t", "Transform · A · as now", "the rows switch to h′ in place, every node at once\n(the draft's behaviour)", {
+  h: 300, presses: 1, labels: ["Transform", "Transform"], ms: 120,
+  draw(ctx, beat) {
+    chainFrame(ctx, beat ? OUT : SUM);
+    label(ctx, beat ? "every node · its sum × W, then ELU: h′" : "every node holds its sum", 14, 290, { weight: "600", colour: T.ink1 });
+  },
+});
+
+/* ---------------------------------------------------------------- Transform B · the picked node through W */
+arm("t", "Transform · B · the picked node's row through W", "node 1's sum leaves its node, crosses W column by column, passes ELU, and rises\nback as h′; nodes 0 and 2 switch as it lands (the same W)", {
+  h: 300, presses: 1, labels: ["Transform", "Transform"], ms: 4800,
+  draw(ctx, beat, u) {
+    const settled = u == null;
+    const rows = settled ? (beat ? OUT : SUM) : SUM;
+    chainFrame(ctx, rows, { hide: !settled ? [1] : [] });
+    const wx = 230, wy = 196, rowY = 202;
+    wGrid(ctx, wx, wy, settled ? -1 : u > 0.25 && u < 0.6 ? Math.min(2, Math.floor((u - 0.25) / 0.35 * 3)) : -1);
+    eluIcon(ctx, 420, 196);
+    if (!settled) {
+      const p1 = ease(seg(u, 0, 0.22)), p2 = seg(u, 0.25, 0.6), p3 = ease(seg(u, 0.62, 0.78)), p4 = ease(seg(u, 0.8, 1));
+      const sx0 = NX[1] - 45, sy0 = NY - 78;
+      if (u < 0.25) cellsAt(ctx, lerp(sx0, 110, p1), lerp(sy0, rowY, p1), SUM[1], 30, T.highlight, 1.6);
+      else if (u < 0.62) {
+        cellsAt(ctx, 110, rowY, SUM[1], 30, T.highlight, 1.6);
+        const done = Math.min(3, Math.floor(p2 * 3 + 1e-9));
+        const prod = HW[1].map((v, k) => (k < done ? v : null));
+        prod.forEach((v, k) => rect(ctx, 340 + k * 24, rowY + 60, 24, 24, v == null ? null : ramp((v - LO) / (HI - LO)), T.ink2));
+        label(ctx, "h·W", 340, rowY + 54, { size: 10, colour: T.ink3 });
+      } else {
+        const x = u < 0.8 ? lerp(340, 420, p3) : lerp(420, NX[1] - 45, p4), y = u < 0.8 ? lerp(rowY + 60, rowY + 60, p3) : lerp(rowY + 60, NY - 78, p4);
+        cellsAt(ctx, x, y, u < 0.7 ? HW[1] : OUT[1], u < 0.8 ? 24 : 30, T.highlight, 1.6);
+      }
+    }
+    label(ctx, settled ? (beat ? "every node · h′ = ELU(sum × W)" : "every node holds its sum") : u < 0.62 ? "node 1's sum × W, a column at a time" : u < 0.8 ? "then ELU: a negative value bends to just above −1" : "h′ rises back to node 1", 14, 290, { weight: "600", colour: T.ink1 });
+  },
+});
+
+/* ---------------------------------------------------------------- Transform C · every node through one W */
+arm("t", "Transform · C · every node's row through ONE W (recommended)", "the three sums drop into a stack H, H·W fills a column at a time,\nslides through ELU, and each row rises back to its own node", {
+  h: 300, presses: 1, labels: ["Transform", "Transform"], ms: 5200,
+  draw(ctx, beat, u) {
+    const settled = u == null;
+    chainFrame(ctx, settled ? (beat ? OUT : SUM) : SUM, { hide: settled ? [] : [0, 1, 2] });
+    const hx = 24, hy = 200, c = 26, col = settled ? -1 : u > 0.24 && u < 0.58 ? Math.min(2, Math.floor((u - 0.24) / 0.34 * 3)) : -1;
+    wGrid(ctx, 140, hy, col);
+    eluIcon(ctx, 400, hy - 4);
+    label(ctx, "H", hx + 1.5 * c, hy - 8, { size: 10, colour: T.ink3, align: "center" });
+    label(ctx, "×", 122, hy + 38, { size: 14, colour: T.ink2, align: "center" });
+    if (!settled) {
+      const p1 = ease(seg(u, 0, 0.22)), p2 = seg(u, 0.24, 0.58), p3 = ease(seg(u, 0.6, 0.76)), p4 = ease(seg(u, 0.78, 1));
+      for (let i = 0; i < 3; i++) {
+        const sx = NX[i] - 45, sy = NY - 78, ty = hy + i * 22;
+        if (u < 0.24) { const k = 30 + (c - 30) * p1; cellsAt(ctx, lerp(sx, hx, p1), lerp(sy, ty, p1), SUM[i], k, T.ink1); }
+        else {
+          cellsAt(ctx, hx, ty, SUM[i], c, T.grid);
+          const done = u < 0.58 ? Math.min(3, Math.floor(p2 * 3 + 1e-9)) : 3;
+          const ox = u < 0.6 ? 270 : u < 0.78 ? lerp(270, 470, p3) : 470, oy = ty;
+          if (u < 0.78) {
+            const vals = (u < 0.68 ? HW[i] : OUT[i]).map((v, k) => (k < done ? v : null));
+            vals.forEach((v, k) => rect(ctx, ox + k * 24, oy, 24, 22, v == null ? null : ramp((v - LO) / (HI - LO)), T.ink2));
+          } else {
+            /* one row at a time, node 2 first: rising together, the top row's path crossed the bottom one's */
+            const q = ease(seg(u, 0.78 + (2 - i) * 0.073, 0.78 + (3 - i) * 0.073));
+            const x = lerp(470, NX[i] - 45, q), y = lerp(ty, NY - 78, q);
+            cellsAt(ctx, x, y, OUT[i], lerp(24, 30, q), i === 1 ? T.highlight : T.ink1, i === 1 ? 1.6 : 1);
+          }
+        }
+      }
+      if (u >= 0.24 && u < 0.6) label(ctx, "= H·W", 270, hy - 8, { size: 10, colour: T.ink3 });
+    }
+    label(ctx, settled ? (beat ? "every node · h′ = ELU(sum × W), one W for all" : "every node holds its sum") : u < 0.24 ? "every node's sum drops into one stack" : u < 0.6 ? "H × W: the same W for every row, a column at a time" : u < 0.78 ? "through ELU: negatives bend to just above −1" : "each new row back to its own node", 14, 290, { weight: "600", colour: T.ink1 });
+  },
+});
+
+/* ---------------------------------------------------------------- Transform D · only the landing */
+arm("t", "Transform · D · only the landing", "h′ appears in the table, then travels up to its node\nand replaces the row there", {
+  h: 300, presses: 1, labels: ["Transform", "Transform"], ms: 1700,
+  draw(ctx, beat, u) {
+    const settled = u == null;
+    chainFrame(ctx, settled ? (beat ? OUT : SUM) : SUM.map((r, i) => (i === 1 ? r : OUT[i])), { hide: settled ? [] : [1] });
+    label(ctx, "h1′", 160, 238, { mono: true, weight: "600", colour: T.ink1 });
+    if (beat && !settled) cellsAt(ctx, lerp(200, NX[1] - 45, ease(u)), lerp(220, NY - 78, ease(u)), OUT[1], 30, T.highlight, 1.6);
+    else if (beat) label(ctx, OUT[1].map((v) => f(v)).join("  "), 200, 238, { mono: true, colour: T.ink1 });
+    label(ctx, settled ? (beat ? "every node · h′" : "every node holds its sum") : "h1′ travels to node 1", 14, 290, { weight: "600", colour: T.ink1 });
+  },
+});
+
+/* ================================================================ caffeine for Layers */
+const N = CAFFEINE.atoms.length, PICK = 9;
+const A = Array.from({ length: N }, () => new Array(N).fill(0));
+for (const [i, j] of CAFFEINE.bonds) { A[i][j] = 1; A[j][i] = 1; }
+const nbrs = A.map((r) => r.map((v, j) => (v ? j : -1)).filter((j) => j >= 0));
+const hops = (() => { const D = new Array(N).fill(Infinity); D[PICK] = 0; let fr = [PICK], k = 0; while (fr.length) { k += 1; const nx = []; for (const u of fr) for (const v of nbrs[u]) if (D[v] === Infinity) { D[v] = k; nx.push(v); } fr = nx; } return D; })();
+const within = (k) => [...Array(N).keys()].filter((i) => hops[i] <= k);
+const xs = CAFFEINE.atoms.map((a) => a.xy[0]), ys = CAFFEINE.atoms.map((a) => a.xy[1]);
+const mnx = Math.min(...xs), mny = Math.min(...ys), spx = Math.max(...xs) - mnx, spy = Math.max(...ys) - mny;
+const flat = (x0, y0, w, h) => { const s = Math.min(w / spx, h / spy); const ox = x0 + (w - spx * s) / 2, oy = y0 + (h - spy * s) / 2; return CAFFEINE.atoms.map((a) => [ox + (a.xy[0] - mnx) * s, oy + (a.xy[1] - mny) * s]); };
+
+/* the cloud: every atom in the field gets a disc; drawn opaque off-screen and
+   laid down once at a set opacity, so overlaps do not darken */
+const off = document.createElement("canvas");
+function cloud(ctx, pts, members, r, colour, alpha = 0.22, grow = null) {
+  off.width = W * DPR; off.height = 600 * DPR; const o = off.getContext("2d"); o.setTransform(DPR, 0, 0, DPR, 0, 0); o.clearRect(0, 0, W, 600);
+  o.fillStyle = colour;
+  members.forEach((i) => { const rr = grow && grow.has(i) ? r * grow.get(i) : r; if (rr > 0) { o.beginPath(); o.arc(pts[i][0], pts[i][1], rr, 0, 2 * Math.PI); o.fill(); } });
+  ctx.save(); ctx.globalAlpha = alpha; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(off, 0, 0); ctx.restore();
+}
+function bonds(ctx, P, colour = T.ink3, w = 1.2) { CAFFEINE.bonds.forEach(([i, j]) => line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colour, w)); }
+function msgsFlat(ctx, P, u, r = 9) {
+  for (const [i, j] of CAFFEINE.bonds) for (const [s, t] of [[i, j], [j, i]]) {
+    const [ax, ay] = P[s], [bx, by] = P[t], dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, sd = s < t ? 1 : -1;
+    const x = ax + ux * r + (L - 2 * r) * ux * u - uy * 3.5 * sd, y = ay + uy * r + (L - 2 * r) * uy * u + ux * 3.5 * sd;
+    dot(ctx, x, y, 3, t === PICK ? T.highlight : T.groupA);
+  }
+}
+
+/* ---------------------------------------------------------------- Layers B · stacked sheets */
+const SHEETS = 4;
+function sheetPts(level, kTop, slide = 0) {
+  /* oblique projection: x right, y into the page (flattened); level 0 at the bottom */
+  const s = 46, gx = 0.55, gy = 0.34, x0 = 150, yBase = 392;
+  const gap = 92, y0 = yBase - level * gap - slide;
+  return CAFFEINE.atoms.map((a) => { const X = a.xy[0] - mnx, Y = a.xy[1] - mny; return [x0 + X * s + Y * s * gx, y0 + Y * s * gy - spy * s * gy]; });
+}
+function sheetOutline(ctx, level, slide, active) {
+  const s = 46, gx = 0.55, gy = 0.34, x0 = 150, gap = 92, y0 = 392 - level * gap - slide - spy * s * gy, pad = 18;
+  const corners = [[-pad, -pad], [spx * s + pad, -pad], [spx * s + pad, spy * s + pad], [-pad, spy * s + pad]].map(([X, Y]) => [x0 + X + Y * gx, y0 + Y * gy]);
+  ctx.save(); ctx.beginPath(); corners.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+  ctx.fillStyle = wash(T.surface3 || "#888888", 0.5); ctx.fill(); ctx.strokeStyle = active ? T.ink2 : T.grid; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+  label(ctx, level === 0 ? "layer 0 · x" : `layer ${level}`, corners[0][0] - 6, (corners[0][1] + corners[3][1]) / 2 + 4, { size: 10, colour: T.ink3, align: "right" });
+}
+arm("l", "Layers · B · stacked sheets, the cone and the cloud (recommended)", "one sheet a layer, atom 9 on the top one; lines: whose vectors fed whom,\none bond a sheet; the cloud on layer 0: everything atom 9 has seen", {
+  h: 440, presses: 3, labels: ["Add a layer", "Add a layer", "Add a layer", "Add a layer"], ms: 2600,
+  draw(ctx, beat, u) {
+    const k = beat, settledK = u == null ? k : k - 1;
+    const slideNew = u == null ? 0 : (1 - ease(seg(u, 0, 0.25))) * 60;
+    /* sheets 0..k, the newest sliding down into place in its own lane above */
+    for (let L = 0; L <= k; L++) {
+      if (L === k && u != null && u < 0.02) continue;
+      const sl = L === k && u != null ? slideNew : 0;   /* from above, into its own slot */
+      sheetOutline(ctx, L, sl, L === k);
+    }
+    const pts = [...Array(k + 1).keys()].map((L) => sheetPts(L, k, L === k && u != null ? slideNew : 0));
+    /* the cloud on layer 0: the field after the settled layers, growing to the new one */
+    const kField = k, grow = new Map();
+    if (u != null) within(k).forEach((i) => { if (hops[i] === k) grow.set(i, ease(seg(u, 0.75, 1))); });
+    cloud(ctx, pts[0], within(kField), 20, T.groupA, 0.26, grow);
+    /* the cone: atom a on sheet L reads its inputs (itself and its bonded atoms) on sheet L−1 */
+    const showCone = u == null ? k : k - 1 + (u > 0.25 ? 1 : 0);
+    for (let L = 1; L <= showCone; L++) for (const a of within(k - L)) for (const b of [a, ...nbrs[a]]) {
+      line(ctx, pts[L - 1][b][0], pts[L - 1][b][1], pts[L][a][0], pts[L][a][1], wash(T.groupA, 0.55), 1);
+    }
+    /* each sheet's atoms; the cone's atoms filled */
+    for (let L = 0; L <= k; L++) {
+      bonds(ctx, pts[L], T.grid, 1);
+      CAFFEINE.atoms.forEach((_, i) => {
+        const inCone = hops[i] <= k - L;
+        dot(ctx, pts[L][i][0], pts[L][i][1], L === k && i === PICK ? 6 : 4, L === k && i === PICK ? T.highlight : inCone ? T.groupA : T.surface, inCone ? null : T.ink3, 1);
+      });
+    }
+    /* messages upward along the cone, the new layer's, bottom sheet first */
+    if (u != null && u > 0.25 && u < 0.75) {
+      const m = ease(seg(u, 0.25, 0.75));
+      for (let L = 1; L <= k; L++) {
+        const ml = seg(m, (L - 1) / k, L / k);
+        if (ml <= 0 || ml >= 1) continue;
+        for (const a of within(k - L)) for (const b of [a, ...nbrs[a]]) {
+          const [x0, y0] = pts[L - 1][b], [x1, y1] = pts[L][a];
+          dot(ctx, lerp(x0, x1, ml), lerp(y0, y1, ml), 2.6, L === k && a === PICK ? T.highlight : T.groupA);
+        }
+      }
+    }
+    ring(ctx, pts[k][PICK][0], pts[k][PICK][1], 10, T.highlight);
+    const n = within(u == null ? k : u > 0.75 ? k : k - 1).length;
+    label(ctx, `after ${u == null ? k : k - 1} layer${(u == null ? k : k - 1) === 1 ? "" : "s"} · atom 9 has seen ${n} of 14 atoms`, 14, 18, { weight: "600", colour: T.ink1 });
+    if (k === 0) label(ctx, "layer 0 is x itself: atom 9 has seen only itself", 14, 36, { size: 10, colour: T.ink3 });
+  },
+});
+
+/* ---------------------------------------------------------------- Layers C · flat with the cloud */
+arm("l", "Layers · C · flat, with the cloud", "one drawing; a press sends every message, then the cloud of what\natom 9 has seen grows one bond further", {
+  h: 440, presses: 6, labels: ["Add a layer"], ms: 2200,
+  draw(ctx, beat, u) {
+    const P = flat(60, 46, 430, 330), k = beat;
+    const grow = new Map(); if (u != null) within(k).forEach((i) => { if (hops[i] === k) grow.set(i, ease(seg(u, 0.6, 1))); });
+    cloud(ctx, P, within(k), 34, T.groupA, 0.24, grow);
+    bonds(ctx, P, T.ink2, 1.4);
+    CAFFEINE.atoms.forEach((a, i) => node(ctx, P[i][0], P[i][1], a.el, { r: 12, size: 10, fill: i === PICK ? wash(T.highlight, 0.4) : T.surface }));
+    ring(ctx, P[PICK][0], P[PICK][1], 18, T.highlight);
+    if (u != null && u < 0.6) msgsFlat(ctx, P, ease(seg(u, 0, 0.6)), 12);
+    const kk = u == null ? k : k - 1, n = within(u == null || u > 0.6 ? k : k - 1).length;
+    label(ctx, `after ${u == null ? k : kk} layer${(u == null ? k : kk) === 1 ? "" : "s"} · atom 9 has seen ${n} of 14 atoms`, 14, 18, { weight: "600", colour: T.ink1 });
+  },
+});
+
+/* ---------------------------------------------------------------- Layers D · the unrolled tree */
+function treeLevels(k) {
+  /* level 0: atom 9; each node's children are its inputs (itself and its bonded atoms) */
+  const levels = [[{ a: PICK, p: -1 }]];
+  for (let L = 1; L <= k; L++) levels.push(levels[L - 1].flatMap((nd, idx) => [nd.a, ...nbrs[nd.a]].map((a) => ({ a, p: idx }))));
+  return levels;
+}
+arm("l", "Layers · D · the unrolled tree (CS224W's computation graph)", "atom 9 at the top; under each atom, the atoms it reads (itself and its bonds);\none row a layer; the same atom appears many times", {
+  h: 440, presses: 3, labels: ["Add a layer"], ms: 1800,
+  draw(ctx, beat, u) {
+    const k = beat, levels = treeLevels(k), shown = u == null ? k : k;
+    const rowY = (L) => 60 + L * 100;
+    const pos = levels.map((lv) => lv.map((_, i) => [20 + ((i + 0.5) / lv.length) * (W - 40), 0]));
+    levels.forEach((lv, L) => lv.forEach((nd, i) => { pos[L][i][1] = rowY(L); }));
+    const grow = u == null ? 1 : ease(u);
+    for (let L = 1; L <= shown; L++) levels[L].forEach((nd, i) => {
+      const [px, py] = pos[L - 1][nd.p], [x, y] = pos[L][i];
+      const t = L === k ? grow : 1;
+      line(ctx, px, py, lerp(px, x, t), lerp(py, y, t), wash(T.groupA, 0.6), 1);
+    });
+    levels.forEach((lv, L) => {
+      if (L === k && u != null && u < 0.98) {
+        lv.forEach((nd, i) => { const [px, py] = pos[L - 1][nd.p], [x, y] = pos[L][i]; dot(ctx, lerp(px, x, grow), lerp(py, y, grow), 3, nd.a === PICK ? T.highlight : T.groupA); });
+        return;
+      }
+      const small = lv.length > 20;
+      lv.forEach((nd, i) => {
+        const [x, y] = pos[L][i];
+        if (small) dot(ctx, x, y, 3, nd.a === PICK ? T.highlight : T.groupA);
+        else node(ctx, x, y, CAFFEINE.atoms[nd.a].el + nd.a, { r: 12, size: 9, fill: nd.a === PICK ? wash(T.highlight, 0.4) : T.surface });
+      });
+      label(ctx, L === 0 ? `atom 9 after layer ${k}` : k - L === 0 ? `x · ${lv.length} entries` : `after layer ${k - L} · ${lv.length} entries`, 6, rowY(L) - 18, { size: 10, colour: T.ink3 });
+    });
+    const distinct = new Set(levels.at(-1).map((n) => n.a)).size, nine = levels.at(-1).filter((n) => n.a === PICK).length;
+    label(ctx, `bottom row: ${levels.at(-1).length} entries, ${distinct} distinct atoms · atom 9 appears ${nine} times`, 14, 432, { size: 10, colour: T.ink2 });
+  },
+});
+
+/* ---------------------------------------------------------------- the draft today, for comparison */
+for (const [rowId, q, t] of [["t", "?shown=1", "the draft today · Aggregate done, press Transform"], ["l", "?page=layers", "the draft today · Layers"]]) {
+  const box = el("div", "cand"); box.style.width = "900px";
+  box.appendChild(el("h3", null, t)); box.appendChild(el("p", "sub", "the real widget, embedded"));
+  const fr = document.createElement("iframe"); fr.src = `../message-passing/${q}`; box.appendChild(fr);
+  document.getElementById(rowId).appendChild(box);
+}
+</script>
+</body>
+</html>
