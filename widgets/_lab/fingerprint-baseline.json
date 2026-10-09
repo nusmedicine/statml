@@ -12855,6 +12855,13 @@
       },
       "px": "fe97d055",
       "tx": "e6956b5d"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: message-passing · Aggregate, the chain, node 1, opening",
+      "slug": "message-passing",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

@@ -1381,6 +1381,25 @@
       ],
       "arc": 94,
       "status": "shipped"
+    },
+    {
+      "slug": "message-passing",
+      "title": "Deep Learning - Graphs: Message Passing",
+      "blurb": "A GNN layer gathers each node's neighbours; stacked layers reach further and make nodes alike; a readout pools them.",
+      "course": "PHM5005",
+      "topics": [
+        "graph neural network",
+        "message passing",
+        "GCN",
+        "GAT",
+        "attention",
+        "oversmoothing",
+        "readout",
+        "pooling",
+        "deep learning"
+      ],
+      "arc": 95,
+      "status": "draft"
     }
   ]
 }
