@@ -81,12 +81,12 @@ const HYB = { 2: "sp", 3: "sp2", 4: "sp3" };
 
 const S = {
   subtitle:
-    "A graph is a set of nodes and the edges between them, held as tables: a feature matrix with one row a node, and an edge list with one column an edge. " +
-    "Numbering the nodes in another order changes every table and leaves the graph the same. A molecule is such a graph, and its SMILES string records every bond, " +
-    "though two bonded atoms can be written far apart.",
+    "A graph is a set of nodes and the edges between them, stored as a node feature matrix and an edge list, or as an adjacency matrix. " +
+    "Renumbering the nodes changes every table but not the graph. A molecule is a graph of atoms and bonds, and a SMILES string encodes every bond, " +
+    "though bonded atoms may be written far apart in it.",
   pageLabel: "Step",
   nodesLabel: "Nodes",
-  nodesDetail: "how many nodes the graph has; the features of E and F are made up",
+  nodesDetail: "how many nodes the graph has; the feature values of E and F are illustrative",
   edgesLabel: "Edges",
   edgesDetail: "an edge that goes both ways, as a protein binding another, or one way, from a source to a target",
   orderLabel: "Order",
@@ -94,7 +94,7 @@ const S = {
   graphLabel: "Edge list",
   graphDetail: "pairs of nodes, source then target, as A-B, B-C; in an undirected graph A-B and B-A are one edge",
   stringLabel: "SMILES",
-  stringDetail: "caffeine written three ways: as first given, in RDKit's canonical form, and from an oxygen in a random order; each numbers the atoms in its own order",
+  stringDetail: "caffeine written three ways: as first given, in RDKit's canonical form, and from an oxygen in a random order; the atoms are numbered in the order they appear in each",
 
   stepLabel: "Next bond",
   stepTitle: "Add the next bond to edge_index and edge_attr",
@@ -102,7 +102,8 @@ const S = {
   runTitle: "Add the remaining bonds in turn",
 
   /* Graph */
-  capGraph: "the graph · click two nodes to join them",
+  capGraph: "the graph",
+  capGraphHint: "click two nodes to add or remove an edge",
   capX: (n) => `x · [${n}, 2]`,
   capA: (n) => `A · [${n}, ${n}] · click a cell`,
   capAHint: "row: source · column: target",
@@ -115,32 +116,41 @@ const S = {
     undirected: "an undirected edge is stored both ways, so A is symmetric and edge_index has two columns an edge",
     directed: "a directed edge is stored once, source then target, so A need not be symmetric",
   },
-  graphPick: (name) => `${name} picked · click another node to join it, or ${name} again to let go`,
+  graphPick: (name) => `${name} picked · click another node to add or remove the edge, or ${name} again to cancel`,
   graphHover: (name, i, dir, d) => `${name} · node ${i}, row ${i} of x · ${dir ? "out-degree" : "degree"} ${d}, the sum of row ${i} of A`,
+  graphNodeLabel: (name, i, dir, d) => `${name} · node ${i} · ${dir ? "out-degree" : "degree"} ${d}`,
+  graphEdgeLabel: (a, b, dir) => `${a} ${dir ? "→" : "–"} ${b}`,
+  graphEdgeHover: (a, b, dir, i, j, ks) => (dir
+    ? `${a} → ${b} · A[${i}][${j}] · column ${ks[0]} of edge_index`
+    : `${a} – ${b} · A[${i}][${j}] and A[${j}][${i}] · columns ${ks[0]} and ${ks[1]} of edge_index`),
+  graphCellHover: (i, j, v, a, b, dir) => `A[${i}][${j}] = ${v} · click to ${v ? "remove" : "add"} the edge ${a} ${dir ? "→" : "–"} ${b}`,
 
   /* Molecule */
-  capString: "the string · one character a cell; an atom's number under its character",
+  capString: "the string · each character in a cell, each atom's number under it",
   capMol: "the graph",
   capMolX: "x · [14, 5] · one row an atom",
   capMolEI: (k) => `edge_index · [2, ${k}]`,
-  capAttr: (k) => `edge_attr · [${k}, 4] · one row a column above, one-hot by bond type`,
+  capAttr: (k) => `edge_attr · [${k}, 4] · each row drawn under its column of edge_index, one-hot by bond type`,
   attrRows: ["single", "double", "triple", "aromatic"],
-  molStart: "no bond yet · the atoms, numbered in the order the string names them",
+  molStart: "no bond yet · the atoms, numbered in the order they are written in the string",
   molStatus: (n, N, i, j, ei, ej, type, gap) => `bond ${n} of ${N} · atoms ${i} and ${j}, ${ei}–${ej}, ${type.toLowerCase()} · ${gap === 1 ? "next to each other in the string" : `${gap} atoms apart in the string`}`,
-  molNote: "the rows follow the string's order · a bond closed by a ring digit joins atoms written far apart",
+  molNote: "the rows are in the string's order · a ring-closure digit can join atoms written far apart",
   molHover: (i, x) => `atom ${i} · x row ${i}: atomic number ${x[0]}, ${x[1] ? "aromatic" : "not aromatic"}, hybridization ${x[2]} (${HYB[x[2]] ?? "other"}), ${x[3]} hydrogen${x[3] === 1 ? "" : "s"}, charge ${x[4]}`,
   molKey: "solid and dashed: aromatic · two lines: double",
+  molAtomLabel: (i, el) => `${el} · atom ${i}`,
+  molBondLabel: (k, ei, ej, type) => `${ei}–${ej} · ${type.toLowerCase()} · bond ${k}`,
+  molBondHover: (k, N, i, j, type, gap, added, cols, chars) => `bond ${k} · atoms ${i}–${j}, ${type.toLowerCase()} · ${gap === 1 ? "adjacent in the string" : `${gap} apart in the string`} · ${chars.length ? `written ${chars.join(" … ")}` : "no character of its own"} · ${added ? `columns ${cols[0]}, ${cols[1]}` : "not added yet"}`,
 
   /* tiles */
   tileEdges: "Edges",
   tileEdgesNote: { undirected: "two columns of edge_index each, one each way", directed: "one column of edge_index each, source then target" },
   tileDensity: "Density",
-  tileDensityNote: { undirected: "2M / N(N − 1): the edges there are over the edges there could be", directed: "M / N(N − 1): the edges there are over the edges there could be" },
+  tileDensityNote: { undirected: "2M / N(N − 1): edges present over all possible edges", directed: "M / N(N − 1): edges present over all possible edges" },
   tileA: "A",
   tileAValue: (sym) => (sym ? "symmetric" : "not symmetric"),
   tileANote: "A[i][j] is 1 when an edge runs from node i to node j",
   tileAtoms: "Atoms",
-  tileAtomsNote: "rows of x, in the order the string names them; its columns: atomic number, aromatic, hybridization (RDKit's number for it), hydrogens, charge",
+  tileAtomsNote: "rows of x, in the order they are written in the string; its columns: atomic number, aromatic, hybridization (RDKit's number for it), hydrogens, charge",
   tileBonds: "Bonds",
   tileBondsNote: "two columns of edge_index each, one each way, and a row of edge_attr per column",
   tileFar: "Furthest apart",
@@ -204,6 +214,21 @@ function arrowHead(ctx, x, y, angle, colour, size = 8) {
   ctx.lineTo(x - size * Math.cos(angle - 0.4), y - size * Math.sin(angle - 0.4));
   ctx.lineTo(x - size * Math.cos(angle + 0.4), y - size * Math.sin(angle + 0.4));
   ctx.closePath(); ctx.fill(); ctx.restore();
+}
+/** distance from a point to the segment a–b */
+function segDist(px, py, [ax, ay], [bx, by]) {
+  const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2));
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+}
+/** the hover label: a small box beside (x, y), turned to the left near the right edge */
+function hoverLabel(ctx, colors, str, x, y, w) {
+  ctx.save(); ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+  const tw = ctx.measureText(str).width, left = x + 14 + tw + 10 > w - 4;
+  const bx = left ? x - 14 - tw - 10 : x + 14, by = y - 26;
+  ctx.restore();
+  rect(ctx, bx, by, tw + 10, 18, colors.surface, colors.ink3);
+  txt(ctx, colors, str, bx + 5, by + 9.5, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, baseline: "middle" });
 }
 /** a node: a filled circle with its name in the middle */
 function node(ctx, colors, x, y, r, name, { fill = null, stroke = null, lw = 1.4 } = {}) {
@@ -361,43 +386,65 @@ function graphRegions(w, params, st) {
 
 function drawGraph(ctx, colors, w, h, st, pointer) {
   const { n, directed, at, index, edges, cols, A, x, pick } = st;
-  let hov = null, hovCell = null;
-  const g = tablesGeom(w, n);
+  const g = tablesGeom(w, n), K = cols.length, eiCellW = K ? Math.min(30, (w - 64 - 20) / K) : 0;
+  const deg = (p) => A[index[p]].reduce((a, v) => a + v, 0);
+  const same = (e, a, b) => (directed ? e[0] === a && e[1] === b : (e[0] === a && e[1] === b) || (e[0] === b && e[1] === a));
+
+  /* WHAT THE POINTER IS ON: a node, else a cell of A, else an edge — in the
+     drawing, or as a column of edge_index. One thing at a time, and every
+     table that stores it lights with it. */
+  let hov = null, hovCell = null, hovEdge = null;
   if (pointer) {
     for (let p = 0; p < n; p++) { const [px, py] = nodeAt(w, p); if (Math.hypot(pointer.x - px, pointer.y - py) <= 15) hov = p; }
     const cx = g.aX + 12 + 3;
-    if (pointer.x >= cx && pointer.x < cx + n * g.cell && pointer.y >= G.tableTop && pointer.y < G.tableTop + n * G.cellH) {
+    if (hov == null && pointer.x >= cx && pointer.x < cx + n * g.cell && pointer.y >= G.tableTop && pointer.y < G.tableTop + n * G.cellH) {
       const i = Math.floor((pointer.y - G.tableTop) / G.cellH), j = Math.floor((pointer.x - cx) / g.cell);
       if (i !== j) hovCell = [i, j];
     }
+    if (hov == null && !hovCell) {
+      let best = 6;
+      edges.forEach((e, k) => { const d = segDist(pointer.x, pointer.y, nodeAt(w, e[0]), nodeAt(w, e[1])); if (d < best) { best = d; hovEdge = k; } });
+      if (hovEdge == null && K && pointer.y >= G.eiTop && pointer.y < G.eiTop + 2 * G.cellH && pointer.x >= 67 && pointer.x < 67 + K * eiCellW) {
+        const c = cols[Math.floor((pointer.x - 67) / eiCellW)], a = at[c[0]], b = at[c[1]];
+        hovEdge = edges.findIndex((e) => same(e, a, b));
+        if (hovEdge < 0) hovEdge = null;
+      }
+    }
   }
+  const he = hovEdge != null ? edges[hovEdge] : null;
+  const lit = new Set(hov != null ? [hov] : he ? [he[0], he[1]] : []);
+  const edgeCell = (i, j) => he && same(he, at[i], at[j]) && (directed ? at[i] === he[0] : true);
+  const edgeCol = (k) => he && same(he, at[cols[k][0]], at[cols[k][1]]);
+
   txt(ctx, colors, S.capGraph, 12, 14, { font: capFont(colors), fill: colors.ink1, maxW: leftW(w) - 12 });
+  /* the instruction on its own line: beside the caption it ran past the drawing's 246 px at the narrowest layout */
+  txt(ctx, colors, S.capGraphHint, 12, 30, { fill: colors.ink3, maxW: leftW(w) - 12 });
 
   /* the edge a click would toggle, dashed: from the pick to the hovered node, or a hovered cell's pair */
   const preview = pick != null && hov != null && hov !== pick ? [pick, hov] : hovCell ? [at[hovCell[0]], at[hovCell[1]]] : null;
   if (preview) { const [xa, ya] = nodeAt(w, preview[0]), [xb, yb] = nodeAt(w, preview[1]); line(ctx, xa, ya, xb, yb, colors.highlight, 1.4, [4, 4]); }
 
   /* edges; a pair joined both ways when directed is two arrows side by side */
-  for (const [a, c] of edges) {
+  edges.forEach(([a, c], k) => {
     const [xa, ya] = nodeAt(w, a), [xb, yb] = nodeAt(w, c), L = Math.hypot(xb - xa, yb - ya), ux = (xb - xa) / L, uy = (yb - ya) / L;
     const off = directed && edges.some(([s2, t2]) => s2 === c && t2 === a) ? 3.5 : 0, nx = -uy * off, ny = ux * off;
-    const end = NODE_R + (directed ? 3 : 0);
-    line(ctx, xa + ux * NODE_R + nx, ya + uy * NODE_R + ny, xb - ux * end + nx, yb - uy * end + ny, colors.ink1, 2);
-    if (directed) arrowHead(ctx, xb - ux * NODE_R + nx, yb - uy * NODE_R + ny, Math.atan2(uy, ux), colors.ink1);
-  }
+    const end = NODE_R + (directed ? 3 : 0), col = k === hovEdge ? colors.groupA : colors.ink1;
+    line(ctx, xa + ux * NODE_R + nx, ya + uy * NODE_R + ny, xb - ux * end + nx, yb - uy * end + ny, col, k === hovEdge ? 3.5 : 2);
+    if (directed) arrowHead(ctx, xb - ux * NODE_R + nx, yb - uy * NODE_R + ny, Math.atan2(uy, ux), col);
+  });
   /* nodes: the features above as two cells, the number at the lower right */
   for (let p = 0; p < n; p++) {
     const [px, py] = nodeAt(w, p), f = FEATURES[p];
     for (let c = 0; c < 2; c++) rect(ctx, px - 14 + c * 14, py - 38, 14, 14, ramp(colors, f[c] / 1.3), colors.ink2);
     node(ctx, colors, px, py, NODE_R, NAMES[p], {
-      fill: p === pick ? wash(colors.highlight, 0.45) : p === hov ? wash(colors.groupA, 0.35) : null,
+      fill: p === pick ? wash(colors.highlight, 0.45) : lit.has(p) ? wash(colors.groupA, 0.35) : null,
       stroke: p === pick ? colors.highlight : null, lw: p === pick ? 2.4 : 1.4,
     });
     txt(ctx, colors, String(index[p]), px + 17, py + 14, { font: boldMono(colors), fill: colors.ink2 });
   }
 
   /* x and A at the right */
-  const hi = (i) => hov != null && at[i] === hov;
+  const hi = (i) => lit.has(at[i]);
   txt(ctx, colors, S.capX(n), g.xX, 14, { font: capFont(colors), fill: colors.ink1 });
   x.forEach((_, i) => txt(ctx, colors, `${i} ${NAMES[at[i]]}`, g.xX, G.tableTop + i * G.cellH + G.cellH / 2 + 1, { font: monoFont(colors), fill: hi(i) ? colors.ink1 : colors.ink3, baseline: "middle" }));
   matrix(ctx, colors, g.xX + 28, G.tableTop, x, { cellW: 28, cellH: G.cellH, fmt: (v) => v.toFixed(1), hl: (i) => (hi(i) ? wash(colors.groupA, 0.3) : null) });
@@ -406,27 +453,37 @@ function drawGraph(ctx, colors, w, h, st, pointer) {
   for (let i = 0; i < n; i++) txt(ctx, colors, String(i), g.aX, G.tableTop + i * G.cellH + G.cellH / 2 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
   matrix(ctx, colors, g.aX + 12, G.tableTop, A.map((row, i) => row.map((v, j) => (i === j ? "·" : v))), {
     cellW: g.cell, cellH: G.cellH,
-    hl: (i, j) => (hovCell && hovCell[0] === i && hovCell[1] === j ? wash(colors.highlight, 0.32) : hi(i) || hi(j) ? wash(colors.groupA, 0.22) : null),
+    hl: (i, j) => (hovCell && hovCell[0] === i && hovCell[1] === j ? wash(colors.highlight, 0.32)
+      : edgeCell(i, j) ? wash(colors.groupA, 0.4) : hov != null && (hi(i) || hi(j)) ? wash(colors.groupA, 0.22) : null),
   });
   txt(ctx, colors, S.capAHint, g.aX, G.tableTop + n * G.cellH + 14, { fill: colors.ink3, maxW: w - g.aX - 8 });
 
   /* the edge list, full width under the drawing */
-  const K = cols.length;
   txt(ctx, colors, S.capEI(K, directed), 12, G.eiTop - 8, { font: capFont(colors), fill: colors.ink1, maxW: w - 24 });
   txt(ctx, colors, S.rowSrc, 12, G.eiTop + G.cellH / 2 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
   txt(ctx, colors, S.rowTgt, 12, G.eiTop + G.cellH * 1.5 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
   if (K) {
     matrix(ctx, colors, 64, G.eiTop, [cols.map((c) => c[0]), cols.map((c) => c[1])], {
-      cellW: Math.min(30, (w - 64 - 20) / K), cellH: G.cellH,
-      hl: (i, k) => (hov != null && at[cols[k][i]] === hov ? wash(colors.groupA, 0.25) : null),
+      cellW: eiCellW, cellH: G.cellH,
+      hl: (i, k) => (edgeCol(k) ? wash(colors.groupA, 0.4) : hov != null && at[cols[k][i]] === hov ? wash(colors.groupA, 0.25) : null),
     });
   } else txt(ctx, colors, S.eiEmpty, 70, G.eiTop + G.cellH + 4, { fill: colors.ink3 });
 
-  /* the status line and the note: a pick, a hovered node, or the rule */
+  /* the label beside what the pointer is on */
+  if (hov != null) { const [px, py] = nodeAt(w, hov); hoverLabel(ctx, colors, S.graphNodeLabel(NAMES[hov], index[hov], directed, deg(hov)), px, py, w); }
+  else if (he) { const [xa, ya] = nodeAt(w, he[0]), [xb, yb] = nodeAt(w, he[1]); hoverLabel(ctx, colors, S.graphEdgeLabel(NAMES[he[0]], NAMES[he[1]], directed), (xa + xb) / 2, (ya + yb) / 2, w); }
+
+  /* the status line and the note: what the pointer is on, a pick, or the rule */
   txt(ctx, colors, S.graphStatus(n, edges.length, K), 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
-  const note = hov != null ? S.graphHover(NAMES[hov], index[hov], directed, A[index[hov]].reduce((a, v) => a + v, 0))
-    : pick != null ? S.graphPick(NAMES[pick]) : S.graphNote[directed ? "directed" : "undirected"];
-  txt(ctx, colors, note, 12, h - 11, { fill: hov != null || pick != null ? colors.ink1 : colors.ink3, maxW: w - 24 });
+  let note;
+  if (hov != null) note = S.graphHover(NAMES[hov], index[hov], directed, deg(hov));
+  else if (hovCell) { const [i, j] = hovCell; note = S.graphCellHover(i, j, A[i][j], NAMES[at[i]], NAMES[at[j]], directed); }
+  else if (he) {
+    const i = index[he[0]], j = index[he[1]], ks = cols.map((c, k) => (edgeCol(k) ? k : -1)).filter((k) => k >= 0);
+    note = S.graphEdgeHover(NAMES[he[0]], NAMES[he[1]], directed, i, j, ks);
+  } else note = pick != null ? S.graphPick(NAMES[pick]) : S.graphNote[directed ? "directed" : "undirected"];
+  const active = hov != null || hovCell || he || pick != null;
+  txt(ctx, colors, note, 12, h - 11, { fill: active ? colors.ink1 : colors.ink3, maxW: w - 24 });
 }
 
 /* ============================================================= Molecule */
@@ -458,82 +515,105 @@ function drawMolecule(ctx, colors, w, h, st, anim, pointer) {
   const lastBond = n > 0 ? st.bonds[n - 1] : null;
   const molW = Math.min(w * 0.5, 360);
   const P = molPoints(st, 24, M.molTop + 10, molW - 36, M.molH - 40);
-
-  /* the hovered atom: the drawing, the string or a row of x all reach it */
   const xX = molW + 18, xCellW = Math.min(30, (w - xX - 44) / 5);
-  let hov = null;
+  const cw = Math.min(17, (w - 24) / s.length), sx = (w - s.length * cw) / 2;
+  const K = st.cols.length, shown = 2 * n, x0 = 12 + M.labelW, cellW = (w - x0 - 20) / K;
+
+  /* WHAT THE POINTER IS ON: an atom (in the drawing, the string or a row of
+     x), else a bond (in the drawing, or as a column of edge_index or
+     edge_attr). Every table that stores it lights with it. */
+  let hov = null, hovBond = null;
   if (pointer) {
     P.forEach(([x, y], i) => { if (Math.hypot(pointer.x - x, pointer.y - y) <= 13) hov = i; });
-    const cw = Math.min(17, (w - 24) / s.length), sx = (w - s.length * cw) / 2;
     if (pointer.y >= M.strTop && pointer.y <= M.strTop + M.strH + 14) {
       const k = Math.floor((pointer.x - sx) / cw);
       st.atoms.forEach((a, i) => { if (k >= a.char[0] && k < a.char[0] + a.char[1]) hov = i; });
     }
     if (pointer.x >= xX && pointer.x < w - 8 && pointer.y >= M.molTop + 4 && pointer.y < M.molTop + 4 + st.atoms.length * M.xRow) hov = Math.floor((pointer.y - M.molTop - 4) / M.xRow);
+    if (hov == null) {
+      let best = 6;
+      st.bonds.forEach(([i, j], k) => { const d = segDist(pointer.x, pointer.y, P[i], P[j]); if (d < best) { best = d; hovBond = k; } });
+      const inEI = pointer.y >= eiTop() && pointer.y < eiTop() + 2 * M.eiCellH;
+      const inAttr = pointer.y >= attrTop() && pointer.y < attrTop() + 4 * M.attrCellH;
+      if (hovBond == null && (inEI || inAttr) && pointer.x >= x0 && pointer.x < x0 + K * cellW) hovBond = Math.floor(Math.floor((pointer.x - x0) / cellW) / 2);
+    }
   }
+  const hb = hovBond != null ? st.bonds[hovBond] : null;
   const lastAtoms = lastBond ? new Set([lastBond[0], lastBond[1]]) : new Set();
+  const litAtoms = new Set(hov != null ? [hov] : hb ? [hb[0], hb[1]] : []);
+  const litChars = new Set(hb ? st.bondChar[hovBond] : []);
+  const ownChars = new Set(n > 0 ? st.bondChar[n - 1] : []);
 
   /* 1 · the string, one character a cell */
   txt(ctx, colors, S.capString, 12, 14, { font: capFont(colors), fill: colors.ink1, maxW: w - 24 });
-  const cw = Math.min(17, (w - 24) / s.length), sx = (w - s.length * cw) / 2;
   const owner = new Array(s.length).fill(null);
   st.atoms.forEach((a, i) => { for (let k = 0; k < a.char[1]; k++) owner[a.char[0] + k] = i; });
-  const ownChars = new Set(n > 0 ? st.bondChar[n - 1] : []);
   for (let k = 0; k < s.length; k++) {
-    const i = owner[k], fill = ownChars.has(k) ? colors.highlight : i != null && lastAtoms.has(i) ? wash(colors.highlight, 0.32) : i != null && i === hov ? wash(colors.groupA, 0.32) : colors.surface2;
+    const i = owner[k];
+    const fill = litChars.has(k) ? colors.groupA : i != null && litAtoms.has(i) ? wash(colors.groupA, 0.32)
+      : ownChars.has(k) ? colors.highlight : i != null && lastAtoms.has(i) ? wash(colors.highlight, 0.32) : colors.surface2;
+    const solid = litChars.has(k) || (ownChars.has(k) && !litAtoms.size);
     rect(ctx, sx + k * cw, M.strTop, cw, M.strH, fill, colors.grid);
-    txt(ctx, colors, s[k], sx + k * cw + cw / 2, M.strTop + M.strH / 2 + 1, { font: i != null || ownChars.has(k) ? boldMono(colors) : monoFont(colors), fill: ownChars.has(k) ? colors.surface : i != null ? colors.ink1 : colors.ink3, align: "center", baseline: "middle" });
+    txt(ctx, colors, s[k], sx + k * cw + cw / 2, M.strTop + M.strH / 2 + 1, { font: i != null || solid ? boldMono(colors) : monoFont(colors), fill: solid ? colors.surface : i != null ? colors.ink1 : colors.ink3, align: "center", baseline: "middle" });
   }
-  st.atoms.forEach((a, i) => txt(ctx, colors, String(i), sx + (a.char[0] + a.char[1] / 2) * cw, M.strTop + M.strH + 12, { font: monoFont(colors), fill: lastAtoms.has(i) || i === hov ? colors.ink1 : colors.ink3, align: "center" }));
-  /* the latest bond's two atoms bracketed under the numbers */
-  if (lastBond) {
-    const [i, j] = lastBond, xa = sx + (st.atoms[i].char[0] + 0.5) * cw, xb = sx + (st.atoms[j].char[0] + 0.5) * cw, yb = M.strTop + M.strH + 18;
-    line(ctx, xa, yb, xa, yb + 6, colors.highlight, 1.6); line(ctx, xb, yb, xb, yb + 6, colors.highlight, 1.6); line(ctx, xa, yb + 6, xb, yb + 6, colors.highlight, 1.6);
+  st.atoms.forEach((a, i) => txt(ctx, colors, String(i), sx + (a.char[0] + a.char[1] / 2) * cw, M.strTop + M.strH + 12, { font: monoFont(colors), fill: lastAtoms.has(i) || litAtoms.has(i) ? colors.ink1 : colors.ink3, align: "center" }));
+  /* the latest bond's two atoms bracketed under the numbers; the hovered bond's instead while the pointer is on one */
+  const br = hb ?? lastBond;
+  if (br) {
+    const [i, j] = br, xa = sx + (st.atoms[i].char[0] + 0.5) * cw, xb = sx + (st.atoms[j].char[0] + 0.5) * cw, yb = M.strTop + M.strH + 18, col = hb ? colors.groupA : colors.highlight;
+    line(ctx, xa, yb, xa, yb + 6, col, 1.6); line(ctx, xb, yb, xb, yb + 6, col, 1.6); line(ctx, xa, yb + 6, xb, yb + 6, col, 1.6);
   }
 
-  /* 2 · the drawing: added bonds in ink, the latest in the highlight, the rest faint */
+  /* 2 · the drawing: added bonds in ink, the latest in the highlight, the rest faint; the hovered one thick */
   txt(ctx, colors, S.capMol, 12, M.molTop, { font: capFont(colors), fill: colors.ink1 });
   st.bonds.forEach(([i, j, type], k) => {
-    const added = k < n, latest = k === n - 1;
-    bond(ctx, P[i], P[j], type, latest ? colors.highlight : added ? colors.ink1 : colors.grid, latest ? 2.2 : 1.5, !added);
+    const added = k < n, latest = k === n - 1, on = k === hovBond;
+    bond(ctx, P[i], P[j], type, on ? colors.groupA : latest ? colors.highlight : added ? colors.ink1 : colors.grid, on ? 3 : latest ? 2.2 : 1.5, !added);
   });
   st.atoms.forEach((a, i) => {
-    node(ctx, colors, P[i][0], P[i][1], 11, a.el, { fill: i === hov ? wash(colors.groupA, 0.35) : lastAtoms.has(i) ? wash(colors.highlight, 0.3) : null });
+    node(ctx, colors, P[i][0], P[i][1], 11, a.el, { fill: litAtoms.has(i) ? wash(colors.groupA, 0.35) : lastAtoms.has(i) ? wash(colors.highlight, 0.3) : null });
     txt(ctx, colors, String(i), P[i][0] + 12, P[i][1] - 9, { font: monoFont(colors), fill: colors.ink3, halo: true });
   });
   txt(ctx, colors, S.molKey, 12, molBottom() - 2, { fill: colors.ink3, maxW: molW - 12 });
 
   /* 3 · x, at the right, one row an atom */
   txt(ctx, colors, S.capMolX, xX, M.molTop, { font: capFont(colors), fill: colors.ink1, maxW: w - xX - 12 });
-  st.atoms.forEach((a, i) => txt(ctx, colors, `${i} ${a.el}`, xX, M.molTop + 4 + i * M.xRow + M.xRow / 2 + 1, { font: monoFont(colors), fill: i === hov || lastAtoms.has(i) ? colors.ink1 : colors.ink3, baseline: "middle" }));
+  st.atoms.forEach((a, i) => txt(ctx, colors, `${i} ${a.el}`, xX, M.molTop + 4 + i * M.xRow + M.xRow / 2 + 1, { font: monoFont(colors), fill: litAtoms.has(i) || lastAtoms.has(i) ? colors.ink1 : colors.ink3, baseline: "middle" }));
   matrix(ctx, colors, xX + 36, M.molTop + 4, st.atoms.map((a) => a.x), {
     cellW: xCellW, cellH: M.xRow,
-    hl: (i) => (i === hov ? wash(colors.groupA, 0.3) : lastAtoms.has(i) ? wash(colors.highlight, 0.28) : null),
+    hl: (i) => (litAtoms.has(i) ? wash(colors.groupA, 0.3) : lastAtoms.has(i) ? wash(colors.highlight, 0.28) : null),
   });
 
   /* 4 · edge_index and, under each of its columns, that column's row of edge_attr */
-  const K = st.cols.length, shown = 2 * n, x0 = 12 + M.labelW, cellW = (w - x0 - 20) / K;
   const isLast = (k) => lastBond && (k === shown - 1 || k === shown - 2);
+  const isHov = (k) => hovBond != null && Math.floor(k / 2) === hovBond;
   const touches = (k) => hov != null && (st.cols[k][0] === hov || st.cols[k][1] === hov);
   txt(ctx, colors, S.capMolEI(shown), 12, eiTop() - 8, { font: capFont(colors), fill: colors.ink1, maxW: w - 24 });
   txt(ctx, colors, S.rowSrc, 12, eiTop() + M.eiCellH / 2 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
   txt(ctx, colors, S.rowTgt, 12, eiTop() + M.eiCellH * 1.5 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" });
   matrix(ctx, colors, x0 - 3, eiTop(), [st.cols.map((c, k) => (k < shown ? c[0] : null)), st.cols.map((c, k) => (k < shown ? c[1] : null))], {
     cellW, cellH: M.eiCellH,
-    hl: (i, k) => (k >= shown ? null : isLast(k) ? wash(colors.highlight, 0.32) : touches(k) ? wash(colors.groupA, 0.25) : null),
+    hl: (i, k) => (k >= shown ? null : isHov(k) ? wash(colors.groupA, 0.4) : touches(k) ? wash(colors.groupA, 0.25) : isLast(k) ? wash(colors.highlight, 0.32) : null),
   });
   txt(ctx, colors, S.capAttr(shown), 12, attrTop() - 8, { font: capFont(colors), fill: colors.ink1, maxW: w - 24 });
   S.attrRows.forEach((r, t) => txt(ctx, colors, r, 12, attrTop() + t * M.attrCellH + M.attrCellH / 2 + 1, { font: monoFont(colors), fill: colors.ink3, baseline: "middle" }));
   for (let k = 0; k < K; k++) for (let t = 0; t < 4; t++) {
     const x = x0 + k * cellW, y = attrTop() + t * M.attrCellH, on = k < shown && st.attr[k][t] === 1;
-    rect(ctx, x + 1, y + 1, cellW - 2, M.attrCellH - 2, on ? (isLast(k) ? colors.highlight : touches(k) ? colors.groupA : colors.ink2) : k < shown ? colors.surface2 : null);
+    rect(ctx, x + 1, y + 1, cellW - 2, M.attrCellH - 2, on ? (isHov(k) || touches(k) ? colors.groupA : isLast(k) ? colors.highlight : colors.ink2) : k < shown ? colors.surface2 : null);
   }
   rect(ctx, x0, attrTop(), K * cellW, 4 * M.attrCellH, null, colors.grid);
+
+  /* the label beside what the pointer is on */
+  if (hov != null) hoverLabel(ctx, colors, S.molAtomLabel(hov, st.atoms[hov].el), P[hov][0], P[hov][1], w);
+  else if (hb) hoverLabel(ctx, colors, S.molBondLabel(hovBond + 1, st.atoms[hb[0]].el, st.atoms[hb[1]].el, hb[2]), (P[hb[0]][0] + P[hb[1]][0]) / 2, (P[hb[0]][1] + P[hb[1]][1]) / 2, w);
 
   /* the status line and the note */
   const gap = lastBond ? Math.abs(lastBond[0] - lastBond[1]) : 0;
   txt(ctx, colors, n === 0 ? S.molStart : S.molStatus(n, N, lastBond[0], lastBond[1], st.atoms[lastBond[0]].el, st.atoms[lastBond[1]].el, lastBond[2], gap), 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
-  txt(ctx, colors, hov != null ? S.molHover(hov, st.atoms[hov].x) : S.molNote, 12, h - 11, { fill: hov != null ? colors.ink1 : colors.ink3, maxW: w - 24 });
+  let note = S.molNote;
+  if (hov != null) note = S.molHover(hov, st.atoms[hov].x);
+  else if (hb) note = S.molBondHover(hovBond + 1, N, hb[0], hb[1], hb[2], Math.abs(hb[0] - hb[1]), hovBond < n, [2 * hovBond, 2 * hovBond + 1], st.bondChar[hovBond].map((p) => `"${s[p]}"`));
+  txt(ctx, colors, note, 12, h - 11, { fill: hov != null || hb ? colors.ink1 : colors.ink3, maxW: w - 24 });
 }
 
 /* ================================================================ widget */

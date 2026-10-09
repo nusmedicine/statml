@@ -12698,64 +12698,64 @@
       "$note": "graph-representation · Graph, opening: four nodes, no edge, empty edge_index",
       "slug": "graph-representation",
       "state": "?theme=light&shown=0",
-      "px": "896009e4",
-      "tx": "5ea6fa33"
+      "px": "d2bbeeab",
+      "tx": "cb5089d0"
     },
     {
       "$note": "graph-representation · Graph, cell 25's chain A–B–C–D undirected: A symmetric, six columns",
       "slug": "graph-representation",
       "state": "?theme=light&graph=AB,BC,CD&shown=0",
-      "px": "0e43fe1d",
-      "tx": "c4f789a1"
+      "px": "ddd5cd39",
+      "tx": "585a1b62"
     },
     {
       "$note": "graph-representation · Graph, six nodes directed and shuffled, B↔F as two arrows",
       "slug": "graph-representation",
       "state": "?theme=light&nodes=6&edges=directed&order=shuffled&graph=AB,BC,CD,DE,EA,BF,FB&shown=0",
-      "px": "249a098c",
-      "tx": "1bb6fcf6"
+      "px": "930940bd",
+      "tx": "6135e979"
     },
     {
       "$note": "graph-representation · Graph, six nodes complete: density 1.00, thirty columns at the narrowest cell",
       "slug": "graph-representation",
       "state": "?theme=light&nodes=6&graph=AB,AC,AD,AE,AF,BC,BD,BE,BF,CD,CE,CF,DE,DF,EF&shown=0",
-      "px": "174b90d5",
-      "tx": "fc46ea86"
+      "px": "b93a977a",
+      "tx": "4d35a861"
     },
     {
       "$note": "graph-representation · Graph, a pick pending on C, ringed, the note says so",
       "slug": "graph-representation",
       "state": "?theme=light&graph=AB,BC|C&shown=0",
-      "px": "e82d8d5a",
-      "tx": "dccabcef"
+      "px": "4a4c7641",
+      "tx": "76bdf364"
     },
     {
       "$note": "graph-representation · Molecule, original string, no bond yet",
       "slug": "graph-representation",
       "state": "?theme=light&page=molecule&shown=0",
-      "px": "9ea03675",
-      "tx": "bb0f225e"
+      "px": "83eb65d0",
+      "tx": "37a49b02"
     },
     {
       "$note": "graph-representation · Molecule, original string, bond 14: the ring closure 13–1, both digits lit, 12 apart",
       "slug": "graph-representation",
       "state": "?theme=light&page=molecule&shown=14",
-      "px": "1a7a56f0",
-      "tx": "55dc3d9e"
+      "px": "9ac6a146",
+      "tx": "6e1599b2"
     },
     {
       "$note": "graph-representation · Molecule, canonical string, every bond",
       "slug": "graph-representation",
       "state": "?theme=light&page=molecule&smiles=canonical&shown=15",
-      "px": "64c2022a",
-      "tx": "619d384a"
+      "px": "5ce9c9a7",
+      "tx": "7ae1e3ee"
     },
     {
       "$note": "graph-representation · Molecule, random string, every bond",
       "slug": "graph-representation",
       "state": "?theme=light&page=molecule&smiles=other&shown=15",
-      "px": "e75bb5b6",
-      "tx": "af16d205"
+      "px": "7fe012e5",
+      "tx": "3523a169"
     },
     {
       "$note": "graph-representation · DRIVEN: Molecule, Play mid-run",
@@ -12766,8 +12766,8 @@
         "frames": 60,
         "dt": 32
       },
-      "px": "14649913",
-      "tx": "7b744fd9"
+      "px": "435ac710",
+      "tx": "b4390cdd"
     },
     {
       "$note": "graph-representation · HIT: a click on A's cell [2][3] adds C–D to the chain A–B–C",
@@ -12781,8 +12781,8 @@
         "frames": 2,
         "dt": 32
       },
-      "px": "6bbe303c",
-      "tx": "c4f789a1"
+      "px": "3cb5e41b",
+      "tx": "585a1b62"
     },
     {
       "$note": "graph-representation · HIT: a click on node D picks it, ringed",
@@ -12796,8 +12796,8 @@
         "frames": 2,
         "dt": 32
       },
-      "px": "90eb6855",
-      "tx": "c4f789a1"
+      "px": "98b0dff9",
+      "tx": "585a1b62"
     }
   ]
 }

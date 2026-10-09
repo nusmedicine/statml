@@ -1367,7 +1367,7 @@
     {
       "slug": "graph-representation",
       "title": "Deep Learning - Graphs: Representation",
-      "blurb": "A graph as a feature matrix and an edge list; SMILES holds every bond, though bonded atoms may be written far apart.",
+      "blurb": "Nodes and edges as a feature matrix, an adjacency matrix and an edge list; a molecule as a graph of atoms and bonds.",
       "course": "PHM5005",
       "topics": [
         "graph",

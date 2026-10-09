@@ -24528,7 +24528,29 @@ Aggregate page). Twelve fingerprint states, identical over three runs and
 pick pending), four Molecule, one driven (Play mid-run), two hit-driven (a
 cell of A adds C–D; a click on D picks it). The harness frame is 900 wide,
 so the Graph canvas is 549 there: hit points are node D (219, 125) and A's
-cell [2][3] (478, 104). NEXT: 95 `message-passing`.
+cell [2][3] (478, 104).
+
+**Round 2, after the ship (2026-10-09).** (1) **The copy audit had been
+skipped** — he asked "did we do a copy audit?"; it was done after the push:
+the claudisms scan (`_lab/graph-representation-copy-scan.mjs`, 292 terms) hit
+"names" ("the order the string names them"); the eye pass found nine more,
+mostly personification (a string that *names*, *numbers*, *records*, *holds*)
+and loose phrasing ("let go", "made up", "the edges there could be", "one row
+a column above"); all nine applied on his word, subtitle option A (names all
+three tables), blurb option B ("Nodes and edges as a feature matrix, an
+adjacency matrix and an edge list; a molecule as a graph of atoms and
+bonds."). The Graph caption split into "the graph" and a hint line under it,
+because the clause-dropping fit cut the instruction at the 246 px drawing.
+(2) **Hover on nodes AND edges, both pages** (his "I don't have hover options
+for nodes and edges"): atom hover had existed but reported only in the foot
+note. Now a label beside the item, and everything that stores it lights in
+`--c-group-a`: an atom's string cell, x row and edge_index/edge_attr columns;
+a bond's two atoms, ITS OWN CHARACTERS ("=", both ring digits), its two
+columns and edge_attr rows — reachable from the drawing or from a column; on
+Graph an edge's cell(s) of A and column(s) (from the drawing or a column),
+and a cell of A says what a click would do. Every hover note measured under
+the 510 px of the narrowest layout. Twelve states re-baselined: three
+identical runs, 12/12 MATCH. NEXT: 95 `message-passing`.
 
 ---
 
