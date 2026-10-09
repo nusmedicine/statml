@@ -25,7 +25,7 @@ from sklearn.model_selection import GroupShuffleSplit, train_test_split
 
 RDLogger.DisableLog("rdApp.*")
 HERE = os.path.dirname(os.path.abspath(__file__))
-SEEDS = list(range(10)) + [42]
+SEEDS = list(range(42, 52))  # 42 is cell 28's SEED; the mock (1b92a36) used 0-9 and 42
 
 rows = []
 with open(os.path.join(HERE, "graph-fingat-training.csv"), encoding="utf-8-sig") as f:

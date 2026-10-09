@@ -24739,7 +24739,31 @@ Evaluate · split names (Label, the notebook's) · three parts in two presses ·
 the example pair(s) · the file as blocks · shared scaffolds over the arc's
 similarity histogram (revisits 5.12) · the lesson's GCN over the forest
 (revisits 5.11) · macro F1 · Seed 42–51 · colours (an active as a dark
-square, since `--c-event` and `--c-holdout` are both red).
+square, since `--c-event` and `--c-holdout` are both red). **ANSWERED
+2026-10-10: "all recommendations, build 97".**
+
+**DRAFT built 2026-10-10.** Step **Scaffold · Split · Evaluate**. Scaffold:
+Example Indoles · Quinolones, his figure's layout, Find scaffold moves each
+scaffold's atoms across as a copy (two lanes; indoles converge on one), the
+bracket and arrows land with them, the side chains stay in `--ink-3`; below,
+the lesson's df as blocks (all 2,335 rows: the unparsed SMILES has cell 24's
+scaffold "" and sits in the "no ring · 209" block, so the parts are cell 28's
+1960 / 202 / 173 exactly), the example's block ringed. Split: Split Label ·
+Scaffold, Seed 42–51; Split 80 / 20 (train blue, held out grey) then Split
+50 / 50, each a sweep in the grid's order; cell 30's bars once all three
+parts exist. Evaluate: train and validation washed; Compare rings every
+block holding test and training molecules; Score drops the GCN's ten seeds
+into the split's column, kept when the other split is scored. Each example
+and each split is its own stage (94's stageOf); a seed change keeps the
+presses. `data.js` from `_lab/scaffold-split-data.py` (needs the CSV, RDKit,
+scikit-learn and the GCN JSONs from `scaffold-split-measure.py gcn <seed>`).
+**Re-measured on seeds 42–51:** the GCN's macro F1 is higher under the label
+split on 7 of 10 seeds (0.68 against 0.63; AUC 0.84 against 0.81, 6 of 10);
+the forest 0.80 against 0.74 (6 of 10), AUC 8 of 10. The ranges overlap
+under every model and metric; shared scaffolds (133–148 of 234 test
+molecules under the label split, 0 under the scaffold split) do not vary.
+Checked: overlap sweep 40 states, switch probe on all three pages 0 flagged,
+no NaN in any painted or readout string.
 
 ---
 

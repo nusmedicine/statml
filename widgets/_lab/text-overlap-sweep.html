@@ -25,6 +25,11 @@
 const Q = new URLSearchParams(location.search);
 const slug = Q.get("slug") || "sequence-encoding", W = Number(Q.get("w") || 900);
 const STATES = {
+  /* widget 97's draft (2026-10-10): every page at every press count, both examples, both splits, three seeds */
+  "scaffold-split": [
+    ...["indoles", "quinolones"].flatMap((e) => [0, 1].map((s) => `?example=${e}&shown=${s}`)),
+    ...["label", "scaffold"].flatMap((k) => ["42", "44", "51"].flatMap((seed) => [0, 1, 2].flatMap((s) => [`?page=split&split=${k}&seed=${seed}&shown=${s}`, `?page=evaluate&split=${k}&seed=${seed}&shown=${s}`]))),
+  ],
   /* widget 95's round 6 (2026-10-09): every page at every press count, every control */
   "message-passing": [
     ...["0", "1", "2"].flatMap((n) => [0, 1, 2, 3].map((s) => `?page=graph&node=${n}&shown=${s}`)),

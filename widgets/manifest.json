@@ -1400,6 +1400,24 @@
       ],
       "arc": 95,
       "status": "shipped"
+    },
+    {
+      "slug": "scaffold-split",
+      "title": "Deep Learning - Graphs: Scaffold Split",
+      "blurb": "A scaffold split keeps molecules that share a ring system on one side, so the test score measures new chemistry.",
+      "course": "PHM5005",
+      "topics": [
+        "scaffold split",
+        "Murcko scaffold",
+        "data splitting",
+        "train validation test",
+        "data leakage",
+        "molecular property prediction",
+        "graph neural network",
+        "deep learning"
+      ],
+      "arc": 97,
+      "status": "draft"
     }
   ]
 }

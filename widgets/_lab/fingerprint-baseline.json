@@ -13145,6 +13145,13 @@
       },
       "px": "e825d92b",
       "tx": "13b1ab10"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: scaffold-split · Scaffold, Indoles, opening",
+      "slug": "scaffold-split",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

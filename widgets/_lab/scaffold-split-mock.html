@@ -369,7 +369,7 @@ function evalA(kind) {
   for (let i = 0; i < na; i++) { rect(ctx, 12 + i * 16, 102, 13, 13, i < nsa ? T.holdout : wash(T.holdout, 0.18)); rect(ctx, 16 + i * 16, 106, 5, 5, T.ink1); }
   label(ctx, `${nsa} of ${na}`, 12 + na * 16 + 6, 113, { size: 11, colour: T.ink1 });
   // scores: both splits, eleven seeds; the model shown is the GCN when all seeds are in, else the forest
-  const useGcn = gcnSeeds.length >= 11;
+  const useGcn = gcnSeeds.length >= 10;
   const sc = (k, rr) => useGcn ? D.gcn[rr.seed]?.[k]?.test_macro_f1 : rr.rf_macro_f1;
   const x0 = 70, y0 = 160, ph = 140, lo = 0.4, hi = 1.0, sy = (v) => y0 + ph - (v - lo) / (hi - lo) * ph;
   label(ctx, `Macro F1 on the test set · ${useGcn ? "the lesson's GCN" : "random forest"} · eleven seeds`, 12, 146, { size: 12, weight: "600", colour: T.ink1 });
