@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 97 split into two groups — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .bar { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .bar button { font: inherit; padding: 3px 10px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); border-radius: 3px; cursor: pointer; }
+  .bar button.on { border-color: var(--ink-1); font-weight: 600; }
+  .bar input[type=range] { width: 160px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>97 <code>scaffold-split</code> &middot; the first press as a move into two groups &middot; mock</h1>
+  <p class="note">Your question: is the split clearer if the molecules <b>move</b> into two groups, train and held out, instead of
+    changing colour in place? Both layouts below do that, on the widget's own data (seed 42) at its 550px width. Every scaffold block
+    keeps its <b>width</b> when it is cut, so a piece of benzene in the held-out group is as wide as the piece in training and reads as
+    the same scaffold. Pick Label or Scaffold, press <b>Split 80 / 20</b>, or drag the slider to stop the move anywhere.</p>
+
+  <h2>A &middot; stacked: Train above, Held out below</h2>
+  <div class="row" id="rowA"></div>
+  <h2>B &middot; side by side: Train left, Held out right</h2>
+  <div class="row" id="rowB"></div>
+
+  <h2>What the move shows</h2>
+  <p class="note" id="facts"></p>
+  <p class="q"><b class="h">Calls</b>
+    <b>1 &middot; Move into groups (A or B), or keep the colour change in place (as now)?</b><br>
+    <b>2 &middot; The second press, Split 50 / 50:</b> with A, the held-out group splits again into Validation and Test side by side
+    under Train; with B, the held-out column splits into two columns. Evaluate then shows the same groups, with the shared
+    scaffolds ringed in both Train and Test.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { GROUPS, LABELS, SPLITS } from "../scaffold-split/data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550, PITCH = 6, CELL = 5, GAP = 5, CAP_H = 15, BAND_GAP = 8, HEAD_H = 20;
+const BANDS = [[13, Infinity, "13 or more"], [7, 12, "7–12"], [4, 6, "4–6"], [3, 3, "3"], [2, 2, "2"], [1, 1, "1"]];
+const N = LABELS.length;
+const groupOf = []; GROUPS.forEach(([n], g) => { for (let j = 0; j < n; j++) groupOf.push(g); });
+const bandOf = (n) => BANDS.findIndex(([lo, hi]) => n >= lo && n <= hi);
+const colsOf = (n) => Math.ceil(Math.sqrt(n));
+
+/* lay out a set of cells in the widget's bands; a piece of a scaffold keeps its full block's width */
+function layout(cells, x0, y0, width, title) {
+  const pos = new Map(), outlines = [], caps = [];
+  const byGroup = new Map();
+  for (const k of cells) { const g = groupOf[k]; if (!byGroup.has(g)) byGroup.set(g, []); byGroup.get(g).push(k); }
+  let y = y0 + HEAD_H;
+  const narrow = width < 200;
+  const head = { text: title(cells, byGroup.size, narrow), x: x0, y: y0 + 13 };
+  BANDS.forEach(([lo, hi, range], bi) => {
+    const gs = [...byGroup.keys()].filter((g) => GROUPS[g][0] >= lo && GROUPS[g][0] <= hi);
+    if (!gs.length) return;
+    caps.push({ text: narrow ? `${range} per scaffold` : `${range} molecule${range === "1" ? "" : "s"} per scaffold`, x: x0, y: y + CAP_H - 5 });
+    y += CAP_H;
+    if (lo === 1) {
+      const sc = Math.floor((width + 1) / PITCH);
+      gs.forEach((g, j) => pos.set(byGroup.get(g)[0], [x0 + (j % sc) * PITCH, y + Math.floor(j / sc) * PITCH]));
+      y += Math.ceil(gs.length / sc) * PITCH + BAND_GAP;
+      return;
+    }
+    let x = 0, rowH = 0;
+    gs.forEach((g) => {
+      const ks = byGroup.get(g), cols = Math.min(colsOf(GROUPS[g][0]), Math.floor((width + 1) / PITCH));
+      const rows = Math.ceil(ks.length / cols), bw = cols * PITCH - 1, bh = rows * PITCH - 1;
+      if (x + bw > width) { x = 0; y += rowH + GAP; rowH = 0; }
+      ks.forEach((k, j) => pos.set(k, [x0 + x + (j % cols) * PITCH, y + Math.floor(j / cols) * PITCH]));
+      outlines.push({ x: x0 + x, y, w: bw, h: bh, g });
+      x += bw + GAP; rowH = Math.max(rowH, bh);
+    });
+    y += rowH + BAND_GAP;
+  });
+  return { pos, outlines, caps, head, bottom: y };
+}
+
+const all = [...Array(N).keys()];
+const fmt = (v) => v.toLocaleString("en");
+const titleTrain = (c, s) => `Train · ${fmt(c.length)} molecules · ${fmt(s)} scaffolds`;
+const titleHeld = (c, s, narrow) => (narrow ? `Held out · ${fmt(c.length)}` : `Held out · ${fmt(c.length)} molecules · ${fmt(s)} scaffolds`);
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+function plan(kind, arm) {
+  const s = SPLITS[kind][42];
+  const train = all.filter((k) => s[k] === "0"), held = all.filter((k) => s[k] !== "0");
+  const before = layout(all, 12, 4, 520, (c, n) => `The dataset · ${fmt(c.length)} molecules · ${fmt(n)} scaffolds`);
+  let A, B;
+  if (arm === "A") {
+    A = layout(train, 12, 4, 520, titleTrain);
+    B = layout(held, 12, A.bottom + 10, 520, titleHeld);
+  } else {
+    A = layout(train, 12, 4, 372, titleTrain);
+    B = layout(held, 12 + 372 + 16, 4, 520 - 372 - 16, titleHeld);
+  }
+  const shared = new Set(A.outlines.map((o) => o.g).filter((g) => B.outlines.some((o) => o.g === g)));
+  return { s, before, A, B, shared, h: Math.max(before.bottom, A.bottom, B.bottom) + 8, train, held };
+}
+
+function txt(ctx, s, x, y, { fill = T.ink2, bold = false, size = 11 } = {}) {
+  ctx.save(); ctx.font = `${bold ? "600 " : ""}${size}px ${T.font}`; ctx.fillStyle = fill; ctx.fillText(s, x, y); ctx.restore();
+}
+function draw(ctx, P, t) {
+  ctx.clearRect(0, 0, W, P.h + 40);
+  const u = ease(t), moving = t > 0 && t < 1;
+  for (let k = 0; k < N; k++) {
+    const p0 = P.before.pos.get(k), p1 = (P.s[k] === "0" ? P.A : P.B).pos.get(k);
+    const x = p0[0] + (p1[0] - p0[0]) * u, y = p0[1] + (p1[1] - p0[1]) * u;
+    ctx.fillStyle = t === 0 ? T.surface3 : P.s[k] === "0" ? T.groupA : T.ink3;
+    ctx.fillRect(x, y, CELL, CELL);
+    if (LABELS[k] === "1") { ctx.fillStyle = T.ink1; ctx.fillRect(x + 1, y + 1, CELL - 2, CELL - 2); }
+  }
+  if (moving) return;
+  const L = t === 0 ? [P.before] : [P.A, P.B];
+  for (const lay of L) {
+    for (const o of lay.outlines) {
+      const both = t === 1 && P.shared.has(o.g);
+      ctx.save(); ctx.strokeStyle = both ? T.highlight : T.ink3; ctx.lineWidth = both ? 2 : 1;
+      ctx.strokeRect(o.x - 1.5, o.y - 1.5, o.w + 3, o.h + 3); ctx.restore();
+    }
+    lay.caps.forEach((c) => txt(ctx, c.text, c.x, c.y, { fill: T.ink3, size: 10 }));
+    txt(ctx, lay.head.text, lay.head.x, lay.head.y, { fill: T.ink1, bold: true });
+  }
+  if (t === 1) txt(ctx, `ringed: a scaffold with molecules in both groups (${P.shared.size})`, 12, P.h + 22, { fill: T.ink1 });
+}
+
+function candidate(rowId, arm) {
+  const box = document.createElement("div"); box.className = "cand";
+  box.innerHTML = `<h3>${arm === "A" ? "Stacked" : "Side by side"}</h3><div class="bar"><button data-k="label" class="on">Label</button><button data-k="scaffold">Scaffold</button><button data-go>Split 80 / 20</button><input type="range" min="0" max="1000" value="0"></div>`;
+  document.getElementById(rowId).appendChild(box);
+  const c = document.createElement("canvas"); box.appendChild(c);
+  const ctx = c.getContext("2d");
+  let kind = "label", P = plan(kind, arm), t = 0, raf = 0;
+  const size = () => { const h = P.h + 34; c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); };
+  const slider = box.querySelector("input");
+  const render = () => { slider.value = Math.round(t * 1000); draw(ctx, P, t); };
+  size(); render();
+  box.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => {
+    box.querySelectorAll("[data-k]").forEach((x) => x.classList.toggle("on", x === b));
+    kind = b.dataset.k; P = plan(kind, arm); t = 0; cancelAnimationFrame(raf); size(); render();
+  });
+  box.querySelector("[data-go]").onclick = () => {
+    cancelAnimationFrame(raf); t = 0; const t0 = performance.now();
+    const step = (now) => { t = Math.min(1, (now - t0) / 2200); render(); if (t < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+  };
+  slider.oninput = () => { cancelAnimationFrame(raf); t = slider.value / 1000; render(); };
+  return { set: (k, tt) => { box.querySelector(`[data-k=${k}]`).click(); t = tt; render(); } };
+}
+
+const cA = candidate("rowA", "A"), cA2 = candidate("rowA", "A");
+const cB = candidate("rowB", "B"), cB2 = candidate("rowB", "B");
+/* open each row on both splits, finished, so the two can be compared at once */
+cA.set("label", 1); cA2.set("scaffold", 1); cB.set("label", 1); cB2.set("scaffold", 1);
+
+const L = plan("label", "A"), S = plan("scaffold", "A");
+document.getElementById("facts").innerHTML =
+  `Seed 42. <b>Label split:</b> ${fmt(L.train.length)} molecules to train, ${fmt(L.held.length)} held out; <b>${L.shared.size}</b> scaffolds have molecules in both groups, so their blocks appear twice, cut in two. ` +
+  `<b>Scaffold split:</b> ${fmt(S.train.length)} to train, ${fmt(S.held.length)} held out; <b>${S.shared.size}</b> scaffolds appear in both. ` +
+  `The held-out group is a different size under each split, because the scaffold split moves whole blocks (benzene's 278 go together).`;
+</script>
+</body>
+</html>
