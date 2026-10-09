@@ -1404,7 +1404,7 @@
     {
       "slug": "scaffold-split",
       "title": "Deep Learning - Graphs: Scaffold Split",
-      "blurb": "A scaffold split keeps molecules that share a ring system on one side, so the test score measures new chemistry.",
+      "blurb": "A scaffold split assigns molecules by their ring systems, so no test molecule shares a scaffold with training.",
       "course": "PHM5005",
       "topics": [
         "scaffold split",

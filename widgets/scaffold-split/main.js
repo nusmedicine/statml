@@ -71,16 +71,16 @@ const pct = (v, d = 1) => `${(100 * v).toFixed(d)}%`;
 
 const S = {
   subtitle:
-    "A molecule's Murcko scaffold keeps its rings and the chains that join them. " +
-    "A label split deals molecules one by one, so molecules sharing a scaffold land in both training and test; " +
-    "a scaffold split deals whole scaffold groups, so every test molecule has a scaffold the model has not seen, and its test score is usually lower.",
+    "A molecule's Murcko scaffold is its ring systems and the linkers that join them. " +
+    "A label split assigns molecules one at a time, so molecules sharing a scaffold appear in both training and test. " +
+    "A scaffold split assigns whole scaffold groups, which tests whether a model generalizes to new chemical families; its test score is usually lower.",
   pageLabel: "Step",
   exampleLabel: "Example",
-  exampleDetail: "two molecules from the screen and their Murcko scaffolds: each keeps its rings and the chains between them, and loses everything else",
+  exampleDetail: "two molecules from the dataset and their Murcko scaffolds: the ring systems and the linkers between them, without the side chains",
   splitLabel: "Split",
-  splitDetail: "Label deals molecules one at a time and keeps each part's share of actives; Scaffold deals whole scaffold groups",
+  splitDetail: "Label assigns molecules one at a time and keeps each part's share of actives; Scaffold assigns whole scaffold groups",
   seedLabel: "Seed",
-  seedDetail: "the random_state of both stages of the split; each seed deals a different split",
+  seedDetail: "the random_state of both stages of the split; each seed gives a different split",
 
   stepLabel: {
     param: "page",
@@ -94,11 +94,11 @@ const S = {
   stepTitle: {
     param: "page",
     labels: {
-      scaffold: "Strip each molecule to its rings and the chains joining them",
+      scaffold: "Remove each molecule's side chains, keeping its ring systems and linkers",
       split: { anim: "beat", labels: { 0: "Hold out 20% of the molecules; the other 80% train the model", 1: "Halve the held-out 20% into validation and test" }, default: "Halve the held-out 20% into validation and test" },
-      evaluate: { anim: "beat", labels: { 0: "Find the scaffolds that hold both test and training molecules", 1: "Score the GCN on the test set, for every seed" }, default: "Score the GCN on the test set, for every seed" },
+      evaluate: { anim: "beat", labels: { 0: "Find the scaffolds shared by test and training molecules", 1: "Score the GCN on the test set, for every seed" }, default: "Score the GCN on the test set, for every seed" },
     },
-    default: "Strip each molecule to its rings and the chains joining them",
+    default: "Remove each molecule's side chains, keeping its ring systems and linkers",
   },
 
   /* Scaffold */
@@ -106,9 +106,9 @@ const S = {
   scaffoldHead: (n) => (n === 1 ? "Scaffold" : "Scaffolds"),
   molName: (m) => `${m.name} · ${m.y ? "active" : "inactive"}`,
   scafName: (fam, g) => `${fam === "indoles" ? "indole · " : ""}${GROUPS[g][0]} molecules · ${GROUPS[g][1]} active`,
-  fileCap: `The screen: ${fmtN(FILE.scaffolds)} scaffolds in ${fmtN(FILE.rows)} molecules · one block a scaffold`,
+  fileCap: `The dataset: ${fmtN(FILE.scaffolds)} scaffolds in ${fmtN(FILE.rows)} molecules · each block is one scaffold`,
   /* once the press lands the ring needs naming, and the count is on the tile */
-  fileCapRing: "one block a scaffold · ringed: the example's scaffold",
+  fileCapRing: "each block is one scaffold · ringed: the example's scaffold",
   benzene: (n) => `benzene · ${n}`,
   empty: (n) => `no ring · ${n}`,
   band: (b) => `${b.count} scaffold${b.count === 1 ? "" : "s"} with ${b.range} molecule${b.range === "1" ? "" : "s"} each`,
@@ -121,9 +121,9 @@ const S = {
   keyVal: "validation",
   keyTest: "test",
   splitStatus: [
-    "the screen grouped by scaffold, before the split",
-    (kind) => (kind === "label" ? "80% of the molecules to train, dealt one by one; 20% held out" : "80% of the scaffold groups to train, each group whole; 20% held out"),
-    (kind) => (kind === "label" ? "the held-out molecules halved into validation and test, one by one" : "the held-out groups halved into validation and test, each group whole"),
+    "the dataset grouped by scaffold, before the split",
+    (kind) => (kind === "label" ? "80% of the molecules to train, assigned one at a time; 20% held out" : "80% of the scaffold groups to train, each group whole; 20% held out"),
+    (kind) => (kind === "label" ? "the held-out molecules halved into validation and test, one at a time" : "the held-out groups halved into validation and test, each group whole"),
   ],
   barTitle: ["Train", "Validation", "Test"],
   barY: "Proportion",
@@ -132,7 +132,7 @@ const S = {
   /* Evaluate */
   evStatus: [
     (kind) => `the ${kind === "label" ? "label" : "scaffold"} split's test set`,
-    "ringed: a scaffold holding test and training molecules",
+    "ringed: a scaffold found in both test and training",
   ],
   scoreHead: "Macro F1 of the GCN on the test set · one dot a seed",
   colName: { label: "Label split", scaffold: "Scaffold split" },
@@ -146,7 +146,7 @@ const S = {
   tileMol: "Molecules",
   tileMolNote: `${FILE.actives} have Activity 1: they inhibit the growth of E. coli`,
   tileScaf: "Scaffolds",
-  tileScafNote: (big) => `${FILE.singletons} hold one molecule; the largest, benzene, holds ${big}`,
+  tileScafNote: (big) => `${FILE.singletons} occur in one molecule only; benzene, the most common, is the scaffold of ${big}`,
   tileEx: "The example's scaffolds",
   tileExNote: (fam) => (fam === "indoles"
     ? "both molecules have the scaffold indole"
@@ -154,15 +154,15 @@ const S = {
   tilePart: ["Train", "Validation", "Test"],
   tilePartNote: (a, n) => `${a} active · ${pct(a / n)}`,
   tileShared: "Shared scaffolds",
-  tileSharedNote: "test molecules whose scaffold also holds a training molecule",
+  tileSharedNote: "test molecules whose scaffold also occurs in training",
   tileSharedAct: "Actives sharing",
-  tileSharedActNote: "test actives whose scaffold also holds a training active",
+  tileSharedActNote: "test actives whose scaffold also occurs in a training active",
   tileF1: "Macro F1",
   tileF1Note: (m) => `the GCN on this seed's test set; the mean over ${SEEDS.length} seeds is ${m}`,
   tileWait: "—",
 
-  sumScaf: (fam, done) => `${fam === "indoles" ? "3-methylindole and tryptamine" : "ciprofloxacin and norfloxacin"}${done ? (fam === "indoles" ? ", stripped to one scaffold, indole" : ", stripped to two different scaffolds") : ""}; below, ${fmtN(FILE.rows)} molecules in ${fmtN(FILE.scaffolds)} scaffold groups`,
-  sumSplit: (kind, seed, beat, st) => `the ${kind} split, seed ${seed}${beat >= 2 ? `: train ${st.n[0]}, validation ${st.n[1]}, test ${st.n[2]}` : beat === 1 ? ": 80% to train, 20% held out" : ", not yet dealt"}`,
+  sumScaf: (fam, done) => `${fam === "indoles" ? "3-methylindole and tryptamine" : "ciprofloxacin and norfloxacin"}${done ? (fam === "indoles" ? ", reduced to one scaffold, indole" : ", reduced to two different scaffolds") : ""}; below, ${fmtN(FILE.rows)} molecules in ${fmtN(FILE.scaffolds)} scaffold groups`,
+  sumSplit: (kind, seed, beat, st) => `the ${kind} split, seed ${seed}${beat >= 2 ? `: train ${st.n[0]}, validation ${st.n[1]}, test ${st.n[2]}` : beat === 1 ? ": 80% to train, 20% held out" : ", not yet split"}`,
   sumEval: (kind, seed, beat, st) => `the ${kind} split, seed ${seed}: ${beat >= 1 ? `${st.shared} of ${st.n[2]} test molecules share a scaffold with training` : `${st.n[2]} test molecules`}${beat >= 2 ? `; the GCN's macro F1 ${st.f1.toFixed(2)}` : ""}`,
 };
 
