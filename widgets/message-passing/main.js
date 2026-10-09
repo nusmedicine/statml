@@ -60,6 +60,17 @@
    "Add a layer" send the same messages. Transform and Pool move nothing, so
    they switch at once (tween-only-movement).
 
+   ROUNDS 2–3 (2026-10-09): the chain across the full width with its table
+   under it, messages slowed to 1.7 s; then, from `_lab/message-passing-
+   motion-mock.html` (his picks, all the recommendation, after a look at
+   Distill's two GNN articles, CS224W's computation graph and Kipf &
+   Welling's stacked-graph figure), Transform MOVES — on the chain every
+   node's sum drops into one stack, crosses the one W a column at a time,
+   passes ELU and rises back to its node; on caffeine the picked row crosses
+   W inside its table — and Layers is a STACK of sheets with the cone and a
+   cloud of the receptive field on layer 0, to three layers, the likeness
+   drawing and the curve under it going on to eight.
+
    Nothing trains in the page: compute() runs the layers on seeded weights
    (core's rng, seed 1) and the trained α is data. Presses reveal what
    compute() holds (invariant 2). Every control is display, so none resets
@@ -144,7 +155,14 @@ const S = {
     (u, i) => `${u} ${i} · the sum × W, then ELU: h${i}′, its vector after one layer`,
   ],
   aggMoving: "every node sends its row along each of its edges, and to itself; each arrives scaled by its weight",
+  trMoving: { chain: "every node's sum through the same W, then ELU", caffeine: "the sum times each column of W, then ELU" },
+  wLabel: "W · one for every node",
+  hwLabel: "= H·W",
+  eluLabel: "ELU",
   layMoving: (k) => `layer ${k} · every atom sends its vector to each neighbour`,
+  sheet0: "layer 0 · x",
+  sheetK: (k) => `layer ${k}`,
+  stackStop: (n) => `the stack is drawn to ${n} layers; the count, the likeness and the curve go on`,
   rdMoving: (k) => `layer ${k} · every atom sends its vector to each neighbour`,
   aggNote: {
     chain: "the same sum in any order of the inputs · every node does this at once in a layer",
@@ -349,8 +367,9 @@ function aggregateOf(mol, i, kind, weights, P, W) {
   } else w = inputs.map((j) => P[i][j]);
   const cols = mol.atoms[0].x.length;
   const sum = [...Array(cols).keys()].map((c) => inputs.reduce((s, j, k) => s + w[k] * mol.atoms[j].x[c], 0));
-  const out = elu([sum].map((r) => W[0].map((_, k) => r.reduce((s, v, q) => s + v * W[q][k], 0))))[0];
-  return { i, inputs, w, sum, out, deg: nbrs.length };
+  const pre = W[0].map((_, k) => sum.reduce((s, v, q) => s + v * W[q][k], 0));
+  const out = elu([pre])[0];
+  return { i, inputs, w, sum, pre, out, deg: nbrs.length };
 }
 
 /* THE ACIDS' CLASSES, layer by layer: atoms whose vectors are identical
@@ -431,7 +450,12 @@ function compute({ params, rng }) {
   const layMsgs = gcnMsgs(cafA, cafP);
   const acidMsgs = ACIDS.map((m) => { const A = adjacency(m); return gcnMsgs(A, gcnP(A)); });
 
-  return { agg, all, msgs, H, hops, likeness, unlike, diameter, classes, pooled, layMsgs, acidMsgs, agreeTop: GAT_RUN.agree };
+  /* one colour scale for every row the Aggregate page draws: x, the sums, h·W, h′ —
+     so a row keeps its colours as it travels and lands */
+  const vals = [...(caf ? [] : CHAIN.atoms.map((a) => a.x)), ...all.flatMap((u) => [u.sum, u.pre, u.out])].flat();
+  const aggScale = [Math.min(0, ...vals), Math.max(1, ...vals)];
+  const nbrs = cafA.map((r) => r.map((v, j) => (v ? j : -1)).filter((j) => j >= 0));
+  return { nbrs, agg, all, msgs, Wagg: caf ? Wcaf : Wchain, aggScale, H, hops, likeness, unlike, diameter, classes, pooled, layMsgs, acidMsgs, agreeTop: GAT_RUN.agree };
 }
 
 /* ============================================================ animation */
@@ -442,7 +466,20 @@ function compute({ params, rng }) {
    Pool change no positions, so they switch without motion. */
 const MOVE_MS = 1700;   /* slowed on his word, round 2 */
 const stepsOf = (stage) => STEPS[stage] ?? 0;
-const moves = (stage, beat) => (stage === "aggregate" ? beat === 1 : stage === "layers" ? true : beat <= LESSON_LAYERS);
+/* ROUND 3: Transform moves too (every node's row through one W, his pick C),
+   and a layer drawn on the stack has three phases (the sheet, the messages,
+   the cloud) */
+const STACK_MAX = 3;
+function durOf(stage, beat, params) {
+  if (stage === "aggregate") return beat === 1 ? MOVE_MS : params.example === "chain" ? 5200 : 3600;
+  if (stage === "layers") return beat <= STACK_MAX ? 2600 : MOVE_MS;
+  return beat <= LESSON_LAYERS ? MOVE_MS : 0;
+}
+/** the raw progress of the press in flight, for animations with phases; null when settled */
+const phase = (anim, stage) => (anim.stage === stage && anim.t < 1 ? anim.t : null);
+const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+const lerp = (a, b, t) => a + (b - a) * t;
 /** the settled beat: while a press is in flight, the state before it */
 const shownStep = (anim, stage) => (anim.n[stage] ?? 0) - (anim.stage === stage && anim.t < 1 ? 1 : 0);
 /** how far the messages in flight have gone, eased; null when nothing moves */
@@ -467,9 +504,92 @@ function drawMessages(ctx, colors, P, msgs, u, { r = 11, pick = null, mark = nul
   }
 }
 
+/* ------------------------------------------------ Transform's pieces */
+
+/** a row of cells on the page's one scale */
+function cellRow(ctx, colors, x, y, row, c, scale, { stroke = null, lw = 1, ch = c } = {}) {
+  row.forEach((v, k) => rect(ctx, x + k * c, y, c, ch, ramp(colors, (v - scale[0]) / (scale[1] - scale[0])), stroke ?? colors.ink1, lw));
+}
+/** the ELU curve in a small box, the activation's own shape */
+function eluIcon(ctx, colors, x, y, w = 48, h = 40) {
+  rect(ctx, x, y, w, h, colors.surface2, colors.grid);
+  const sx = (v) => x + 4 + ((v + 2) / 3.2) * (w - 8), sy = (v) => y + h - 6 - ((v + 1) / 2.2) * (h - 12);
+  ctx.save(); ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1.4; ctx.beginPath();
+  for (let q = 0; q <= 30; q++) { const v = -2 + (3.2 * q) / 30, e = v > 0 ? v : Math.expm1(v); q ? ctx.lineTo(sx(v), sy(e)) : ctx.moveTo(sx(v), sy(e)); }
+  ctx.stroke(); ctx.restore();
+  txt(ctx, colors, S.eluLabel, x + w / 2, y - 5, { fill: colors.ink3, align: "center" });
+}
+
+/* THE CHAIN'S TRANSFORM (round 3, his pick C from `_lab/message-passing-
+   motion-mock.html`): the band between the drawing and the table holds W and
+   the ELU gate. A press drops the three sums into one stack H (0–0.22), W's
+   columns light one at a time while H·W fills a column at a time (0.24–0.58),
+   H·W slides through ELU (0.60–0.76) and each row rises back to its own
+   node, one at a time, node 2 first (0.78–1): rising together, the top row's
+   path crossed the bottom one's (tweens-move-in-lanes). */
+const BAND = { hy: 240, c: 22, cW: 34 };
+function chainBand(w) {
+  const hx = 24, wX = hx + 3 * BAND.c + 30;
+  return { hx, wX, oX: wX + 3 * BAND.cW + 28, eluX: w - 150, finX: w - 84 };
+}
+function chainSlot(P, i) { return [P[i][0] - 45, P[i][1] - 78]; }
+function drawChainBand(ctx, colors, w, st, P, t) {
+  const b = chainBand(w), W = st.Wagg, sc = st.aggScale, c = BAND.c, hy = BAND.hy;
+  const col = t != null && t > 0.24 && t < 0.58 ? Math.min(2, Math.floor(seg(t, 0.24, 0.58) * 3)) : -1;
+  txt(ctx, colors, S.wLabel, b.wX, hy - 8, { fill: colors.ink3 });
+  W.forEach((r, i) => r.forEach((v, k) => {
+    rect(ctx, b.wX + k * BAND.cW, hy + i * c, BAND.cW, c, k === col ? wash(colors.highlight, 0.3) : colors.surface2, colors.grid);
+    txt(ctx, colors, fmt(v), b.wX + k * BAND.cW + BAND.cW / 2, hy + i * c + c / 2 + 1, { font: monoFont(colors), fill: k === col ? colors.ink1 : colors.ink2, align: "center", baseline: "middle" });
+  }));
+  eluIcon(ctx, colors, b.eluX, hy + 4);
+  if (t == null) return;
+  txt(ctx, colors, "H", b.hx + 1.5 * c, hy - 8, { fill: colors.ink3, align: "center" });
+  txt(ctx, colors, "×", b.wX - 15, hy + 1.5 * c + 4, { font: capFont(colors), fill: colors.ink2, align: "center" });
+  const p1 = ease(seg(t, 0, 0.22)), p2 = seg(t, 0.24, 0.58), p3 = ease(seg(t, 0.6, 0.76));
+  for (let i = 0; i < 3; i++) {
+    const u = st.all[i], [sx, sy] = chainSlot(P, i), ty = hy + i * c;
+    if (t < 0.24) { cellRow(ctx, colors, lerp(sx, b.hx, p1), lerp(sy, ty, p1), u.sum, lerp(30, c, p1), sc); continue; }
+    cellRow(ctx, colors, b.hx, ty, u.sum, c, sc, { stroke: colors.grid });
+    if (t < 0.78) {
+      const done = t < 0.58 ? Math.min(3, Math.floor(p2 * 3 + 1e-9)) : 3;
+      const ox = t < 0.6 ? b.oX : lerp(b.oX, b.finX, p3), row = t < 0.68 ? u.pre : u.out;
+      row.forEach((v, k) => rect(ctx, ox + k * c, ty, c, c, k < done ? ramp(colors, (v - sc[0]) / (sc[1] - sc[0])) : null, colors.ink2));
+    } else {
+      const q = ease(seg(t, 0.78 + (2 - i) * 0.073, 0.78 + (3 - i) * 0.073));
+      cellRow(ctx, colors, lerp(b.finX, sx, q), lerp(ty, sy, q), u.out, lerp(c, 30, q), sc, { stroke: i === st.agg.i ? colors.highlight : null, lw: i === st.agg.i ? 1.6 : 1 });
+    }
+  }
+  if (t >= 0.24 && t < 0.6) txt(ctx, colors, S.hwLabel, b.oX, hy - 8, { fill: colors.ink3 });
+}
+
+/* CAFFEINE'S TRANSFORM: the picked atom's row only (14 rows do not fit a
+   stack), inside its table. W sits under the sum row, one column of W under
+   each column of the table; a press lights W's columns in turn and fills h·W
+   a cell at a time (0–0.6), then the row moves down past the ELU gate into
+   the h′ row (0.62–1). */
+function drawCafTransform(ctx, colors, st, g, t, beat) {
+  const a = st.agg, W = st.Wagg, sc = st.aggScale, cols = W.length;
+  const wy = g.yS + 30, rh = 11, preY = wy + cols * rh + 8, outY = preY + 40;
+  const col = t != null && t < 0.6 ? Math.min(cols - 1, Math.floor(seg(t, 0, 0.6) * cols)) : -1;
+  const wvals = W.flat(), wlo = Math.min(...wvals), whi = Math.max(...wvals);
+  txt(ctx, colors, "W", g.x0, wy + (cols * rh) / 2 + 3, { font: boldMono(colors), fill: colors.ink3 });
+  W.forEach((r, q) => r.forEach((v, k) => rect(ctx, g.colX(k) + 1, wy + q * rh, g.cw - 2, rh, k === col ? wash(colors.highlight, 0.45) : ramp(colors, (v - wlo) / (whi - wlo)), colors.grid)));
+  txt(ctx, colors, S.eluLabel, g.x0, (preY + outY) / 2 + 12, { fill: colors.ink3 });
+  if (t != null && beat === 1) {
+    const done = Math.min(cols, Math.floor(seg(t, 0, 0.6) * cols + 1e-9));
+    const m = ease(seg(t, 0.62, 1)), y = lerp(preY, outY, m), row = m < 0.5 ? a.pre : a.out;
+    row.forEach((v, k) => { if (t >= 0.6 || k < done) rect(ctx, g.colX(k) + 1, y, g.cw - 2, 16, ramp(colors, (v - sc[0]) / (sc[1] - sc[0])), colors.highlight, 1.4); });
+    return;
+  }
+  if (beat >= 2) {
+    txt(ctx, colors, S.rowOut(a.i), g.x0, outY + 9, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
+    a.out.forEach((v, k) => txt(ctx, colors, fmt(v, 1), g.colX(k) + g.cw / 2, outY + 9, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
+  }
+}
+
 /* ============================================================ geometry */
 
-const H_CHAIN = 486, H_CAF = 336, H_LAY = 440, H_RD = 400;
+const H_CHAIN = 564, H_CAF = 344, H_LAY = 530, H_RD = 400;
 const leftW = (w) => Math.min(w * 0.47, 330);
 const AG = { top: 34, boxH: 250, rowH: 24 };
 /** where the chain's nodes and caffeine's atoms sit on the Aggregate page */
@@ -479,11 +599,6 @@ function aggPoints(params, w) {
     return [0, 1, 2].map((i) => [w * (0.17 + 0.33 * i), AG.top + 120]);
   }
   return molPoints(CAFFEINE, 16, AG.top + 8, leftW(w) - 28, AG.boxH);
-}
-const LY = { top: 34, boxH: 196, curveTop: 272, curveH: 92 };
-function layPoints(w, half) {
-  const bw = (w - 36) / 2;
-  return molPoints(CAFFEINE, 12 + half * (bw + 12), LY.top + 8, bw, LY.boxH - 16, 52);
 }
 const RD = { top: 18, rowH: 104, boxH: 66, tallyTop: 236 };
 /** both acids at one scale, so a bond is one length in each and the extra CH₂ is one more step */
@@ -498,6 +613,10 @@ function acidPoints(w) {
 function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
   const chain = params.example === "chain", mol = chain ? CHAIN : CAFFEINE;
   const beat = shownStep(anim, "aggregate"), a = st.agg, kind = chain ? "gcn" : params.layer;
+  /* Transform in flight: its raw progress, for the phases */
+  const tr = anim.n.aggregate === 2 ? phase(anim, "aggregate") : null;
+  /* the messages move only on the Aggregate press */
+  const msgU = anim.n.aggregate === 1 ? flight(anim, "aggregate") : null;
   const P = aggPoints(params, w), A = adjacency(mol);
   const nb = new Set(a.inputs.slice(1));
   let hov = null;
@@ -516,13 +635,14 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
     /* every node's row: x, then after Aggregate its sum, after Transform its h′ —
        all three nodes at once, as a layer does; one scale for each row of rows */
     const rows = beat === 0 ? mol.atoms.map((at) => at.x) : st.all.map((u) => (beat === 1 ? u.sum : u.out));
-    const flat = rows.flat(), lo = Math.min(0, ...flat), hi = Math.max(1, ...flat);
-    rows.forEach((row, i) => {
-      const cw = 30, x0 = P[i][0] - 1.5 * cw, y0 = P[i][1] - 78;
-      row.forEach((v, c) => rect(ctx, x0 + c * cw, y0, cw, cw, ramp(colors, (v - lo) / (hi - lo)), colors.ink1));
+    /* while Transform runs, the rows are in the band, not on the nodes */
+    if (tr == null) rows.forEach((row, i) => {
+      const [x0, y0] = chainSlot(P, i);
+      cellRow(ctx, colors, x0, y0, row, 30, st.aggScale);
       txt(ctx, colors, row.map((v) => fmt(v, beat === 0 ? 1 : 2)).join(" "), P[i][0], y0 - 6, { font: monoFont(colors), fill: colors.ink3, align: "center" });
     });
-    const u = flight(anim, "aggregate");
+    drawChainBand(ctx, colors, w, st, P, tr);
+    const u = msgU;
     if (u != null) {
       /* each node's row travels along its own lane: rightward above the edge,
          leftward below it, and round its own self-loop */
@@ -557,7 +677,7 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
       bond(ctx, P[i], P[j], type, into ? colors.highlight : i === a.i || j === a.i ? colors.ink1 : colors.ink3, into ? thick(other) : 1.4);
     });
   }
-  const uMol = chain ? null : flight(anim, "aggregate");
+  const uMol = chain ? null : msgU;
   mol.atoms.forEach((at, i) => {
     const fill = i === a.i ? wash(colors.highlight, 0.35) : nb.has(i) ? wash(colors.groupA, 0.32) : hov === i ? wash(colors.groupA, 0.15) : null;
     node(ctx, colors, P[i][0], P[i][1], chain ? 20 : 11, chain ? String(i) : at.el, { fill });
@@ -567,7 +687,7 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
   if (uMol != null) drawMessages(ctx, colors, P, st.msgs, uMol, { pick: a.i });
 
   /* the table: the inputs' rows, their weights, the sum, the transformed row */
-  const x0 = chain ? 12 : leftW(w) + 8, ty = chain ? 236 : 0, cols = mol.atoms[0].x.length, labW = 58;
+  const x0 = chain ? 12 : leftW(w) + 8, ty = chain ? 318 : 0, cols = mol.atoms[0].x.length, labW = 58;
   const cw = Math.min(chain ? 44 : 34, (w - x0 - labW - 70 - 8) / cols), wx = x0 + labW + cols * cw + 8;
   const right = chain ? wx + 64 : w - 4;
   txt(ctx, colors, S.capTable(cols), x0, ty + 16, { font: capFont(colors), fill: colors.ink1, maxW: w - x0 - 8 });
@@ -588,71 +708,143 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
     txt(ctx, colors, S.rowSum, x0, yS + 14, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
     a.sum.forEach((v, c) => txt(ctx, colors, fmt(v, chain ? 2 : 1), x0 + labW + c * cw + cw / 2, yS + 14, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
   }
-  if (beat >= 2) {
+  if (chain && beat >= 2) {
     txt(ctx, colors, S.rowW, x0, yS + 40, { fill: colors.ink3, baseline: "middle" });
     txt(ctx, colors, S.rowOut(a.i), x0, yS + 64, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
-    a.out.forEach((v, c) => txt(ctx, colors, fmt(v, chain ? 2 : 1), x0 + labW + c * cw + cw / 2, yS + 64, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
+    a.out.forEach((v, c) => txt(ctx, colors, fmt(v, 2), x0 + labW + c * cw + cw / 2, yS + 64, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
   }
+  if (!chain) drawCafTransform(ctx, colors, st, { x0, yS, cw, colX: (k) => x0 + labW + k * cw }, tr, beat);
 
   if (hov != null) hoverLabel(ctx, colors, chain ? S.nodeHover(hov, A[hov].reduce((s, v) => s + v, 0)) : S.aggHover(hov, mol.atoms[hov].el, A[hov].reduce((s, v) => s + v, 0)), P[hov][0], P[hov][1], w);
   const u = chain ? "node" : "atom";
-  const status = flight(anim, "aggregate") != null ? S.aggMoving : beat === 0 ? S.aggStatus[0](u, a.i, a.deg) : beat === 1 ? S.aggStatus[1](u, a.i, fmt(a.w.reduce((s, v) => s + v, 0))) : S.aggStatus[2](u, a.i);
+  const status = tr != null ? S.trMoving[params.example] : msgU != null ? S.aggMoving : beat === 0 ? S.aggStatus[0](u, a.i, a.deg) : beat === 1 ? S.aggStatus[1](u, a.i, fmt(a.w.reduce((s, v) => s + v, 0))) : S.aggStatus[2](u, a.i);
   txt(ctx, colors, status, 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
   txt(ctx, colors, chain ? S.aggNote.chain : kind === "gcn" ? S.aggNote.gcn : S.aggNote[params.weights], 12, h - 11, { fill: colors.ink3, maxW: w - 24 });
 }
 
 /* =============================================================== Layers */
 
+/* THE STACK (round 3, his pick B from `_lab/message-passing-motion-mock.html`,
+   after Kipf & Welling 2017's Figure 1, a GCN drawn as copies of the graph):
+   one sheet a layer, layer 0 (x) at the bottom, the picked atom on the top
+   one. The cone: an atom on sheet L reads itself and its bonded atoms on
+   sheet L − 1, so its lines run one bond a sheet. The cloud on layer 0 is
+   every atom the picked one has gathered from. A press: the new sheet slides
+   down into its own slot from above (0–0.25), the messages rise through the
+   cone, the lowest sheet first (0.25–0.75), the cloud grows to the new field
+   (0.75–1). The stack is drawn to STACK_MAX layers (his pick 3.3 A); past it
+   the press goes on in the likeness drawing and the curve under it. */
+const ST = { s: 38, gx: 0.55, gy: 0.34, base: 310, gap: 70, pad: 16 };
+const CAF_SPAN = (() => { const xs = CAFFEINE.atoms.map((a) => a.xy[0]), ys = CAFFEINE.atoms.map((a) => a.xy[1]); return { mx: Math.min(...xs), my: Math.min(...ys), sx: Math.max(...xs) - Math.min(...xs), sy: Math.max(...ys) - Math.min(...ys) }; })();
+function stackX0(w) { return (w - (CAF_SPAN.sx * ST.s + CAF_SPAN.sy * ST.s * ST.gx)) / 2 + 20; }
+/** caffeine's atoms on sheet `level`, `drop` px above its slot */
+function sheetPts(w, level, drop = 0) {
+  const x0 = stackX0(w), y0 = ST.base - level * ST.gap - drop - CAF_SPAN.sy * ST.s * ST.gy;
+  return CAFFEINE.atoms.map((a) => { const X = a.xy[0] - CAF_SPAN.mx, Y = a.xy[1] - CAF_SPAN.my; return [x0 + X * ST.s + Y * ST.s * ST.gx, y0 + Y * ST.s * ST.gy]; });
+}
+function sheetOutline(ctx, colors, w, level, drop, top) {
+  const x0 = stackX0(w), y0 = ST.base - level * ST.gap - drop - CAF_SPAN.sy * ST.s * ST.gy, p = ST.pad;
+  const X1 = CAF_SPAN.sx * ST.s + p, Y1 = CAF_SPAN.sy * ST.s + p;
+  const cs = [[-p, -p], [X1, -p], [X1, Y1], [-p, Y1]].map(([X, Y]) => [x0 + X + Y * ST.gx, y0 + Y * ST.gy]);
+  ctx.save(); ctx.beginPath(); cs.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+  ctx.fillStyle = wash(colors.surface3, 0.55); ctx.fill(); ctx.strokeStyle = top ? colors.ink2 : colors.grid; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+  txt(ctx, colors, level === 0 ? S.sheet0 : S.sheetK(level), cs[0][0] - 6, (cs[0][1] + cs[3][1]) / 2 + 4, { fill: colors.ink3, align: "right" });
+}
+/* the cloud: a disc for every atom in the field, drawn opaque off-screen and
+   laid down once at a set opacity, so overlapping discs do not darken */
+let OFF = null;
+function cloud(ctx, colors, pts, members, r, grow) {
+  const cv = ctx.canvas;
+  if (!OFF) OFF = document.createElement("canvas");
+  if (OFF.width !== cv.width || OFF.height !== cv.height) { OFF.width = cv.width; OFF.height = cv.height; }
+  const o = OFF.getContext("2d"); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, OFF.width, OFF.height);
+  o.setTransform(ctx.getTransform()); o.fillStyle = colors.groupA;
+  members.forEach((i) => { const rr = r * (grow?.get(i) ?? 1); if (rr > 0) { o.beginPath(); o.arc(pts[i][0], pts[i][1], rr, 0, 2 * Math.PI); o.fill(); } });
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.24; ctx.drawImage(OFF, 0, 0); ctx.restore();
+}
+/** the flat likeness drawing, under the stack at the left */
+const LY = { top: 344, boxH: 118, curveTop: 348, curveH: 92 };
+const flatPts = (w) => molPoints(CAFFEINE, 12, LY.top + 8, w * 0.46 - 12, LY.boxH - 12, 40);
+
 function drawLayers(ctx, colors, w, h, params, st, anim, pointer) {
   const k = shownStep(anim, "layers"), from = Number(params.from), N = CAFFEINE.atoms.length;
-  const reached = st.hops.filter((d) => d <= k).length;
-  const PL = layPoints(w, 0), PR = layPoints(w, 1), bw = (w - 36) / 2;
+  const t = phase(anim, "layers"), kNew = anim.n.layers, inStack = t != null && kNew <= STACK_MAX;
+  const within = (kk) => [...Array(N).keys()].filter((i) => st.hops[i] <= kk);
+  const top = Math.min(inStack ? kNew : k, STACK_MAX);
+  const drop = inStack ? (1 - ease(seg(t, 0, 0.25))) * 60 : 0;
+  const pts = [...Array(top + 1).keys()].map((L) => sheetPts(w, L, L === top && inStack ? drop : 0));
+  const PF = flatPts(w);
   let hov = null, hovP = null;
-  if (pointer) [PL, PR].forEach((P) => P.forEach(([x, y], i) => { if (Math.hypot(pointer.x - x, pointer.y - y) <= 12) { hov = i; hovP = P; } }));
+  if (pointer) for (const P of [PF, pts[top]]) P.forEach(([x, y], i) => { if (Math.hypot(pointer.x - x, pointer.y - y) <= 9) { hov = i; hovP = P; } });
 
-  txt(ctx, colors, S.capReach(reached, N), 12, 16, { font: capFont(colors), fill: colors.ink1, maxW: bw });
-  txt(ctx, colors, S.capAlike(from), 24 + bw, 16, { font: capFont(colors), fill: colors.ink1, maxW: bw });
-  for (const [P, right] of [[PL, false], [PR, true]]) {
-    CAFFEINE.bonds.forEach(([i, j, type]) => bond(ctx, P[i], P[j], type, colors.ink3, 1.3));
-    CAFFEINE.atoms.forEach((at, i) => {
-      const fill = right ? ramp(colors, st.likeness[k][i]) : i === from ? wash(colors.highlight, 0.4) : st.hops[i] <= k ? wash(colors.groupA, 0.4) : null;
-      node(ctx, colors, P[i][0], P[i][1], 10, at.el, { fill, stroke: hov === i ? colors.groupA : null, lw: hov === i ? 2.4 : 1.4 });
-      if (!right) txt(ctx, colors, String(i), P[i][0] + 11, P[i][1] - 8, { font: monoFont(colors), fill: colors.ink3, halo: true });
-    });
-    ring(ctx, P[from][0], P[from][1], 16, colors.highlight);
+  /* the sheets, bottom first */
+  for (let L = 0; L <= top; L++) sheetOutline(ctx, colors, w, L, L === top && inStack ? drop : 0, L === top);
+  /* the cloud on layer 0: the settled field, growing to the new one in the last phase */
+  const kCloud = Math.min(inStack ? kNew : k, STACK_MAX), grow = new Map();
+  if (inStack) within(kCloud).forEach((i) => { if (st.hops[i] === kCloud) grow.set(i, ease(seg(t, 0.75, 1))); });
+  cloud(ctx, colors, pts[0], within(kCloud), 17, grow);
+  /* the cone */
+  const coneTop = inStack && t < 0.25 ? top - 1 : top;
+  for (let L = 1; L <= coneTop; L++) for (const a of within(top - L)) for (const b of [a, ...st.nbrs[a]]) {
+    line(ctx, pts[L - 1][b][0], pts[L - 1][b][1], pts[L][a][0], pts[L][a][1], wash(colors.groupA, 0.5), 1);
   }
-  /* a layer in flight: every atom's vector along every bond, on the reach drawing */
-  const uL = flight(anim, "layers");
-  if (uL != null) drawMessages(ctx, colors, PL, st.layMsgs, uL, { r: 10, pick: from });
-  /* the ramp's key, under the right drawing */
-  ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`;
-  const hiW = ctx.measureText(S.keyHi).width; ctx.restore();
-  const kx = w - 12 - hiW - 6 - 90, ky = LY.top + LY.boxH + 8;
-  for (let q = 0; q < 60; q++) rect(ctx, kx + q * 1.5, ky, 1.5, 8, ramp(colors, q / 59));
+  for (let L = 0; L <= top; L++) {
+    CAFFEINE.bonds.forEach(([i, j]) => line(ctx, pts[L][i][0], pts[L][i][1], pts[L][j][0], pts[L][j][1], colors.grid, 1));
+    CAFFEINE.atoms.forEach((_, i) => {
+      const isPick = L === top && i === from, inCone = st.hops[i] <= top - L;
+      dot(ctx, pts[L][i][0], pts[L][i][1], isPick ? 6 : 4, isPick ? colors.highlight : inCone ? colors.groupA : colors.surface, inCone || isPick ? null : colors.ink3, 1);
+    });
+  }
+  ring(ctx, pts[top][from][0], pts[top][from][1], 10, colors.highlight);
+  /* the messages rising through the cone, one sheet after another */
+  if (inStack && t > 0.25 && t < 0.75) {
+    const m = ease(seg(t, 0.25, 0.75));
+    for (let L = 1; L <= top; L++) {
+      const ml = seg(m, (L - 1) / top, L / top);
+      if (ml <= 0 || ml >= 1) continue;
+      for (const a of within(top - L)) for (const b of [a, ...st.nbrs[a]]) {
+        const [x0, y0] = pts[L - 1][b], [x1, y1] = pts[L][a];
+        dot(ctx, lerp(x0, x1, ml), lerp(y0, y1, ml), 2.6, L === top && a === from ? colors.highlight : colors.groupA);
+      }
+    }
+  }
+  const kSeen = inStack && t < 0.75 ? k : t != null ? kNew : k;
+  txt(ctx, colors, S.capReach(within(kSeen).length, N), 12, 16, { font: capFont(colors), fill: colors.ink1, maxW: w - 24 });
+  if (k > STACK_MAX || (t != null && kNew > STACK_MAX)) txt(ctx, colors, S.stackStop(STACK_MAX), 12, 32, { fill: colors.ink3, maxW: w - 24 });
+
+  /* under the stack: the likeness drawing at the left */
+  const kL = t != null && !inStack ? k : inStack && t < 0.75 ? k : t != null ? kNew : k;
+  txt(ctx, colors, S.capAlike(from), 12, LY.top - 6, { font: capFont(colors), fill: colors.ink1, maxW: w * 0.46 });
+  CAFFEINE.bonds.forEach(([i, j, type]) => bond(ctx, PF[i], PF[j], type, colors.ink3, 1.2));
+  CAFFEINE.atoms.forEach((at, i) => node(ctx, colors, PF[i][0], PF[i][1], 8, at.el, { fill: ramp(colors, st.likeness[kL][i]), stroke: hov === i ? colors.groupA : null, lw: hov === i ? 2.4 : 1.2 }));
+  ring(ctx, PF[from][0], PF[from][1], 13, colors.highlight);
+  if (t != null && !inStack) drawMessages(ctx, colors, PF, st.layMsgs, ease(t), { r: 8, pick: from });
+  const kx = 12 + 64, ky = LY.top + LY.boxH + 8;
+  for (let q = 0; q < 60; q++) rect(ctx, kx + q * 1.5, ky, 1.5, 7, ramp(colors, q / 59));
   txt(ctx, colors, S.keyLo, kx - 4, ky + 7, { fill: colors.ink3, align: "right" });
   txt(ctx, colors, S.keyHi, kx + 96, ky + 7, { fill: colors.ink3 });
 
-  /* the curve, revealed up to k: caffeine and the file's mean */
-  const x0 = 58, y0 = LY.curveTop, cw = w - x0 - 24, ch = LY.curveH;
+  /* and the curve at the right, revealed up to the layers landed */
+  const x0 = w * 0.46 + 44, y0 = LY.curveTop, cw = w - x0 - 16, ch = LY.curveH;
   const sx = (v) => x0 + (v / K_MAX) * cw, sy = (v) => y0 + ch - Math.max(0, Math.min(1.05, v)) * ch;
   line(ctx, x0, y0, x0, y0 + ch, colors.axis); line(ctx, x0, y0 + ch, x0 + cw, y0 + ch, colors.axis);
-  for (let t = 0; t <= K_MAX; t++) { line(ctx, sx(t), y0 + ch, sx(t), y0 + ch + 4, colors.axis); txt(ctx, colors, String(t), sx(t), y0 + ch + 15, { fill: colors.ink3, align: "center" }); }
+  for (let q = 0; q <= K_MAX; q++) { line(ctx, sx(q), y0 + ch, sx(q), y0 + ch + 4, colors.axis); txt(ctx, colors, String(q), sx(q), y0 + ch + 15, { fill: colors.ink3, align: "center" }); }
   for (const v of [0, 0.5, 1]) { line(ctx, x0 - 4, sy(v), x0, sy(v), colors.axis); txt(ctx, colors, v.toFixed(1), x0 - 6, sy(v) + 3, { fill: colors.ink3, align: "right" }); }
   txt(ctx, colors, S.curveX, x0 + cw / 2, y0 + ch + 30, { fill: colors.ink3, align: "center" });
-  ctx.save(); ctx.translate(x0 - 36, y0 + ch / 2); ctx.rotate(-Math.PI / 2); txt(ctx, colors, S.curveY, 0, 0, { fill: colors.ink3, align: "center" }); ctx.restore();
+  ctx.save(); ctx.translate(x0 - 32, y0 + ch / 2); ctx.rotate(-Math.PI / 2); txt(ctx, colors, S.curveY, 0, 0, { fill: colors.ink3, align: "center" }); ctx.restore();
   line(ctx, sx(LESSON_LAYERS), y0, sx(LESSON_LAYERS), y0 + ch, colors.grid, 1, [2, 3]);
   txt(ctx, colors, S.curveLesson, sx(LESSON_LAYERS), y0 - 5, { fill: colors.ink3, align: "center" });
-  const upto = [...Array(k + 1).keys()];
-  polyline(ctx, upto.map(sx), upto.map((t) => sy(FILE_SPREAD[t])), colors.reference, 1.6, [5, 3]);
-  polyline(ctx, upto.map(sx), upto.map((t) => sy(st.unlike[t])), colors.empirical, 2);
-  upto.forEach((t) => dot(ctx, sx(t), sy(st.unlike[t]), 2.5, colors.empirical));
-  dot(ctx, sx(k), sy(st.unlike[k]), 5, colors.highlight, colors.surface, 1.5);
-  const endR = k >= K_MAX - 1;
-  txt(ctx, colors, fmt(st.unlike[k]), sx(k) + (endR ? -8 : 8), sy(st.unlike[k]) - 7, { font: boldMono(colors), fill: colors.ink1, halo: true, align: endR ? "right" : "left" });
+  const upto = [...Array(kL + 1).keys()];
+  polyline(ctx, upto.map(sx), upto.map((q) => sy(FILE_SPREAD[q])), colors.reference, 1.6, [5, 3]);
+  polyline(ctx, upto.map(sx), upto.map((q) => sy(st.unlike[q])), colors.empirical, 2);
+  upto.forEach((q) => dot(ctx, sx(q), sy(st.unlike[q]), 2.5, colors.empirical));
+  dot(ctx, sx(kL), sy(st.unlike[kL]), 5, colors.highlight, colors.surface, 1.5);
+  const endR = kL >= K_MAX - 2;
+  txt(ctx, colors, fmt(st.unlike[kL]), sx(kL) + (endR ? -8 : 8), sy(st.unlike[kL]) - 7, { font: boldMono(colors), fill: colors.ink1, halo: true, align: endR ? "right" : "left" });
   /* the two lines are named in the legend: a label on the curve collided with the value at k = 1 */
 
   if (hov != null) hoverLabel(ctx, colors, S.layHover(hov, CAFFEINE.atoms[hov].el, st.hops[hov]), hovP[hov][0], hovP[hov][1], w);
-  txt(ctx, colors, uL != null ? S.layMoving(k + 1) : S.layStatus(k, from, reached, N), 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
+  txt(ctx, colors, t != null ? S.layMoving(kNew) : S.layStatus(k, from, within(k).length, N), 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
   txt(ctx, colors, S.layNote, 12, h - 11, { fill: colors.ink3, maxW: w - 24 });
 }
 
@@ -729,13 +921,17 @@ defineWidget({
 
   compute,
 
-  regions: ({ w, params }) => {
+  regions: ({ w, params, anim }) => {
     if (params.page === "aggregate") {
       const P = aggPoints(params, w), key = params.example === "chain" ? "node" : "atom";
       const r = params.example === "chain" ? 21 : 13;
       return P.map(([x, y], i) => ({ x: x - r, y: y - r, w: 2 * r, h: 2 * r, set: { [key]: String(i) }, label: `${i}` }));
     }
-    if (params.page === "layers") return [0, 1].flatMap((half) => layPoints(w, half).map(([x, y], i) => ({ x: x - 12, y: y - 12, w: 24, h: 24, set: { from: String(i) }, label: `${i}` })));
+    /* the atoms of the top sheet (its level read from the press counter, settled) and of the likeness drawing */
+    if (params.page === "layers") {
+      const top = Math.min(anim ? shownStep(anim, "layers") : 0, STACK_MAX);
+      return [sheetPts(w, top), flatPts(w)].flatMap((P) => P.map(([x, y], i) => ({ x: x - 9, y: y - 9, w: 18, h: 18, set: { from: String(i) }, label: `${i}` })));
+    }
     return [];
   },
 
@@ -747,22 +943,23 @@ defineWidget({
 
     init: ({ params, fromScratch }) => {
       const stage = params.page;
-      const anim = { stage, n: { aggregate: 0, layers: 0, readout: 0 }, t: 1, example: params.example, halt: false };
+      const anim = { stage, n: { aggregate: 0, layers: 0, readout: 0 }, t: 1, dur: MOVE_MS, example: params.example, halt: false };
       anim.n[stage] = fromScratch ? 0 : Math.max(0, Math.min(stepsOf(stage), Number(params.shown) || 0));
       anim.beat = anim.n[stage];
       anim.done = anim.n[stage] >= stepsOf(stage);
       return anim;
     },
 
-    advance: (anim, { dt }) => {
+    advance: (anim, { dt, params }) => {
       /* a press a page switch interrupted ends here, before the new page's (mid-press-page-switch) */
       if (anim.halt) { anim.halt = false; return false; }
       const stage = anim.stage;
-      if (anim.t < 1) anim.t = Math.min(1, anim.t + dt / MOVE_MS);
+      if (anim.t < 1) anim.t = Math.min(1, anim.t + dt / anim.dur);
       else if (anim.n[stage] < stepsOf(stage)) {
         anim.n[stage] += 1;
-        /* a press that moves nothing (Transform, Pool) lands at once */
-        anim.t = moves(stage, anim.n[stage]) ? 0 : 1;
+        /* a press that moves nothing (Pool) lands at once */
+        anim.dur = durOf(stage, anim.n[stage], params);
+        anim.t = anim.dur > 0 ? 0 : 1;
       }
       anim.beat = anim.n[stage];
       anim.done = anim.n[stage] >= stepsOf(stage) && anim.t >= 1;
