@@ -24619,7 +24619,31 @@ labels from FinGAT's `training_data.csv` (no licence file; the labels trace
 to Stokes et al. 2020) appear on the page; on his call it pushed with the
 `credit` line "Molecule data: Stokes et al., Cell 2020, via FinGAT".
 
-### Slot 95 · `message-passing` — Graphs: Message Passing — MEASURED AND MOCKED 2026-10-09, awaiting his picks
+### Slot 95 · `message-passing` — Graphs: Message Passing — SHIPPED 2026-10-09
+
+**SHIPPED 2026-10-09 as "Deep Learning - Graphs: Message Passing" (27
+states), after nine review rounds, the copy audit and a student
+walk-through in one day.** Rail: **Basics** [Graph] · **Molecule**
+[Aggregate · Layers · Readout]. Graph: his three-node chain, three presses
+Aggregate (each node's row and a copy along every edge land in an inbox
+with their weights, then add into one row the size of x) · Multiply by W
+(the sums stacked as H, W's columns lit in turn) · Apply ELU (an ELU plot
+the matrix's height, level with W, each number dropping to its axis and
+reading off the curve); rows tagged x · sum · h′. Aggregate: caffeine, the
+same three presses, GCN · GAT, GAT's α Untrained · Trained (the attention
+weights; W stays at its random start). Layers: four sheets of caffeine with
+named atoms, the cone and a receptive-field cloud, cosine similarity to the
+picked atom and the cosine-distance curve beside the screen's mean (K_MAX 4:
+the stack stopped at three while presses ran to eight, and read as dead).
+Readout: the Layers page's own network after 1–4 layers, Pool Sum · Mean ·
+Max into the vector the classifier reads, a pipeline strip on top. A
+MathML card above the figure gives the lesson's own equations (09-1 cell
+23's σ(W · Aggregate(…)), 09-2 cell 18's layer index, 09-1 cell 24's POOL
+and MLP), the part a press reached in --c-highlight. Every rail control
+eases; a new node or atom restarts its page's presses. Measured on the way:
+ELU barely moves the chain's negatives (−0.32 → −0.27), which is why the
+curve beat a gate; caffeine's raw x drives sum·W to −7.4, which ELU pins at
+−1.0.
 
 The arc mock's five picks for 95 (§5.5–5.9: Aggregate · Layers · Readout;
 his chain then caffeine; GCN · GAT; untrained weights; suberic against

@@ -1194,7 +1194,7 @@ function drawReadout(ctx, colors, w, h, params, rd, anim, pointer) {
 
 defineWidget({
   slug: "message-passing",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Graphs: Message Passing",
   subtitle: S.subtitle,
   /* caffeine is a row of the lesson's file, as 94's six are */

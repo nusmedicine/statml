@@ -12857,11 +12857,294 @@
       "tx": "e6956b5d"
     },
     {
-      "$note": "PLACEHOLDER, draft: message-passing · Aggregate, the chain, node 1, opening",
+      "$note": "message-passing · Graph, opening: the chain, node 1, rows tagged x",
       "slug": "message-passing",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "68fd3a1f",
+      "tx": "ff4cfff6"
+    },
+    {
+      "$note": "message-passing · Graph after Aggregate: weighted edges into node 1, rows tagged sum",
+      "slug": "message-passing",
+      "state": "?theme=light&shown=1",
+      "px": "824f8880",
+      "tx": "e54dfed1"
+    },
+    {
+      "$note": "message-passing · Graph after Multiply by W: H, W, H·W in the band, the nodes' rows in it",
+      "slug": "message-passing",
+      "state": "?theme=light&shown=2",
+      "px": "9b9ab4eb",
+      "tx": "94da89ef"
+    },
+    {
+      "$note": "message-passing · Graph after Apply ELU: the ELU plot level with W, rows tagged h′",
+      "slug": "message-passing",
+      "state": "?theme=light&shown=3",
+      "px": "dada65dd",
+      "tx": "7262a13e"
+    },
+    {
+      "$note": "message-passing · Graph after Apply ELU, node 0 picked: one neighbour and itself",
+      "slug": "message-passing",
+      "state": "?theme=light&node=0&shown=3",
+      "px": "43d3491f",
+      "tx": "b4dadbc8"
+    },
+    {
+      "$note": "message-passing · Graph after Apply ELU, dark theme",
+      "slug": "message-passing",
+      "state": "?theme=dark&shown=3",
+      "px": "d2bfcdfb",
+      "tx": "7262a13e"
+    },
+    {
+      "$note": "message-passing · Aggregate, caffeine opening: atom 1, GCN",
+      "slug": "message-passing",
+      "state": "?theme=light&page=aggregate&shown=0",
+      "px": "27e78c92",
+      "tx": "4a0175c7"
+    },
+    {
+      "$note": "message-passing · Aggregate, GCN, all three presses: sum·W and h′ as cells",
+      "slug": "message-passing",
+      "state": "?theme=light&page=aggregate&shown=3",
+      "px": "d81419f7",
+      "tx": "67f9d5c7"
+    },
+    {
+      "$note": "message-passing · Aggregate, GAT untrained after Aggregate: α near a plain average",
+      "slug": "message-passing",
+      "state": "?theme=light&page=aggregate&layer=gat&alpha=untrained&shown=1",
+      "px": "21f6e54e",
+      "tx": "3c951b96"
+    },
+    {
+      "$note": "message-passing · Aggregate, GAT trained, all three presses",
+      "slug": "message-passing",
+      "state": "?theme=light&page=aggregate&layer=gat&alpha=trained&shown=3",
+      "px": "8a6ae47b",
+      "tx": "97d1f548"
+    },
+    {
+      "$note": "message-passing · Layers, opening: layer 0 alone, gathered from 1 of 14",
+      "slug": "message-passing",
+      "state": "?theme=light&page=layers&shown=0",
+      "px": "abeee7d8",
+      "tx": "13b1ab10"
+    },
+    {
+      "$note": "message-passing · Layers after 2: the cone and the cloud, the curve to Readout's default",
+      "slug": "message-passing",
+      "state": "?theme=light&page=layers&shown=2",
+      "px": "c237b8e3",
+      "tx": "f65145b5"
+    },
+    {
+      "$note": "message-passing · Layers after 4: the full stack, 10 of 14, cosine distance 0.12",
+      "slug": "message-passing",
+      "state": "?theme=light&page=layers&shown=4",
+      "px": "2eb4d23f",
+      "tx": "5bcf383d"
+    },
+    {
+      "$note": "message-passing · Layers after 4 from atom 4",
+      "slug": "message-passing",
+      "state": "?theme=light&page=layers&from=4&shown=4",
+      "px": "cde46257",
+      "tx": "c6f2c139"
+    },
+    {
+      "$note": "message-passing · Readout, opening: 14 rows after 2 layers, the pipeline strip",
+      "slug": "message-passing",
+      "state": "?theme=light&page=readout&shown=0",
+      "px": "93df57ee",
+      "tx": "33b057f3"
+    },
+    {
+      "$note": "message-passing · Readout pooled with max: the frames, the pooled row, the classifier",
+      "slug": "message-passing",
+      "state": "?theme=light&page=readout&shown=1",
+      "px": "ac3ed293",
+      "tx": "0e2313b6"
+    },
+    {
+      "$note": "message-passing · Readout after 4 layers, mean-pooled",
+      "slug": "message-passing",
+      "state": "?theme=light&page=readout&depth=4&pooling=mean&shown=1",
+      "px": "064bc733",
+      "tx": "ebaef070"
+    },
+    {
+      "$note": "message-passing · DRIVEN: Graph, Aggregate mid-press: the rows in the inboxes with their weights",
+      "slug": "message-passing",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 90,
+        "dt": 32
+      },
+      "px": "4bb7613e",
+      "tx": "ef2eb4c2"
+    },
+    {
+      "$note": "message-passing · DRIVEN: Graph, Apply ELU mid-press: the numbers on the curve",
+      "slug": "message-passing",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 170
+          },
+          {
+            "click": "step",
+            "frames": 140
+          }
+        ],
+        "click": "step",
+        "frames": 75,
+        "dt": 32
+      },
+      "px": "59a5fe9f",
+      "tx": "7262a13e"
+    },
+    {
+      "$note": "message-passing · DRIVEN: Aggregate, caffeine's messages mid-flight",
+      "slug": "message-passing",
+      "state": "?theme=light&page=aggregate",
+      "drive": {
+        "click": "step",
+        "frames": 26,
+        "dt": 32
+      },
+      "px": "1168ef80",
+      "tx": "a12ac08c"
+    },
+    {
+      "$note": "message-passing · DRIVEN: Layers, layer 3 mid-press: the messages rising through the cone",
+      "slug": "message-passing",
+      "state": "?theme=light&page=layers",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 90
+          },
+          {
+            "click": "step",
+            "frames": 90
+          }
+        ],
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "b8ce9fc7",
+      "tx": "f65145b5"
+    },
+    {
+      "$note": "message-passing · DRIVEN: Readout, Pool mid-press: columns dropping into the pooled row",
+      "slug": "message-passing",
+      "state": "?theme=light&page=readout",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "12403af9",
+      "tx": "33b057f3"
+    },
+    {
+      "$note": "message-passing · DRIVEN: Readout, Layers 2 → 4 mid-ease: the cells moving to their new values",
+      "slug": "message-passing",
+      "state": "?theme=light&page=readout",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "set": {
+          "depth": "4"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "20a990e4",
+      "tx": "57357c6f"
+    },
+    {
+      "$note": "message-passing · INTERRUPTED: Graph's Aggregate cut off by a switch to Layers, then back",
+      "slug": "message-passing",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          },
+          {
+            "set": {
+              "page": "layers"
+            },
+            "frames": 10
+          }
+        ],
+        "set": {
+          "page": "graph"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "824f8880",
+      "tx": "e54dfed1"
+    },
+    {
+      "$note": "message-passing · HIT: a click on node 2 picks it, the ring sliding from node 1",
+      "slug": "message-passing",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          454,
+          180
+        ],
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "9df1bc5b",
+      "tx": "e65312b5"
+    },
+    {
+      "$note": "message-passing · HIT: a click on caffeine's atom 9 picks it",
+      "slug": "message-passing",
+      "state": "?theme=light&page=aggregate",
+      "drive": {
+        "hit": [
+          41,
+          274
+        ],
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "9b789d8f",
+      "tx": "452194be"
+    },
+    {
+      "$note": "message-passing · HIT: a click on atom 4 in the cosine-similarity drawing",
+      "slug": "message-passing",
+      "state": "?theme=light&page=layers",
+      "drive": {
+        "hit": [
+          118,
+          521
+        ],
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "e825d92b",
+      "tx": "13b1ab10"
     }
   ]
 }

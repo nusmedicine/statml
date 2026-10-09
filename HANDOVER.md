@@ -1,5 +1,11 @@
 # Handover
 
+**2026-10-09 (later): 95 `message-passing` SHIPPED AND PUSHED as "Deep
+Learning - Graphs: Message Passing" (27 states, three determinism runs and
+a MATCH pass at DPR 1.25), after nine review rounds, the copy audit and a
+student walk-through. The record is the catalogue's § *Slot 95*.** NEXT:
+97 `scaffold-split`, the arc's last picked slot: read 09-2 cells 18 and 23–30, measure first.
+
 **2026-10-09: THE GRAPH ARC (PHM5005 09) PICKED — 94 · 95 · 97 — AND 94
 `graph-representation` SHIPPED AND PUSHED (9460e7b, 12 states) as "Deep
 Learning - Graphs: Representation"; then ROUNDS 3–13 the same day, tested
