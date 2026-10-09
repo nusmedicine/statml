@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 94's three examples, the split shown alike — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 534px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>94's three examples &middot; the split shown alike &middot; mock</h1>
+  <p class="note">
+    His ask: <i>"the training diagram is more detailed than I thought … we have similar displays for the Patients and Interactions pages …
+    for parity, we may have just a static diagram, just to show splitting data into training and test?"</i> The Batch view is dropped
+    (it was the <code>DataLoader</code>'s detail, not the split). What each page shows of the split today:
+  </p>
+  <table>
+    <tr><th>page</th><th>what is held out</th><th>drawn in red (<code>--c-holdout</code>) today</th></tr>
+    <tr><td>Patients</td><td>a node's label</td><td>four rings on the patients with <code>test_mask</code> True; their edges stay</td></tr>
+    <tr><td>Interactions</td><td>an edge</td><td>two dashed edges, out of <code>edge_index</code>, into <code>edge_label_index</code> as label 1</td></tr>
+    <tr><td>Molecule</td><td>a whole molecule</td><td><b>nothing</b>: one molecule holds no split</td></tr>
+  </table>
+  <p class="note">So the gap is the Molecule page only; the other two already draw their split, in red, inside their own data. Two pieces
+    below, independent of each other: <b>1</b> gives the Molecule page its own red, in the table of molecules; <b>2</b> is the static
+    diagram, one strip comparing the three, the same on every example page with that page's panel marked.</p>
+
+  <h2>1 &middot; Molecule: the split in the table</h2>
+  <p class="note">The table from the last mock, now train and test only, as Patients and Interactions are (the lesson also sets a validation
+    set aside the same way; a detail can say so). The two test molecules are caffeine and acetazolamide, in the lesson's test set; every
+    active molecule in that set has 19 bonds or more, too many for the page's tables, so both test rows are inactive. A test row gets the red
+    wash and its split; a click still picks any row, and the <code>y · [1]</code> tile says whether the molecule is one a model is trained
+    on. Click a row to try it.</p>
+  <div class="row" id="row1"></div>
+
+  <h2>2 &middot; The static diagram: what a split holds out</h2>
+  <p class="note">One strip, three panels in the examples' order, drawn the same on all three example pages with the current page's panel
+    framed. Red is held out, as on the pages. It is the table above drawn as three pictures: a node's label hidden with the node kept; an
+    edge taken out of the graph; whole graphs set aside. About 120px under each example page's figure.</p>
+  <div class="row" id="row2"></div>
+
+  <p class="rec"><b>Recommended: both.</b> 1 closes the Molecule page's gap the way the other two pages show theirs, inside the data, so the
+    three pages are alike. 2 is the static diagram asked for, and it puts the contrast that confused the Patients page in one picture: the
+    held-out node keeps its edges, the held-out edge leaves, the held-out molecule goes whole. If only one: 1, since each page then draws
+    its own split and the tile notes already state the contrast in words.</p>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">1 &middot; Molecule's split</b>
+    <b>A &middot; a split column in the table, train and test, test rows in red (recommended)</b> &nbsp;|&nbsp; B &middot; none</p>
+  <p class="q"><b class="h">2 &middot; The static diagram</b>
+    <b>A &middot; one strip of three panels on every example page, that page's panel framed (recommended)</b> &nbsp;|&nbsp; B &middot; each page its own panel only &nbsp;|&nbsp; C &middot; none</p>
+  <p class="q"><b class="h">3 &middot; The six molecules</b>
+    <b>A &middot; nitrofurazone, chloroxine, bronopol, aspirin (train); caffeine, acetazolamide (test) (recommended)</b> &nbsp;|&nbsp; B &middot; others you name</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens(), DPR = window.devicePixelRatio || 1, W = 534;
+const DATA = await (await fetch("./graph-molecules-mock-data.json")).json();
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function cand(row, title, sub, h) {
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(row).appendChild(box);
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return { ctx, c };
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, a, b, c, d, col, w = 1, dash = null) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); ctx.restore(); }
+function box(ctx, x, y, w, h, fill, stroke, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+
+function fit(mol, x0, y0, w, h, maxS = 40) {
+  const xs = mol.atoms.map((a) => a.xy[0]), ys = mol.atoms.map((a) => a.xy[1]);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const s = Math.min(w / (maxx - minx || 1), h / (maxy - miny || 1), maxS);
+  const ox = x0 + (w - (maxx - minx) * s) / 2, oy = y0 + (h - (maxy - miny) * s) / 2;
+  return mol.atoms.map((a) => [ox + (a.xy[0] - minx) * s, oy + (a.xy[1] - miny) * s]);
+}
+function drawMol(ctx, mol, P, { r = 9, numbers = true } = {}) {
+  for (const [i, j, t] of mol.bonds) {
+    const [p, q] = [P[i], P[j]], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = (-dy / L) * 2.4, ny = (dx / L) * 2.4;
+    if (t === "DOUBLE") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, T.ink1, 1.4); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, T.ink1, 1.4); }
+    else if (t === "AROMATIC") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, T.ink1, 1.4); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, T.ink1, 1.4, [3, 2.5]); }
+    else line(ctx, p[0], p[1], q[0], q[1], T.ink1, 1.4);
+  }
+  mol.atoms.forEach((a, i) => {
+    dot(ctx, P[i][0], P[i][1], r, T.surface2, T.ink1, 1.2);
+    label(ctx, a.el, P[i][0], P[i][1] + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 });
+    if (a.charge) label(ctx, a.charge > 0 ? "+" : "−", P[i][0] + r, P[i][1] - r + 2, { size: 10, weight: "700", colour: T.ink1, align: "center" });
+    if (numbers) label(ctx, String(i), P[i][0] + r + 1, P[i][1] + r + 3, { size: 9, mono: true, colour: T.ink3 });
+  });
+}
+
+/* ===================================================== 1 · the table */
+{
+  const H = 440, { ctx, c } = cand("row1", "Molecule · the table, train and test", "test rows washed red, as held-out marks are on the other pages\na click on any row picks the molecule", H);
+  const TB = { top: 30, rowH: 18, cols: [12, 34, 140, 396, 436] };
+  let pick = 4;
+  function paint() {
+    ctx.clearRect(0, 0, W, H);
+    label(ctx, "the molecules · 6 of the 2,335 in the file", 12, 14, { size: 12, weight: "600", colour: T.ink1 });
+    ["", "molecule", "SMILES", "y", "split"].forEach((hd, k) => label(ctx, hd, TB.cols[k], TB.top + 10, { size: 10, colour: T.ink3, mono: k >= 2 }));
+    DATA.molecules.forEach((m, i) => {
+      const y = TB.top + 16 + i * TB.rowH, test = m.split === "test";
+      if (test) box(ctx, 6, y, W - 12, TB.rowH - 1, wash(T.holdout, 0.22));
+      if (i === pick) box(ctx, 6, y - 1, W - 12, TB.rowH + 1, null, T.groupA, 1.6);
+      const mid = y + TB.rowH / 2;
+      label(ctx, String(i), TB.cols[0], mid, { size: 10, mono: true, colour: T.ink3, baseline: "middle" });
+      label(ctx, m.name, TB.cols[1], mid, { size: 11, weight: i === pick ? "600" : "", colour: T.ink1, baseline: "middle" });
+      label(ctx, m.smiles, TB.cols[2], mid, { size: 10, mono: true, colour: T.ink2, baseline: "middle" });
+      label(ctx, String(m.y), TB.cols[3] + 4, mid, { size: 11, mono: true, weight: "700", colour: T.ink1, baseline: "middle", align: "center" });
+      label(ctx, m.split, TB.cols[4], mid, { size: 10, mono: true, weight: test ? "700" : "", colour: T.ink1, baseline: "middle" });
+    });
+    const m = DATA.molecules[pick], top = TB.top + 16 + 6 * TB.rowH + 16;
+    line(ctx, 12, top - 8, W - 12, top - 8, T.grid);
+    label(ctx, `the graph · ${m.name}`, 12, top + 6, { size: 11, weight: "600", colour: T.ink1 });
+    drawMol(ctx, m, fit(m, 30, top + 16, 250, H - top - 40));
+    const tx = 300;
+    label(ctx, "(the string, x, edge_index and", tx, top + 30, { size: 10, colour: T.ink3 });
+    label(ctx, " edge_attr as the page has them)", tx, top + 44, { size: 10, colour: T.ink3 });
+    label(ctx, `y · [1] = ${m.y}`, tx, top + 84, { size: 12, mono: true, colour: T.ink1, weight: "700" });
+    label(ctx, m.y ? "stops E. coli growing in the screen" : "does not stop E. coli growing", tx, top + 102, { size: 10, colour: T.ink3 });
+    label(ctx, m.split === "test" ? "test: held out whole, scored once" : "train: a model is trained on it", tx, top + 122, { size: 10, weight: m.split === "test" ? "600" : "", colour: m.split === "test" ? T.ink1 : T.ink3 });
+  }
+  paint();
+  c.addEventListener("click", (e) => {
+    const r = c.getBoundingClientRect(), i = Math.floor((e.clientY - r.top - TB.top - 16) / TB.rowH);
+    if (i >= 0 && i < 6) { pick = i; paint(); }
+  });
+}
+
+/* ============================================ 2 · what a split holds out */
+const G = { nodes: [[0.15, 0.25], [0.5, 0.1], [0.85, 0.3], [0.2, 0.8], [0.55, 0.62], [0.88, 0.85]], edges: [[0, 1], [1, 2], [0, 3], [1, 4], [3, 4], [4, 5], [2, 5], [2, 4]] };
+function miniGraph(ctx, x0, y0, w, h, { heldNodes = [], heldEdges = [] } = {}) {
+  const P = G.nodes.map(([u, v]) => [x0 + u * w, y0 + v * h]);
+  G.edges.forEach(([i, j], k) => {
+    const held = heldEdges.includes(k);
+    line(ctx, ...P[i], ...P[j], held ? T.holdout : T.ink3, held ? 2 : 1.3, held ? [5, 3] : null);
+  });
+  P.forEach(([x, y], i) => {
+    const held = heldNodes.includes(i);
+    dot(ctx, x, y, 6.5, T.surface2, held ? T.holdout : T.ink1, held ? 2.4 : 1.2);
+    if (held) label(ctx, "?", x, y + 0.5, { size: 9, weight: "700", align: "center", baseline: "middle", colour: T.ink1 });
+  });
+}
+function glyph(ctx, cx, cy, kind, colour) {
+  /* a tiny molecule: a ring, a ring with a tail, or a chain */
+  const r = 8, pts = [...Array(6).keys()].map((k) => [cx + r * Math.cos(Math.PI / 6 + (k * Math.PI) / 3), cy + r * Math.sin(Math.PI / 6 + (k * Math.PI) / 3)]);
+  if (kind !== "chain") for (let k = 0; k < 6; k++) line(ctx, ...pts[k], ...pts[(k + 1) % 6], colour, 1.3);
+  if (kind === "tail") line(ctx, ...pts[0], pts[0][0] + 8, pts[0][1] + 4, colour, 1.3);
+  if (kind === "chain") { const c = [[cx - 12, cy + 3], [cx - 4, cy - 3], [cx + 4, cy + 3], [cx + 12, cy - 3]]; for (let k = 0; k < 3; k++) line(ctx, ...c[k], ...c[k + 1], colour, 1.3); c.forEach(([x, y]) => dot(ctx, x, y, 1.8, colour)); }
+}
+function strip(current) {
+  const H = 132, { ctx } = cand("row2", `on the ${current} page`, current === "Patients" ? "node panel framed" : current === "Interactions" ? "edge panel framed" : "graph panel framed", H);
+  label(ctx, "what a split holds out", 12, 16, { size: 12, weight: "600", colour: T.ink1 });
+  const pw = (W - 24 - 16) / 3, py = 26, ph = 100;
+  const panels = [
+    { key: "Patients", head: "node", lines: ["a node's y hidden;", "the node and its edges stay"] },
+    { key: "Interactions", head: "edge", lines: ["the edge taken out", "of the graph"] },
+    { key: "Molecule", head: "graph", lines: ["whole graphs", "set aside"] },
+  ];
+  panels.forEach((p, k) => {
+    const x = 12 + k * (pw + 8), on = p.key === current;
+    box(ctx, x, py, pw, ph, on ? T.surface2 : null, on ? T.highlight : T.grid, on ? 2 : 1);
+    label(ctx, p.head, x + 8, py + 14, { size: 11, weight: "700", colour: on ? T.ink1 : T.ink2 });
+    if (k === 0) miniGraph(ctx, x + 66, py + 10, pw - 80, 50, { heldNodes: [1, 3] });
+    if (k === 1) miniGraph(ctx, x + 66, py + 10, pw - 80, 50, { heldEdges: [1, 4] });
+    if (k === 2) {
+      const gx = x + 8, gy = py + 32;
+      label(ctx, "train", gx, gy - 4, { size: 9, mono: true, colour: T.ink3 });
+      box(ctx, gx, gy, 86, 30, null, T.ink3);
+      ["ring", "tail", "chain"].forEach((kind, i) => glyph(ctx, gx + 15 + i * 28, gy + 15, kind, T.ink1));
+      label(ctx, "test", gx + 94, gy - 4, { size: 9, mono: true, colour: T.holdout });
+      box(ctx, gx + 94, gy, pw - 110, 30, wash(T.holdout, 0.15), T.holdout, 1.6);
+      ["tail", "ring"].forEach((kind, i) => glyph(ctx, gx + 107 + i * 24, gy + 15, kind, T.ink1));
+    }
+    p.lines.forEach((s, i) => label(ctx, s, x + 8, py + 76 + i * 13, { size: 10, colour: on ? T.ink1 : T.ink3 }));
+  });
+}
+["Patients", "Interactions", "Molecule"].forEach(strip);
+</script>
+</body>
+</html>

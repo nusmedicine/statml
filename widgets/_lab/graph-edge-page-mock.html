@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 94's edge-level example — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>94's edge-level example &middot; mock</h1>
+  <p class="note">
+    His ask: <i>"we have an example for node prediction, can you suggest something for edge prediction? mock it."</i>
+    09-1 names three task levels: a label for each node, for each edge, for the whole graph. Patients is the node level and Molecule
+    the graph level, so a third example makes the set. What is <b>new in the tables</b> for an edge task: the label sits on a
+    <b>pair of nodes</b>, so PyG adds <code>edge_label_index</code> (the pairs to score) and <code>edge_label</code> (1 for an edge, 0 for
+    none). The pairs labelled 1 are known edges <b>taken out of <code>edge_index</code></b>, since a model that passes messages along an
+    edge has been shown its answer; the pairs labelled 0 are sampled from node pairs with no edge (<code>RandomLinkSplit</code> does both).
+    Drawn at the widget's 550px; nothing here is copy.
+  </p>
+
+  <table>
+    <tr><th></th><th>nodes</th><th>edge to predict</th><th>real use</th><th>what it adds</th></tr>
+    <tr><td><b>A · Protein interactions</b></td><td>proteins, one type</td><td>an interaction not yet recorded</td><td>PPI databases are incomplete; GNN link prediction ranks candidate pairs to test (e.g. STRING-based benchmarks, OGB's ogbl-ppa)</td><td>the same tables as the Graph page, plus the split; one node type, so <code>x</code> and <code>edge_index</code> stay as they are</td></tr>
+    <tr><td><b>B · Drug–target</b></td><td>drugs and proteins, two types</td><td>a drug binding a protein it is not known to bind</td><td>drug repurposing, off-target effects</td><td>a bipartite graph: two node types, so two <code>x</code> matrices and an <code>edge_index</code> whose rows number different things (PyG's <code>HeteroData</code>)</td></tr>
+    <tr><td>C · EHR</td><td>patients and diagnoses</td><td>a diagnosis to come</td><td>next-diagnosis prediction</td><td>02-1's tables; tiny (4 patients), and also two node types</td></tr>
+  </table>
+
+  <h2>A &middot; Protein interactions: the split, in three steps</h2>
+  <p class="note">Ten DNA-damage-response proteins and twelve interactions well established in the literature (p53 with MDM2, p21, ATM,
+    CHEK2; the BRCA1–BARD1, BRCA1–PALB2–BRCA2 and RAD51 complexes). A small illustrative piece, not a curated download. One rail control,
+    <b>Split</b> All · Held out · Negatives: <b>All</b> — every known interaction in <code>edge_index</code>; <b>Held out</b> — two
+    interactions (ATM–CHEK2, PALB2–BRCA2) leave <code>edge_index</code> and become the label-1 pairs; <b>Negatives</b> — two pairs that
+    are not among the twelve (MDM2–RAD51, p21–BARD1) join as label 0, fixed here where PyG samples them. A negative is only a pair with
+    no recorded edge: some sampled negatives are real interactions not yet found, the very thing the task looks for. Interactions here
+    in STRING's sense, physical or functional (p53 and p21 are a transcription factor and its target).</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>The mistake the split prevents</h2>
+  <p class="note">If the held-out interactions stay in <code>edge_index</code>, the model scores ATM–CHEK2 after passing messages along
+    ATM–CHEK2. This is the edge-level form of 97's leak (a test molecule's scaffold in training). Drawn here for the argument only; the
+    recommendation is a note in the widget, not a fourth setting.</p>
+  <div class="row" id="rowL"></div>
+
+  <h2>B &middot; Drug–target: a bipartite graph</h2>
+  <p class="note">Five kinase inhibitors and five kinases, nine known drug–target pairs (imatinib: ABL1, KIT; dasatinib: ABL1, SRC, KIT;
+    gefitinib, erlotinib: EGFR; lapatinib: EGFR, ERBB2). Held out: dasatinib–KIT (label 1). Negative: gefitinib–KIT (label 0). The rows of
+    <code>edge_index</code> number drugs (0–4) and proteins (0–4) separately.</p>
+  <div class="row" id="rowB"></div>
+
+  <p class="rec"><b>Recommended: A, Protein interactions</b>, as a page named <b>Interactions</b> between Patients and Molecule, so the
+    examples run node · edge · graph. It keeps one node type, so the only new tables are the two the edge task brings
+    (<code>edge_label_index</code>, <code>edge_label</code>), and its nodes are proteins, as on the Graph page. B is the stronger
+    drug-discovery story, but it adds a second idea at once (two node types, <code>HeteroData</code>), and C is too small. Each example
+    page would then name its task level in a tile: <code>y · [12]</code> on Patients, <code>edge_label · [4]</code> here,
+    <code>y · [1]</code> on Molecule. Still no training (that is 95).</p>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">1 &middot; The example</b>
+    <b>A &middot; protein interactions (recommended)</b> &nbsp;|&nbsp; B &middot; drug–target &nbsp;|&nbsp; C &middot; EHR &nbsp;|&nbsp; none</p>
+  <p class="q"><b class="h">2 &middot; Where it goes</b>
+    <b>A &middot; Examples: Patients · Interactions · Molecule, node · edge · graph (recommended)</b> &nbsp;|&nbsp; B &middot; last</p>
+  <p class="q"><b class="h">3 &middot; The control</b>
+    <b>A &middot; Split All · Held out · Negatives, one new table per step (recommended)</b> &nbsp;|&nbsp; B &middot; Split All · Split, both at once
+    &nbsp;|&nbsp; C &middot; A plus a fourth setting that leaves the held-out edges in <code>edge_index</code></p>
+  <p class="q"><b class="h">4 &middot; The task level on every example</b>
+    <b>A &middot; a tile naming the label's tensor on each example: y · [12], edge_label · [4], y · [1] (recommended)</b> &nbsp;|&nbsp; B &middot; only here</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens(), DPR = window.devicePixelRatio || 1, W = 550;
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function cand(row, title, sub, h) {
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(row).appendChild(box);
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, a, b, c, d, col, w = 1, dash = null) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); ctx.restore(); }
+function box(ctx, x, y, w, h, fill, stroke) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function pill(ctx, x, y, name, { fill = T.surface2, stroke = T.ink1, w = null } = {}) {
+  ctx.save(); ctx.font = `600 10px ${T.font}`; const tw = w ?? ctx.measureText(name).width + 14; ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.roundRect(x - tw / 2, y - 10, tw, 20, 10); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.3; ctx.stroke(); ctx.restore();
+  label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 });
+}
+/* a two-row table, one column a pair; `col(k)` gives that column's colour, or null */
+function pairs(ctx, x, y, P, { cw = 21, ch = 15, col = () => null, rows = ["source", "target"], extra = null } = {}) {
+  rows.forEach((r, t) => label(ctx, r, x, y + t * ch + ch / 2 + 0.5, { size: 9, mono: true, colour: T.ink3, baseline: "middle" }));
+  const x0 = x + 50, n = extra ? 3 : 2;
+  P.forEach((p, k) => {
+    const c = col(k);
+    if (c) box(ctx, x0 + k * cw + 1, y + 1, cw - 2, n * ch - 2, wash(c, 0.28));
+    label(ctx, String(p[0]), x0 + k * cw + cw / 2, y + ch / 2 + 0.5, { align: "center", baseline: "middle", size: 10, mono: true, colour: T.ink2 });
+    label(ctx, String(p[1]), x0 + k * cw + cw / 2, y + 1.5 * ch + 0.5, { align: "center", baseline: "middle", size: 10, mono: true, colour: T.ink2 });
+    if (extra) label(ctx, String(extra[k]), x0 + k * cw + cw / 2, y + 2.5 * ch + 0.5, { align: "center", baseline: "middle", size: 10, mono: true, weight: "700", colour: T.ink1 });
+  });
+  box(ctx, x0, y, Math.max(1, P.length) * cw, n * ch, null, T.grid);
+}
+
+/* ===================================================== A · protein interactions */
+const PROT = ["TP53", "MDM2", "p21", "ATM", "CHEK2", "BRCA1", "BARD1", "RAD51", "BRCA2", "PALB2"];
+/* where each sits in a 300 × 200 drawing box */
+const POS = [[70, 95], [22, 40], [22, 150], [150, 30], [150, 160], [235, 95], [300, 40], [300, 160], [370, 125], [370, 55]];
+const KNOWN = [[0, 1], [0, 2], [0, 3], [0, 4], [3, 4], [3, 5], [4, 5], [5, 6], [5, 7], [5, 9], [9, 8], [8, 7]];
+const HELD = [[3, 4], [8, 9]];            // ATM–CHEK2, PALB2–BRCA2
+const NEG = [[1, 7], [2, 6]];             // MDM2–RAD51, p21–BARD1
+const same = (a, b) => (a[0] === b[0] && a[1] === b[1]) || (a[0] === b[1] && a[1] === b[0]);
+const both = (E) => E.flatMap(([i, j]) => [[i, j], [j, i]]).sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+
+function drawPPI(ctx, stage, leak = false) {
+  const ox = 70, oy = 22, P = POS.map(([x, y]) => [ox + x, oy + y]);
+  const train = stage === "all" || leak ? KNOWN : KNOWN.filter((e) => !HELD.some((h) => same(e, h)));
+  for (const [i, j] of train) {
+    const held = HELD.some((h) => same([i, j], h));
+    line(ctx, ...P[i], ...P[j], leak && held ? T.extreme : T.ink2, leak && held ? 2.6 : 1.6);
+  }
+  if (stage !== "all") for (const [i, j] of HELD) if (!leak) line(ctx, ...P[i], ...P[j], T.holdout, 2.4, [6, 4]);
+  if (stage === "neg") for (const [i, j] of NEG) line(ctx, ...P[i], ...P[j], T.nonevent, 1.8, [2, 4]);
+  PROT.forEach((n, i) => pill(ctx, P[i][0], P[i][1], `${i} ${n}`));
+
+  const E = both(train), ty = 262;
+  label(ctx, `edge_index · [2, ${E.length}] · the graph messages pass over`, 12, ty - 8, { size: 10, mono: true, colour: T.ink1, weight: "600" });
+  pairs(ctx, 12, ty, E, { cw: 19.5, col: (k) => (leak && HELD.some((h) => same(E[k], h)) ? T.extreme : null) });
+  const L = stage === "all" ? [] : stage === "held" ? HELD : [...HELD, ...NEG];
+  const ly = ty + 56;
+  label(ctx, `edge_label_index · [2, ${L.length}] and edge_label · [${L.length}] · the pairs scored`, 12, ly - 8, { size: 10, mono: true, colour: T.ink1, weight: "600" });
+  if (L.length) pairs(ctx, 12, ly, L, { cw: 30, rows: ["node", "node", "label"], extra: L.map((_, k) => (k < 2 ? 1 : 0)), col: (k) => (k < 2 ? T.holdout : T.nonevent) });
+  else label(ctx, "none yet: every known edge is in edge_index", 62, ly + 18, { size: 10, colour: T.ink3 });
+}
+{
+  const H = 392;
+  drawPPI(cand("rowA", "Split · All", "12 interactions, all in edge_index: 24 columns, each both ways\nnothing held out, nothing to score", H), "all");
+  drawPPI(cand("rowA", "Split · Held out", "ATM–CHEK2 and PALB2–BRCA2 leave edge_index (20 columns)\nand become the pairs labelled 1 · dashed: held out", H), "held");
+  drawPPI(cand("rowA", "Split · Negatives", "two pairs not among the twelve join as label 0\ndotted: a negative pair · edge_label 1 1 0 0", H), "neg");
+  drawPPI(cand("rowL", "The leak · held-out edges left in edge_index", "red: ATM–CHEK2 and PALB2–BRCA2 in edge_index AND in edge_label_index\nthe model is scored on edges it passed messages along", H), "neg", true);
+}
+
+/* ============================================================ B · drug–target */
+{
+  const ctx = cand("rowB", "Drug–target · Held out and negatives", "drugs left, proteins right · dashed: held out (label 1) · dotted: negative (label 0)\nx_drug · [5, …] and x_protein · [5, …]: two feature matrices", 392);
+  const D = ["imatinib", "dasatinib", "gefitinib", "erlotinib", "lapatinib"], Pn = ["ABL1", "KIT", "SRC", "EGFR", "ERBB2"];
+  const known = [[0, 0], [0, 1], [1, 0], [1, 2], [1, 1], [2, 3], [3, 3], [4, 3], [4, 4]];
+  const held = [[1, 1]], neg = [[2, 1]];
+  const dX = 120, pX = 330, y = (i) => 40 + i * 44;
+  const train = known.filter((e) => !held.some((h) => h[0] === e[0] && h[1] === e[1]));
+  for (const [d, p] of train) line(ctx, dX + 44, y(d), pX - 30, y(p), T.ink2, 1.6);
+  for (const [d, p] of held) line(ctx, dX + 44, y(d), pX - 30, y(p), T.holdout, 2.4, [6, 4]);
+  for (const [d, p] of neg) line(ctx, dX + 44, y(d), pX - 30, y(p), T.nonevent, 1.8, [2, 4]);
+  D.forEach((n, i) => pill(ctx, dX, y(i), `${i} ${n}`, { w: 96 }));
+  Pn.forEach((n, i) => { box(ctx, pX - 30, y(i) - 10, 64, 20, T.surface2, T.ink1); label(ctx, `${i} ${n}`, pX + 2, y(i) + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 }); });
+  label(ctx, "drugs", dX, 18, { align: "center", size: 10, colour: T.ink3 });
+  label(ctx, "proteins", pX + 2, 18, { align: "center", size: 10, colour: T.ink3 });
+  const ty = 262;
+  label(ctx, `edge_index · [2, ${train.length}] · ('drug', 'targets', 'protein')`, 12, ty - 8, { size: 10, mono: true, colour: T.ink1, weight: "600" });
+  pairs(ctx, 12, ty, train, { cw: 30, rows: ["drug", "protein"] });
+  label(ctx, "edge_label_index · [2, 2] and edge_label · [2]", 12, ty + 48, { size: 10, mono: true, colour: T.ink1, weight: "600" });
+  pairs(ctx, 12, ty + 56, [...held, ...neg], { cw: 30, rows: ["drug", "protein", "label"], extra: [1, 0], col: (k) => (k === 0 ? T.holdout : T.nonevent) });
+  label(ctx, "one direction only: a drug targets a protein", 230, ty + 80, { size: 10, colour: T.ink3 });
+}
+</script>
+</body>
+</html>

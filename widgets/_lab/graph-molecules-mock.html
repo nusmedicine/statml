@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 94's Molecule page, several molecules and the split — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 534px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>94's Molecule page &middot; several molecules, and the split &middot; mock</h1>
+  <p class="note">
+    His ask: <i>"more molecule, have a short table on the top with different SMILES and labels, then we can pick and see how the molecules
+    are built; also consider if we should have a small diagram to show the training and split."</i>
+    09-2's data step starts from exactly such a table — <code>(molecule, label)</code> pairs, <code>SMILES</code> and <code>Activity</code>
+    (cell 19) — then a scaffold split into train / val / test (cell 28), then each SMILES to a <code>Data</code> object, then a
+    <code>DataLoader</code> that batches graphs (cell 37), whose first batch cell 38 prints. Six molecules from the lesson's own file
+    (2,335 rows, 120 active), chosen small enough for the page's tables (8–15 bonds), three active and three not; the split column is
+    where the lesson's split (seed 42) actually puts each. Drawn at the Molecule page's 534px; nothing here is copy.
+  </p>
+
+  <h2>1 &middot; The table on top: click a row</h2>
+  <p class="note">The page as it is now, with the table above it. A click on a row (or the rail's Molecule control) picks the molecule; the
+    string, the drawing and <code>x</code>, <code>edge_index</code>, <code>edge_attr</code> below become that molecule's, and Next bond starts
+    again from its first bond. The <code>y · [1]</code> tile shows the row's Activity. Three are nitro or halogen compounds known as
+    antimicrobials (nitrofurazone, chloroxine, bronopol); bronopol has no ring at all, so its graph is a tree; caffeine and flucytosine are in
+    the sets a model is not trained on. Click a row here to try it.</p>
+  <div class="row" id="row1"></div>
+
+  <h2>2 &middot; A diagram for the split and the training</h2>
+  <p class="note">Two candidates. <b>A · Split</b> places the six in the lesson's three sets: a molecule goes whole to one set, and the split is
+    a list of graphs cut in three, with no mask inside any of them. Why the cut is by scaffold, and what a random cut gets wrong, is 97's
+    subject; here the bar only shows that whole molecules move. <b>B · Batch</b> is what training receives: the <code>DataLoader</code>
+    joins several training molecules into ONE graph with no edge between them — <code>x</code> stacked, each molecule's
+    <code>edge_index</code> shifted by the atoms before it, and a <code>batch</code> vector naming each atom's molecule, so <code>y</code>
+    has one entry a molecule. It is the representation cell 38 prints, and the <code>batch</code> vector is what 95's readout pools over.</p>
+  <div class="row" id="row2"></div>
+
+  <p class="rec"><b>Recommended: the table (1), with its split column, and B · Batch as a second view of the Molecule page.</b> The table gives the
+    page the lesson's own starting point and turns <code>y · [1]</code> into a value that changes. The split column already carries the
+    split honestly — whole molecules, three sets, from the lesson's own split — so a bar diagram (A) would repeat it, and its natural
+    next question (why by scaffold) belongs to 97. Batch is the one representation idea the page does not yet have, and it is non-obvious:
+    many molecules become one graph, and only the <code>batch</code> vector keeps them apart. The view would batch the training rows
+    the reader picks, two or three, with Next bond unchanged on the single view.</p>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">1 &middot; The table</b>
+    <b>A &middot; six molecules from the lesson's file, click a row (recommended)</b> &nbsp;|&nbsp; B &middot; caffeine only, as now</p>
+  <p class="q"><b class="h">2 &middot; The split</b>
+    <b>A &middot; a split column in the table, from the lesson's split (recommended)</b> &nbsp;|&nbsp; B &middot; the column and the bar diagram &nbsp;|&nbsp; C &middot; no split shown</p>
+  <p class="q"><b class="h">3 &middot; Training</b>
+    <b>A &middot; a Batch view: two or three training molecules as one graph, with x, edge_index, batch and y (recommended)</b> &nbsp;|&nbsp; B &middot; no training diagram</p>
+  <p class="q"><b class="h">4 &middot; The six</b>
+    <b>A &middot; nitrofurazone, chloroxine, bronopol, aspirin, flucytosine, caffeine (recommended)</b> &nbsp;|&nbsp; B &middot; others you name</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens(), DPR = window.devicePixelRatio || 1, W = 534;
+const DATA = await (await fetch("./graph-molecules-mock-data.json")).json();
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function cand(row, title, sub, h) {
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(row).appendChild(box);
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return { ctx, c };
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, a, b, c, d, col, w = 1, dash = null) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); ctx.restore(); }
+function box(ctx, x, y, w, h, fill, stroke) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+
+/* a molecule's drawing fitted into a box; returns the atom points */
+function fit(mol, x0, y0, w, h, maxS = 40) {
+  const xs = mol.atoms.map((a) => a.xy[0]), ys = mol.atoms.map((a) => a.xy[1]);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const s = Math.min(w / (maxx - minx || 1), h / (maxy - miny || 1), maxS);
+  const ox = x0 + (w - (maxx - minx) * s) / 2, oy = y0 + (h - (maxy - miny) * s) / 2;
+  return mol.atoms.map((a) => [ox + (a.xy[0] - minx) * s, oy + (a.xy[1] - miny) * s]);
+}
+function drawMol(ctx, mol, P, { offset = 0, r = 9, numbers = true } = {}) {
+  for (const [i, j, t] of mol.bonds) {
+    const [p, q] = [P[i], P[j]], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = (-dy / L) * 2.4, ny = (dx / L) * 2.4;
+    if (t === "DOUBLE") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, T.ink1, 1.4); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, T.ink1, 1.4); }
+    else if (t === "AROMATIC") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, T.ink1, 1.4); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, T.ink1, 1.4, [3, 2.5]); }
+    else line(ctx, p[0], p[1], q[0], q[1], T.ink1, 1.4);
+  }
+  mol.atoms.forEach((a, i) => {
+    dot(ctx, P[i][0], P[i][1], r, T.surface2, T.ink1, 1.2);
+    label(ctx, a.el, P[i][0], P[i][1] + 0.5, { align: "center", baseline: "middle", size: 10, weight: "600", colour: T.ink1 });
+    if (a.charge) label(ctx, a.charge > 0 ? "+" : "−", P[i][0] + r, P[i][1] - r + 2, { size: 10, weight: "700", colour: T.ink1, align: "center" });
+    if (numbers) label(ctx, String(i + offset), P[i][0] + r + 1, P[i][1] + r + 3, { size: 9, mono: true, colour: T.ink3 });
+  });
+}
+const SPLIT_FILL = { train: null, val: wash(T.holdout, 0.18), test: wash(T.holdout, 0.42) };
+
+/* ===================================================== 1 · the table on top */
+{
+  const H = 470, { ctx, c } = cand("row1", "Molecule · the table, then the page as now", "a click on a row picks the molecule · y: Activity, 1 = stops E. coli growing\nsplit: where the lesson's scaffold split puts it", H);
+  const TB = { top: 30, rowH: 18, cols: [12, 34, 128, 392, 432] };
+  let pick = 5;
+  function paint() {
+    ctx.clearRect(0, 0, W, H);
+    label(ctx, "the molecules · 6 of the 2,335 in the file, 120 of them active", 12, 14, { size: 12, weight: "600", colour: T.ink1 });
+    ["", "molecule", "SMILES", "y", "split"].forEach((hd, k) => label(ctx, hd, TB.cols[k], TB.top + 10, { size: 10, colour: T.ink3, mono: k >= 2 }));
+    DATA.molecules.forEach((m, i) => {
+      const y = TB.top + 16 + i * TB.rowH;
+      if (i === pick) box(ctx, 6, y - 1, W - 12, TB.rowH, wash(T.groupA, 0.22), T.groupA);
+      if (SPLIT_FILL[m.split]) box(ctx, TB.cols[4] - 4, y + 1, 46, TB.rowH - 4, SPLIT_FILL[m.split]);
+      const mid = y + TB.rowH / 2;
+      label(ctx, String(i), TB.cols[0], mid, { size: 10, mono: true, colour: T.ink3, baseline: "middle" });
+      label(ctx, m.name, TB.cols[1], mid, { size: 11, weight: i === pick ? "600" : "", colour: T.ink1, baseline: "middle" });
+      label(ctx, m.smiles, TB.cols[2], mid, { size: 10, mono: true, colour: T.ink2, baseline: "middle" });
+      label(ctx, String(m.y), TB.cols[3] + 4, mid, { size: 11, mono: true, weight: "700", colour: T.ink1, baseline: "middle", align: "center" });
+      label(ctx, m.split, TB.cols[4], mid, { size: 10, mono: true, colour: T.ink1, baseline: "middle" });
+    });
+    const m = DATA.molecules[pick], top = TB.top + 16 + 6 * TB.rowH + 14;
+    line(ctx, 12, top - 6, W - 12, top - 6, T.grid);
+    /* the string strip, as the page draws it now */
+    const s = m.smiles, cw = Math.min(15, (W - 24) / s.length), sx = (W - s.length * cw) / 2;
+    label(ctx, "the string · each character in a cell", 12, top + 10, { size: 11, weight: "600", colour: T.ink1 });
+    for (let k = 0; k < s.length; k++) { box(ctx, sx + k * cw, top + 18, cw, 20, T.surface2, T.grid); label(ctx, s[k], sx + k * cw + cw / 2, top + 28.5, { align: "center", baseline: "middle", size: 11, mono: true, colour: T.ink1 }); }
+    /* the drawing */
+    const gy = top + 52;
+    label(ctx, `the graph · ${m.name}`, 12, gy + 4, { size: 11, weight: "600", colour: T.ink1 });
+    const P = fit(m, 30, gy + 14, 250, H - gy - 60);
+    drawMol(ctx, m, P);
+    const tx = 300;
+    label(ctx, `x · [${m.atoms.length}, 5]`, tx, gy + 30, { size: 11, mono: true, colour: T.ink1, weight: "600" });
+    label(ctx, `edge_index · [2, ${2 * m.bonds.length}]`, tx, gy + 52, { size: 11, mono: true, colour: T.ink1, weight: "600" });
+    label(ctx, `edge_attr · [${2 * m.bonds.length}, 4]`, tx, gy + 74, { size: 11, mono: true, colour: T.ink1, weight: "600" });
+    label(ctx, "(the page's tables, as now)", tx, gy + 94, { size: 10, colour: T.ink3 });
+    label(ctx, `y · [1] = ${m.y}`, tx, gy + 128, { size: 12, mono: true, colour: T.ink1, weight: "700" });
+    label(ctx, m.y ? "stops E. coli growing in the screen" : "does not stop E. coli growing", tx, gy + 146, { size: 10, colour: T.ink3 });
+    label(ctx, `split: ${m.split}${m.split === "train" ? "" : " · a model is not trained on it"}`, tx, gy + 164, { size: 10, colour: m.split === "train" ? T.ink3 : T.ink1 });
+    if (!m.scaffold) label(ctx, "no ring: its graph is a tree", tx, gy + 182, { size: 10, colour: T.ink3 });
+  }
+  paint();
+  c.addEventListener("click", (e) => {
+    const r = c.getBoundingClientRect(), y = e.clientY - r.top, i = Math.floor((y - TB.top - 16) / TB.rowH);
+    if (i >= 0 && i < 6) { pick = i; paint(); }
+  });
+}
+
+/* ============================================================ 2A · split */
+{
+  const { ctx } = cand("row2", "A · Split · whole molecules to three sets", "the bar: the file's 2,335 molecules as the lesson's split cuts them\nthe six placed where it puts them", 250);
+  const n = DATA.n, C = DATA.counts, x0 = 20, bw = W - 40, y0 = 70, bh = 34;
+  label(ctx, "the split · a list of graphs cut in three", 12, 18, { size: 12, weight: "600", colour: T.ink1 });
+  let x = x0;
+  const span = {};
+  for (const k of ["train", "val", "test"]) {
+    const w = (C[k] / n) * bw;
+    span[k] = [x, w];
+    box(ctx, x, y0, w, bh, k === "train" ? T.surface3 : SPLIT_FILL[k], T.ink3);
+    label(ctx, `${k} · ${C[k].toLocaleString("en")}`, k === "train" ? x + 8 : k === "val" ? x + w : x + w, k === "val" ? y0 - 22 : y0 - 8, { size: 10, mono: true, colour: T.ink1, align: k === "train" ? "left" : "right" });
+    x += w;
+  }
+  /* the six, as small graphs under the set that holds them */
+  const bySplit = { train: [], val: [], test: [] };
+  DATA.molecules.forEach((m) => bySplit[m.split].push(m));
+  const place = (k, i, cnt) => (k === "train" ? x0 + 28 + i * 74 : k === "val" ? W - 120 : W - 46);
+  for (const k of ["train", "val", "test"]) bySplit[k].forEach((m, i) => {
+    const cx = place(k, i, bySplit[k].length), P = fit(m, cx - 30, 128, 60, 60, 14);
+    const bx = k === "train" ? cx : span[k][0] + span[k][1] / 2;
+    line(ctx, bx, y0 + bh, bx, 112, T.ink3, 1, [2, 3]); line(ctx, bx, 112, cx, 122, T.ink3, 1, [2, 3]);
+    drawMol(ctx, m, P, { r: 4.2, numbers: false });
+    label(ctx, m.name, cx, 206, { size: 10, align: "center", colour: T.ink1 });
+    label(ctx, `y ${m.y}`, cx, 220, { size: 10, align: "center", mono: true, colour: T.ink3 });
+  });
+  label(ctx, "nothing inside a molecule changes: it is in one set, whole", 12, 242, { size: 10, colour: T.ink3 });
+}
+
+/* ============================================================ 2B · batch */
+{
+  const A = DATA.molecules.find((m) => m.name === "bronopol"), B = DATA.molecules.find((m) => m.name === "aspirin");
+  const nA = A.atoms.length, nB = B.atoms.length;
+  const { ctx } = cand("row2", "B · Batch · two training molecules as one graph", "bronopol (9 atoms) and aspirin (13): one graph of 22 nodes, no edge between them\naspirin's numbers are shifted by 9, the atoms before it", 390);
+  label(ctx, "a batch · bronopol and aspirin", 12, 18, { size: 12, weight: "600", colour: T.ink1 });
+  const PA = fit(A, 20, 34, 180, 140, 34), PB = fit(B, 250, 34, 260, 140, 34);
+  box(ctx, 12, 28, 196, 156, null, T.grid); box(ctx, 236, 28, 286, 156, null, T.grid);
+  label(ctx, "molecule 0", 18, 40, { size: 9, mono: true, colour: T.ink3 }); label(ctx, "molecule 1", 242, 40, { size: 9, mono: true, colour: T.ink3 });
+  drawMol(ctx, A, PA, { r: 8 }); drawMol(ctx, B, PB, { r: 8, offset: nA });
+
+  const cw = 21, x0 = 70;
+  /* batch, one cell an atom */
+  let y = 214;
+  label(ctx, `batch · [${nA + nB}] · which molecule each node belongs to`, 12, y - 8, { size: 10, mono: true, weight: "600", colour: T.ink1 });
+  label(ctx, "batch", 12, y + 9, { size: 9, mono: true, colour: T.ink3, baseline: "middle" });
+  for (let i = 0; i < nA + nB; i++) {
+    box(ctx, x0 + i * 20, y, 20, 18, i < nA ? wash(T.groupA, 0.25) : wash(T.groupB, 0.25), T.grid);
+    label(ctx, i < nA ? "0" : "1", x0 + i * 20 + 10, y + 9.5, { size: 10, mono: true, align: "center", baseline: "middle", colour: T.ink1 });
+  }
+  /* edge_index: bronopol's columns, then aspirin's first, shifted */
+  y = 268;
+  const colsA = A.bonds.flatMap(([i, j]) => [[i, j], [j, i]]).sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+  const colsB = B.bonds.flatMap(([i, j]) => [[i + nA, j + nA], [j + nA, i + nA]]).sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+  label(ctx, `edge_index · [2, ${colsA.length + colsB.length}] · aspirin's columns shifted by ${nA}`, 12, y - 8, { size: 10, mono: true, weight: "600", colour: T.ink1 });
+  ["source", "target"].forEach((r, t) => label(ctx, r, 12, y + 8 + t * 16, { size: 9, mono: true, colour: T.ink3, baseline: "middle" }));
+  const show = [...colsA.map((c) => [c, 0]), ...colsB.slice(0, 6).map((c) => [c, 1])];
+  show.forEach(([[i, j], g], k) => {
+    box(ctx, x0 + k * cw, y, cw, 32, g ? wash(T.groupB, 0.25) : wash(T.groupA, 0.25), T.grid);
+    label(ctx, String(i), x0 + k * cw + cw / 2, y + 8.5, { size: 10, mono: true, align: "center", baseline: "middle", colour: T.ink1 });
+    label(ctx, String(j), x0 + k * cw + cw / 2, y + 24.5, { size: 10, mono: true, align: "center", baseline: "middle", colour: T.ink1 });
+  });
+  label(ctx, `… ${colsB.length - 6} more`, x0 + show.length * cw + 6, y + 17, { size: 10, colour: T.ink3, baseline: "middle" });
+  /* y and x */
+  y = 330;
+  label(ctx, `x · [${nA + nB}, 5] · the two molecules' rows stacked`, 12, y, { size: 10, mono: true, weight: "600", colour: T.ink1 });
+  label(ctx, `y · [2] = [${A.y}, ${B.y}] · one label a molecule`, 12, y + 20, { size: 10, mono: true, weight: "600", colour: T.ink1 });
+  label(ctx, "no column of edge_index joins a node of molecule 0 to one of molecule 1, so no message crosses", 12, y + 44, { size: 10, colour: T.ink3 });
+}
+</script>
+</body>
+</html>

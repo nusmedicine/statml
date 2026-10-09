@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 94's split details on the Splits page — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 549px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .rail { width: 230px; flex: 0 0 auto; font-size: var(--fs-sm); color: var(--ink-1); }
+  .rail .head { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); margin: var(--sp-2) 0 4px; }
+  .rail .seg { display: flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; }
+  .rail .seg span { flex: 1; text-align: center; padding: 6px 4px; border-right: 1px solid var(--grid); }
+  .rail .seg span:last-child { border-right: 0; }
+  .rail .seg span.on { background: var(--surface-3); font-weight: 600; }
+  .rail .det { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 4px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>94's split details, moved to the Splits page &middot; mock</h1>
+  <p class="note">
+    His note, on Patients' <code>train_mask</code> / <code>test_mask</code> columns and Molecule's split column: <i>"maybe we should show the
+    details only after we click Splits, otherwise students will be wondering what these are … when they click Splits they see the diagram,
+    followed by the details and the network."</i> So the example pages become representation only, and every trace of the split moves to
+    the Splits page, which opens with the diagram and then shows one example's split in full.
+  </p>
+  <table>
+    <tr><th>page</th><th>leaves the page</th><th>stays</th></tr>
+    <tr><td>Patients</td><td>the Labels control, <code>train_mask</code> and <code>test_mask</code>, the red rings and the "?" in y</td><td>k, the network coloured by subtype, <code>x</code> and every <code>y</code>, <code>edge_index</code> and <code>edge_weight</code>, edge homophily</td></tr>
+    <tr><td>Interactions</td><td>the Split control, the dashed and dotted pairs, <code>edge_label_index</code> and <code>edge_label</code></td><td>the network and <code>edge_index</code>; the page states its task, a missing interaction to predict</td></tr>
+    <tr><td>Molecule</td><td>the split column and the red rows</td><td>the table (molecule, SMILES, <code>y</code>), the bonds added one a press</td></tr>
+  </table>
+
+  <h2>1 &middot; The example pages, representation only</h2>
+  <div class="row" id="row1"></div>
+
+  <h2>2 &middot; The Splits page: the diagram, then one example in full</h2>
+  <p class="note">Top: the diagram, three panels as round 9 drew them, and a click on one (or the rail's <b>Example</b> control) picks which
+    example is shown in full below it: the network with its held-out part in red, then the tables that store the split. Interactions keeps
+    its three steps here (<b>Split</b> All · Held out · Negatives, shown only for that example), since each step adds one table.</p>
+  <div class="row" id="row2"></div>
+
+  <p class="rec"><b>Recommended as drawn.</b> A student meets each example as data first (what the nodes, edges, <code>x</code> and
+    <code>y</code> are) with nothing on it they have not been told about, and meets the split once, on one page, with the comparison first
+    and then the detail. Costs: the Interactions page loses its edge-level label table, so it shows its task in words and a tile until the
+    Splits page; and the Splits page grows to about 560px.</p>
+
+  <h2>The calls</h2>
+  <p class="q"><b class="h">1 &middot; Split details off the example pages</b>
+    <b>A &middot; yes: masks, held-out pairs and the split column all move to Splits (recommended)</b> &nbsp;|&nbsp; B &middot; keep them where they are</p>
+  <p class="q"><b class="h">2 &middot; The Splits page</b>
+    <b>A &middot; the diagram on top, then one example in full, picked by a click on a panel or an Example control (recommended)</b> &nbsp;|&nbsp; B &middot; all three examples in full, one under another</p>
+  <p class="q"><b class="h">3 &middot; Interactions' steps</b>
+    <b>A &middot; keep Split All · Held out · Negatives, on the Splits page under Interactions (recommended)</b> &nbsp;|&nbsp; B &middot; the finished split only</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens(), DPR = window.devicePixelRatio || 1, W = 549;
+const DATA = await (await fetch("./graph-molecules-mock-data.json")).json();
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+function cand(row, title, sub, h, rail = null) {
+  const host = document.getElementById(row);
+  const wrap = el("div", "row"); wrap.style.width = "100%";
+  if (rail) { const r = el("div", "rail"); r.innerHTML = rail; wrap.appendChild(r); }
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); wrap.appendChild(box);
+  host.appendChild(wrap);
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, a, b, c, d, col, w = 1, dash = null) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); ctx.restore(); }
+function box(ctx, x, y, w, h, fill, stroke, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function pill(ctx, x, y, s, { stroke = T.ink1, w = 64 } = {}) {
+  ctx.save(); ctx.beginPath(); ctx.roundRect(x - w / 2, y - 9, w, 18, 9); ctx.fillStyle = T.surface1; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore();
+  label(ctx, s, x, y + 0.5, { size: 10, weight: "600", align: "center", baseline: "middle", colour: T.ink1 });
+}
+
+/* ---- the data, as the widget holds it */
+const PAT = [[8.2, 4.39, 0], [5.98, 5.5, 0], [8.6, 4.61, 0], [5.52, 3.61, 0], [4.7, 2.58, 0], [6.2, 5.21, 0], [4.72, 5.21, 1], [4.31, 5.76, 1], [5.88, 7.56, 1], [3.23, 8.35, 1], [5.13, 7.03, 1], [5.45, 7.62, 1]];
+const TRAIN = [0, 2, 6, 9], TEST = [1, 4, 7, 10];
+const d = (a, b) => Math.hypot(PAT[a][0] - PAT[b][0], PAT[a][1] - PAT[b][1]), ESET = new Set();
+PAT.forEach((_, i) => PAT.map((__, j) => j).filter((j) => j !== i).sort((a, b) => d(i, a) - d(i, b)).slice(0, 2).forEach((j) => ESET.add(i < j ? `${i},${j}` : `${j},${i}`)));
+const PEDGES = [...ESET].map((e) => e.split(",").map(Number));
+const PROT = ["TP53", "MDM2", "CDKN1A", "ATM", "CHEK2", "BRCA1", "BARD1", "RAD51", "BRCA2", "PALB2"];
+const PROT_AT = [[0.138, 0.5], [0, 0.077], [0, 0.923], [0.368, 0], [0.368, 1], [0.612, 0.5], [0.799, 0.077], [0.799, 1], [1, 0.731], [1, 0.192]];
+const INTER = [[0, 1], [0, 2], [0, 3], [0, 4], [3, 4], [3, 5], [4, 5], [5, 6], [5, 7], [5, 9], [7, 8], [8, 9]];
+const HELD = [[3, 4], [8, 9]], NEG = [[1, 7], [2, 6]];
+const isHeld = ([i, j]) => HELD.some(([a, b]) => (a === i && b === j) || (a === j && b === i));
+
+function patients(ctx, x0, y0, bw, bh, split) {
+  const at = (i) => [x0 + ((PAT[i][0] - 2.8) / 6.3) * bw, y0 + bh - ((PAT[i][1] - 2.1) / 6.7) * bh];
+  PEDGES.forEach(([i, j]) => line(ctx, ...at(i), ...at(j), T.ink3, 1.2));
+  PAT.forEach((p, i) => {
+    const [x, y] = at(i), tr = TRAIN.includes(i), te = TEST.includes(i), filled = !split || tr;
+    dot(ctx, x, y, 8, filled ? T.clusters[p[2]] : T.surface, split && te ? T.holdout : filled ? T.ink1 : T.unknown, split && te ? 2.6 : 1.2);
+    label(ctx, String(i), x, y + 0.5, { size: 9, weight: "600", align: "center", baseline: "middle", colour: filled ? T.surface : T.ink2 });
+  });
+}
+function patientTable(ctx, tx, ty, split) {
+  label(ctx, "x · [12, 2] · ESR1, ERBB2", tx, ty, { size: 12, weight: "600", colour: T.ink1 });
+  const yX = tx + 80, mX = yX + 14, sX = mX + 66;
+  label(ctx, "y", yX, ty + 22, { size: 10, mono: true, colour: T.ink3, align: "center" });
+  if (split) { label(ctx, "train_mask", mX, ty + 22, { size: 10, mono: true, colour: T.ink3 }); label(ctx, "test_mask", sX, ty + 22, { size: 10, mono: true, colour: T.ink3 }); }
+  PAT.forEach((p, i) => {
+    const y = ty + 38 + i * 16, tr = TRAIN.includes(i), te = TEST.includes(i), show = !split || tr;
+    label(ctx, String(i), tx, y, { size: 10, mono: true, colour: T.ink3 });
+    label(ctx, p[0].toFixed(1), tx + 22, y, { size: 10, mono: true, colour: T.ink2 });
+    label(ctx, p[1].toFixed(1), tx + 50, y, { size: 10, mono: true, colour: T.ink2 });
+    label(ctx, show ? String(p[2]) : "?", yX, y, { size: 10, mono: true, weight: show ? "700" : "", colour: show ? T.ink1 : T.ink3, align: "center" });
+    if (split) {
+      label(ctx, tr ? "True" : "False", mX, y, { size: 10, mono: true, weight: tr ? "700" : "", colour: tr ? T.ink1 : T.ink3 });
+      label(ctx, te ? "True" : "False", sX, y, { size: 10, mono: true, weight: te ? "700" : "", colour: te ? T.holdout : T.ink3 });
+    }
+  });
+}
+function proteins(ctx, x0, y0, bw, bh, stage) {
+  const at = (i) => [x0 + PROT_AT[i][0] * bw, y0 + PROT_AT[i][1] * bh];
+  INTER.forEach((e) => { const h = stage !== "all" && isHeld(e); line(ctx, ...at(e[0]), ...at(e[1]), h ? T.holdout : T.ink3, h ? 2.2 : 1.4, h ? [6, 4] : null); });
+  if (stage === "negatives") NEG.forEach(([i, j]) => line(ctx, ...at(i), ...at(j), T.nonevent, 2, [2, 4]));
+  PROT.forEach((n, i) => pill(ctx, ...at(i), `${i} ${n}`));
+}
+function pairsTable(ctx, x, y, P, { cw = 18, rows = ["source", "target"], extra = null, col = () => null } = {}) {
+  rows.forEach((r, t) => label(ctx, r, x, y + t * 15 + 8, { size: 10, mono: true, colour: T.ink3, baseline: "middle" }));
+  const x0 = x + 52;
+  P.forEach((p, k) => {
+    const c = col(k);
+    if (c) box(ctx, x0 + k * cw + 1, y + 1, cw - 2, rows.length * 15 - 2, wash(c, 0.25));
+    label(ctx, String(p[0]), x0 + k * cw + cw / 2, y + 8.5, { size: 10, mono: true, align: "center", baseline: "middle", colour: T.ink2 });
+    label(ctx, String(p[1]), x0 + k * cw + cw / 2, y + 23.5, { size: 10, mono: true, align: "center", baseline: "middle", colour: T.ink2 });
+    if (extra) label(ctx, String(extra[k]), x0 + k * cw + cw / 2, y + 38.5, { size: 10, mono: true, weight: "700", align: "center", baseline: "middle", colour: T.ink1 });
+  });
+  box(ctx, x0, y, Math.max(P.length, 1) * cw, rows.length * 15, null, T.grid);
+}
+function molTable(ctx, y0, split) {
+  const cols = [12, 34, 136, W - 120, W - 84];
+  label(ctx, "the molecules · 6 of the 2,335 in the screen, 120 of them active", 12, y0, { size: 12, weight: "600", colour: T.ink1 });
+  ["", "molecule", "SMILES", "y", split ? "split" : ""].forEach((hd, k) => label(ctx, hd, cols[k], y0 + 18, { size: 10, mono: k >= 2, colour: T.ink3 }));
+  DATA.molecules.forEach((m, i) => {
+    const y = y0 + 24 + i * 17, mid = y + 9, test = split && m.split === "test";
+    if (test) box(ctx, 6, y, W - 12, 16, wash(T.holdout, 0.22));
+    label(ctx, String(i), cols[0], mid, { size: 10, mono: true, colour: T.ink3, baseline: "middle" });
+    label(ctx, m.name, cols[1], mid, { size: 11, colour: T.ink1, baseline: "middle" });
+    label(ctx, m.smiles, cols[2], mid, { size: 10, mono: true, colour: T.ink2, baseline: "middle" });
+    label(ctx, String(m.y), cols[3] + 4, mid, { size: 11, mono: true, weight: "700", colour: T.ink1, baseline: "middle", align: "center" });
+    if (split) label(ctx, m.split, cols[4], mid, { size: 10, mono: true, weight: test ? "700" : "", colour: T.ink1, baseline: "middle" });
+  });
+}
+
+/* ---- the diagram, as round 9 drew it */
+const MINI = { nodes: [[0.15, 0.25], [0.5, 0.1], [0.85, 0.3], [0.2, 0.8], [0.55, 0.62], [0.88, 0.85]], edges: [[0, 1], [1, 2], [0, 3], [1, 4], [3, 4], [4, 5], [2, 5], [2, 4]] };
+function miniGraph(ctx, x0, y0, w, h, hn, he) {
+  const P = MINI.nodes.map(([u, v]) => [x0 + u * w, y0 + v * h]);
+  MINI.edges.forEach(([i, j], k) => { const held = he.includes(k); line(ctx, ...P[i], ...P[j], held ? T.holdout : T.ink3, held ? 2 : 1.3, held ? [5, 3] : null); });
+  P.forEach(([x, y], i) => { const held = hn.includes(i); dot(ctx, x, y, 6, T.surface2, held ? T.holdout : T.ink1, held ? 2.4 : 1.2); if (held) label(ctx, "?", x, y + 0.5, { size: 9, weight: "700", align: "center", baseline: "middle", colour: T.ink1 }); });
+}
+function glyph(ctx, cx, cy, kind) {
+  const r = 7, pts = [...Array(6).keys()].map((k) => [cx + r * Math.cos(Math.PI / 6 + (k * Math.PI) / 3), cy + r * Math.sin(Math.PI / 6 + (k * Math.PI) / 3)]);
+  if (kind !== "chain") for (let k = 0; k < 6; k++) line(ctx, ...pts[k], ...pts[(k + 1) % 6], T.ink1, 1.2);
+  if (kind === "tail") line(ctx, ...pts[0], pts[0][0] + 7, pts[0][1] + 4, T.ink1, 1.2);
+  if (kind === "chain") { const c = [[cx - 11, cy + 3], [cx - 4, cy - 3], [cx + 4, cy + 3], [cx + 11, cy - 3]]; for (let k = 0; k < 3; k++) line(ctx, ...c[k], ...c[k + 1], T.ink1, 1.2); }
+}
+function diagram(ctx, current) {
+  label(ctx, "what a split holds out, at each task level · click a panel", 12, 16, { size: 12, weight: "600", colour: T.ink1 });
+  const pw = (W - 40) / 3, py = 26, ph = 92;
+  [["node · Patients", "a node's y hidden;", "the node and its edges stay"], ["edge · Interactions", "the edge taken out", "of the graph"], ["graph · Molecule", "whole graphs", "set aside"]].forEach(([hd, l1, l2], k) => {
+    const x = 12 + k * (pw + 8), on = k === current;
+    box(ctx, x, py, pw, ph, on ? T.surface2 : null, on ? T.highlight : T.grid, on ? 2 : 1);
+    label(ctx, hd, x + 8, py + 15, { size: 11, weight: "600", colour: on ? T.ink1 : T.ink2 });
+    if (k === 0) miniGraph(ctx, x + 70, py + 22, pw - 82, 36, [1, 3], []);
+    if (k === 1) miniGraph(ctx, x + 70, py + 22, pw - 82, 36, [], [1, 4]);
+    if (k === 2) {
+      const gx = x + 8, gy = py + 30, tw = pw * 0.55;
+      box(ctx, gx, gy, tw, 24, null, T.ink3); ["ring", "tail", "chain"].forEach((kd, i) => glyph(ctx, gx + tw * (0.18 + i * 0.32), gy + 12, kd));
+      box(ctx, gx + tw + 6, gy, pw - 22 - tw, 24, wash(T.holdout, 0.15), T.holdout, 1.5); ["tail", "ring"].forEach((kd, i) => glyph(ctx, gx + tw + 6 + (pw - 22 - tw) * (0.3 + i * 0.42), gy + 12, kd));
+    }
+    label(ctx, l1, x + 8, py + 72, { size: 10, colour: on ? T.ink1 : T.ink3 }); label(ctx, l2, x + 8, py + 85, { size: 10, colour: on ? T.ink1 : T.ink3 });
+  });
+  line(ctx, 12, 132, W - 12, 132, T.grid);
+}
+
+/* =============================== 1 · the example pages, representation only */
+{
+  const ctx = cand("row1", "Patients · no split", "every subtype in y; no masks, no rings · tiles: Edges · y · [12] · Edge homophily", 300,
+    `<div class="head">Examples</div><div class="seg"><span class="on">Patients</span><span>Interactions</span><span>Molecule</span></div>
+     <div class="head">Neighbours k</div><div class="det">— the slider, 1 to 4 —</div><div class="det" style="margin-top:8px">(no Labels control)</div>`);
+  label(ctx, "the patients", 12, 14, { size: 12, weight: "600", colour: T.ink1 });
+  patients(ctx, 30, 34, 260, 230, false);
+  patientTable(ctx, 320, 14, false);
+}
+{
+  const ctx = cand("row1", "Interactions · no split", "the network and edge_index; the task in words · tiles: Edges · Task: edge-level · Pairs not yet linked", 300,
+    `<div class="head">Examples</div><div class="seg"><span>Patients</span><span class="on">Interactions</span><span>Molecule</span></div><div class="det" style="margin-top:8px">(no Split control)</div>`);
+  label(ctx, "the interactions", 12, 14, { size: 12, weight: "600", colour: T.ink1 });
+  label(ctx, "ten DNA-damage-response proteins · the task: an interaction not yet on record", 12, 30, { size: 11, colour: T.ink3 });
+  proteins(ctx, 80, 52, 390, 140, "all");
+  label(ctx, "edge_index · [2, 24]", 12, 232, { size: 12, weight: "600", colour: T.ink1 });
+  pairsTable(ctx, 12, 240, INTER.flatMap(([i, j]) => [[i, j], [j, i]]).sort((u, v) => u[0] - v[0] || u[1] - v[1]), { cw: 19.5 });
+}
+{
+  const ctx = cand("row1", "Molecule · no split", "the table without the split column; the page below it as now", 150,
+    `<div class="head">Examples</div><div class="seg"><span>Patients</span><span>Interactions</span><span class="on">Molecule</span></div>`);
+  molTable(ctx, 16, false);
+}
+
+/* =================================== 2 · the Splits page, one example in full */
+const RAIL = (on) => `<div class="head">Training</div><div class="seg"><span class="on">Splits</span></div>
+  <div class="head">Example</div><div class="seg">${["Patients", "Interactions", "Molecule"].map((n, k) => `<span class="${k === on ? "on" : ""}">${n}</span>`).join("")}</div>
+  ${on === 1 ? `<div class="head">Split</div><div class="seg"><span>All</span><span>Held out</span><span class="on">Negatives</span></div>` : ""}`;
+{
+  const ctx = cand("row2", "Splits · Example Patients", "the diagram, then the patients with test_mask ringed and the masks", 420, RAIL(0));
+  diagram(ctx, 0);
+  label(ctx, "the split · four patients held out; every node and edge stays", 12, 152, { size: 12, weight: "600", colour: T.ink1 });
+  patients(ctx, 24, 186, 250, 200, true);
+  patientTable(ctx, 300, 180, true);
+}
+{
+  const ctx = cand("row2", "Splits · Example Interactions, Split Negatives", "the diagram, then the proteins with the held-out and negative pairs, then both tables", 470, RAIL(1));
+  diagram(ctx, 1);
+  label(ctx, "the split · two interactions held out, two pairs with no edge added", 12, 152, { size: 12, weight: "600", colour: T.ink1 });
+  proteins(ctx, 80, 176, 390, 130, "negatives");
+  label(ctx, "edge_index · [2, 20] · the edges a model passes messages along", 12, 342, { size: 11, weight: "600", colour: T.ink1 });
+  pairsTable(ctx, 12, 350, INTER.filter((e) => !isHeld(e)).flatMap(([i, j]) => [[i, j], [j, i]]).sort((u, v) => u[0] - v[0] || u[1] - v[1]), { cw: 22 });
+  label(ctx, "edge_label_index · [2, 4] and edge_label · [4] · the pairs scored", 12, 400, { size: 11, weight: "600", colour: T.ink1 });
+  pairsTable(ctx, 12, 408, [...HELD, ...NEG], { cw: 30, rows: ["node", "node", "label"], extra: [1, 1, 0, 0], col: (k) => (k < 2 ? T.holdout : T.nonevent) });
+}
+{
+  const ctx = cand("row2", "Splits · Example Molecule", "the diagram, then the table with its split column, test rows in red", 300, RAIL(2));
+  diagram(ctx, 2);
+  molTable(ctx, 154, true);
+  label(ctx, "train_set and test_set: lists of graphs · nothing inside a molecule changes", 12, 290, { size: 11, colour: T.ink3 });
+}
+</script>
+</body>
+</html>
