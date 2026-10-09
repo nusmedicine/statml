@@ -440,7 +440,7 @@ function compute({ params, rng }) {
    edge, both ways at once, each way in its own lane so no two cross; it lands
    and the figure switches to the new state at once (no fades). Transform and
    Pool change no positions, so they switch without motion. */
-const MOVE_MS = 1100;
+const MOVE_MS = 1700;   /* slowed on his word, round 2 */
 const stepsOf = (stage) => STEPS[stage] ?? 0;
 const moves = (stage, beat) => (stage === "aggregate" ? beat === 1 : stage === "layers" ? true : beat <= LESSON_LAYERS);
 /** the settled beat: while a press is in flight, the state before it */
@@ -469,14 +469,14 @@ function drawMessages(ctx, colors, P, msgs, u, { r = 11, pick = null, mark = nul
 
 /* ============================================================ geometry */
 
-const H_CHAIN = 300, H_CAF = 336, H_LAY = 440, H_RD = 400;
+const H_CHAIN = 486, H_CAF = 336, H_LAY = 440, H_RD = 400;
 const leftW = (w) => Math.min(w * 0.47, 330);
 const AG = { top: 34, boxH: 250, rowH: 24 };
 /** where the chain's nodes and caffeine's atoms sit on the Aggregate page */
 function aggPoints(params, w) {
   if (params.example === "chain") {
-    const lw = leftW(w), y = AG.top + 120;
-    return [0, 1, 2].map((i) => [lw * (0.17 + 0.33 * i), y]);
+    /* round 2: the chain across the whole width, its table under it */
+    return [0, 1, 2].map((i) => [w * (0.17 + 0.33 * i), AG.top + 120]);
   }
   return molPoints(CAFFEINE, 16, AG.top + 8, leftW(w) - 28, AG.boxH);
 }
@@ -501,7 +501,7 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
   const P = aggPoints(params, w), A = adjacency(mol);
   const nb = new Set(a.inputs.slice(1));
   let hov = null;
-  if (pointer) P.forEach(([x, y], i) => { if (Math.hypot(pointer.x - x, pointer.y - y) <= (chain ? 17 : 13)) hov = i; });
+  if (pointer) P.forEach(([x, y], i) => { if (Math.hypot(pointer.x - x, pointer.y - y) <= (chain ? 21 : 13)) hov = i; });
 
   txt(ctx, colors, chain ? S.capChain : S.capMol, 12, 16, { font: capFont(colors), fill: colors.ink1, maxW: leftW(w) - 16 });
   /* after Aggregate a bond's width is its weight; the numbers are in the table */
@@ -518,7 +518,7 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
     const rows = beat === 0 ? mol.atoms.map((at) => at.x) : st.all.map((u) => (beat === 1 ? u.sum : u.out));
     const flat = rows.flat(), lo = Math.min(0, ...flat), hi = Math.max(1, ...flat);
     rows.forEach((row, i) => {
-      const cw = 22, x0 = P[i][0] - 1.5 * cw, y0 = P[i][1] - 70;
+      const cw = 30, x0 = P[i][0] - 1.5 * cw, y0 = P[i][1] - 78;
       row.forEach((v, c) => rect(ctx, x0 + c * cw, y0, cw, cw, ramp(colors, (v - lo) / (hi - lo)), colors.ink1));
       txt(ctx, colors, row.map((v) => fmt(v, beat === 0 ? 1 : 2)).join(" "), P[i][0], y0 - 6, { font: monoFont(colors), fill: colors.ink3, align: "center" });
     });
@@ -532,22 +532,22 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
       };
       for (const m of st.msgs) {
         const [ax, ay] = P[m.s], [bx] = P[m.r], dir = Math.sign(bx - ax);
-        const cy = ay + (dir > 0 ? -46 : 34), sx = ax + dir * 18, ex = bx - dir * 18;
+        const cy = ay + (dir > 0 ? -54 : 40), sx = ax + dir * 22, ex = bx - dir * 22;
         const x = (1 - u) ** 2 * sx + 2 * (1 - u) * u * ((sx + ex) / 2) + u * u * ex;
         const y = (1 - u) ** 2 * ay + 2 * (1 - u) * u * cy + u * u * ay;
         mini(x, y, mol.atoms[m.s].x, m.w, m.r === a.i);
       }
       st.all.forEach((v) => {
         const th = -Math.PI / 2 + 2 * Math.PI * u, [x, y] = P[v.i];
-        mini(x + 10 * Math.cos(th), y + 27 + 10 * Math.sin(th), mol.atoms[v.i].x, v.w[0], v.i === a.i);
+        mini(x + 13 * Math.cos(th), y + 33 + 13 * Math.sin(th), mol.atoms[v.i].x, v.w[0], v.i === a.i);
       });
     }
     if (beat >= 1) {
       /* the self-loop, as his figure draws it */
       ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = thick(a.i);
-      ctx.beginPath(); ctx.arc(P[a.i][0], P[a.i][1] + 27, 10, -0.15 * Math.PI, 1.15 * Math.PI); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.arc(P[a.i][0], P[a.i][1] + 33, 13, -0.15 * Math.PI, 1.15 * Math.PI); ctx.stroke(); ctx.restore();
       a.inputs.forEach((j, k) => {
-        const [x, y] = j === a.i ? [P[j][0], P[j][1] + 54] : [(P[j][0] + P[a.i][0]) / 2, P[j][1] - 26];
+        const [x, y] = j === a.i ? [P[j][0], P[j][1] + 64] : [(P[j][0] + P[a.i][0]) / 2, P[j][1] - 30];
         txt(ctx, colors, (j === a.i ? `${S.selfTag} ` : "") + fmt(a.w[k]), x, y, { font: boldMono(colors), fill: colors.ink1, align: "center", halo: true });
       });
     }
@@ -560,30 +560,31 @@ function drawAggregate(ctx, colors, w, h, params, st, anim, pointer) {
   const uMol = chain ? null : flight(anim, "aggregate");
   mol.atoms.forEach((at, i) => {
     const fill = i === a.i ? wash(colors.highlight, 0.35) : nb.has(i) ? wash(colors.groupA, 0.32) : hov === i ? wash(colors.groupA, 0.15) : null;
-    node(ctx, colors, P[i][0], P[i][1], chain ? 16 : 11, chain ? String(i) : at.el, { fill });
+    node(ctx, colors, P[i][0], P[i][1], chain ? 20 : 11, chain ? String(i) : at.el, { fill });
     if (!chain) txt(ctx, colors, String(i), P[i][0] + 12, P[i][1] - 9, { font: monoFont(colors), fill: colors.ink3, halo: true });
   });
-  ring(ctx, P[a.i][0], P[a.i][1], chain ? 23 : 17, colors.highlight);
+  ring(ctx, P[a.i][0], P[a.i][1], chain ? 27 : 17, colors.highlight);
   if (uMol != null) drawMessages(ctx, colors, P, st.msgs, uMol, { pick: a.i });
 
   /* the table: the inputs' rows, their weights, the sum, the transformed row */
-  const x0 = leftW(w) + 8, cols = mol.atoms[0].x.length, labW = 58;
-  const cw = Math.min(34, (w - x0 - labW - 70 - 8) / cols), wx = x0 + labW + cols * cw + 8;
-  txt(ctx, colors, S.capTable(cols), x0, 16, { font: capFont(colors), fill: colors.ink1, maxW: w - x0 - 8 });
+  const x0 = chain ? 12 : leftW(w) + 8, ty = chain ? 236 : 0, cols = mol.atoms[0].x.length, labW = 58;
+  const cw = Math.min(chain ? 44 : 34, (w - x0 - labW - 70 - 8) / cols), wx = x0 + labW + cols * cw + 8;
+  const right = chain ? wx + 64 : w - 4;
+  txt(ctx, colors, S.capTable(cols), x0, ty + 16, { font: capFont(colors), fill: colors.ink1, maxW: w - x0 - 8 });
   const heads = chain ? ["0", "1", "2"] : COLS5;
-  heads.forEach((hd, c) => txt(ctx, colors, hd, x0 + labW + c * cw + cw / 2, 40, { font: monoFont(colors), fill: colors.ink3, align: "center" }));
-  txt(ctx, colors, S.headWeight[kind], wx + 30, 40, { font: monoFont(colors), fill: colors.ink3, align: "center" });
+  heads.forEach((hd, c) => txt(ctx, colors, hd, x0 + labW + c * cw + cw / 2, ty + 40, { font: monoFont(colors), fill: colors.ink3, align: "center" }));
+  txt(ctx, colors, S.headWeight[kind], wx + 30, ty + 40, { font: monoFont(colors), fill: colors.ink3, align: "center" });
   a.inputs.forEach((j, k) => {
-    const y = 48 + k * AG.rowH, mid = y + AG.rowH / 2;
-    if (j === a.i) rect(ctx, x0 - 4, y + 1, w - x0 - 4, AG.rowH - 2, wash(colors.highlight, 0.14));
-    else rect(ctx, x0 - 4, y + 1, w - x0 - 4, AG.rowH - 2, wash(colors.groupA, 0.12));
+    const y = ty + 48 + k * AG.rowH, mid = y + AG.rowH / 2;
+    if (j === a.i) rect(ctx, x0 - 4, y + 1, right - x0, AG.rowH - 2, wash(colors.highlight, 0.14));
+    else rect(ctx, x0 - 4, y + 1, right - x0, AG.rowH - 2, wash(colors.groupA, 0.12));
     txt(ctx, colors, `${j}${chain ? "" : " " + mol.atoms[j].el}${j === a.i ? " " + S.selfTag : ""}`, x0, mid, { font: monoFont(colors), fill: colors.ink1, baseline: "middle" });
     mol.atoms[j].x.forEach((v, c) => txt(ctx, colors, chain ? v.toFixed(1) : String(v), x0 + labW + c * cw + cw / 2, mid, { font: monoFont(colors), fill: colors.ink2, align: "center", baseline: "middle" }));
     if (beat >= 1) txt(ctx, colors, `× ${fmt(a.w[k])}`, wx + 30, mid, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" });
   });
-  const yS = 48 + a.inputs.length * AG.rowH + 4;
+  const yS = ty + 48 + a.inputs.length * AG.rowH + 4;
   if (beat >= 1) {
-    line(ctx, x0 - 4, yS, w - 8, yS, colors.ink2);
+    line(ctx, x0 - 4, yS, right - 4, yS, colors.ink2);
     txt(ctx, colors, S.rowSum, x0, yS + 14, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
     a.sum.forEach((v, c) => txt(ctx, colors, fmt(v, chain ? 2 : 1), x0 + labW + c * cw + cw / 2, yS + 14, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
   }
@@ -731,7 +732,7 @@ defineWidget({
   regions: ({ w, params }) => {
     if (params.page === "aggregate") {
       const P = aggPoints(params, w), key = params.example === "chain" ? "node" : "atom";
-      const r = params.example === "chain" ? 17 : 13;
+      const r = params.example === "chain" ? 21 : 13;
       return P.map(([x, y], i) => ({ x: x - r, y: y - r, w: 2 * r, h: 2 * r, set: { [key]: String(i) }, label: `${i}` }));
     }
     if (params.page === "layers") return [0, 1].flatMap((half) => layPoints(w, half).map(([x, y], i) => ({ x: x - 12, y: y - 12, w: 24, h: 24, set: { from: String(i) }, label: `${i}` })));
