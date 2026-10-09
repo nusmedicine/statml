@@ -149,7 +149,7 @@ const S = {
   /* Graph and Aggregate */
   capGraph: "the graph · click a node",
   capMol: "the molecule · click an atom",
-  capTable: "the picked node's inputs · rows of x",
+  capTable: (u) => `the picked ${u}'s inputs · rows of x`,
   headWeight: { gcn: "1/√(dᵢdⱼ)", gat: "α" },
   selfTag: "self",
   rowSum: "sum",
@@ -676,9 +676,17 @@ function drawCafTransform(ctx, colors, c, geo, t, beat) {
     row.forEach((v, k) => { if (t >= 0.6 || k < done) rect(ctx, geo.colX(k) + 1, y, geo.cw - 2, 16, ramp(colors, (v - sc[0]) / (sc[1] - sc[0])), colors.highlight, 1.4); });
     return;
   }
+  /* h′ stays a row of cells once it lands, its numbers on them (round 9, his
+     "h′ should have a heatmap also": the cells the press moved vanished at
+     the end and left bare numbers); the number's ink flips on the darker
+     half of the ramp, which is the light half in the dark theme */
   if (beat >= 2) {
     txt(ctx, colors, S.rowOut(a.i), geo.x0, outY + 9, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
-    a.out.forEach((v, k) => txt(ctx, colors, fmt(v, 1), geo.colX(k) + geo.cw / 2, outY + 9, { font: boldMono(colors), fill: colors.ink1, align: "center", baseline: "middle" }));
+    a.out.forEach((v, k) => {
+      const u = (v - sc[0]) / (sc[1] - sc[0]);
+      rect(ctx, geo.colX(k) + 1, outY, geo.cw - 2, 18, ramp(colors, u), colors.grid);
+      txt(ctx, colors, fmt(v, 1), geo.colX(k) + geo.cw / 2, outY + 9.5, { font: boldMono(colors), fill: u > 0.55 ? colors.surface : colors.ink1, align: "center", baseline: "middle" });
+    });
   }
 }
 
@@ -689,7 +697,7 @@ function drawInputTable(ctx, colors, w, { x0, ty, mol, a, kind, beat, graph }) {
   const cols = mol.atoms[0].x.length, labW = 58;
   const cw = Math.min(graph ? 44 : 34, (w - x0 - labW - 70 - 8) / cols), wx = x0 + labW + cols * cw + 8;
   const right = graph ? wx + 64 : w - 4, colX = (k) => x0 + labW + k * cw;
-  txt(ctx, colors, S.capTable, x0, ty + 16, { font: capFont(colors), fill: colors.ink1, maxW: w - x0 - 8 });
+  txt(ctx, colors, S.capTable(graph ? "node" : "atom"), x0, ty + 16, { font: capFont(colors), fill: colors.ink1, maxW: w - x0 - 8 });
   (graph ? ["0", "1", "2"] : COLS5).forEach((hd, k) => txt(ctx, colors, hd, colX(k) + cw / 2, ty + 40, { font: monoFont(colors), fill: colors.ink3, align: "center" }));
   txt(ctx, colors, S.headWeight[kind], wx + 30, ty + 40, { font: monoFont(colors), fill: colors.ink3, align: "center" });
   a.inputs.forEach((j, k) => {
@@ -1258,6 +1266,11 @@ defineWidget({
       const stage = params.page;
       /* only a page change ends a press in flight (mid-press-page-switch, 2026-09-20) */
       if (stage !== anim.stage && anim.t < 1) { anim.t = 1; anim.halt = true; }
+      /* a new node or atom to inspect starts that page's presses again (round 9,
+         his "when switching nodes, aggregate -> W -> ELU should reset"). No halt:
+         the ease below takes the loop over, and an ease starts no press */
+      const pick = { graph: "node", aggregate: "atom" }[stage];
+      if (pick && stage === anim.stage && params[pick] !== anim.last.params[pick]) { anim.n[stage] = 0; anim.t = 1; }
       /* a rail control on the same page eases from the reading it leaves; a page change does not */
       if (stage === anim.stage && TWEENED.some((k) => params[k] !== anim.last.params[k])) {
         anim.ez = { params: anim.last.params, state: anim.last.state, t: 0 };
