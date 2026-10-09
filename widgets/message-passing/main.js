@@ -69,6 +69,10 @@
    as learned in training, here its random start; a MathML card above the
    figure gives each page's equation, the part a press reached in
    --c-highlight.
+   The student walk-through (2026-10-09): caffeine's Transform split the same
+   way (Aggregate · Multiply by W · Apply ELU); Graph's rows tagged x · sum ·
+   h′ and the band's rows numbered by node; Layers says x is standardised
+   there; the 2-layer marker names Readout's default; small copy fixes.
 
    Nothing trains in the page: compute() runs the layers on seeded weights
    (core's rng, seed 1) and the trained α is data. Presses reveal what
@@ -102,7 +106,7 @@ const BASIC = {
 };
 const NODE_OPTS = BASIC.atoms.map((_, i) => ({ value: String(i), label: String(i) }));
 const K_MAX = 4, HIDDEN = 16, LESSON_LAYERS = 2, SHOW = 8;
-const STEPS = { graph: 3, aggregate: 2, layers: K_MAX, readout: 1 };
+const STEPS = { graph: 3, aggregate: 3, layers: K_MAX, readout: 1 };
 const COLS5 = ["Z", "ar", "hyb", "H", "q"];
 
 /* -------------------------------------------------------------- strings */
@@ -131,7 +135,7 @@ const S = {
     param: "page",
     labels: {
       graph: { anim: "beat", labels: { 0: "Aggregate", 1: "Multiply by W", 2: "Apply ELU" }, default: "Apply ELU" },
-      aggregate: { anim: "beat", labels: { 0: "Aggregate", 1: "Transform" }, default: "Transform" },
+      aggregate: { anim: "beat", labels: { 0: "Aggregate", 1: "Multiply by W", 2: "Apply ELU" }, default: "Apply ELU" },
       layers: "Add a layer",
       readout: "Pool",
     },
@@ -141,7 +145,7 @@ const S = {
     param: "page",
     labels: {
       graph: { anim: "beat", labels: { 0: "Send every node's row along its edges, weight it and sum", 1: "Multiply every node's sum by the one W", 2: "Pass every number through ELU, the activation" }, default: "Pass every number through ELU, the activation" },
-      aggregate: { anim: "beat", labels: { 0: "Send every atom's row along its bonds, weight it and sum", 1: "Multiply the sum by W, then apply the activation" }, default: "Multiply the sum by W, then apply the activation" },
+      aggregate: { anim: "beat", labels: { 0: "Send every atom's row along its bonds, weight it and sum", 1: "Multiply the picked atom's sum by W", 2: "Pass every number through ELU, the activation" }, default: "Pass every number through ELU, the activation" },
       layers: "Run one more layer on every atom",
       readout: "Pool the atoms' vectors into one",
     },
@@ -159,13 +163,14 @@ const S = {
   aggStatus: [
     (u, i, d) => `${u} ${i} · ${d} neighbour${d === 1 ? "" : "s"} and itself`,
     (u, i, s) => `${u} ${i} · its inputs weighted and summed · the weights sum to ${s}`,
-    (u, i) => `${u} ${i} · the sum × W, then ELU: h${i}′, its row after one layer`,
+    (u, i) => `${u} ${i} · its sum × W: one row of 5 numbers`,
+    (u, i) => `${u} ${i} · ELU of its sum × W: h${i}′, its row after one layer`,
   ],
   aggSend: "every node keeps its own row and sends a copy along each of its edges",
   aggWeigh: "each node now holds its inputs, one row each, and a weight for each row",
   aggAdd: "each node adds its weighted rows: one row of 3 numbers, the size of x",
   molMoving: "every atom sends its row along each of its bonds; each arrives scaled by its weight",
-  trMoving: { aggregate: "the sum times each column of W, then ELU" },
+  trMoving: { aggregate: "the sum times each column of W" },
   mulMoving: "every node's sum into one stack H, then H times each column of W",
   eluMoving: "each number through ELU: a positive one stays, a negative one moves toward −1",
   homeMoving: "each row of h′ back to its node",
@@ -180,6 +185,8 @@ const S = {
   hLabel: "H",
   hwLabel: "H·W",
   rowOutAll: "h′",
+  /* the tag beside each node's row (the walk-through: the rows changed from x to sum to h′ with nothing naming them) */
+  slotTag: ["x", "sum", "", "h′"],
   rowPre: "sum·W",
   eluLabel: "ELU",
   aggNote: {
@@ -203,9 +210,10 @@ const S = {
       kind === "gat"
         ? "Aggregate, here GAT's: each input's row times αᵢⱼ, a softmax over atom i's inputs of a score that training sets, summed into one row"
         : "Aggregate, here GCN's: each input's row times 1/√(dᵢdⱼ), dᵢ the degree counting the self-loop, summed into one row",
-      "Transform: the aggregated row times W, then σ, here ELU: hᵢ′, atom i's row after one layer",
+      "Multiply by W: the aggregated row times W, the same W for every atom",
+      "Apply ELU, the σ here: each number v stays if v > 0 and becomes eᵛ − 1 if not; the result is hᵢ′, atom i's row after one layer",
     ][s],
-    layers: "the layer applied again: layer l + 1 reads layer l's rows, and hᵢ⁽⁰⁾ is xᵢ; each layer has its own W⁽ˡ⁾, learned in training (here, random starting values); Aggregate is GCN's, σ is ELU",
+    layers: "the layer applied again: layer l + 1 reads layer l's rows, and hᵢ⁽⁰⁾ is xᵢ, standardised over the screen's molecules here so no column outweighs the others; each layer has its own W⁽ˡ⁾, learned in training (here, random starting values); Aggregate is GCN's, σ is ELU",
     readout: (pk, k) => `POOL, here ${{ sum: "the sum", mean: "the mean", max: "the largest value" }[pk]} of each number over the atoms' rows after ${k} layer${k === 1 ? "" : "s"}: one vector h<sub>G</sub> for the molecule; MLP is the classifier, ŷ<sub>G</sub> its prediction of y`,
   },
 
@@ -216,7 +224,7 @@ const S = {
   keyHi: "cosine 1",
   curveY: "cosine distance",
   curveX: "layers",
-  curveLesson: "the trained GAT's 2",
+  curveLesson: "Readout's default",
   layMoving: (k) => `layer ${k} · every atom sends its vector to each neighbour`,
   sheet0: "layer 0 · x",
   sheetK: (k) => `layer ${k}`,
@@ -252,7 +260,7 @@ const S = {
     trained: (agree) => `learned on 2,335 molecules; two more training runs give the same top input for ${agree} of caffeine's 14 atoms`,
   },
   tileLayers: "Layers",
-  tileLayersNote: "the trained GAT behind GAT's α stacks 2",
+  tileLayersNote: "Readout pools after 2 by default; the trained GAT also stacks 2",
   tileReach: "Gathered from",
   tileReachNote: (d) => `the atoms within k bonds; caffeine's longest shortest path is ${d} bonds`,
   tileUnlike: "Cosine distance",
@@ -270,7 +278,7 @@ const S = {
   tileWait: "—",
 
   sumGraph: (i, beat) => `a three-node chain, node ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W" : ""}${beat >= 3 ? ", then passed through ELU" : ""}`,
-  sumAgg: (i, beat) => `caffeine, atom ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W and passed through ELU" : ""}`,
+  sumAgg: (i, beat) => `caffeine, atom ${i}'s inputs${beat >= 1 ? ", weighted and summed" : ""}${beat >= 2 ? ", then multiplied by W" : ""}${beat >= 3 ? ", then passed through ELU" : ""}`,
   sumLay: (k, i, n) => `caffeine after ${k} layer${k === 1 ? "" : "s"}: atom ${i} has gathered from ${n} of 14 atoms, and the atoms' vectors grow alike`,
   sumRd: (pooled, kind, k) => (pooled ? `caffeine's 14 atom vectors after ${k} layer${k === 1 ? "" : "s"}, ${kind}-pooled into one vector` : `caffeine's 14 atom vectors after ${k} layer${k === 1 ? "" : "s"}, one row an atom`),
 };
@@ -510,7 +518,7 @@ const lerpPt = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 const stepsOf = (stage) => STEPS[stage] ?? 0;
 function durOf(stage, beat) {
   if (stage === "graph") return [0, 5200, 4200, 6000][beat];
-  if (stage === "aggregate") return beat === 1 ? MOVE_MS : 3600;
+  if (stage === "aggregate") return [0, MOVE_MS, 3000, 3000][beat];
   if (stage === "layers") return 2600;
   return 1600;
 }
@@ -629,6 +637,7 @@ function drawBand(ctx, colors, w, g, P, beat, tm, ta) {
         continue;
       }
       cellRow(ctx, colors, b.hx, ty, u.sum, c, sc, { stroke: colors.grid });
+      txt(ctx, colors, String(i), b.hx - 6, ty + c / 2, { font: monoFont(colors), fill: colors.ink3, align: "right", baseline: "middle" });
       u.pre.forEach((v, k) => rect(ctx, b.oX + k * c, ty, c, c, k < done ? ramp(colors, (v - sc[0]) / (sc[1] - sc[0])) : null, colors.grid));
     }
   }
@@ -661,36 +670,38 @@ const slotOf = (P, i) => [P[i][0] - 1.5 * SLOT_C, P[i][1] - 62];
 
 /* CAFFEINE'S TRANSFORM: the picked atom's row only (14 rows do not fit a
    stack), inside its table. W sits under the sum row, one column of W under
-   each column of the table; a press lights W's columns in turn and fills h·W
-   a cell at a time (0–0.6), then the row moves down past the ELU gate into
-   the h′ row (0.62–1). */
-function drawCafTransform(ctx, colors, c, geo, t, beat) {
+   each column of the table. Two presses since the walk-through (2026-10-09,
+   his pick: as on Graph): Multiply by W lights W's columns in turn and fills
+   sum·W a cell at a time (0–0.9); Apply ELU moves a copy of that row down
+   past the ELU label into the h′ row, its numbers switching half-way
+   (0.1–0.9). ELU's label appears with its press. */
+/** a settled row of the table: its name, its cells on the page's scale, its numbers on them */
+function cafRow(ctx, colors, geo, y, row, sc, name) {
+  txt(ctx, colors, name, geo.x0, y + 9, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
+  /* the number's ink flips on the darker half of the ramp, which is the light half in the dark theme */
+  row.forEach((v, k) => {
+    const u = (v - sc[0]) / (sc[1] - sc[0]);
+    rect(ctx, geo.colX(k) + 1, y, geo.cw - 2, 18, ramp(colors, u), colors.grid);
+    txt(ctx, colors, fmt(v, 1), geo.colX(k) + geo.cw / 2, y + 9.5, { font: boldMono(colors), fill: u > 0.55 ? colors.surface : colors.ink1, align: "center", baseline: "middle" });
+  });
+}
+function drawCafTransform(ctx, colors, c, geo, tm, ta, beat) {
   const a = c.agg, W = c.W, sc = c.scale, cols = W.length;
   const wy = geo.yS + 30, rh = 11, preY = wy + cols * rh + 8, outY = preY + 40;
-  const col = t != null && t < 0.6 ? Math.min(cols - 1, Math.floor(seg(t, 0, 0.6) * cols)) : -1;
+  const col = tm != null && tm < 0.9 ? Math.min(cols - 1, Math.floor(seg(tm, 0, 0.9) * cols)) : -1;
   const wvals = W.flat(), wlo = Math.min(...wvals), whi = Math.max(...wvals);
   /* W's and ELU's names sit against the grid, right-aligned: at the table's left edge atom 0's number ran into "W" (the walk-through, 2026-10-09) */
   txt(ctx, colors, "W", geo.colX(0) - 6, wy + (cols * rh) / 2 + 3, { font: boldMono(colors), fill: colors.ink3, align: "right" });
   W.forEach((r, q) => r.forEach((v, k) => rect(ctx, geo.colX(k) + 1, wy + q * rh, geo.cw - 2, rh, k === col ? wash(colors.highlight, 0.45) : ramp(colors, (v - wlo) / (whi - wlo)), colors.grid)));
-  txt(ctx, colors, S.eluLabel, geo.colX(0) - 6, (preY + outY) / 2 + 12, { fill: colors.ink3, align: "right" });
-  if (t != null && beat === 1) {
-    const done = Math.min(cols, Math.floor(seg(t, 0, 0.6) * cols + 1e-9));
-    const m = ease(seg(t, 0.62, 1)), y = lerp(preY, outY, m), row = m < 0.5 ? a.pre : a.out;
-    row.forEach((v, k) => { if (t >= 0.6 || k < done) rect(ctx, geo.colX(k) + 1, y, geo.cw - 2, 16, ramp(colors, (v - sc[0]) / (sc[1] - sc[0])), colors.highlight, 1.4); });
-    return;
-  }
-  /* h′ stays a row of cells once it lands, its numbers on them (round 9, his
-     "h′ should have a heatmap also": the cells the press moved vanished at
-     the end and left bare numbers); the number's ink flips on the darker
-     half of the ramp, which is the light half in the dark theme */
-  if (beat >= 2) {
-    txt(ctx, colors, S.rowOut(a.i), geo.x0, outY + 9, { font: boldMono(colors), fill: colors.ink1, baseline: "middle" });
-    a.out.forEach((v, k) => {
-      const u = (v - sc[0]) / (sc[1] - sc[0]);
-      rect(ctx, geo.colX(k) + 1, outY, geo.cw - 2, 18, ramp(colors, u), colors.grid);
-      txt(ctx, colors, fmt(v, 1), geo.colX(k) + geo.cw / 2, outY + 9.5, { font: boldMono(colors), fill: u > 0.55 ? colors.surface : colors.ink1, align: "center", baseline: "middle" });
-    });
-  }
+  if (ta != null || beat >= 3) txt(ctx, colors, S.eluLabel, geo.colX(0) - 6, (preY + outY) / 2 + 12, { fill: colors.ink3, align: "right" });
+  if (tm != null) {
+    const done = Math.min(cols, Math.floor(seg(tm, 0, 0.9) * cols + 1e-9));
+    a.pre.forEach((v, k) => { if (k < done) rect(ctx, geo.colX(k) + 1, preY, geo.cw - 2, 18, ramp(colors, (v - sc[0]) / (sc[1] - sc[0])), colors.highlight, 1.4); });
+  } else if (beat >= 2) cafRow(ctx, colors, geo, preY, a.pre, sc, S.rowPre);
+  if (ta != null) {
+    const m = ease(seg(ta, 0.1, 0.9)), y = lerp(preY, outY, m);
+    (m < 0.5 ? a.pre : a.out).forEach((v, k) => rect(ctx, geo.colX(k) + 1, y, geo.cw - 2, 18, ramp(colors, (v - sc[0]) / (sc[1] - sc[0])), colors.highlight, 1.4));
+  } else if (beat >= 3) cafRow(ctx, colors, geo, outY, a.out, sc, S.rowOut(a.i));
 }
 
 /* THE PICKED NODE'S TABLE: its inputs' rows of x, their weights, the sum;
@@ -765,7 +776,7 @@ function formulaFor(params, anim) {
     const inFlight = anim && anim.stage === page && anim.t < 1;
     const s = anim ? (inFlight ? anim.n[page] : shownStep(anim, page)) : 0;
     /* Graph: Aggregate · Multiply by W · Apply ELU; Aggregate (caffeine): Aggregate · Transform */
-    const parts = page === "graph" ? [[], ["agg"], ["W"], ["act"]][s] : [[], ["agg"], ["W", "act"]][s];
+    const parts = [[], ["agg"], ["W"], ["act"]][s];
     return { key: `${page}-${kind}-${s}`, math: layerMath(new Set(parts)), plain: LAYER_PLAIN, note: S.mathNote[page](kind, s) };
   }
   if (page === "layers") {
@@ -869,6 +880,7 @@ function drawGraph(ctx, colors, w, h, params, g, anim, pointer) {
     const [x0, y0] = slotOf(P, i);
     cellRow(ctx, colors, x0, y0, row, SLOT_C, g.scale);
     txt(ctx, colors, row.map((v) => fmt(v, beat === 0 && !landed ? 1 : 2)).join(" "), P[i][0], y0 - 6, { font: monoFont(colors), fill: colors.ink3, align: "center" });
+    txt(ctx, colors, S.slotTag[landed ? 1 : beat], x0 - 6, y0 + SLOT_C / 2, { font: boldMono(colors), fill: colors.ink2, align: "right", baseline: "middle" });
   });
   if (ag != null && !landed) drawInbox(ctx, colors, g, P, ag, a.i);
   mol.atoms.forEach((at, i) => {
@@ -896,7 +908,7 @@ function drawAggregate(ctx, colors, w, h, params, c0, anim, pointer) {
   const ez = ezFrom(anim), p = ezP(anim), o = ez?.state.c.agg;
   const a = o && o.i === c0.agg.i ? { ...c0.agg, w: lerpArr(o.w, c0.agg.w, p), sum: lerpArr(o.sum, c0.agg.sum, p), pre: lerpArr(o.pre, c0.agg.pre, p), out: lerpArr(o.out, c0.agg.out, p) } : c0.agg;
   const c = { ...c0, agg: a };
-  const tr = anim.n.aggregate === 2 ? phase(anim, "aggregate") : null;
+  const tm = anim.n.aggregate === 2 ? phase(anim, "aggregate") : null, ta = anim.n.aggregate === 3 ? phase(anim, "aggregate") : null;
   const msgU = anim.n.aggregate === 1 ? flight(anim, "aggregate") : null;
   const P = cafPoints(w), A = adjacency(mol), nb = new Set(a.inputs.slice(1));
   let hov = null;
@@ -919,10 +931,10 @@ function drawAggregate(ctx, colors, w, h, params, c0, anim, pointer) {
   if (msgU != null) drawMessages(ctx, colors, P, c.msgs, msgU, { pick: a.i });
 
   const geo = drawInputTable(ctx, colors, w, { x0: leftW(w) + 8, ty: 0, mol, a, kind, beat, graph: false });
-  drawCafTransform(ctx, colors, c, geo, tr, beat);
+  drawCafTransform(ctx, colors, c, geo, tm, ta, beat);
 
   if (hov != null) hoverLabel(ctx, colors, S.aggHover(hov, mol.atoms[hov].el, A[hov].reduce((s, v) => s + v, 0)), P[hov][0], P[hov][1], w);
-  const status = tr != null ? S.trMoving.aggregate : msgU != null ? S.molMoving : beat === 0 ? S.aggStatus[0]("atom", a.i, a.deg) : beat === 1 ? S.aggStatus[1]("atom", a.i, fmt(a.w.reduce((s, v) => s + v, 0))) : S.aggStatus[2]("atom", a.i);
+  const status = tm != null ? S.trMoving.aggregate : ta != null ? S.eluMoving : msgU != null ? S.molMoving : beat === 1 ? S.aggStatus[1]("atom", a.i, fmt(a.w.reduce((s, v) => s + v, 0))) : S.aggStatus[beat]("atom", a.i, a.deg);
   txt(ctx, colors, status, 12, h - 26, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, maxW: w - 24 });
   txt(ctx, colors, kind === "gcn" ? S.aggNote.gcn : S.aggNote[params.alpha], 12, h - 11, { fill: colors.ink3, maxW: w - 24 });
 }
