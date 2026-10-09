@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 95 message-passing — one node or all, and what Readout pools</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .btns { display: flex; gap: 6px; margin: 6px 0 0; }
+  .btns button { font: inherit; font-size: var(--fs-sm); padding: 5px 14px; border: 1px solid var(--grid); border-radius: 4px; background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  .btns button:disabled { opacity: 0.45; cursor: default; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .src { font-size: var(--fs-sm); color: var(--ink-2); max-width: 112ch; }
+  .src li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 95 &middot; <code>message-passing</code> &middot; one node or every node, and what Readout pools &middot; mock</h1>
+  <p class="note">Round 5. (1) The basics graph goes back to three nodes; you are torn between focusing on the one highlighted
+    node and showing every node update, since focus alone suggests the nodes take turns. (2) Readout pools vectors "after the
+    lesson's 2 layers" while Layers runs to 8 &mdash; and, found while checking, the two pages also ran <b>different</b>
+    networks (Readout used its own weights on unscaled x). Every arm in &sect;1 runs live; values are grey, as in the draft.</p>
+
+  <h2>0 &middot; What others do (research, 2026-10-09)</h2>
+  <ul class="src">
+    <li><b>GNN101</b> (Lu et al. 2024, a browser tool for teaching GNNs): each layer's input and output are drawn as separate
+      copies of the graph; hovering a node in the output lights it and the nodes it read in the input. One node is the focus,
+      and the copies make plain that every output node is computed from the same, unchanged input.</li>
+    <li><b>Synchronous message passing</b> is the standard assumption (Dudzik et al. 2024): every message in a layer is made
+      from the previous layer's values, sent and received at once; no node reads a neighbour already updated in the same
+      layer. A single copy that changes node by node shows exactly the wrong thing.</li>
+    <li><b>Your own figure</b> (<code>dl-layer-gnn.png</code>) is already drawn this way: Input on top, Output below, the graph
+      copied.</li>
+  </ul>
+
+  <h2>1 &middot; Basics &mdash; one node in focus, every node updated</h2>
+  <div class="row" id="a"></div>
+  <p class="rec">Arm C, two copies. The top copy is the layer's input h and never changes during the press; the bottom copy is
+    h&prime;. Aggregate draws every node's incoming lines (grey, thin: every node reads at the same time), moves only node 1's
+    three rows down its own lines (violet, the focus), and fills the whole bottom row at once. Because every new value is read
+    from the unchanged top copy, the order cannot matter &mdash; which is the synchronous point, made without a sentence.
+    It is your figure's layout, and the same idea as the Layers page's sheets (one sheet a layer).</p>
+
+  <h2>2 &middot; Readout &mdash; which layer's vectors are pooled</h2>
+  <div class="row" id="r"></div>
+  <p class="rec">Arm B. Readout pools the Layers page's own network (same weights, same scaled x), with a <b>Layers</b> control
+    on Readout, 1&ndash;8, the lesson's 2 the default, and a strip across the top naming the pipeline the lesson builds:
+    x &rarr; layer 1 &rarr; layer 2 &rarr; pool &rarr; classifier &rarr; y. At 8 layers the 14 rows are nearly the same row, so
+    whatever pooling does, the molecule's vector says less &mdash; the Layers page's point, arriving where it costs.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { CAFFEINE, X_MEAN, X_SD } from "../message-passing/data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function node(ctx, x, y, name, { r = 18, fill = T.surface } = {}) { dot(ctx, x, y, r, fill, T.ink1, 1.5); label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", colour: T.ink1, size: 12, weight: "600" }); }
+function ring(ctx, x, y, r, colour) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+function head(ctx, x, y, ang, colour, s = 9) { ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - s * Math.cos(ang - 0.42), y - s * Math.sin(ang - 0.42)); ctx.lineTo(x - s * Math.cos(ang + 0.42), y - s * Math.sin(ang + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+const f = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? (0).toFixed(d) : x.toFixed(d));
+/* grey values, as the draft since round 4 */
+function grey(v) { const a = rgb(T.surface3), b = rgb(T.ink2); const t = Math.max(0, Math.min(1, v)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`; }
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+const seg = (u, a, b) => Math.max(0, Math.min(1, (u - a) / (b - a)));
+const lerp = (a, b, t) => a + (b - a) * t;
+function arm(rowId, title, sub, { h, presses, labels, ms, draw }) {
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  const btns = el("div", "btns"), next = el("button"), reset = el("button", null, "Reset");
+  btns.append(next, reset); box.appendChild(btns); document.getElementById(rowId).appendChild(box);
+  let beat = 0, t0 = null, raf = null;
+  const paint = (u) => { ctx.clearRect(0, 0, W, h); draw(ctx, beat, u); };
+  const sync = () => { next.textContent = labels[Math.min(beat, labels.length - 1)]; next.disabled = beat >= presses || raf != null; };
+  next.onclick = () => {
+    if (beat >= presses || raf != null) return;
+    beat += 1; t0 = null; sync();
+    const step = (ts) => { if (t0 == null) t0 = ts; const t = Math.min(1, (ts - t0) / ms); paint(t < 1 ? t : null); if (t < 1) raf = requestAnimationFrame(step); else { raf = null; sync(); } };
+    raf = requestAnimationFrame(step);
+  };
+  reset.onclick = () => { if (raf) cancelAnimationFrame(raf); raf = null; beat = 0; sync(); paint(null); };
+  sync(); paint(null);
+}
+function still(rowId, title, sub, h) { const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); const c = document.createElement("canvas"); c.width = W * DPR; c.height = h * DPR; c.style.width = `${W}px`; c.style.height = `${h}px`; box.appendChild(c); document.getElementById(rowId).appendChild(box); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+
+/* ================================================================ the chain's numbers, as the draft draws them */
+const X = [[0.2, 0.8, 0.5], [0.8, 0.4, 0.8], [0.9, 0.2, 0.8]];
+const NB = [[1], [0, 2], [1]];
+const deg = NB.map((n) => n.length + 1);
+const wgt = (i, j) => 1 / Math.sqrt(deg[i] * deg[j]);
+const inputs = (i) => [i, ...NB[i]];
+const SUM = [0, 1, 2].map((i) => [0, 1, 2].map((c) => inputs(i).reduce((s, j) => s + wgt(i, j) * X[j][c], 0)));
+const PICK = 1, NX = [0.17, 0.5, 0.83].map((p) => p * W);
+const cells = (ctx, x, y, row, c = 24, stroke = T.ink1, lw = 1) => row.forEach((v, k) => rect(ctx, x + k * c, y, c, c, grey(v), stroke, lw));
+const nums = (ctx, x, y, row) => label(ctx, row.map((v) => f(v)).join(" "), x, y, { mono: true, size: 10, colour: T.ink3, align: "center" });
+
+/* one copy, as the draft: A every node at once, B the picked node only */
+function oneCopy(ctx, beat, u, allMove) {
+  const Y = 160;
+  label(ctx, "the graph", 14, 18, { weight: "600", colour: T.ink1 });
+  line(ctx, NX[0], Y, NX[2], Y, T.ink1, 1.6);
+  const landed = beat >= 1 && u == null;
+  const rowOf = (i) => (landed && (allMove || i === PICK) ? SUM[i] : X[i]);
+  [0, 1, 2].forEach((i) => { cells(ctx, NX[i] - 36, Y - 74, rowOf(i)); nums(ctx, NX[i], Y - 80, rowOf(i)); });
+  if (u != null) {
+    const q = ease(u);
+    const send = [];
+    for (let i = 0; i < 3; i++) if (allMove || i === PICK) for (const j of NB[i]) send.push([j, i]);
+    for (const [j, i] of send) {
+      const dir = Math.sign(NX[i] - NX[j]), x = lerp(NX[j] + dir * 22, NX[i] - dir * 22, q), y = Y + (dir > 0 ? -12 : 12);
+      const c = 7 + 9 * wgt(i, j);
+      X[j].forEach((v, k) => rect(ctx, x - 1.5 * c + k * c, y - c / 2, c, c, grey(v), i === PICK ? T.highlight : T.ink1, i === PICK ? 1.6 : 1));
+    }
+  }
+  [0, 1, 2].forEach((i) => node(ctx, NX[i], Y, String(i), { fill: i === PICK ? wash(T.highlight, 0.35) : wash(T.groupA, 0.3) }));
+  ring(ctx, NX[PICK], Y, 25, T.highlight);
+  label(ctx, u != null ? (allMove ? "every node sends its row to its neighbours" : "node 1's neighbours send it their rows") : landed ? (allMove ? "every node holds its sum" : "node 1 holds its sum; nodes 0 and 2 still hold x") : "each node holds its row of x", 14, 300, { weight: "600", colour: T.ink1 });
+}
+arm("a", "Basics · A · one copy, every node at once (the draft)", "every row travels at the same time; node 1's framed;\nhard to follow any one", { h: 316, presses: 1, labels: ["Aggregate"], ms: 1700, draw: (ctx, b, u) => oneCopy(ctx, b, u, true) });
+arm("a", "Basics · B · one copy, node 1 only", "only node 1's inputs travel, only node 1 updates —\nreads as if the nodes took turns", { h: 316, presses: 1, labels: ["Aggregate"], ms: 1700, draw: (ctx, b, u) => oneCopy(ctx, b, u, false) });
+
+/* C · two copies: the layer's input above, its output below */
+arm("a", "Basics · C · two copies: input above, output below (recommended)", "every node's incoming lines in grey; node 1's rows travel (violet);\nthe whole bottom row fills at once, read from the unchanged top", {
+  h: 470, presses: 1, labels: ["Aggregate"], ms: 2200,
+  draw(ctx, beat, u) {
+    const YT = 120, YB = 330;
+    label(ctx, "h · the layer's input", 14, 18, { weight: "600", colour: T.ink1 });
+    label(ctx, "h′ · every node's sum, read from the copy above", 14, YB + 100, { weight: "600", colour: T.ink1 });
+    /* the copies */
+    line(ctx, NX[0], YT, NX[2], YT, T.ink1, 1.6); line(ctx, NX[0], YB, NX[2], YB, T.ink1, 1.6);
+    [0, 1, 2].forEach((i) => { cells(ctx, NX[i] - 36, YT - 74, X[i]); nums(ctx, NX[i], YT - 80, X[i]); });
+    const pressed = beat >= 1;
+    /* who reads whom: every node's inputs, one line each, from the top copy down */
+    if (pressed) for (let i = 0; i < 3; i++) for (const j of inputs(i)) {
+      const toPick = i === PICK, w = wgt(i, j);
+      line(ctx, NX[j], YT + 20, NX[i], YB - 20, toPick ? T.highlight : T.ink3, toPick ? 1 + 10 * w : 1.2);
+      if (toPick && u == null) head(ctx, NX[i] + (NX[j] - NX[i]) * 0.1, YB - 20 - (YB - YT - 40) * 0.1 + 6, Math.atan2(YB - YT - 40, NX[i] - NX[j]), T.highlight, 11);
+      if (toPick) label(ctx, f(w), lerp(NX[j], NX[i], 0.3) + (j === i ? 22 : j < i ? -26 : 26), lerp(YT + 20, YB - 20, 0.3), { mono: true, weight: "600", colour: T.ink1, align: "center" });
+    }
+    if (u != null) {
+      const q = ease(u);
+      for (const j of inputs(PICK)) {
+        const c = 8 + 10 * wgt(PICK, j), x = lerp(NX[j], NX[PICK], q), y = lerp(YT + 24, YB - 24, q);
+        X[j].forEach((v, k) => rect(ctx, x - 1.5 * c + k * c, y - c / 2, c, c, grey(v), T.highlight, 1.6));
+      }
+    }
+    const landed = pressed && u == null;
+    [0, 1, 2].forEach((i) => {
+      if (landed) { cells(ctx, NX[i] - 36, YB + 30, SUM[i], 24, i === PICK ? T.highlight : T.ink1, i === PICK ? 1.6 : 1); nums(ctx, NX[i], YB + 70, SUM[i]); }
+      else [0, 1, 2].forEach((k) => rect(ctx, NX[i] - 36 + k * 24, YB + 30, 24, 24, null, T.grid));
+    });
+    [0, 1, 2].forEach((i) => { node(ctx, NX[i], YT, String(i), { fill: i === PICK ? wash(T.highlight, 0.35) : T.surface }); node(ctx, NX[i], YB, String(i), { fill: i === PICK ? wash(T.highlight, 0.35) : T.surface }); });
+    ring(ctx, NX[PICK], YB, 25, T.highlight);
+    label(ctx, u != null ? "every node reads its neighbours and itself from the copy above, at the same time" : landed ? "every node holds its sum · the copy above is unchanged, so the order never mattered" : "press Aggregate: every node gathers from the copy above", 14, 456, { weight: "600", colour: T.ink1 });
+  },
+});
+
+/* ================================================================ §2 Readout */
+const rng = makeRng(1);
+const glorot = (fin, fout) => { const b = Math.sqrt(6 / (fin + fout)); return Array.from({ length: fin }, () => Array.from({ length: fout }, () => rng.uniform(-b, b))); };
+glorot(3, 3); glorot(5, 5);
+const WLAY = [...Array(8).keys()].map((k) => glorot(k === 0 ? 5 : 16, 16));
+const n = CAFFEINE.atoms.length, A = Array.from({ length: n }, () => new Array(n).fill(0));
+for (const [i, j] of CAFFEINE.bonds) { A[i][j] = 1; A[j][i] = 1; }
+const dd = A.map((r) => r.reduce((s, v) => s + v, 0) + 1), P = A.map((r, i) => r.map((v, j) => (v || i === j ? 1 / Math.sqrt(dd[i] * dd[j]) : 0)));
+const mm = (Xm, Wm) => Xm.map((r) => Wm[0].map((_, k) => r.reduce((s, v, q) => s + v * Wm[q][k], 0)));
+const HS = [CAFFEINE.atoms.map((a) => a.x.map((v, c) => (v - X_MEAN[c]) / (X_SD[c] || 1)))];
+for (const Wm of WLAY) HS.push(mm(P, mm(HS.at(-1), Wm)).map((r) => r.map((v) => (v > 0 ? v : Math.expm1(v)))));
+
+function pipeline(ctx, k, y) {
+  /* past three layers the strip elides the middle, so it stays one line at 550 px */
+  const ls = [...Array(k).keys()].map((i) => `layer ${i + 1}`), mid = k > 3 ? [ls[0], "…", ls.at(-1)] : ls;
+  const items = ["x", ...mid, "pool", "classifier", "y"];
+  let x = 14;
+  ctx.save(); ctx.font = `11px ${T.font}`;
+  items.forEach((s, i) => {
+    const wv = ctx.measureText(s).width + 14, isLayer = s.startsWith("layer");
+    rect(ctx, x, y, wv, 20, isLayer ? wash(T.groupA, 0.18) : T.surface2, T.grid);
+    label(ctx, s, x + wv / 2, y + 14, { align: "center", colour: T.ink1 });
+    x += wv; if (i < items.length - 1) { label(ctx, "→", x + 7, y + 14, { align: "center", colour: T.ink3 }); x += 14; }
+  });
+  ctx.restore();
+}
+function rowsPanel(ctx, H, y0, title) {
+  label(ctx, title, 14, y0 - 8, { weight: "600", colour: T.ink1 });
+  const lo = H[0].map((_, k) => Math.min(...H.map((r) => r[k]))), hi = H[0].map((_, k) => Math.max(...H.map((r) => r[k])));
+  H.forEach((r, i) => {
+    label(ctx, `${i} ${CAFFEINE.atoms[i].el}`, 52, y0 + i * 13 + 10, { size: 9, mono: true, colour: T.ink3, align: "right" });
+    r.slice(0, 8).forEach((v, k) => rect(ctx, 58 + k * 26, y0 + i * 13, 26, 13, grey((v - lo[k]) / (hi[k] - lo[k] || 1)), T.grid));
+  });
+  /* how alike the rows are: the mean cosine distance, as the Layers page's curve */
+  let s = 0, c = 0; for (let i = 0; i < H.length; i++) for (let j = i + 1; j < H.length; j++) { let d = 0, a = 0, b = 0; for (let q = 0; q < H[i].length; q++) { d += H[i][q] * H[j][q]; a += H[i][q] ** 2; b += H[j][q] ** 2; } s += 1 - d / Math.sqrt(a * b + 1e-12); c++; }
+  label(ctx, `rows unlike: ${f(s / c)} (the Layers page's curve at this depth)`, 290, y0 + 20, { size: 10, colour: T.ink2 });
+  label(ctx, "each column on its own scale: small differences", 290, y0 + 36, { size: 10, colour: T.ink3 });
+  label(ctx, "between rows still show as light against dark", 290, y0 + 50, { size: 10, colour: T.ink3 });
+}
+{
+  const ctx = still("r", "Readout · A · as the draft", "\"after the lesson's 2 layers\" on a network of its own (its weights, unscaled x);\nLayers went to 8 on another — two answers to \"which vectors\"", 300);
+  label(ctx, "one row an atom · h after the lesson's 2 layers", 14, 22, { weight: "600", colour: T.ink1 });
+  label(ctx, "the Layers page: 8 layers, a different network", 14, 44, { size: 10, colour: T.ink3 });
+  label(ctx, "the Readout page: 2 layers, its own weights, unscaled x", 14, 60, { size: 10, colour: T.ink3 });
+  label(ctx, "a student pressing Add a layer to 4, then opening Readout,", 14, 96, { size: 11, colour: T.ink1 });
+  label(ctx, "finds vectors after 2 layers, and nothing says why", 14, 112, { size: 11, colour: T.ink1 });
+}
+for (const k of [2, 8]) {
+  const ctx = still("r", `Readout · B · a Layers control, the same network (recommended) · Layers ${k}`, `the pipeline strip names what is pooled; Layers 1–8 on Readout, 2 by default;\nthe rows are the Layers page's own vectors after ${k}`, 300);
+  pipeline(ctx, k, 10);
+  rowsPanel(ctx, HS[k], 56, `one row an atom · h after ${k} layer${k === 1 ? "" : "s"}`);
+}
+{
+  const ctx = still("r", "Readout · C · follow the Layers page's count", "Readout pools after however many layers the Layers page has added;\nno control, but the link cannot say which", 300);
+  label(ctx, "Readout's rows = the vectors after k layers, k = the Layers page's presses", 14, 24, { size: 11, colour: T.ink1 });
+  label(ctx, "· one picture fewer to keep in step with the other", 14, 50, { size: 10, colour: T.ink2 });
+  label(ctx, "· but a press is not a parameter: a shared link or a reload", 14, 68, { size: 10, colour: T.ink2 });
+  label(ctx, "  opens Readout at 0 layers, and the figure disagrees with its URL", 14, 84, { size: 10, colour: T.ink2 });
+}
+</script>
+</body>
+</html>
