@@ -118,8 +118,9 @@ const S = {
   atomDetail: "the atom whose update the table shows; a click on an atom picks it too",
   layerLabel: "Layer",
   layerDetail: "GCN weights each input by 1/√(dᵢ dⱼ), set by the two degrees; GAT weights it by α, a softmax over the inputs that training sets",
-  weightsLabel: "Weights",
-  weightsDetail: "GAT's α at initialisation, or after the lesson's GATNet was trained on its 2,335 molecules: layer 1, the mean of its four heads",
+  /* round 9: "Weights" read as W too, which every page shows at its random start */
+  weightsLabel: "GAT's α",
+  weightsDetail: "the attention weights: α at initialisation, or after a 2-layer GAT was trained on 2,335 molecules (layer 1, the mean of its four heads); W stays at its random start",
   fromLabel: "Atom",
   fromDetail: "the atom whose reach is drawn; a click on an atom picks it too",
   poolLabel: "Pooling",
