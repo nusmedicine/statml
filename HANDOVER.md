@@ -1,10 +1,43 @@
 # Handover
 
-**2026-10-09 (later): 95 `message-passing` SHIPPED AND PUSHED as "Deep
-Learning - Graphs: Message Passing" (27 states, three determinism runs and
-a MATCH pass at DPR 1.25), after nine review rounds, the copy audit and a
-student walk-through. The record is the catalogue's § *Slot 95*.** NEXT:
-97 `scaffold-split`, the arc's last picked slot: read 09-2 cells 18 and 23–30, measure first.
+**SESSION CLOSED 2026-10-09, following 63d8f0d.** 95 `message-passing`
+SHIPPED AND PUSHED as "Deep Learning - Graphs: Message Passing" (27 states,
+three determinism runs and a MATCH pass at DPR 1.25; deploy 37953076693
+green; the live manifest says shipped). The record is the catalogue's
+§ *Slot 95*. **NEXT: 97 `scaffold-split`**, the graph arc's last picked
+slot — read 09-2 cells 18 and 23–30 in the Master notebook, measure first,
+then mock.
+
+**95 now.** Rail: **Basics** [Graph] · **Molecule** [Aggregate · Layers ·
+Readout]. Graph (his three-node chain) and Aggregate (caffeine, GCN · GAT,
+GAT's α Untrained · Trained) both press Aggregate → Multiply by W → Apply
+ELU; Aggregate's rows land in an inbox with their weights and add into one
+row; Apply ELU on Graph drops each number of H·W onto an ELU plot the
+matrix's height. Layers: four caffeine sheets with named atoms, cone,
+receptive-field cloud, cosine similarity / cosine distance (K_MAX 4).
+Readout pools the Layers network after 1–4 layers. A MathML card gives the
+lesson's own equations (σ(W · Aggregate(…)), POOL, MLP), the part a press
+reached highlighted. Rail controls ease (core's `anim.easing`); a new node
+or atom restarts its page's presses. Lab: `_lab/message-passing-*-mock.html`
+(five mocks), `_lab/message-passing-copy-scan.mjs`, message-passing's
+states in `_lab/text-overlap-sweep.html`; `data.js` from
+`_lab/message-passing-data.py` (needs the untracked CSV and rdkit).
+
+**Learned this session, worth keeping.** (1) A driven fingerprint state
+may not carry `shown=` — `check` fails it; reach later presses with
+`before` steps. (2) A legend gets params only, never `anim`, so it cannot
+name a mark that appears with a press — say it in a canvas caption
+instead. (3) The manifest blurb is capped at 120 characters by `check`.
+(4) For any equation, grep the Master notebook's `$$…$$` first and use its
+symbols (his round 8). (5) A press that changes nothing on the main drawing
+reads as broken, even when a curve below the fold moves (the stack stopped
+at three while presses ran to eight). (6) An audit does not cover strings
+written after it — re-scan the delta before shipping.
+
+**Untracked and safe to leave:** the `_lab` JSON/CSV/PNG measurement files
+listed by `git status` (including `graph-fingat-training.csv`, the lesson's
+molecule file, which must stay untracked), and
+`widgets/explainability/main.js.tmp.*`, a stray editor temp.
 
 **2026-10-09: THE GRAPH ARC (PHM5005 09) PICKED — 94 · 95 · 97 — AND 94
 `graph-representation` SHIPPED AND PUSHED (9460e7b, 12 states) as "Deep
