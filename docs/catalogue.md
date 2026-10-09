@@ -24700,6 +24700,47 @@ layer · 94's five columns in the table · Aggregate's presses · Layers' figure
 depth; settled unless he says otherwise: 94's credit line and the arc's
 colours.
 
+### Slot 97 · `scaffold-split` — MEASURED AND MOCKED 2026-10-09
+
+Re-measured in the lesson's own terms, which the arc measure was not: cell
+18's **label** split (stratified on Activity) against cell 28's **scaffold**
+split, both in cell 28's two stages (train / val / test, 80 / 10 / 10), eleven
+seeds (0–9 and the lesson's 42), scored by the forest and by **cell 42's GCN**
+trained with cells 45–57's set-up (GCNConv written out; ~1 min a split).
+`_lab/scaffold-split-measure.py` (untracked JSON out),
+`_lab/scaffold-split-export.py`, `_lab/scaffold-split-mock.html`.
+
+- **The lesson never trains on a label split**, so cell 18's "may
+  overestimate performance" is asserted, not shown. Measured: the lesson's
+  GCN scores macro F1 0.66 → 0.60 and AUC 0.87 → 0.77 (label → scaffold),
+  higher under the label split on 8 of 11 seeds; the forest 0.79 → 0.69, 9 of
+  11. The ranges overlap — no caption may say "always".
+- **Shared scaffolds carry the claim without fingerprints**: under the label
+  split 62% of test molecules share a scaffold with a training molecule
+  (58–64% over seeds), and over all seeds 54 of 132 test actives share one with
+  a training *active*; 0 under the scaffold split by construction. 55 of the
+  file's 120 actives share a scaffold with another active (the
+  fluoroquinolones 5/5 and 4/4, tetracyclines 6/7).
+- **The scaffold split's test set runs 154–476 molecules and 4–18 actives**
+  with the seed (`test_size` counts groups; benzene holds 278, the acyclic
+  "" scaffold 208); the label split's is 234 with 12 every seed.
+- **Cell 18's figure from the file**: 3-methylindole is row 682 (inactive);
+  5-bromoindole and indole are not in the file, so tryptamine (row 1192, same
+  scaffold group of 11, all inactive) stands in. Ciprofloxacin (61) and
+  norfloxacin (35): one family, two scaffolds (N1 cyclopropyl ring kept, ethyl
+  removed).
+- **Data terms checked**: FinGAT has no licence (GitHub API); Stokes et al.
+  2020 is © Elsevier, MIT's accepted manuscript CC BY-NC-ND 4.0, nothing on
+  the supplementary table. The mock recommends embedding derived numbers only
+  (group, label, part per seed — no SMILES) plus the four drawn molecules.
+
+Open calls, with the mock (§5, eleven): data · pages Scaffold · Split ·
+Evaluate · split names (Label, the notebook's) · three parts in two presses ·
+the example pair(s) · the file as blocks · shared scaffolds over the arc's
+similarity histogram (revisits 5.12) · the lesson's GCN over the forest
+(revisits 5.11) · macro F1 · Seed 42–51 · colours (an active as a dark
+square, since `--c-event` and `--c-holdout` are both red).
+
 ---
 
 ## Two arcs, not one — now three

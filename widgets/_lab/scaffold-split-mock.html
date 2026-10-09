@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 97 scaffold-split — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; vertical-align: top; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 90px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.on { border-color: var(--ink-1); font-weight: 600; }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+  img.fig { max-height: 170px; border: 1px solid var(--grid); background: #fff; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>97 <code>scaffold-split</code> &middot; Deep Learning - Graphs: Scaffold Split &middot; mock</h1>
+  <p class="note">
+    09-2 cells 18 and 23&ndash;30, read from the Master copy. Every number on this page is computed from the lesson's own file by
+    <code>scaffold-split-measure.py</code> (splits, shared scaffolds, the forest; the lesson's GCN, cell 42, trained per seed with
+    cells 45&ndash;57's set-up) and <code>scaffold-split-export.py</code>. Drawn at the widget's 550px.
+  </p>
+
+  <h2>0 &middot; What the lesson says, and what the file does</h2>
+  <div class="row">
+    <img class="fig" src="figs/dl-graph-molecule-scaffold.png" alt="">
+    <p class="note" style="max-width: 80ch"><b>Cell 18</b> names two splits. A <b>label split</b>: <i>"Each split may contain molecules
+      with similar backbones (scaffolds)"</i> and <i>"May overestimate performance if model recognizes compounds with similar
+      backbones."</i> A <b>scaffold split</b>: molecules grouped by scaffold, then split by group, which <i>"tests whether the model
+      can generalize to new chemical families."</i> Cells 23&ndash;26 find each molecule's Murcko scaffold and count 1,114; cell 28
+      splits in two stages, 80 / 20 then 50 / 50, by scaffold group; cell 30 plots each part's label proportions. <b>The lesson
+      never trains on a label split</b>, so the claim in cell 18 is asserted and not shown &mdash; the widget can show it.</p>
+  </div>
+  <table id="t0"></table>
+
+  <h2>1 &middot; Scaffold page &mdash; the figure, on molecules from the file</h2>
+  <p class="note">Cell 18's figure, redrawn: two related molecules, a bracket, their scaffold. The figure's <b>3-methylindole is in the
+    file</b> (row 682, inactive); its 5-bromoindole is not, so <b>tryptamine</b> stands in from the same scaffold group. The
+    <b>quinolones</b> are the arm the figure lacks: ciprofloxacin and norfloxacin are one family (both active), but ciprofloxacin's N1
+    carries a cyclopropyl <i>ring</i>, which a scaffold keeps, and norfloxacin's an ethyl, which it removes &mdash; <b>two scaffolds</b>,
+    so a scaffold split may put them on opposite sides. One press, <b>Find scaffold</b>: the scaffold's atoms move across as a copy,
+    the side chains stay behind in <code>--ink-3</code>. Atoms as nodes, as 94 and 95 draw them. Below: the whole file, one outlined
+    block per scaffold, the example's block(s) ringed.</p>
+  <div class="row" id="g1"></div>
+
+  <h2>2 &middot; Split page &mdash; the lesson's two stages, both splits, seed 42</h2>
+  <p class="note">The same blocks. <b>Split</b> Label &middot; Scaffold; presses <b>Split 80 / 20</b> then <b>Split 50 / 50</b> (cell 27's
+    two stages: the 20% held out first, then halved into validation and test). Under the label split, test cells land inside nearly
+    every block; under the scaffold split every block is one colour. Under each grid, cell 30's figure &mdash; each part's label
+    proportions on its 0&ndash;1 axis &mdash; with the share printed, since 5% is four pixels tall.</p>
+  <div class="row" id="g2"></div>
+  <table id="t2"></table>
+
+  <h2>3 &middot; Evaluate page &mdash; what the test set shares with training, and the score</h2>
+  <p class="note">Two arms for the first measure. <b>A</b>, in the lesson's terms: how many test molecules share a scaffold with a
+    training molecule, and how many test <i>actives</i> share one with a training <i>active</i> &mdash; the molecules cell 18 says the model
+    can recognize. <b>B</b>, the arc mock's pick: each test molecule's similarity to its most similar training molecule (Tanimoto on
+    Morgan fingerprints). Then the score, all eleven seeds, the lesson's seed ringed. Presses: <b>Compare</b> (the two counts) then <b>Score</b>.</p>
+  <div class="row" id="g3"></div>
+  <table id="t3"></table>
+
+  <h2>4 &middot; The rail, as proposed</h2>
+  <div class="rail"><span class="w">Step</span><span class="pg on">Scaffold</span><span class="pg">Split</span><span class="pg">Evaluate</span><span class="n">cell 18's item 7, "Evaluation on Test Set", names the third</span></div>
+  <div class="rail"><span class="w">Example</span><span class="pg on">Indoles</span><span class="pg">Quinolones</span><span class="n">Scaffold page only; press Find scaffold</span></div>
+  <div class="rail"><span class="w">Split</span><span class="pg on">Label</span><span class="pg">Scaffold</span><span class="n">Split and Evaluate; presses Split 80 / 20 &middot; Split 50 / 50 on Split, Compare &middot; Score on Evaluate</span></div>
+  <div class="rail"><span class="w">Seed</span><span class="pg on">42</span><span class="pg">43</span><span class="pg">&hellip;</span><span class="pg">51</span><span class="n">42 is cell 28's SEED, so the default is the lesson's own split</span></div>
+
+  <h2>5 &middot; Calls for you</h2>
+  <div id="calls">
+  <p class="q"><b class="h">5.1 &middot; Data</b>
+    <b>A &middot; the lesson's molecules, embedded as derived numbers only &mdash; each molecule's scaffold group, label and part per seed, no SMILES &mdash; plus the four molecules drawn, credited as 94 is ("Molecule data: Stokes et al., Cell 2020, via FinGAT") (recommended)</b> &nbsp;|&nbsp;
+    B &middot; simulated families that behave the same way.<br>
+    <span style="color: var(--ink-2)">What I found: the FinGAT repository has no licence (GitHub reports none); Stokes et al. 2020 is &copy; 2020 Elsevier, and MIT's
+    copy of the accepted manuscript is CC BY-NC-ND 4.0. Neither says anything about the supplementary table itself. Your call, as on 94.</span></p>
+  <p class="q"><b class="h">5.2 &middot; Pages</b>
+    <b>A &middot; Scaffold &middot; Split &middot; Evaluate, under Step (recommended)</b> &nbsp;|&nbsp;
+    B &middot; Scaffold &middot; Split, with the score as the Split page's last press</p>
+  <p class="q"><b class="h">5.3 &middot; The two splits' names</b>
+    <b>A &middot; Label &middot; Scaffold, cell 18's words, so the widget matches the lesson that links to it (recommended)</b> &nbsp;|&nbsp;
+    B &middot; Random &middot; Scaffold, the usual name (finding 5, told 2026-10-09: what cell 18 calls a label split is usually called a stratified random split)</p>
+  <p class="q"><b class="h">5.4 &middot; Parts</b>
+    <b>A &middot; train &middot; validation &middot; test, in cell 28's two stages as two presses (Split 80 / 20, Split 50 / 50), with cell 30's bars under the blocks (recommended)</b> &nbsp;|&nbsp;
+    B &middot; train &middot; test, one press</p>
+  <p class="q"><b class="h">5.5 &middot; The Scaffold page's example</b>
+    <b>A &middot; Example Indoles &middot; Quinolones in your figure's layout: 3-methylindole and tryptamine to one scaffold; ciprofloxacin and norfloxacin, one family, to two (recommended)</b> &nbsp;|&nbsp;
+    B &middot; Indoles only, as the figure</p>
+  <p class="q"><b class="h">5.6 &middot; The file, drawn</b>
+    <b>A &middot; one outlined block per scaffold, largest first, actives first inside each block; the 860 single-molecule scaffolds as loose cells below (recommended)</b> &nbsp;|&nbsp;
+    B &middot; a table, cell 25's <code>df.head()</code> with its <code>scaffold</code> column</p>
+  <p class="q"><b class="h">5.7 &middot; Evaluate's first measure (revisits the arc mock's 5.12)</b>
+    <b>A &middot; shared scaffolds: 62% of the label split's test molecules share a scaffold with a training molecule and 5 of its 12 actives share one with a training active; 0 under the scaffold split. The lesson's own terms, and cell 18's claim made literal (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the similarity histogram you picked at the arc: Tanimoto on Morgan fingerprints, which the lesson never introduces</p>
+  <p class="q"><b class="h">5.8 &middot; The model (revisits the arc mock's 5.11)</b>
+    <b>A &middot; the lesson's GCN, cell 42, trained ahead for each split and seed with cells 45&ndash;57's set-up: macro F1 0.66 &rarr; 0.60, AUC 0.87 &rarr; 0.77, the label split higher on 8 of 11 seeds (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the random forest on fingerprints you picked at the arc: macro F1 0.79 &rarr; 0.69, AUC 0.90 &rarr; 0.84, higher on 9 of 11</p>
+  <p class="q"><b class="h">5.9 &middot; The score</b>
+    <b>A &middot; macro F1, the lesson's metric (cells 51, 57) (recommended)</b> &nbsp;|&nbsp; B &middot; AUC &nbsp;|&nbsp; C &middot; both</p>
+  <p class="q"><b class="h">5.10 &middot; Seed</b>
+    <b>A &middot; 42&ndash;51, the default 42 being cell 28's SEED, so the page opens on the lesson's own split (recommended; I re-measure on those seeds)</b> &nbsp;|&nbsp;
+    B &middot; 42 only, no control (hides that the scaffold split's test set runs 154&ndash;476 molecules)</p>
+  <p class="q"><b class="h">5.11 &middot; Colours, as drawn</b>
+    train <code>--c-group-a</code>, validation <code>--c-group-b</code>, test <code>--c-holdout</code> (generalization's three) &middot; an active
+    a dark square inside its cell, not <code>--c-event</code>, because <code>--c-event</code> and <code>--c-holdout</code> are the same red &middot;
+    the example's block <code>--c-highlight</code> &middot; removed side chains <code>--ink-3</code>. Any to change?</p>
+  <p class="note" style="margin-top: var(--sp-3)">Settled at the arc and not asked again: slug <code>scaffold-split</code>, title
+    <b>Deep Learning - Graphs: Scaffold Split</b>. Left to the draft, each with a conventional answer: the numbers in a generated
+    <code>data.js</code> (a <code>_lab</code> script, as 94 and 95), scores computed ahead (no training in the page), core unchanged.</p>
+  </div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function arrow(ctx, x1, y1, x2, y2, colour, width = 1.4, head = 7) {
+  line(ctx, x1, y1, x2, y2, colour, width);
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - head * Math.cos(a - 0.4), y2 - head * Math.sin(a - 0.4)); ctx.lineTo(x2 - head * Math.cos(a + 0.4), y2 - head * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+const pct = (v, d = 0) => `${(100 * v).toFixed(d)}%`;
+function table(id, head, rows) {
+  const t = document.getElementById(id); const tr = el("tr"); head.forEach((h) => tr.appendChild(el("th", null, h))); t.appendChild(tr);
+  rows.forEach((r) => { const x = el("tr"); r.forEach((v) => x.appendChild(el("td", null, v))); t.appendChild(x); });
+}
+
+const D = await fetch("scaffold-split-mock-data.json").then((r) => r.json());
+const Ms = D.measure, S = Ms.summary;
+
+/* ------------------------------------------------------------ section 0 */
+{
+  const lab = (k) => Ms.per_seed[k].find((r) => r.seed === 42);
+  const L = lab("label"), Sc = lab("scaffold");
+  table("t0", ["", "the file", "label split (seed 42)", "scaffold split (seed 42, the lesson's)"], [
+    ["molecules", `${Ms.file.rows} rows, ${Ms.file.parsed} parse`, `${L.train.n} / ${L.val.n} / ${L.test.n}`, `${Sc.train.n} / ${Sc.val.n} / ${Sc.test.n}`],
+    ["actives", `${Ms.file.active} (${pct(Ms.file.active / Ms.file.parsed, 1)})`, `${L.train.actives} / ${L.val.actives} / ${L.test.actives}`, `${Sc.train.actives} / ${Sc.val.actives} / ${Sc.test.actives}`],
+    ["scaffolds", `${Ms.file.scaffolds}; ${Ms.file.singletons} hold one molecule`, `${L.train.scaffolds} / ${L.val.scaffolds} / ${L.test.scaffolds}`, `${Sc.train.scaffolds} / ${Sc.val.scaffolds} / ${Sc.test.scaffolds}`],
+    ["test size over 11 seeds", "", `${S.label.test_n.min} every seed, ${S.label.test_actives.min} actives`, `${S.scaffold.test_n.min}–${S.scaffold.test_n.max}, ${S.scaffold.test_actives.min}–${S.scaffold.test_actives.max} actives`],
+    ["actives sharing a scaffold with another active", `${Ms.actives_by_scaffold.actives_sharing_scaffold_with_another_active} of ${Ms.actives_by_scaffold.actives}`, "", ""],
+  ]);
+}
+
+/* ------------------------------------------------------- molecule drawing */
+function node(ctx, x, y, name, { r = 7, fill = T.surface2, stroke = T.ink1, ink = T.ink1, size = 9, lw = 1.1 } = {}) {
+  dot(ctx, x, y, r, fill, stroke, lw);
+  label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", colour: ink, size, weight: "600" });
+}
+function drawBond(ctx, p, q, type, colour, width = 1.3) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L * 2.2, ny = dx / L * 2.2;
+  if (type === "DOUBLE") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, colour, width); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, colour, width); }
+  else if (type === "TRIPLE") { line(ctx, p[0], p[1], q[0], q[1], colour, width); line(ctx, p[0] + 1.6 * nx, p[1] + 1.6 * ny, q[0] + 1.6 * nx, q[1] + 1.6 * ny, colour, width); line(ctx, p[0] - 1.6 * nx, p[1] - 1.6 * ny, q[0] - 1.6 * nx, q[1] - 1.6 * ny, colour, width); }
+  else if (type === "AROMATIC") { line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, colour, width); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, colour, width, [3, 2.5]); }
+  else line(ctx, p[0], p[1], q[0], q[1], colour, width);
+}
+/* one scale for a pair, so the shared core is the same size in both */
+function pairScale(mols, w, h) {
+  let s = 40;
+  for (const m of mols) {
+    const xs = m.atoms.map((a) => a.x), ys = m.atoms.map((a) => a.y);
+    s = Math.min(s, w / Math.max(...xs.map((x) => x - Math.min(...xs)), 1e-6), h / Math.max(...ys.map((y) => y - Math.min(...ys)), 1e-6));
+  }
+  return s;
+}
+/* place a molecule's whole drawing in a box (the left column) */
+function placeBox(m, s, x0, y0, w, h) {
+  const xs = m.atoms.map((a) => a.x), ys = m.atoms.map((a) => a.y);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  return m.atoms.map((a) => [x0 + w / 2 + (a.x - cx) * s, y0 + h / 2 + (a.y - cy) * s]);
+}
+/* place a molecule so that its SCAFFOLD's centre sits at (cx, cy): the copy that moves right */
+function place(m, s, cx, cy) {
+  const sc = m.atoms.filter((a) => a.scaffold);
+  const mx = sc.reduce((t, a) => t + a.x, 0) / sc.length, my = sc.reduce((t, a) => t + a.y, 0) / sc.length;
+  return m.atoms.map((a) => [cx + (a.x - mx) * s, cy + (a.y - my) * s]);
+}
+function drawMol(ctx, m, P, { only = null, dimSide = false } = {}) {
+  const keep = (i) => (only ? m.atoms[i].scaffold : true);
+  const side = (i) => dimSide && !m.atoms[i].scaffold;
+  m.bonds.forEach(([i, j, t]) => { if (keep(i) && keep(j)) drawBond(ctx, P[i], P[j], t, side(i) || side(j) ? T.ink3 : T.ink2); });
+  m.atoms.forEach((a, i) => { if (keep(i)) node(ctx, P[i][0], P[i][1], a.el, side(i) ? { stroke: T.ink3, ink: T.ink3 } : {}); });
+}
+
+/* ------------------------------------------------------------ the blocks */
+const G = D.groups;
+/* within a block, actives first, so a block reads "n of its molecules are active" */
+const starts = []; { let k = 0; for (const g of G) { starts.push(k); k += g.size; } }
+const perm = [];
+G.forEach((g, gi) => {
+  const ix = Array.from({ length: g.size }, (_, j) => starts[gi] + j);
+  ix.sort((a, b) => (D.labels[b] - D.labels[a]) || a - b);
+  perm.push(...ix);
+});
+function layout(width, pitch = 6, gap = 5) {
+  const blocks = []; let x = 0, y = 0, rowH = 0;
+  G.forEach((g, gi) => {
+    if (g.size === 1) return;
+    const cols = Math.ceil(Math.sqrt(g.size)), rows = Math.ceil(g.size / cols);
+    const w = cols * pitch - 1, h = rows * pitch - 1;
+    if (x + w > width) { x = 0; y += rowH + gap + (y === 0 ? 14 : 0); rowH = 0; }
+    blocks.push({ gi, x, y, cols, w, h }); x += w + gap; rowH = Math.max(rowH, h);
+  });
+  y += rowH + gap + 14;
+  const singleTop = y, scols = Math.floor((width + 1) / pitch);
+  const nS = G.filter((g) => g.size === 1).length;
+  const singles = { top: singleTop, cols: scols, n: nS, h: Math.ceil(nS / scols) * pitch };
+  return { blocks, singles, height: singleTop + singles.h, pitch };
+}
+const LAY = layout(W - 24);
+function drawBlocks(ctx, x0, y0, { split = null, ring = new Set(), hiCells = null } = {}) {
+  const p = LAY.pitch, partCol = [T.groupA, T.groupB, T.holdout];
+  const cell = (k, x, y) => {
+    const m = perm[k];
+    const fill = split ? partCol[+split[m]] : T.surface3;
+    rect(ctx, x, y, p - 1, p - 1, fill);
+    if (D.labels[m] === "1") rect(ctx, x + 1, y + 1, p - 3, p - 3, T.ink1);
+    if (hiCells && hiCells(m)) rect(ctx, x - 1, y - 1, p + 1, p + 1, null, T.ink1, 1);
+  };
+  for (const b of LAY.blocks) {
+    const g = G[b.gi], s0 = starts[b.gi];
+    for (let j = 0; j < g.size; j++) cell(s0 + j, x0 + b.x + (j % b.cols) * p, y0 + b.y + Math.floor(j / b.cols) * p);
+    rect(ctx, x0 + b.x - 2, y0 + b.y - 2, b.w + 4, b.h + 4, null, ring.has(b.gi) ? T.highlight : T.ink3, ring.has(b.gi) ? 2 : 1);
+  }
+  label(ctx, `the ${LAY.singles.n} scaffolds that hold one molecule each`, x0, y0 + LAY.singles.top - 4, { size: 10, colour: T.ink3 });
+  let j = 0;
+  G.forEach((g, gi) => { if (g.size !== 1) return; cell(starts[gi], x0 + (j % LAY.singles.cols) * p, y0 + LAY.singles.top + Math.floor(j / LAY.singles.cols) * p); j++; });
+  // name the two big blocks
+  const b0 = LAY.blocks[0], b1 = LAY.blocks[1];
+  label(ctx, `benzene · ${G[0].size}`, x0 + b0.x, y0 + b0.y + b0.h + 13, { size: 10, colour: T.ink2 });
+  label(ctx, `no ring · ${G[1].size}`, x0 + b1.x, y0 + b1.y + b1.h + 13, { size: 10, colour: T.ink2 });
+}
+
+/* ------------------------------------------------------------ section 1 */
+function scaffoldStage(fam, pressed) {
+  const ex = D.examples[fam], H = 350, gridTop = H + 20;
+  const box = cand("g1", `Scaffold · Example ${fam === "indoles" ? "Indoles" : "Quinolones"} · ${pressed ? "after Find scaffold" : "before the press"}`,
+    pressed ? (fam === "indoles" ? "both copies land on one scaffold: one block" : "the copies land on two scaffolds: two blocks") : "the two molecules; the right side waits for the press");
+  const ctx = canvasIn(box, W, gridTop + LAY.height + 30);
+  const BW = 236, BH = 128, tops = [30, 185];
+  const s = Math.min(26, pairScale(ex, BW - 20, BH - 16));
+  label(ctx, "Related molecules", 14, 18, { size: 12, weight: "600", colour: T.ink1 });
+  ex.forEach((m, k) => {
+    drawMol(ctx, m, placeBox(m, s, 12, tops[k], BW, BH), { dimSide: pressed });
+    label(ctx, `${m.name} · ${m.y ? "active" : "inactive"}`, 12 + BW / 2, tops[k] + BH + 14, { align: "center", size: 11, colour: T.ink1 });
+  });
+  const mid = tops.map((t) => t + BH / 2);
+  label(ctx, fam === "indoles" ? "Scaffold" : "Scaffolds", 448, 18, { size: 12, weight: "600", colour: T.ink1, align: "center" });
+  if (fam === "indoles") {
+    const c = (mid[0] + mid[1]) / 2;
+    line(ctx, 262, mid[0], 272, mid[0], T.ink1, 1.5); line(ctx, 272, mid[0], 272, mid[1], T.ink1, 1.5); line(ctx, 262, mid[1], 272, mid[1], T.ink1, 1.5);
+    arrow(ctx, 272, c, 345, c, T.ink1, 1.5);
+    if (pressed) {
+      ex.forEach((m) => drawMol(ctx, m, place(m, s, 448, c), { only: true }));
+      label(ctx, "indole", 448, c + 62, { align: "center", size: 11, colour: T.ink1 });
+    }
+  } else {
+    mid.forEach((y) => arrow(ctx, 262, y, 345, y, T.ink1, 1.5));
+    if (pressed) ex.forEach((m, k) => drawMol(ctx, m, place(m, s, 448, mid[k]), { only: true }));
+  }
+  line(ctx, 12, H, W - 12, H, T.grid);
+  label(ctx, `The file: ${D.measure.file.scaffolds.toLocaleString()} scaffolds in ${D.measure.file.parsed.toLocaleString()} molecules · a block is one scaffold · ■ active`, 12, H + 14, { size: 10, colour: T.ink2 });
+  drawBlocks(ctx, 12, gridTop, { ring: pressed ? new Set(ex.map((m) => m.group)) : new Set() });
+}
+scaffoldStage("indoles", false);
+scaffoldStage("indoles", true);
+scaffoldStage("quinolones", true);
+
+/* ------------------------------------------------------------ section 2 */
+function splitStage(kind, seed = "42") {
+  const r = Ms.per_seed[kind].find((x) => x.seed === +seed), split = D.splits[kind][seed];
+  const box = cand("g2", `Split · ${kind === "label" ? "Label" : "Scaffold"} · Seed ${seed} · after Split 50 / 50`,
+    `train ${r.train.n} · validation ${r.val.n} · test ${r.test.n}   (${kind === "label" ? "stratified on Activity, cell 18's label split" : "cell 28 exactly"})`);
+  const top = 26, barsTop = top + LAY.height + 34, H = barsTop + 130;
+  const ctx = canvasIn(box, W, H);
+  const key = [["Train", T.groupA], ["Validation", T.groupB], ["Test", T.holdout]];
+  key.forEach(([t, c], k) => { rect(ctx, 12 + k * 110, 8, 10, 10, c); label(ctx, t, 26 + k * 110, 17, { size: 11, colour: T.ink1 }); });
+  rect(ctx, 352, 8, 10, 10, T.surface3); rect(ctx, 354, 10, 6, 6, T.ink1); label(ctx, "active", 366, 17, { size: 11, colour: T.ink1 });
+  drawBlocks(ctx, 12, top + 6, { split });
+  // cell 30: each part's label proportions, y 0-1
+  const parts = [["Train", r.train, T.groupA], ["Validation", r.val, T.groupB], ["Test", r.test, T.holdout]];
+  const pw = 150, ph = 80;
+  parts.forEach(([nm, pr, c], k) => {
+    const x0 = 44 + k * (pw + 26), y0 = barsTop + 18;
+    label(ctx, nm, x0 + pw / 2, barsTop + 8, { align: "center", size: 11, weight: "600", colour: T.ink1 });
+    line(ctx, x0, y0, x0, y0 + ph, T.axis); line(ctx, x0, y0 + ph, x0 + pw, y0 + ph, T.axis);
+    if (k === 0) { label(ctx, "1", x0 - 5, y0 + 4, { align: "right", size: 9, colour: T.ink3 }); label(ctx, "0", x0 - 5, y0 + ph + 3, { align: "right", size: 9, colour: T.ink3 }); }
+    [[0, 1 - pr.active_share], [1, pr.active_share]].forEach(([lab, v], j) => {
+      const bx = x0 + 22 + j * 64, bh = v * ph;
+      rect(ctx, bx, y0 + ph - bh, 40, bh, c);
+      label(ctx, pct(v, 1), bx + 20, y0 + ph - bh - 4, { align: "center", size: 10, colour: T.ink1 });
+      label(ctx, String(lab), bx + 20, y0 + ph + 12, { align: "center", size: 10, colour: T.ink3 });
+    });
+  });
+  label(ctx, "Activity label", W / 2, H - 6, { align: "center", size: 10, colour: T.ink3 });
+}
+splitStage("label");
+splitStage("scaffold");
+{
+  const rows = Ms.per_seed.label.map((L, k) => {
+    const Sc = Ms.per_seed.scaffold[k];
+    return [String(L.seed), `${L.test.n} · ${L.test.actives}`, `${Sc.test.n} · ${Sc.test.actives}`, `${Sc.train.n} / ${Sc.val.n} / ${Sc.test.n}`];
+  });
+  table("t2", ["seed", "label split: test n · actives", "scaffold split: test n · actives", "scaffold split: train / val / test"], rows);
+}
+
+/* ------------------------------------------------------------ section 3 */
+const gcnSeeds = Object.keys(D.gcn).map(Number);
+function evalA(kind) {
+  const r = Ms.per_seed[kind].find((x) => x.seed === 42);
+  const box = cand("g3", `Evaluate · A · ${kind === "label" ? "Label" : "Scaffold"} · Seed 42 · after Compare and Score`,
+    "shared scaffolds, in the lesson's terms · then macro F1 (cells 51, 57), eleven seeds");
+  const ctx = canvasIn(box, W, 330);
+  const nTest = r.test.n - (r.test.n > 0 ? 0 : 0);
+  const share = r.test_scaffold_in_train;
+  const shared = Math.round(share * (r.test.n - 0));
+  label(ctx, "Test molecules whose scaffold is also in training", 12, 20, { size: 12, weight: "600", colour: T.ink1 });
+  // a strip of the test set: one cell per molecule
+  const cw = Math.min(4, (W - 24) / r.test.n);
+  for (let i = 0; i < r.test.n; i++) rect(ctx, 12 + i * cw, 30, Math.max(1, cw - 0.5), 18, i < shared ? T.holdout : wash(T.holdout, 0.18));
+  label(ctx, `${shared} of ${r.test.n} (${pct(share)})`, 12, 64, { size: 11, colour: T.ink1 });
+  label(ctx, "Test actives whose scaffold holds a training active", 12, 92, { size: 12, weight: "600", colour: T.ink1 });
+  const na = r.test.actives, nsa = kind === "label" ? 5 : 0;
+  for (let i = 0; i < na; i++) { rect(ctx, 12 + i * 16, 102, 13, 13, i < nsa ? T.holdout : wash(T.holdout, 0.18)); rect(ctx, 16 + i * 16, 106, 5, 5, T.ink1); }
+  label(ctx, `${nsa} of ${na}`, 12 + na * 16 + 6, 113, { size: 11, colour: T.ink1 });
+  // scores: both splits, eleven seeds; the model shown is the GCN when all seeds are in, else the forest
+  const useGcn = gcnSeeds.length >= 11;
+  const sc = (k, rr) => useGcn ? D.gcn[rr.seed]?.[k]?.test_macro_f1 : rr.rf_macro_f1;
+  const x0 = 70, y0 = 160, ph = 140, lo = 0.4, hi = 1.0, sy = (v) => y0 + ph - (v - lo) / (hi - lo) * ph;
+  label(ctx, `Macro F1 on the test set · ${useGcn ? "the lesson's GCN" : "random forest"} · eleven seeds`, 12, 146, { size: 12, weight: "600", colour: T.ink1 });
+  line(ctx, x0, y0, x0, y0 + ph, T.axis);
+  [0.4, 0.6, 0.8, 1.0].forEach((t) => { line(ctx, x0 - 4, sy(t), x0, sy(t), T.axis); label(ctx, t.toFixed(1), x0 - 6, sy(t) + 3, { align: "right", size: 9, colour: T.ink3 }); });
+  ["label", "scaffold"].forEach((k, j) => {
+    const cx = x0 + 90 + j * 170, vals = Ms.per_seed[k].map((rr) => [rr.seed, sc(k, rr)]).filter(([, v]) => v != null);
+    label(ctx, k === "label" ? "Label split" : "Scaffold split", cx, y0 + ph + 16, { align: "center", size: 11, colour: k === kind ? T.ink1 : T.ink3, weight: k === kind ? "600" : "" });
+    vals.forEach(([s, v], i) => dot(ctx, cx - 30 + (i % 11) * 6, sy(v), 3, k === kind ? T.ink1 : T.ink3));
+    const mean = vals.reduce((t, [, v]) => t + v, 0) / vals.length;
+    line(ctx, cx - 40, sy(mean), cx + 40, sy(mean), k === kind ? T.ink1 : T.ink3, 1.5);
+    label(ctx, mean.toFixed(2), cx + 46, sy(mean) + 3, { size: 10, colour: k === kind ? T.ink1 : T.ink3 });
+    const v42 = vals.find(([s]) => s === 42);
+    if (v42) dot(ctx, cx - 30 + vals.indexOf(v42) * 6, sy(v42[1]), 6, null, T.highlight, 2);
+  });
+}
+function evalB(kind) {
+  const r = Ms.per_seed[kind].find((x) => x.seed === 42);
+  const box = cand("g3", `Evaluate · B · ${kind === "label" ? "Label" : "Scaffold"} · Seed 42 (the arc mock's pick)`,
+    "each test molecule's most similar training molecule · Tanimoto on Morgan fingerprints, radius 2");
+  const ctx = canvasIn(box, W, 330);
+  const h = r.nn_sim_hist, mx = Math.max(...h), x0 = 50, y0 = 30, pw = W - 80, ph = 220;
+  label(ctx, "Similarity to the most similar training molecule", 12, 18, { size: 12, weight: "600", colour: T.ink1 });
+  line(ctx, x0, y0 + ph, x0 + pw, y0 + ph, T.axis);
+  h.forEach((v, i) => rect(ctx, x0 + i * pw / 20 + 1, y0 + ph - v / mx * ph, pw / 20 - 2, v / mx * ph, wash(T.holdout, 0.7)));
+  [0, 0.25, 0.5, 0.75, 1].forEach((t) => label(ctx, t.toFixed(2), x0 + t * pw, y0 + ph + 14, { align: "center", size: 9, colour: T.ink3 }));
+  line(ctx, x0 + 0.7 * pw, y0, x0 + 0.7 * pw, y0 + ph, T.ink3, 1, [4, 3]);
+  label(ctx, `median ${r.nn_sim_median.toFixed(2)} · above 0.7: ${pct(r["nn_sim_over_0.7"])}`, x0 + pw, y0 + 10, { align: "right", size: 11, colour: T.ink1 });
+  label(ctx, "Tanimoto similarity", x0 + pw / 2, y0 + ph + 32, { align: "center", size: 10, colour: T.ink3 });
+}
+evalA("label"); evalA("scaffold"); evalB("label"); evalB("scaffold");
+{
+  const rf = (k, key) => S[k][key];
+  const g = (k, key) => {
+    const v = gcnSeeds.map((s) => D.gcn[s][k][key]).filter((x) => x != null);
+    if (!v.length) return "—";
+    return `${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2)} (${Math.min(...v).toFixed(2)}–${Math.max(...v).toFixed(2)})`;
+  };
+  const fmt = (o) => `${o.mean.toFixed(2)} (${o.min.toFixed(2)}–${o.max.toFixed(2)})`;
+  table("t3", ["over the seeds: mean (range)", "label split", "scaffold split"], [
+    ["test molecules whose scaffold is in training", fmt(S.label.test_scaffold_in_train), fmt(S.scaffold.test_scaffold_in_train)],
+    ["test actives with a same-scaffold active in training (all seeds pooled)", "54 of 132", "0 of 114"],
+    ["similarity to nearest training molecule, median", fmt(S.label.nn_sim_median), fmt(S.scaffold.nn_sim_median)],
+    ["random forest, macro F1", fmt(rf("label", "rf_macro_f1")), fmt(rf("scaffold", "rf_macro_f1"))],
+    ["random forest, AUC", fmt(rf("label", "rf_auc")), fmt(rf("scaffold", "rf_auc"))],
+    [`the lesson's GCN, macro F1 (${gcnSeeds.length} seeds)`, g("label", "test_macro_f1"), g("scaffold", "test_macro_f1")],
+    [`the lesson's GCN, AUC (${gcnSeeds.length} seeds)`, g("label", "test_auc"), g("scaffold", "test_auc")],
+  ]);
+}
+</script>
+</body>
+</html>
