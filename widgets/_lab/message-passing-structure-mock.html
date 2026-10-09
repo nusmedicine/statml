@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 95 message-passing — structure and Readout</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 112ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 112ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table.rev { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 140ch; }
+  table.rev th, table.rev td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  table.rev th { color: var(--ink-2); font-weight: 600; }
+  .rail { border: 1px solid var(--grid); border-radius: 4px; padding: 10px 12px; background: var(--surface-2); width: 520px; }
+  .rail .gh { font-size: 10px; color: var(--ink-3); text-transform: none; margin: 6px 0 3px; }
+  .rail .seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 3px; overflow: hidden; margin-right: 8px; }
+  .rail .seg span { font-size: 11px; padding: 4px 11px; border-right: 1px solid var(--grid); color: var(--ink-1); }
+  .rail .seg span:last-child { border-right: 0; }
+  .rail .seg span.on { background: var(--surface-3); font-weight: 600; }
+  .rail .flow { font-size: 11px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
+  .rail .flow b { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 95 &middot; <code>message-passing</code> &middot; structure, the basics graph, and Readout &middot; mock</h1>
+  <p class="note">Your round-4 comments: the chain belongs under <b>Basics</b> with caffeine as the example; Layers and
+    Readout seem to apply to caffeine only; Readout gives no context for what is pooled. You asked for the whole widget
+    reviewed for what reads clearly to a student, clarity and consistency first. &sect;0 is that review; &sect;1&ndash;3 the
+    proposals, drawn with the draft's own numbers (core's rng, seed 1; caffeine and the acids from data.js).</p>
+
+  <h2>0 &middot; The review: what is unclear or inconsistent today</h2>
+  <table class="rev">
+    <tr><th>#</th><th>where</th><th>what a student meets</th><th>proposed</th></tr>
+    <tr><td>1</td><td>the rail</td><td>Step lists Aggregate · Layers · Readout as if one example ran through all three, but Example
+      (Chain · Caffeine) shows only on Aggregate; Layers and Readout silently switch to caffeine and to two acids</td>
+      <td>the pages name their graph: <b>Basics</b> [Graph] · <b>Molecule</b> [Aggregate · Layers · Readout], 94's grouped rail (&sect;1)</td></tr>
+    <tr><td>2</td><td>Readout</td><td>two acids appear that no earlier page showed; the atoms are coloured, but nothing says
+      that each atom is a vector or that pooling turns the vectors into one</td>
+      <td>caffeine first: its 14 atom vectors as rows, pooled into one row, the row a classifier reads (&sect;3)</td></tr>
+    <tr><td>3</td><td>Readout</td><td>two "Add a layer" presses repeat the Layers page before the one new thing, Pool</td>
+      <td>Readout opens on the vectors after the lesson's 2 layers; its one press is Pool</td></tr>
+    <tr><td>4</td><td>Aggregate, chain</td><td>the thick arcs into node 1 carry a weight but no direction; the message
+      flows from each neighbour INTO node 1 (your arrows)</td><td>an arrowhead at the receiving end of each weighted edge and of the self-loop (&sect;2)</td></tr>
+    <tr><td>5</td><td>vectors</td><td>a node's vector is drawn four ways: cells on the chain, numbers in caffeine's table,
+      an atom's fill on Layers, an atom's colour on Readout</td><td>one rule: a vector is a <b>row of cells</b> wherever it is
+      read; a fill colour on a drawing only ever means one named thing (reach on Layers, the same vector on Readout)</td></tr>
+    <tr><td>6</td><td>the chain</td><td>every node has degree 1 or 2, so GCN's degree weights barely differ (0.41, 0.33, 0.50)</td>
+      <td>a five-node graph with a node of degree 3 (&sect;2, your "longer chain or other simple network")</td></tr>
+    <tr><td>7</td><td>Basics vs Molecule</td><td>if Basics also had Layers and Readout, every idea would be taught twice</td>
+      <td>Basics is one layer: Aggregate, Transform. Molecule is the three steps at scale: GCN against GAT, the stack, the readout</td></tr>
+  </table>
+
+  <h2>1 &middot; Structure &mdash; which pages, in which order</h2>
+  <div class="row" id="s"></div>
+  <p class="rec">Arm A. Four pages, two groups, one control: Basics [Graph] teaches one layer on a graph small enough to read
+    every number; Molecule [Aggregate · Layers · Readout] runs caffeine through the lesson's model in its order (09-2 cells
+    40&ndash;42: two GCN layers, then pooling). Nothing on a page depends on a control another page shows, which is what
+    comment 2 was about.</p>
+
+  <h2>2 &middot; Basics &mdash; the graph for one layer</h2>
+  <p class="note">Drawn after Aggregate, node 1 picked, with the arrows into it (comment 4). Transform then runs as in round 3
+    (every node's sum through one W).</p>
+  <div class="row" id="b"></div>
+  <p class="rec">Arm B, five nodes: node 1 has three neighbours of degree 1, 1 and 2, so its weights differ (0.35, 0.35, 0.29,
+    self 0.25) and the stack H has five rows, one a node. It keeps your figure's look (rows of cells above the nodes, arcs,
+    self-loops). A is your figure exactly, but its weights hardly vary.</p>
+
+  <h2>3 &middot; Readout &mdash; what is pooled, and into what</h2>
+  <div class="row" id="r"></div>
+  <p class="rec">Arm C: one page, two views under <b>Show: Caffeine · Two acids</b> (94's "a secondary view belongs to its
+    page"). Caffeine first, so the page continues the molecule the student has followed: its 14 atom vectors after the
+    lesson's 2 layers, one row an atom, and Pool collapses them into one row &mdash; the vector the lesson's classifier
+    reads to predict y. Then Two acids: the same picture twice, and under max the two rows come out identical.</p>
+
+  <h2>4 &middot; Your calls</h2>
+  <p class="q"><b class="h">4.1 &middot; Structure</b><b>A · Basics [Graph] · Molecule [Aggregate · Layers · Readout] (recommended)</b>
+    &nbsp;|&nbsp; B · two controls, Example and Step &nbsp;|&nbsp; C · Basics also runs Layers and Readout</p>
+  <p class="q"><b class="h">4.2 &middot; The basics graph</b>A · your three-node chain &nbsp;|&nbsp; <b>B · five nodes, one of degree 3 (recommended)</b>
+    &nbsp;|&nbsp; C · a five-node chain</p>
+  <p class="q"><b class="h">4.3 &middot; The arrows</b><b>A · an arrowhead into the picked node on each weighted edge and on the self-loop, as drawn (recommended)</b>
+    &nbsp;|&nbsp; B · I read your arrows wrongly: say what they mark</p>
+  <p class="q"><b class="h">4.4 &middot; Readout</b>A · caffeine only &nbsp;|&nbsp; B · the two acids only, with their rows
+    &nbsp;|&nbsp; <b>C · Show: Caffeine · Two acids (recommended)</b></p>
+  <p class="q"><b class="h">4.5 &middot; Readout's presses</b><b>A · opens after the lesson's 2 layers; one press, Pool (recommended)</b>
+    &nbsp;|&nbsp; B · keep the two Add a layer presses first</p>
+  <p class="q"><b class="h">4.6 &middot; How many numbers a row shows</b><b>A · the first 8 of the 16 (recommended: a row stays one line at 550 px)</b>
+    &nbsp;|&nbsp; B · all 16, narrower cells</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { CAFFEINE, ACIDS } from "../message-passing/data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function node(ctx, x, y, name, { r = 18, fill = T.surface, size = 11 } = {}) { dot(ctx, x, y, r, fill, T.ink1, 1.5); label(ctx, name, x, y + 0.5, { align: "center", baseline: "middle", colour: T.ink1, size, weight: "600" }); }
+function ring(ctx, x, y, r, colour) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+function head(ctx, x, y, ang, colour, s = 9) { ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - s * Math.cos(ang - 0.42), y - s * Math.sin(ang - 0.42)); ctx.lineTo(x - s * Math.cos(ang + 0.42), y - s * Math.sin(ang + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+const f = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? (0).toFixed(d) : x.toFixed(d));
+function ramp(v) { const a = rgb(T.surface3), b = rgb(T.magnitude); const t = Math.max(0, Math.min(1, v)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`; }
+function cand(rowId, title, sub, h, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); const c = document.createElement("canvas"); c.width = w * DPR; c.height = h * DPR; c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); document.getElementById(rowId).appendChild(box); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+
+/* ---------------------------------------------------------------- the layer, as the draft computes it */
+const adjacency = (n, bonds) => { const A = Array.from({ length: n }, () => new Array(n).fill(0)); for (const [i, j] of bonds) { A[i][j] = 1; A[j][i] = 1; } return A; };
+const gcnP = (A) => { const d = A.map((r) => r.reduce((s, v) => s + v, 0) + 1); return A.map((r, i) => r.map((v, j) => (v || i === j ? 1 / Math.sqrt(d[i] * d[j]) : 0))); };
+const matmul = (X, Wm) => X.map((r) => Wm[0].map((_, k) => r.reduce((s, v, q) => s + v * Wm[q][k], 0)));
+const elu = (H) => H.map((r) => r.map((v) => (v > 0 ? v : Math.expm1(v))));
+const rng = makeRng(1);
+const glorot = (fin, fout) => { const b = Math.sqrt(6 / (fin + fout)); return Array.from({ length: fin }, () => Array.from({ length: fout }, () => rng.uniform(-b, b))); };
+/* the draft's draws, in its order: the chain's W, caffeine's W, eight Layers Ws, two Readout Ws */
+glorot(3, 3); glorot(5, 5); for (let k = 0; k < 8; k++) glorot(k === 0 ? 5 : 16, 16);
+const WRD = [glorot(5, 16), glorot(16, 16)];
+const twoLayers = (mol) => { const P = gcnP(adjacency(mol.atoms.length, mol.bonds)); let H = mol.atoms.map((a) => a.x); for (const Wm of WRD) H = elu(matmul(P, matmul(H, Wm))); return H; };
+const pool = (H, kind) => H[0].map((_, k) => { const c = H.map((r) => r[k]); return kind === "max" ? Math.max(...c) : kind === "sum" ? c.reduce((s, v) => s + v, 0) : c.reduce((s, v) => s + v, 0) / c.length; });
+
+/* ================================================================ §1 structure, as rails */
+function rail(title, sub, html, flow) {
+  const box = el("div", "cand"); box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  const r = el("div", "rail"); r.innerHTML = html + `<div class="flow">${flow}</div>`; box.appendChild(r); document.getElementById("s").appendChild(box);
+}
+const seg = (items, on = -1) => `<span class="seg">${items.map((t, i) => `<span class="${i === on ? "on" : ""}">${t}</span>`).join("")}</span>`;
+rail("Structure · A · grouped pages (recommended)", "one control, the groups as headings (94's rail)",
+  `<div class="gh">Basics</div>${seg(["Graph"], 0)}<div class="gh">Molecule</div>${seg(["Aggregate", "Layers", "Readout"])}`,
+  `<b>Graph</b>: one layer on five nodes — Aggregate, then Transform; every number readable.<br>
+   <b>Aggregate</b>: caffeine, the same layer at scale — GCN against GAT, untrained and trained.<br>
+   <b>Layers</b>: caffeine — the stack, the reach, the atoms growing alike.<br>
+   <b>Readout</b>: caffeine — its atom vectors pooled into one; then two acids that max cannot tell apart.`);
+rail("Structure · B · two controls", "Example, then Step under it",
+  `<div class="gh">Example</div>${seg(["Graph", "Caffeine"], 1)}<div class="gh">Step</div>${seg(["Aggregate", "Layers", "Readout"], 0)}`,
+  `Step would need to mean something on the graph too, or hide there — and a control that hides on one value of another is the
+   inconsistency comment 2 found.`);
+rail("Structure · C · everything on both", "Basics also has Layers and Readout",
+  `<div class="gh">Basics</div>${seg(["Aggregate", "Layers", "Readout"], 0)}<div class="gh">Molecule</div>${seg(["Aggregate", "Layers", "Readout"])}`,
+  `Every idea twice. Five nodes reach each other in two or three layers, so the stack and the cloud have little to show before the molecule.`);
+
+/* ================================================================ §2 the basics graph */
+function basics(ctx, nodes, edges, X, pick, title) {
+  const n = nodes.length, A = adjacency(n, edges), P = gcnP(A), deg = A.map((r) => r.reduce((s, v) => s + v, 0));
+  label(ctx, title, 14, 18, { weight: "600", colour: T.ink1 });
+  /* edges: those into the picked node thick, by weight, with an arrowhead at the picked node's rim */
+  for (const [i, j] of edges) {
+    const into = i === pick || j === pick, other = i === pick ? j : i;
+    const [ax, ay] = nodes[other], [bx, by] = nodes[pick], wgt = into ? P[pick][other] : 0;
+    if (!into) { line(ctx, nodes[i][0], nodes[i][1], nodes[j][0], nodes[j][1], T.ink1, 1.6); continue; }
+    const L = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / L, uy = (by - ay) / L;
+    line(ctx, ax + ux * 18, ay + uy * 18, bx - ux * 30, by - uy * 30, T.highlight, 1 + 12 * wgt);
+    head(ctx, bx - ux * 20, by - uy * 20, Math.atan2(uy, ux), T.highlight, 12);
+    /* the weight above its edge, nearer the sender, clear of the self-loop's label */
+    const cx0 = ax + (bx - ax) * 0.42, cy0 = ay + (by - ay) * 0.42;
+    const pA = [cx0 - uy * 16, cy0 + ux * 16], pB = [cx0 + uy * 16, cy0 - ux * 16], [lx, ly] = pA[1] < pB[1] ? pA : pB;
+    label(ctx, f(wgt), lx, ly + 4, { mono: true, weight: "600", colour: T.ink1, align: "center" });
+  }
+  /* the self-loop under the picked node, its arrowhead back into the node */
+  const [px, py] = nodes[pick];
+  ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 1 + 12 * P[pick][pick]; ctx.beginPath(); ctx.arc(px, py + 32, 12, -0.05 * Math.PI, 1.0 * Math.PI); ctx.stroke(); ctx.restore();
+  head(ctx, px + 9, py + 20, -1.9, T.highlight, 11);
+  label(ctx, `self ${f(P[pick][pick])}`, px, py + 62, { mono: true, weight: "600", colour: T.ink1, align: "center" });
+  nodes.forEach(([x, y], i) => {
+    X[i].forEach((v, k) => rect(ctx, x - 33 + k * 22, y - 62, 22, 22, ramp(v), T.ink1));
+    node(ctx, x, y, String(i), { fill: i === pick ? wash(T.highlight, 0.35) : A[pick][i] ? wash(T.groupA, 0.3) : T.surface });
+  });
+  ring(ctx, px, py, 25, T.highlight);
+  label(ctx, `node ${pick} · ${deg[pick]} neighbour${deg[pick] === 1 ? "" : "s"} and itself · weights ${[pick, ...A[pick].map((v, j) => (v ? j : -1)).filter((j) => j >= 0)].map((j) => f(P[pick][j])).join(" · ")}`, 14, 292, { weight: "600", colour: T.ink1 });
+}
+basics(cand("b", "Basics · A · your three-node chain", "as the draft; the arrows added", 304), [[95, 150], [275, 150], [455, 150]], [[0, 1], [1, 2]], [[0.2, 0.8, 0.5], [0.8, 0.4, 0.8], [0.9, 0.2, 0.8]], 1, "the graph · click a node");
+basics(cand("b", "Basics · B · five nodes, one of degree 3 (recommended)", "node 1 has three neighbours, of degree 1, 1 and 2,\nso the weights differ; illustrative features", 304),
+  [[70, 160], [230, 160], [90, 262], [390, 160], [490, 240]], [[0, 1], [1, 2], [1, 3], [3, 4]],
+  [[0.2, 0.8, 0.5], [0.8, 0.4, 0.8], [0.3, 0.6, 0.2], [0.9, 0.2, 0.8], [0.5, 0.9, 0.3]], 1, "the graph · click a node");
+basics(cand("b", "Basics · C · a five-node chain", "a longer line: still only degrees 1 and 2", 304),
+  [[60, 150], [167, 150], [275, 150], [383, 150], [490, 150]], [[0, 1], [1, 2], [2, 3], [3, 4]],
+  [[0.2, 0.8, 0.5], [0.8, 0.4, 0.8], [0.9, 0.2, 0.8], [0.3, 0.6, 0.2], [0.5, 0.9, 0.3]], 2, "the graph · click a node");
+
+/* ================================================================ §3 Readout */
+const SHOW = 8;
+function molFit(mol, x0, y0, w, h, sc = 30) {
+  const xs = mol.atoms.map((a) => a.xy[0]), ys = mol.atoms.map((a) => a.xy[1]);
+  const mnx = Math.min(...xs), mny = Math.min(...ys), s = Math.min(w / (Math.max(...xs) - mnx), h / (Math.max(...ys) - mny), sc);
+  const ox = x0 + (w - (Math.max(...xs) - mnx) * s) / 2, oy = y0 + (h - (Math.max(...ys) - mny) * s) / 2;
+  return mol.atoms.map((a) => [ox + (a.xy[0] - mnx) * s, oy + (a.xy[1] - mny) * s]);
+}
+function drawMol(ctx, mol, P, fill = () => T.surface, r = 8) {
+  mol.bonds.forEach(([i, j]) => line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], T.ink2, 1.2));
+  mol.atoms.forEach((a, i) => { dot(ctx, P[i][0], P[i][1], r, fill(i), T.ink1, 1.2); label(ctx, a.el, P[i][0], P[i][1] + 0.5, { size: 8, align: "center", baseline: "middle", colour: T.ink1, weight: "600" }); });
+}
+/** one row a vector; `tag` colours a strip at the row's left (the class), `lo`/`hi` the scale */
+function rows(ctx, x, y, H, names, { c = 16, rh = 12, lo, hi, tag = null, pooled = null, pk = "max", argmax = false } = {}) {
+  H.forEach((r, i) => {
+    label(ctx, names[i], x - 6, y + i * rh + rh - 2, { size: 9, mono: true, align: "right", colour: T.ink3 });
+    if (tag) rect(ctx, x, y + i * rh, 5, rh, tag(i));
+    r.slice(0, SHOW).forEach((v, k) => {
+      const isMax = argmax && pooled && Math.abs(v - pooled[k]) < 1e-12;
+      rect(ctx, x + 7 + k * c, y + i * rh, c, rh, ramp((v - lo[k]) / (hi[k] - lo[k] || 1)), isMax ? T.highlight : T.grid, isMax ? 1.6 : 1);
+    });
+  });
+  return y + H.length * rh;
+}
+{
+  /* A · caffeine */
+  const ctx = cand("r", "Readout · A · caffeine: what is pooled, and what reads it", "after the lesson's 2 layers each atom is a vector (16 numbers; the first 8 drawn);\nmax pooling keeps, for each number, the largest over the atoms (framed);\neach column on its own colour scale, so its largest value is its darkest cell", 420);
+  const H = twoLayers(CAFFEINE), pooled = pool(H, "max");
+  /* each column on its own scale, so the largest value of a column is its darkest cell */
+  const lo = H[0].map((_, k) => Math.min(...H.map((r) => r[k]))), hi = H[0].map((_, k) => Math.max(...H.map((r) => r[k])));
+  label(ctx, "caffeine", 14, 18, { weight: "600", colour: T.ink1 });
+  drawMol(ctx, CAFFEINE, molFit(CAFFEINE, 14, 34, 190, 170, 40));
+  label(ctx, "one row an atom · h after 2 layers", 280, 18, { weight: "600", colour: T.ink1 });
+  const yEnd = rows(ctx, 290, 30, H, CAFFEINE.atoms.map((a, i) => `${i} ${a.el}`), { lo, hi, pooled, argmax: true });
+  line(ctx, 290, yEnd + 8, 290 + 7 + SHOW * 16, yEnd + 8, T.ink2);
+  label(ctx, "↓ Pool: max of each column", 297, yEnd + 24, { size: 10, colour: T.ink3 });
+  rows(ctx, 290, yEnd + 32, [pooled], ["max"], { lo, hi });
+  label(ctx, "one vector for the molecule, whatever its size", 290, yEnd + 62, { size: 10, colour: T.ink2 });
+  /* what reads it */
+  const by = yEnd + 82;
+  rect(ctx, 290, by, 150, 30, T.surface2, T.ink2); label(ctx, "classifier (MLP)", 365, by + 19, { align: "center", colour: T.ink1 });
+  line(ctx, 365, yEnd + 68, 365, by, T.ink2); head(ctx, 365, by, Math.PI / 2, T.ink2, 7);
+  line(ctx, 440, by + 15, 470, by + 15, T.ink2); head(ctx, 470, by + 15, 0, T.ink2, 7);
+  label(ctx, "y", 478, by + 19, { mono: true, weight: "600", colour: T.ink1 });
+  label(ctx, "caffeine's label: y = 0 (did not stop E. coli growing)", 14, 408, { size: 10, colour: T.ink3 });
+  label(ctx, "the lesson's model trains W and the classifier together; this page's W is untrained", 14, 390, { size: 10, colour: T.ink3 });
+}
+{
+  /* B · the two acids, with their rows */
+  const ctx = cand("r", "Readout · B · the two acids, with their rows", "each atom a row, coloured by which vector it holds (one colour, one vector);\nmax keeps which rows occur, so 8 and 9 carbons pool the same", 470);
+  const Hs = ACIDS.map(twoLayers), allRows = Hs.flat();
+  const lo = allRows[0].map((_, k) => Math.min(...allRows.map((r) => r[k]))), hi = allRows[0].map((_, k) => Math.max(...allRows.map((r) => r[k])));
+  const reps = []; const cls = Hs.map((H) => H.map((h) => { let c = reps.findIndex((r) => r.every((v, k) => Math.abs(v - h[k]) < 1e-9)); if (c < 0) { reps.push(h); c = reps.length - 1; } return c; }));
+  const colour = (c) => T.clusters[c % T.clusters.length];
+  ACIDS.forEach((m, q) => {
+    const y0 = 14 + q * 228;
+    label(ctx, `${m.name} · ${m.atoms.filter((a) => a.el === "C").length} carbons`, 14, y0 + 6, { weight: "600", colour: T.ink1 });
+    drawMol(ctx, m, molFit(m, 14, y0 + 16, 240, 50, 26), (i) => wash(colour(cls[q][i]), 0.6), 8);
+    const yEnd = rows(ctx, 330, y0, Hs[q], m.atoms.map((a, i) => `${i} ${a.el}`), { lo, hi, tag: (i) => colour(cls[q][i]), c: 14, rh: 11 });
+    const pooled = pool(Hs[q], "max");
+    label(ctx, "max", 324, yEnd + 20, { size: 9, mono: true, align: "right", colour: T.ink1, weight: "600" });
+    pooled.slice(0, SHOW).forEach((v, k) => rect(ctx, 337 + k * 14, yEnd + 10, 14, 12, ramp((v - lo[k]) / (hi[k] - lo[k] || 1)), T.ink1));
+  });
+  const pa = pool(Hs[0], "max"), pb = pool(Hs[1], "max"), d = Math.max(...pa.map((v, k) => Math.abs(v - pb[k])));
+  label(ctx, `the two max rows ${d < 1e-9 ? "are identical" : `differ by ${f(d, 3)}`}: a model reading them gives both one prediction`, 14, 462, { size: 10, colour: T.ink1, weight: "600" });
+}
+{
+  /* C · the recommendation: B under a Show control, A first */
+  const box = el("div", "cand"); box.appendChild(el("h3", null, "Readout · C · both, as two views (recommended)")); box.appendChild(el("p", "sub", "Show: Caffeine · Two acids, under Pooling; Caffeine (A) the default,\nTwo acids (B) the second view; one press, Pool"));
+  const r = el("div", "rail"); r.style.width = "520px";
+  r.innerHTML = `<div class="gh">Molecule</div>${seg(["Aggregate", "Layers", "Readout"], 2)}<div class="gh">Show</div>${seg(["Caffeine", "Two acids"], 0)}<div class="gh">Pooling</div>${seg(["Sum", "Mean", "Max"], 2)}
+    <div class="flow"><b>Caffeine</b>: the molecule, its 14 rows, Pool → one row → the classifier → y. Changing Pooling redraws the row (sum adds the rows, mean averages them, max keeps the largest of each column, framed in the rows it came from).<br>
+    <b>Two acids</b>: the same picture twice, the rows tagged by which vector they hold; under max the two pooled rows are identical, under mean and sum they differ. The tally bars of the draft go: the rows themselves say it.</div>`;
+  box.appendChild(r); document.getElementById("r").appendChild(box);
+}
+</script>
+</body>
+</html>
