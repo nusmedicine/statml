@@ -31,8 +31,9 @@
               those against 100 random sets of the same size. All runs:
               Overlay adds the 20 runs' kept sets one at a time.
 
-   Run (1–20, the random start) is one control on every page, so the Scores a
-   student reads are the run the Mask page optimised. The waters and the two
+   Random start (1–20) is one control on every page but All runs, so the
+   Scores a student reads are the run the Mask page optimised; changing it
+   keeps each page's progress. The waters and the two
    Na⁺ are drawn in a strip under the drug: separate pieces of the graph, with
    no bond to it, scored like any atom — max pooling reads every atom.
 
@@ -100,8 +101,8 @@ const S = {
     "The masks start random and are optimised, then averaged and scaled into one score per bond and per atom. " +
     "Each run from a new random start can keep a different set of bonds that holds the prediction just as well.",
   pageLabel: "Step",
-  runLabel: "Run",
-  runDetail: "the random start of the masks; each run optimises its own masks from it",
+  startLabel: "Random start",
+  startDetail: "the random values the masks begin from; each start is optimised separately, and is one run",
   showLabel: "Show",
   showDetail: "One run: the bonds this run keeps; All runs: how many of the 20 runs keep each bond",
 
@@ -190,9 +191,9 @@ const S = {
   tileShareNote: "median, over every pair of runs, of the kept bonds they share as a share of the bonds either keeps",
   tileWait: "—",
 
-  sumMask: (run, beat, e, p) => `Run ${run}: ${beat === 0 ? "the molecule before the masks" : `the masks at epoch ${e}, p(active) ${p}`}`,
-  sumScores: (run, beat) => `Run ${run}: ${["each bond's two directions", "each bond scored", "each atom scored", "bonds and atoms scaled to 0–1"][beat]}`,
-  sumRuns: (run, all, beat) => (all ? `${beat ? "how many of 20 runs keep each bond" : "the 20 runs, not yet overlaid"}` : `Run ${run}: the bonds it keeps${beat ? ", tested" : ""}`),
+  sumMask: (run, beat, e, p) => `Random start ${run}: ${beat === 0 ? "the molecule before the masks" : `the masks at epoch ${e}, p(active) ${p}`}`,
+  sumScores: (run, beat) => `Random start ${run}: ${["each bond's two directions", "each bond scored", "each atom scored", "bonds and atoms scaled to 0–1"][beat]}`,
+  sumRuns: (run, all, beat) => (all ? `${beat ? "how many of 20 runs keep each bond" : "the 20 runs, not yet overlaid"}` : `Random start ${run}: the bonds it keeps${beat ? ", tested" : ""}`),
 };
 
 /* ------------------------------------------------------ drawing helpers */
@@ -323,13 +324,14 @@ const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 /** the Mask page's presses belong to its run; the Runs page's to its view */
-const stageOf = (params) => (params.page === "mask" ? `mask-${params.run}` : params.page === "scores" ? "scores" : `runs-${params.show}`);
+/* a new random start keeps every page's progress (his round 1): after Optimise, sliding the start shows each run's learned masks */
+const stageOf = (params) => (params.page === "mask" ? "mask" : params.page === "scores" ? "scores" : `runs-${params.show}`);
 const kindOf = (stage) => stage.split("-").slice(0, stage.startsWith("runs") ? 2 : 1).join("-");
 const stepsOf = (stage) => STEPS[kindOf(stage)];
 const durOf = (stage, n) => (kindOf(stage) === "mask" ? DUR[n] : kindOf(stage) === "scores" ? DUR_SCORES : kindOf(stage) === "runs-one" ? DUR_TEST : DUR_OVERLAY);
 const shownStep = (anim, stage) => (anim.n[stage] ?? 0) - (anim.stage === stage && anim.t < 1 ? 1 : 0);
 const inFlight = (anim, stage) => (anim.stage === stage && anim.t < 1 ? anim.t : null);
-const runOf = (params) => Number(params.run) - 1;
+const runOf = (params) => Number(params.start) - 1;
 
 /* ---------------------------------------------------------- geometry */
 
@@ -472,21 +474,41 @@ function drawScores(ctx, colors, w, params, anim, pointer) {
 
   /* the scale strips: atoms and bonds as dots on 0–1, moving to their scaled places */
   const sx0 = mx + 46, sx1 = w - 16, sw = sx1 - sx0;
+  const atomVal = (i) => lerp(sc.atomRaw[i], sc.atom[i], ts);
+  const STRIPS = { bonds: { val: bondV, y: gy + 40, n: NB }, atoms: { val: atomVal, y: gy + 120, n: NA } };
+  const dotAt = (kind, q) => [sx0 + STRIPS[kind].val(q) * sw, STRIPS[kind].y - 6 - (q % 3) * 4];
   txt(ctx, colors, S.scaleHead, sx0, GRID_TOP + 6, { font: capFont(colors), fill: colors.ink1, maxW: sw });
-  [[S.scaleBonds, beat >= 1, NB, bondV, gy + 40], [S.scaleAtoms, beat >= 2, NA, (i) => lerp(sc.atomRaw[i], sc.atom[i], ts), gy + 120]].forEach(([name, ready, n, val, y]) => {
+  [[S.scaleBonds, beat >= 1, "bonds"], [S.scaleAtoms, beat >= 2, "atoms"]].forEach(([name, ready, kind]) => {
+    const { y, n, val } = STRIPS[kind];
     txt(ctx, colors, name, sx0, y - 22, { fill: colors.ink1 });
     line(ctx, sx0, y, sx1, y, colors.axis);
     [0, 0.5, 1].forEach((v) => { line(ctx, sx0 + v * sw, y, sx0 + v * sw, y + 4, colors.axis); txt(ctx, colors, String(v), sx0 + v * sw, y + 15, { align: "center", fill: colors.ink3 }); });
     if (!ready) return;
-    for (let q = 0; q < n; q++) dot(ctx, sx0 + val(q) * sw, y - 6 - (q % 3) * 4, 2.6, ramp(colors, val(q)), colors.ink3, 0.6);
+    for (let q = 0; q < n; q++) { const [x, yy] = dotAt(kind, q); dot(ctx, x, yy, 2.6, ramp(colors, val(q)), colors.ink3, 0.6); }
   });
 
+  /* HOVER IS SYNCED ACROSS THE THREE VIEWS (his round 1, "does the hover sync?"): an atom, on the
+     molecule or as its grid row, rings itself, outlines its row and mean cell, and rings its dot; a
+     bond rings itself and its dot. Ink, not --c-highlight, which shares --c-magnitude's violet. */
   if (pointer) {
     const a = nearestAtom(P, pointer), b = a < 0 ? nearestBond(P, pointer) : -1;
     const ci = Math.floor((pointer.y - gy) / CELL_H), cq = Math.floor((pointer.x - gx) / CELL_W);
+    const onGrid = a < 0 && b < 0 && ci >= 0 && ci < NA && cq >= 0 && cq <= NF + 3;
+    const ha = a >= 0 ? a : onGrid ? ci : -1;
+    if (ha >= 0) {
+      dot(ctx, P[ha][0], P[ha][1], NODE_R + 4, null, colors.ink1, 1.8);
+      rect(ctx, gx - 2, gy + ha * CELL_H - 1, mx + 11 - gx + 2, CELL_H + 1, null, colors.ink1, 1.2);
+      if (beat >= 2) { const [x, y] = dotAt("atoms", ha); dot(ctx, x, y, 5.5, null, colors.ink1, 1.6); }
+    }
+    if (b >= 0) {
+      const [i, j] = MOL.bonds[b];
+      line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colors.ink1, 1.2, [3, 2]);
+      if (beat >= 1) { const [x, y] = dotAt("bonds", b); dot(ctx, x, y, 5.5, null, colors.ink1, 1.6); }
+    }
     if (a >= 0) hoverLabel(ctx, colors, S.hovAtom(a, atomV(a) == null ? null : f2(atomV(a))), pointer.x, pointer.y, w);
     else if (b >= 0) hoverLabel(ctx, colors, tc < 1 ? S.hovLanes(b, f2(k(last[2 * b])), f2(k(last[2 * b + 1]))) : S.hovBond(b, f2(bondV(b))), pointer.x, pointer.y, w);
-    else if (ci >= 0 && ci < NA && cq >= 0 && cq < NF) hoverLabel(ctx, colors, S.hovCell(ci, cq, f2(k(R.mx[ci][cq]))), pointer.x, pointer.y, w);
+    else if (onGrid && cq < NF) hoverLabel(ctx, colors, S.hovCell(ci, cq, f2(k(R.mx[ci][cq]))), pointer.x, pointer.y, w);
+    else if (onGrid) hoverLabel(ctx, colors, S.hovAtom(ci, atomV(ci) == null ? null : f2(atomV(ci))), pointer.x, pointer.y, w);
   }
 }
 
@@ -587,7 +609,9 @@ defineWidget({
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "mask", display: true },
-    run: { type: "int", label: S.runLabel, detail: S.runDetail, min: 1, max: NR, default: 1, display: true },
+    /* hidden in All runs, which combines every start (his round 1: a control that did nothing) */
+    start: { type: "int", label: S.startLabel, detail: S.startDetail, min: 1, max: NR, default: 1, display: true,
+      when: { any: [{ param: "page", oneOf: ["mask", "scores"] }, { param: "show", equals: "one" }] } },
     show: { type: "segmented", label: S.showLabel, detail: S.showDetail, options: SHOW_OPTS, default: "one", display: true, when: ON("runs") },
     /* authoring escape hatch, first render only: presses already made on the stage the link opens */
     shown: { type: "int", min: 0, max: 3, default: 0, hidden: true },
@@ -630,7 +654,7 @@ defineWidget({
 
     rebuild: (anim, { params }) => {
       const stage = stageOf(params);
-      /* only a change of stage ends a press in flight; on Scores and Runs a new run keeps it */
+      /* only a change of stage ends a press in flight; a new random start keeps it */
       if (stage !== anim.stage && anim.t < 1) { anim.t = 1; anim.halt = true; }
       anim.stage = stage;
       anim.beat = anim.n[stage] ?? 0;
@@ -679,8 +703,8 @@ defineWidget({
 
   summary({ params, anim }) {
     const stage = stageOf(params), beat = shownStep(anim, stage), R = RUNS[runOf(params)];
-    if (params.page === "mask") { const f = maskFrame(anim, stage); return S.sumMask(params.run, beat, epochAt(f), f2(seriesAt(R.p, f))); }
-    if (params.page === "scores") return S.sumScores(params.run, beat);
-    return S.sumRuns(params.run, params.show === "all", beat);
+    if (params.page === "mask") { const f = maskFrame(anim, stage); return S.sumMask(params.start, beat, epochAt(f), f2(seriesAt(R.p, f))); }
+    if (params.page === "scores") return S.sumScores(params.start, beat);
+    return S.sumRuns(params.start, params.show === "all", beat);
   },
 });
