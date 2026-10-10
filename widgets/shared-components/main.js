@@ -35,7 +35,7 @@
                        aligned across the page; mixOmics' loop as presses
                        (Start · Update mRNA · Update methylation …, from a
                        start 80° off so the rule can be seen), then Rebuild ·
-                       Subtract · Shortcut (X₁ᵀX₂ and its first singular pair,
+                       Subtract · Solve directly (X₁ᵀX₂ and its first singular pair,
                        which is the loop's end, and exists only because the
                        rows are the same samples).
        P-integration   two studies with the same two genes: Stack (X₂ moves
@@ -131,7 +131,7 @@ const S = {
     done: "Another round changes neither arrow: PLS's component 1. Dashed: each block's direction of largest variance.",
     rebuild: "Rebuild: t wᵀ puts every sample at its foot on its block's arrow (hollow).",
     subtract: "Subtract: E = X − t wᵀ is what component 1 leaves. Component 2 is found in E the same way.",
-    shortcut: "Shortcut: the loop computed the first singular pair of X₁ᵀX₂. It multiplies the two tables row by row, so it exists only because the rows are the same samples.",
+    shortcut: "Solve directly: the loop computed the first singular pair of X₁ᵀX₂, the cross-covariance matrix. It multiplies the two tables row by row, so it exists only because the rows are the same samples.",
   },
   sameRows: "N-integration: the rows are the same 80 samples in both tables.",
   sampleHead: (n, g) => `sample ${n} · ${g}`,
@@ -194,11 +194,11 @@ const S = {
 };
 
 /* the N-integration presses: the loop (its length is the blocks', set in makeBlocks), then the factorization */
-const AFTER = ["Rebuild", "Subtract", "Shortcut"];
+const AFTER = ["Rebuild", "Subtract", "Solve directly"];
 const AFTER_TITLE = [
   "Rebuild each block from its score column: t wᵀ",
   "Subtract the rebuilt part: E = X − t wᵀ",
-  "Find both weight vectors in one step, as the first singular pair of X₁ᵀX₂",
+  "Find w₁ and w₂ in one step: the first singular pair of X₁ᵀX₂, the cross-covariance matrix",
 ];
 const loopLabel = (n) => (n === 0 ? "Start" : n % 2 === 1 ? "Update mRNA" : "Update methylation");
 const loopTitle = (n) => (n === 0
@@ -510,7 +510,7 @@ function makeBlocks(rng) {
   const fac = { w: [ra, fw2], t: [project(A, ra), project(A, fw2)] };
   fac.kept1 = keptBy(A, fac.t[0]);
 
-  /* the Shortcut: X₁ᵀX₂ / n and its first singular pair, by the same
+  /* Solve directly (round 5: "Shortcut" until his rename): X₁ᵀX₂ / n and its first singular pair, by the same
      alternation on the 2 × 2 table itself; it lands on the loop's end */
   const M = crossOf(A, B).map((r) => r.map((v) => v / N_CONCEPT));
   let s1 = [1, 0], s2 = [0, 1];
@@ -817,7 +817,7 @@ function drawNMiddle(ctx, colors, Lm, st, F, V, k, pick) {
   put(S.sampleHead(pick + 1, S.sub[st.g[pick]]), { fill: colors.ink1, weight: "600" });
   if (k === 0) { yy += 4; wrapText(ctx, colors, S.sameRows, x, yy, mw, lh, { size: xs, fill: colors.ink1 }); return; }
   if (V.after === 3) {
-    /* Shortcut: the 2 × 2 table and its first singular pair */
+    /* Solve directly: the 2 × 2 table and its first singular pair */
     const { M, w1, w2 } = st.cross, m = Math.max(...M.flat().map(Math.abs)), cs = 38, x0 = x + 38;
     put(S.crossHead, { fill: colors.ink1, weight: "600" });
     ["CpG 1", "CpG 2"].forEach((nm, j) => txt(ctx, colors, nm, x0 + j * cs + cs / 2, yy, { align: "center", size: xs, fill: colors.ink3 }));
