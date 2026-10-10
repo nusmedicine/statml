@@ -14039,6 +14039,376 @@
       },
       "px": "eb64726c",
       "tx": "726bebea"
+    },
+    {
+      "$note": "diablo · Design, opening: two blocks, the design matrix with its Y row, weight 0.1",
+      "slug": "diablo",
+      "state": "?theme=light&shown=0",
+      "px": "bbe48587",
+      "tx": "a2bd282e"
+    },
+    {
+      "$note": "diablo · Design, Start: each arrow on its block's direction of most variance, Y's score explained",
+      "slug": "diablo",
+      "state": "?theme=light&shown=1",
+      "px": "6428178b",
+      "tx": "b1f79bbe"
+    },
+    {
+      "$note": "diablo · Design, Update mRNA: the start dashed, the two terms and their sum",
+      "slug": "diablo",
+      "state": "?theme=light&shown=2",
+      "px": "e943d384",
+      "tx": "f3281e15"
+    },
+    {
+      "$note": "diablo · Design, Update methylation",
+      "slug": "diablo",
+      "state": "?theme=light&shown=3",
+      "px": "465cad2a",
+      "tx": "a184f66e"
+    },
+    {
+      "$note": "diablo · Design, Converged at weight 0.1: the four-weight table",
+      "slug": "diablo",
+      "state": "?theme=light&shown=9",
+      "px": "3d79dbe2",
+      "tx": "6ebec7a5"
+    },
+    {
+      "$note": "diablo · Design, Converged at weight 0: the subtype axis",
+      "slug": "diablo",
+      "state": "?theme=light&weight=0&shown=9",
+      "px": "78189ee3",
+      "tx": "e379b01a"
+    },
+    {
+      "$note": "diablo · Design, Converged at weight 1: toward the shared axis",
+      "slug": "diablo",
+      "state": "?theme=light&weight=1&shown=9",
+      "px": "6f4e34a5",
+      "tx": "d7884647"
+    },
+    {
+      "$note": "diablo · Design, Update mRNA at weight 1: the methylation term as large as the Y term",
+      "slug": "diablo",
+      "state": "?theme=light&weight=1&shown=2",
+      "px": "16748556",
+      "tx": "76a8ce16"
+    },
+    {
+      "$note": "diablo · Weight, before Fit",
+      "slug": "diablo",
+      "state": "?theme=light&page=weight&shown=0",
+      "px": "4e62e392",
+      "tx": "e1e6c17d"
+    },
+    {
+      "$note": "diablo · Weight, fitted at 0: one table row, the PLS reference",
+      "slug": "diablo",
+      "state": "?theme=light&page=weight&weight=0&shown=1",
+      "px": "957f66fa",
+      "tx": "cbce0c3c"
+    },
+    {
+      "$note": "diablo · Weight, fitted at 0.1",
+      "slug": "diablo",
+      "state": "?theme=light&page=weight&shown=1",
+      "px": "0563665e",
+      "tx": "5d0db30c"
+    },
+    {
+      "$note": "diablo · Weight, fitted at 0.5",
+      "slug": "diablo",
+      "state": "?theme=light&page=weight&weight=0.5&shown=1",
+      "px": "f8d84f52",
+      "tx": "e981bba7"
+    },
+    {
+      "$note": "diablo · Weight, fitted at 1",
+      "slug": "diablo",
+      "state": "?theme=light&page=weight&weight=1&shown=1",
+      "px": "1d439058",
+      "tx": "3585e68e"
+    },
+    {
+      "$note": "diablo · Select, opening: z, no bars",
+      "slug": "diablo",
+      "state": "?theme=light&page=select&shown=0",
+      "px": "373c23a3",
+      "tx": "f2d73e02"
+    },
+    {
+      "$note": "diablo · Select, Update: the largest 60 of 8,383 and the sorted strip",
+      "slug": "diablo",
+      "state": "?theme=light&page=select&shown=1",
+      "px": "f7ee72da",
+      "tx": "5f589ec2"
+    },
+    {
+      "$note": "diablo · Select, Keep 25: outlines, the kept part above the cut, five genes named",
+      "slug": "diablo",
+      "state": "?theme=light&page=select&shown=2",
+      "px": "f3d406bb",
+      "tx": "66df2ec0"
+    },
+    {
+      "$note": "diablo · Select, Score: 25 genes against all, r 0.95",
+      "slug": "diablo",
+      "state": "?theme=light&page=select&shown=3",
+      "px": "a9fce10e",
+      "tx": "8f64e943"
+    },
+    {
+      "$note": "diablo · Predict, opening: training scores and subtype centres, RPPA not measured",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict&shown=0",
+      "px": "8f75dd5c",
+      "tx": "95453ea6"
+    },
+    {
+      "$note": "diablo · Predict, Place: the test tumours, tumour 12 ringed",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict&shown=1",
+      "px": "22e95536",
+      "tx": "95453ea6"
+    },
+    {
+      "$note": "diablo · Predict, Call: mRNA POLE, methylation CN_LOW, the called centres ringed",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict&shown=2",
+      "px": "03519e65",
+      "tx": "09f85299"
+    },
+    {
+      "$note": "diablo · Predict, Vote: the summed weights, vote POLE, the 102-of-102 count",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict&shown=3",
+      "px": "af846dd3",
+      "tx": "0634785f"
+    },
+    {
+      "$note": "diablo · Predict, Vote at 4 components",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict&components=4&shown=3",
+      "px": "94cc83bf",
+      "tx": "857df62c"
+    },
+    {
+      "$note": "diablo · Predict, Vote for tumour 1",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict&sample=1&shown=3",
+      "px": "39147394",
+      "tx": "0634785f"
+    },
+    {
+      "$note": "diablo · dark: Design converged at weight 0.1",
+      "slug": "diablo",
+      "state": "?theme=dark&shown=9",
+      "px": "d607f927",
+      "tx": "6ebec7a5"
+    },
+    {
+      "$note": "diablo · dark: Weight fitted at 1",
+      "slug": "diablo",
+      "state": "?theme=dark&page=weight&weight=1&shown=1",
+      "px": "f0100856",
+      "tx": "3585e68e"
+    },
+    {
+      "$note": "diablo · dark: Predict, Vote",
+      "slug": "diablo",
+      "state": "?theme=dark&page=predict&shown=3",
+      "px": "338bc166",
+      "tx": "0634785f"
+    },
+    {
+      "$note": "diablo · DRIVEN: Design, Update mRNA mid-press (11 of 44 frames), the arrow turning",
+      "slug": "diablo",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "click": "step",
+        "frames": 11,
+        "dt": 32
+      },
+      "px": "0319b944",
+      "tx": "b1f79bbe"
+    },
+    {
+      "$note": "diablo · DRIVEN: Design, Update mRNA mid-press (33 of 44), the scores sliding",
+      "slug": "diablo",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "click": "step",
+        "frames": 33,
+        "dt": 32
+      },
+      "px": "9ab22465",
+      "tx": "b1f79bbe"
+    },
+    {
+      "$note": "diablo · DRIVEN: Weight, Fit mid-press (19 of 38), the tumours moving out from the centre",
+      "slug": "diablo",
+      "state": "?theme=light&page=weight",
+      "drive": {
+        "click": "step",
+        "frames": 19,
+        "dt": 32
+      },
+      "px": "7b432674",
+      "tx": "e1e6c17d"
+    },
+    {
+      "$note": "diablo · DRIVEN: Select, Score mid-press (14 of 29), the scores moving out",
+      "slug": "diablo",
+      "state": "?theme=light&page=select",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          },
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "fd002d37",
+      "tx": "66df2ec0"
+    },
+    {
+      "$note": "diablo · INTERRUPTED: Weight fitted at 0.1, then weight 1: mid-move (14 of 29), two table rows",
+      "slug": "diablo",
+      "state": "?theme=light&page=weight",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 45
+          }
+        ],
+        "set": {
+          "weight": "1"
+        },
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "15178594",
+      "tx": "3585e68e"
+    },
+    {
+      "$note": "diablo · INTERRUPTED: Design, Update mRNA in flight, then weight 1: the loop starts over",
+      "slug": "diablo",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          },
+          {
+            "click": "step",
+            "frames": 10
+          }
+        ],
+        "set": {
+          "weight": "1"
+        },
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "3da82ed3",
+      "tx": "a2bd282e"
+    },
+    {
+      "$note": "diablo · INTERRUPTED: Design, Update mRNA in flight, then the page switched to Weight: the press ends, Weight's opening",
+      "slug": "diablo",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          },
+          {
+            "click": "step",
+            "frames": 10
+          }
+        ],
+        "set": {
+          "page": "weight"
+        },
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "4e62e392",
+      "tx": "e1e6c17d"
+    },
+    {
+      "$note": "diablo · HIT: Predict, Place pressed, then a click on test tumour 27's square traces it",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "hit": [
+          159,
+          129
+        ],
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "c3022390",
+      "tx": "95453ea6"
+    },
+    {
+      "$note": "diablo · HIT: Predict, Place · Call · Vote pressed, then a click on test tumour 27's square: its calls and vote",
+      "slug": "diablo",
+      "state": "?theme=light&page=predict",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          },
+          {
+            "click": "step",
+            "frames": 20
+          },
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "hit": [
+          159,
+          129
+        ],
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "8ee28421",
+      "tx": "0634785f"
     }
   ]
 }

@@ -923,7 +923,7 @@ const formulaKey = (params, anim) => {
 
 defineWidget({
   slug: "diablo",
-  status: "draft",
+  status: "shipped",
   title: "Multi-omics: DIABLO",
   subtitle: S.subtitle,
   credit: "Data: TCGA Research Network (PanCanAtlas UCEC), via cBioPortal",
