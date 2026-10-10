@@ -1436,6 +1436,22 @@
       ],
       "arc": 98,
       "status": "shipped"
+    },
+    {
+      "slug": "shared-components",
+      "title": "Multi-omics: Shared Components",
+      "blurb": "PCA takes each omics block's largest variation; PLS takes the directions two blocks share on the same samples.",
+      "course": "PHM5003",
+      "topics": [
+        "multi-omics",
+        "PLS",
+        "PCA",
+        "N-integration",
+        "latent components",
+        "covariance"
+      ],
+      "arc": 99,
+      "status": "draft"
     }
   ]
 }

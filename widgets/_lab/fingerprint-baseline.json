@@ -13593,6 +13593,13 @@
       },
       "px": "27413b28",
       "tx": "41732ca8"
+    },
+    {
+      "$note": "shared-components · placeholder until the design is agreed",
+      "slug": "shared-components",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }
