@@ -13595,11 +13595,450 @@
       "tx": "41732ca8"
     },
     {
-      "$note": "shared-components · placeholder until the design is agreed",
+      "$note": "shared-components · Factorization, opening: X as dots and as a table, traced sample 62",
       "slug": "shared-components",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "73ef50c7",
+      "tx": "ef88bcb1"
+    },
+    {
+      "$note": "shared-components · Factorization, after Score: w₁, the t₁ column, the traced arithmetic",
+      "slug": "shared-components",
+      "state": "?theme=light&shown=1",
+      "px": "5c2e1d9f",
+      "tx": "cf9e5536"
+    },
+    {
+      "$note": "shared-components · Factorization, after Reconstruct: the hollow projections and the T·Wᵀ table",
+      "slug": "shared-components",
+      "state": "?theme=light&shown=2",
+      "px": "06968d41",
+      "tx": "95526886"
+    },
+    {
+      "$note": "shared-components · Factorization, after Subtract: E beside the reconstruction",
+      "slug": "shared-components",
+      "state": "?theme=light&shown=3",
+      "px": "8af04cee",
+      "tx": "95526886"
+    },
+    {
+      "$note": "shared-components · Factorization, after Latent variable 2: the dots at their rows of E, T and Wᵀ framed",
+      "slug": "shared-components",
+      "state": "?theme=light&shown=4",
+      "px": "1a9197a8",
+      "tx": "56dcdd81"
+    },
+    {
+      "$note": "shared-components · Factorization, after Subtract again: E = 0, LV1+2 explain 100%",
+      "slug": "shared-components",
+      "state": "?theme=light&shown=5",
+      "px": "3bc38163",
+      "tx": "b3aaf4dd"
+    },
+    {
+      "$note": "shared-components · Factorization, after Subtract again, traced sample 17",
+      "slug": "shared-components",
+      "state": "?theme=light&sample=17&shown=5",
+      "px": "8e798d0b",
+      "tx": "b3aaf4dd"
+    },
+    {
+      "$note": "shared-components · N-integration, opening: the objective, two blocks on the same rows",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&shown=0",
+      "px": "ef9b96b0",
+      "tx": "726bebea"
+    },
+    {
+      "$note": "shared-components · N-integration, after Start: methylation's starting direction and u",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&shown=1",
+      "px": "6e5ec173",
+      "tx": "3057c0a8"
+    },
+    {
+      "$note": "shared-components · N-integration, after Update mRNA: X₁ and u framed",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&shown=2",
+      "px": "667e77a0",
+      "tx": "fff2f214"
+    },
+    {
+      "$note": "shared-components · N-integration, converged: the dashed directions of most variance and the table",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&shown=7",
+      "px": "1bccdb44",
+      "tx": "01c1e110"
+    },
+    {
+      "$note": "shared-components · N-integration, after Reconstruct",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&shown=8",
+      "px": "9baefdb1",
+      "tx": "9c2d2a2d"
+    },
+    {
+      "$note": "shared-components · N-integration, after Subtract: E in both blocks",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&shown=9",
+      "px": "deddfecd",
+      "tx": "9c2d2a2d"
+    },
+    {
+      "$note": "shared-components · N-integration, after Solve directly: X₁ᵀX₂ and its first singular pair",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&shown=10",
+      "px": "9b5d65d6",
+      "tx": "4ad4f729"
+    },
+    {
+      "$note": "shared-components · N-integration, converged, traced sample 17",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration&sample=17&shown=7",
+      "px": "3d3e93fa",
+      "tx": "01c1e110"
+    },
+    {
+      "$note": "shared-components · P-integration, opening: two studies on one pair of axes",
+      "slug": "shared-components",
+      "state": "?theme=light&page=p-integration&shown=0",
+      "px": "72930deb",
+      "tx": "8e6fb54b"
+    },
+    {
+      "$note": "shared-components · P-integration, after Stack: X = [X₁; X₂]",
+      "slug": "shared-components",
+      "state": "?theme=light&page=p-integration&shown=1",
+      "px": "ce935314",
+      "tx": "4ba17459"
+    },
+    {
+      "$note": "shared-components · P-integration, after Find w: y beside X, one w",
+      "slug": "shared-components",
+      "state": "?theme=light&page=p-integration&shown=2",
+      "px": "b7594557",
+      "tx": "27ae62c3"
+    },
+    {
+      "$note": "shared-components · P-integration, after Score: t, and the scores by study",
+      "slug": "shared-components",
+      "state": "?theme=light&page=p-integration&shown=3",
+      "px": "c982ccc8",
+      "tx": "20cb8589"
+    },
+    {
+      "$note": "shared-components · TCGA UCEC, mRNA–meth, opening",
+      "slug": "shared-components",
+      "state": "?theme=light&page=data&shown=0",
+      "px": "b3a63e1b",
+      "tx": "2b01adad"
+    },
+    {
+      "$note": "shared-components · TCGA UCEC, mRNA–meth, after Find: r 0.89, mixOmics expl. var. 9.9% · 11.3%",
+      "slug": "shared-components",
+      "state": "?theme=light&page=data&shown=1",
+      "px": "3f345f41",
+      "tx": "2b222c29"
+    },
+    {
+      "$note": "shared-components · TCGA UCEC, mRNA–RPPA, after Find",
+      "slug": "shared-components",
+      "state": "?theme=light&page=data&pair=mrna-rppa&shown=1",
+      "px": "7e25b14a",
+      "tx": "8609a3e6"
+    },
+    {
+      "$note": "shared-components · TCGA UCEC, meth–RPPA, after Find",
+      "slug": "shared-components",
+      "state": "?theme=light&page=data&pair=meth-rppa&shown=1",
+      "px": "27055b13",
+      "tx": "51a30141"
+    },
+    {
+      "$note": "shared-components · Factorization, dark theme, after Subtract again",
+      "slug": "shared-components",
+      "state": "?theme=dark&shown=5",
+      "px": "5ac16cef",
+      "tx": "b3aaf4dd"
+    },
+    {
+      "$note": "shared-components · N-integration, dark theme, after Solve directly",
+      "slug": "shared-components",
+      "state": "?theme=dark&page=n-integration&shown=10",
+      "px": "96c7f22b",
+      "tx": "4ad4f729"
+    },
+    {
+      "$note": "shared-components · TCGA UCEC, dark theme, after Find",
+      "slug": "shared-components",
+      "state": "?theme=dark&page=data&shown=1",
+      "px": "ab64f738",
+      "tx": "2b222c29"
+    },
+    {
+      "$note": "shared-components · DRIVEN: Factorization, Score mid-press (14 of 39 frames), the arrow and t₁ arriving",
+      "slug": "shared-components",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "346e0ca9",
+      "tx": "ef88bcb1"
+    },
+    {
+      "$note": "shared-components · DRIVEN: Factorization, Latent variable 2 mid-press (25 of 51), the dots moving to their rows of E",
+      "slug": "shared-components",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "9fcba007",
+      "tx": "95526886"
+    },
+    {
+      "$note": "shared-components · DRIVEN: Factorization, Subtract again mid-press (20 of 42), the dots moving to 0",
+      "slug": "shared-components",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "de720733",
+      "tx": "56dcdd81"
+    },
+    {
+      "$note": "shared-components · DRIVEN: N-integration, Start mid-press (22 of 45), methylation's arrow and u arriving",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration",
+      "drive": {
+        "click": "step",
+        "frames": 22,
+        "dt": 32
+      },
+      "px": "48dad0da",
+      "tx": "726bebea"
+    },
+    {
+      "$note": "shared-components · DRIVEN: N-integration, Update mRNA mid-press (22 of 45), the arrow turning",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "click": "step",
+        "frames": 22,
+        "dt": 32
+      },
+      "px": "68e37ca9",
+      "tx": "3057c0a8"
+    },
+    {
+      "$note": "shared-components · DRIVEN: N-integration, the last Update methylation mid-press (22 of 45), converging",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "click": "step",
+        "frames": 22,
+        "dt": 32
+      },
+      "px": "b2cdb170",
+      "tx": "39539d9c"
+    },
+    {
+      "$note": "shared-components · DRIVEN: P-integration, Stack mid-press (18 of 36), X₂ moving under X₁",
+      "slug": "shared-components",
+      "state": "?theme=light&page=p-integration",
+      "drive": {
+        "click": "step",
+        "frames": 18,
+        "dt": 32
+      },
+      "px": "5cd47a83",
+      "tx": "8e6fb54b"
+    },
+    {
+      "$note": "shared-components · DRIVEN: TCGA UCEC, Find mid-press (25 of 51), the scores arriving",
+      "slug": "shared-components",
+      "state": "?theme=light&page=data",
+      "drive": {
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "fc395b3c",
+      "tx": "2b01adad"
+    },
+    {
+      "$note": "shared-components · INTERRUPTED: N-integration, Update mRNA in flight, then the page switched to Factorization: the press ends there, Factorization's opening",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          },
+          {
+            "click": "step",
+            "frames": 10
+          }
+        ],
+        "set": {
+          "page": "factorization"
+        },
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "73ef50c7",
+      "tx": "ef88bcb1"
+    },
+    {
+      "$note": "shared-components · INTERRUPTED: Factorization, Score in flight, then traced sample 17: the press carries on to its end",
+      "slug": "shared-components",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 10
+          }
+        ],
+        "set": {
+          "sample": 17
+        },
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "74888146",
+      "tx": "cf9e5536"
+    },
+    {
+      "$note": "shared-components · HIT: Factorization, a click on a dot picks sample 42",
+      "slug": "shared-components",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          140,
+          200
+        ],
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "5034de34",
+      "tx": "ef88bcb1"
+    },
+    {
+      "$note": "shared-components · HIT: Factorization, a click on a row of X picks sample 41",
+      "slug": "shared-components",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          282,
+          165
+        ],
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "2d9adccd",
+      "tx": "ef88bcb1"
+    },
+    {
+      "$note": "shared-components · HIT: N-integration, a click on an mRNA dot picks sample 47",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration",
+      "drive": {
+        "hit": [
+          114,
+          186
+        ],
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "0d451cb3",
+      "tx": "726bebea"
+    },
+    {
+      "$note": "shared-components · HIT: N-integration, a click on a methylation row picks sample 75",
+      "slug": "shared-components",
+      "state": "?theme=light&page=n-integration",
+      "drive": {
+        "hit": [
+          510,
+          366
+        ],
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "eb64726c",
+      "tx": "726bebea"
     }
   ]
 }

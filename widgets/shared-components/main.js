@@ -1186,7 +1186,7 @@ const TRACED_ON = { param: "page", oneOf: ["factorization", "n-integration"] };
 
 defineWidget({
   slug: "shared-components",
-  status: "draft",
+  status: "shipped",
   title: "Multi-omics: Partial Least Squares",
   subtitle: S.subtitle,
   credit: "Data: TCGA Research Network (PanCanAtlas UCEC), via cBioPortal",
