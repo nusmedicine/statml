@@ -334,7 +334,8 @@ function corr(a, b) {
   return sab / Math.sqrt(saa * sbb);
 }
 /* a value that rounds to zero prints as 0.00, never −0.00 (Subtract again leaves rounding residue) */
-const f2 = (v) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2);
+/* a true minus sign, as the other widgets print (run-through, 2026-10-10) */
+const f2 = (v) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2).replace("-", "−");
 /** a factor in a product: negatives in brackets, so "× (−0.39)" reads as one term */
 const fx = (v) => (v < 0 ? `(${f2(v)})` : f2(v));
 const pair2 = (v) => `${f2(v[0])}, ${f2(v[1])}`;
@@ -1083,7 +1084,7 @@ function drawWeights(ctx, colors, x, y, width, b, wv, top) {
   const m = 3 * Math.sqrt(wv.reduce((s, v) => s + v * v, 0) / wv.length) || 1, cw = width / wv.length;
   for (let j = 0; j < wv.length; j++) { ctx.fillStyle = valueColour(colors, wv[j] / m); ctx.fillRect(x + j * cw, y + 6, Math.max(cw, 0.6), 10); }
   frame(ctx, colors, x, y + 6, width, 10);
-  top.name.slice(0, 3).forEach((nm, i) => txt(ctx, colors, `${nm}  ${top.value[i] > 0 ? "+" : ""}${top.value[i].toFixed(3)}`, x, y + 30 + i * 13, { size: colors.fsXs, fill: colors.ink2 }));
+  top.name.slice(0, 3).forEach((nm, i) => txt(ctx, colors, `${nm}  ${top.value[i] > 0 ? "+" : ""}${top.value[i].toFixed(3).replace("-", "−")}`, x, y + 30 + i * 13, { size: colors.fsXs, fill: colors.ink2 }));
 }
 
 function drawData(ctx, colors, w, params, anim, pointer) {
