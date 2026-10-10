@@ -141,9 +141,10 @@ const S = {
   scaleLine: (n, w) => `÷ ${n} (length 1) → w = (${w})`,
   rebuiltLine: (s, t, v) => `${s} rebuilt = ${t} × w = (${v})`,
   eLine: (s, v) => `${s} E row = (${v})`,
-  crossHead: "X₁ᵀX₂ / n",
-  pairHead: "first singular pair",
-  sameAs: "the loop's w₁ and w₂",
+  crossHead: "X₁ᵀX₂ / n, the cross-covariance: each mRNA feature's covariance with each methylation feature",
+  covIs: "cov(t, u) = w₁ᵀ (X₁ᵀX₂ / n) w₂ is largest at its first singular pair:",
+  pairLine: (a, b) => `w₁ = (${a}), w₂ = (${b}): the loop's arrows`,
+  pcaIs: "PCA instead decomposes one block's own covariance, X₁ᵀX₁: the dashed line.",
   mX: ["X₁", "X₂"], mT: ["t", "u"], mE: "E",
   colPls: "PLS",
   colRef: ["largest", "variance"],
@@ -273,9 +274,9 @@ const MATH = {
     note: "Each block keeps its own factorization, X ≈ T·Wᵀ; what the two share is that their score columns are chosen to agree.",
   },
   shortcut: {
-    math: `<math display="block"><mrow>${mo("(")}${sub("w", 1)}${mo(",")}${sub("w", 2)}${mo(")")}${mo("=")}<mtext>first singular pair of</mtext>${gap(0.3)}${supT(sub("X", 1))}${sub("X", 2)}</mrow></math>`,
-    plain: "(w₁, w₂) = first singular pair of X₁ᵀX₂",
-    note: "One block's largest-variance direction is the first singular vector of that block alone; PLS's pair is that of X₁ᵀX₂, the covariances between the blocks' features, summed over the samples they share.",
+    math: `<math display="block"><mrow><mtext>cov</mtext>${mo("(")}${mi("t")}${mo(",")}${mi("u")}${mo(")")}${mo("=")}${supT(sub("w", 1))}<mfrac><mrow>${supT(sub("X", 1))}${sub("X", 2)}</mrow><mi>n</mi></mfrac>${sub("w", 2)}</mrow></math>`,
+    plain: "cov(t, u) = w₁ᵀ (X₁ᵀX₂ / n) w₂",
+    note: "So the arrows are the first singular pair of X₁ᵀX₂, the cross-covariance between the two blocks' features. PCA decomposes one block's own covariance, X₁ᵀX₁, instead; its first direction is the dashed line.",
   },
   stack: {
     math: `<math display="block"><mrow>${mi("X")}${mo("=")}<mrow>${mo("[")}<mtable><mtr><mtd>${sub("X", 1)}</mtd></mtr><mtr><mtd>${sub("X", 2)}</mtd></mtr></mtable>${mo("]")}</mrow>${mo(",")}${gap(1)}${mi("w")}${mo("∝")}${supT(mi("X"))}${mi("y")}${mo(",")}${gap(0.6)}${mi("t")}${mo("=")}${mi("X")}${mi("w")}</mrow></math>`,
@@ -671,7 +672,7 @@ const tracedOf = (params) => clamp((Number(params.sample) || TRACED) - 1, 0, N_C
    reading left to right (X₁, t, then E) and methylation's mirrored (E, u,
    X₂), so the two score columns face each other across the middle panel
    and a row is one sample all the way across. */
-const L0 = { cap: 34, padL: 30, padR: 12, gap: 24, sMax: 150, mGap: 52, rh: 2, cw: 14 };
+const L0 = { cap: 40, padL: 30, padR: 12, gap: 24, sMax: 150, mGap: 52, rh: 2, cw: 14 };
 const H_N = L0.cap + 18 + L0.sMax + L0.mGap + N_CONCEPT * L0.rh + 18;
 function nLayout(w) {
   const s = Math.floor(Math.min(L0.sMax, (w - L0.padL - L0.padR - 2 * L0.gap) / 3));
@@ -814,12 +815,13 @@ function drawNMiddle(ctx, colors, Lm, st, F, V, k, pick) {
   let yy = y + 8;
   const put = (s, opts = {}) => { txt(ctx, colors, s, x, yy, { size: xs, fill: colors.ink2, ...opts }); yy += lh; };
   const a = st.A[pick], b = st.B[pick];
-  put(S.sampleHead(pick + 1, S.sub[st.g[pick]]), { fill: colors.ink1, weight: "600" });
-  if (k === 0) { yy += 4; wrapText(ctx, colors, S.sameRows, x, yy, mw, lh, { size: xs, fill: colors.ink1 }); return; }
   if (V.after === 3) {
-    /* Solve directly: the 2 × 2 table and its first singular pair */
-    const { M, w1, w2 } = st.cross, m = Math.max(...M.flat().map(Math.abs)), cs = 38, x0 = x + 38;
-    put(S.crossHead, { fill: colors.ink1, weight: "600" });
+    /* Solve directly: the cross-covariance table, why its first singular
+       pair is the answer (cov(t, u) = w₁ᵀ M w₂), and how it differs from what
+       PCA decomposes (his yes, round 5). The traced sample's header gives
+       way: nothing here is about one sample. */
+    const { M, w1, w2 } = st.cross, m = Math.max(...M.flat().map(Math.abs)), cs = 34, x0 = x + 40;
+    yy += lh * wrapText(ctx, colors, S.crossHead, x, yy, mw, lh, { size: xs, fill: colors.ink1, weight: "600" });
     ["CpG 1", "CpG 2"].forEach((nm, j) => txt(ctx, colors, nm, x0 + j * cs + cs / 2, yy, { align: "center", size: xs, fill: colors.ink3 }));
     yy += 4;
     ["gene 1", "gene 2"].forEach((nm, i) => txt(ctx, colors, nm, x0 - 4, yy + i * cs + cs / 2 + 3, { align: "right", size: xs, fill: colors.ink3 }));
@@ -828,10 +830,13 @@ function drawNMiddle(ctx, colors, Lm, st, F, V, k, pick) {
       txt(ctx, colors, f2(M[i][j]), x0 + j * cs + cs / 2 - 1, yy + i * cs + cs / 2 + 3, { align: "center", size: xs, fill: colors.ink1 });
     }
     yy += 2 * cs + 12;
-    put(`${S.pairHead}: w₁ = (${pair2(w1)})`, { fill: colors.ink1 });
-    put(`w₂ = (${pair2(w2)}), ${S.sameAs}`, { fill: colors.ink1 });
+    yy += lh * wrapText(ctx, colors, S.covIs, x, yy, mw, lh, { size: xs, fill: colors.ink1 });
+    put(S.pairLine(pair2(w1), pair2(w2)), { fill: colors.highlight });
+    wrapText(ctx, colors, S.pcaIs, x, yy, mw, lh, { size: xs, fill: colors.ink3 });
     return;
   }
+  put(S.sampleHead(pick + 1, S.sub[st.g[pick]]), { fill: colors.ink1, weight: "600" });
+  if (k === 0) { yy += 4; wrapText(ctx, colors, S.sameRows, x, yy, mw, lh, { size: xs, fill: colors.ink1 }); return; }
   /* the traced sample's scores: a row of X times w */
   if (F.w1) { put(`t = ${fx(a[0])} × ${fx(F.w1[0])} + ${fx(a[1])} × ${fx(F.w1[1])}`); put(`  = ${f2(F.t[pick])}`, { fill: colors.ink1 }); }
   else put(`mRNA: ${S.noArrow}`, { fill: colors.ink3 });
