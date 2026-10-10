@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 98 gnn-explainer — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; vertical-align: top; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 90px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.on { border-color: var(--ink-1); font-weight: 600; }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>98 <code>gnn-explainer</code> &middot; Deep Learning - Graphs: Explainability &middot; mock</h1>
+  <p class="note">
+    09-2 cells 84&ndash;92 and 09-1 cell 26, read from the Master copy. Every number on this page comes from
+    <code>gnn-explainer-measure.py</code>: the lesson's GATNet (cell 64) trained three times with cells 67&ndash;79's set-up on
+    cell 28's seed-42 scaffold split, and GNNExplainer written out from PyG's source (checked 2026-10-10: the coefficients, the
+    random start, the hard masks, the mask on each layer's message) and run 20 times on <code>test_set[3]</code>.
+    <code>gnn-explainer-export.py</code> writes the data. Drawn at the widget's 550px.
+  </p>
+
+  <h2>0 &middot; What the lesson does, and what came out</h2>
+  <p class="note"><b>Cell 84</b> defines two masks, a node feature mask <i>M<sub>x</sub></i> &isin; R<sup>N&times;F</sup> and an
+    edge mask <i>M<sub>e</sub></i> &isin; R<sup>E</sup>, learned so that the masked graph's prediction <i>"stays close to the
+    original prediction"</i>: <i>"the smallest set of atoms/bonds and features that preserve the model's output."</i>
+    <b>Cell 86</b> runs PyG's <code>GNNExplainer(epochs=300, lr=0.01)</code> on the model's own prediction. <b>Cell 90</b> scores an
+    atom as the mean |mask| over its features and a bond as the larger of its two directions, each scaled 0&ndash;1 within the
+    molecule; <b>cell 92</b> draws them as a heat overlay. <code>test_set[3]</code> is row 76, <b>ceftriaxone disodium</b>
+    (active), whose SMILES carries three waters and two Na<sup>+</sup> as five separate one-atom pieces of the graph.</p>
+  <table id="t0"></table>
+
+  <h2>1 &middot; The lesson's picture, redrawn &mdash; and the colour (call 6.7)</h2>
+  <p class="note">Cell 90's scores from one run (the random start numbered 1), drawn as cell 92 draws them: atoms and bonds shaded
+    by score, scaled 0&ndash;1 within the molecule. The waters and Na<sup>+</sup> sit in a strip of their own under the drug &mdash;
+    RDKit places them among the drug's atoms. Three colourings: <b>A</b> <code>--c-magnitude</code> (violet, 87's attention and 70's
+    matrices; <code>--c-highlight</code> goes to ink on these pages), <b>B</b> grey (95's values), <b>C</b> the lesson's own
+    yellow-to-red, which would need a new role.</p>
+  <div class="row" id="r1"></div>
+
+  <h2>2 &middot; Mask page &mdash; the mask is learned (300 epochs, from a random start)</h2>
+  <p class="note">The edge mask itself, before cell 90's scaling: each bond's sigmoid value (0 removes the bond's message in both
+    layers, 1 keeps it). <b>The start is random</b> (PyG: normal noise, sd &asymp; 0.22 for 41 atoms), so every bond begins near
+    0.5 &mdash; and with every feature also near half, <b>the first prediction is p(active) = <span id="p1"></span></b>, not
+    <span id="p0"></span>. The optimiser then raises p back and pushes each mask value toward 0 or 1 (the size and entropy
+    terms). Four frames of one run, then the run's curve. <b>The bonds move late and not far</b>: at the lesson's 300 epochs
+    about half of them (<span id="mid"></span> over 20 runs) still sit between 0.1 and 0.9 &mdash; a heat map of an unfinished
+    optimisation, which cell 90's 0&ndash;1 scaling does not show.</p>
+  <div class="row" id="r2"></div>
+  <div class="row" id="r2b"></div>
+
+  <h2>3 &middot; Runs page &mdash; each run keeps a different set of bonds, and each set works</h2>
+  <p class="note">A bond counts as kept when its mask ends above 0.5. <b>Each run's kept bonds alone hold the prediction</b>
+    (every other bond's message removed, every atom's features intact) &mdash; well above random sets of the same size. <b>But two
+    runs keep different sets</b>: median Jaccard <span id="jac"></span> across the 20 runs' 190 pairs; <b>every one of the 39
+    bonds is kept by some run, and only <span id="always"></span> by every run</b> &mdash; the three bonds of N10, the
+    &beta;-lactam ring's nitrogen. Running 3,000 epochs instead of 300 makes every mask exactly 0 or 1 and leaves the runs as far
+    apart (top-5 bonds shared: median 1 of 5 at 100, 300, 1,000 and 3,000 epochs). Four runs, then all twenty.</p>
+  <div class="row" id="r3"></div>
+  <div class="row" id="r3b"></div>
+  <table id="t3"></table>
+
+  <h2>4 &middot; The waters and the sodium are scored &mdash; and the model does read them</h2>
+  <p class="note">No bond joins them to the drug, so no message reaches them and none leaves. But the lesson's GAT pools with
+    <b>max</b> over every atom (cell 64), so a water's vector can supply a channel's maximum. Setting one water's features to 0
+    moves p(active) by <span id="wz"></span> &mdash; more than deleting any one bond except one (largest single bond:
+    <span id="bz"></span>). The scores below are cell 90's, the mean of 20 runs; rank among the 41 atoms.</p>
+  <table id="t4"></table>
+
+  <h2>5 &middot; Checks that did not make the lead</h2>
+  <table id="t5"></table>
+  <p class="note">The deletion check (09-1 cell 26's perturbation family) agrees with the Runs page from the other side: the
+    model's prediction rests on many bonds at once, so removing a run's top few changes little, while removing every bond drops
+    p(active) to <span id="nob"></span>. The other two trained GATs: <b>seed 43 predicts ceftriaxone inactive</b> (p 0.53), so
+    its mask explains a different answer; seed 44 predicts active, and its run-averaged bond scores correlate 0.63 with the
+    lesson's model's.</p>
+  <table id="t5b"></table>
+
+  <h2>6 &middot; The calls</h2>
+  <p class="note"><b>What 98 adds to 87.</b> 87's attributions are formulas: integrated gradients and occlusion give the same
+    answer every time. GNNExplainer <b>learns</b> its answer by optimisation, from a random start, as a set of bonds &mdash; and
+    the measurement says that set is one of many. The picked claim: <i>a highlighted bond is part of one set that keeps the
+    model's prediction, not the reason the molecule stops E. coli growing, and another run picks another set.</i></p>
+  <div class="rail"><span class="w">Step</span><span class="pg on">Mask</span><span class="pg">Scores</span><span class="pg">Runs</span><span class="n">recommended (6.1)</span></div>
+
+  <div class="q"><b class="h">6.1 &middot; Pages</b>
+    <b>A</b> Mask &middot; Scores &middot; Runs (recommended): Mask plays the 300 epochs on one run; Scores is cell 90 and 92 (the
+    two directions to one bond, the features to one atom, the 0&ndash;1 scaling, the heat overlay); Runs changes the random start
+    and shows what the kept set does and how often each bond is kept. <b>B</b> Scores &middot; Runs, the optimisation as a caption.
+    <b>C</b> A + a Check page (delete the top bonds against random ones, &sect; 5).</div>
+  <div class="q"><b class="h">6.2 &middot; The molecule</b>
+    <b>A</b> ceftriaxone only, the lesson's <code>test_set[3]</code> (recommended). <b>B</b> a Molecule control over the test set's
+    five actives (prulifloxacin, a fluoroquinolone, is <code>test_set[0]</code>) &mdash; each needs its own 20 runs computed ahead.</div>
+  <div class="q"><b class="h">6.3 &middot; The waters and Na<sup>+</sup></b>
+    <b>A</b> drawn, in a strip under the drug labelled as separate pieces of the same graph, scored like any atom (recommended: the
+    lesson's graph has them, and &sect; 4's claim needs them). <b>B</b> left out, the salt stripped before the drawing.</div>
+  <div class="q"><b class="h">6.4 &middot; The feature mask <i>M<sub>x</sub></i></b>
+    <b>A</b> on the Scores page as the 41 &times; 39 grid that cell 90 averages into one score per atom (recommended: it is the
+    lesson's definition, and it shows the average running over features that are 0 for that atom). <b>B</b> atoms as scores only,
+    the grid named in a caption.</div>
+  <div class="q"><b class="h">6.5 &middot; Runs page controls</b>
+    <b>A</b> Run 1&ndash;20 (the random start) and Show <i>One run &middot; All runs</i>, the second shading each bond by how many of the
+    20 keep it (recommended). <b>B</b> Run only. Either way the readout gives p(active) with only the kept bonds against random
+    sets of the same size.</div>
+  <div class="q"><b class="h">6.6 &middot; The model</b>
+    <b>A</b> the lesson's trained GAT only (seed 42, test macro F1 <span id="f1"></span>), named in a caption (recommended: the claim is
+    about the explainer, and a second model that predicts inactive is a different lesson). <b>B</b> a Model control over the three
+    trained seeds.</div>
+  <div class="q"><b class="h">6.7 &middot; Colour of a score</b> (&sect; 1)
+    <b>A</b> <code>--c-magnitude</code>, violet, with the highlight in ink on these pages (recommended: 87's attention and the
+    token's stated use). <b>B</b> grey. <b>C</b> the lesson's yellow-to-red as a new role.</div>
+  <div class="q"><b class="h">6.8 &middot; Epochs</b>
+    <b>A</b> the lesson's 300, fixed (recommended; the 3,000-epoch result goes in one caption line on Runs). <b>B</b> an Epochs
+    control 300 &middot; 3,000.</div>
+  <div class="q"><b class="h">6.9 &middot; Slug and title</b>
+    <b>A</b> <code>gnn-explainer</code>, <i>Deep Learning - Graphs: Explainability</i> (recommended, beside 87's <i>Deep Learning -
+    Language: Explainability</i>). <b>B</b> <i>Deep Learning - Graphs: GNNExplainer</i>.</div>
+  <p class="rec"><b>Left to the draft as conventional:</b> the 20 runs and their traces computed ahead into a generated
+    <code>data.js</code> (no gradients in the browser), the molecule drawn as 94&ndash;97 draw it, the credit line as 94&ndash;97
+    (<i>Molecule data: Stokes et al., Cell 2020, via FinGAT</i>), and hover on atoms and bonds naming each with its value.</p>
+
+  <h2>7 &middot; Notebook findings, to tell you</h2>
+  <p class="note">
+    1. <b>Cell 86 sets no seed for GNNExplainer</b>, and its masks start random: re-running cell 90 gives another picture. On this
+    molecule two runs share a median of 1 of their top 5 bonds.<br>
+    2. <b>Cell 90's atom score is the mean |mask| over all 39 features</b>, and PyG sets the mask to 0 on every feature that is 0
+    for that atom (no gradient), so the score partly counts how many features an atom has switched on (Spearman
+    <span id="nzc"></span> with that count on this molecule; <span id="nzc2"></span> when the mean runs over the atom's own features only).<br>
+    3. <b>The salt's waters and Na<sup>+</sup> are scored</b> and, through max pooling, the model reads them (&sect; 4); the drawing
+    in cell 92 places them among the drug's atoms.<br>
+    4. <b>The masked starting point flips the prediction</b> (p(active) <span id="p1b"></span> at epoch 1), because each feature,
+    atomic number included, is multiplied by about 0.5; the optimiser recovers it within ~50 epochs.
+  </p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550, H = 300;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const mix = (a, b, t) => { const p = rgb(a), q = rgb(b); const u = Math.max(0, Math.min(1, t)); return `rgb(${p.map((x, i) => Math.round(x + (q[i] - x) * u)).join(",")})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineCap = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function table(id, head, rows) {
+  const t = document.getElementById(id); const tr = el("tr"); head.forEach((h) => tr.appendChild(el("th", null, h))); t.appendChild(tr);
+  rows.forEach((r) => { const x = el("tr"); r.forEach((v) => x.appendChild(el("td", null, v))); t.appendChild(x); });
+}
+const set = (id, v) => { document.getElementById(id).textContent = v; };
+const f2 = (v) => v.toFixed(2), f3 = (v) => v.toFixed(3);
+
+const D = await fetch("gnn-explainer-mock-data.json").then((r) => r.json());
+const MOL = D.molecule, S = D.summary["42"], X = D.models["42"].explained, RUNS = X.runs;
+const SUB = S.subgraphs;
+const drugSet = new Set(MOL.fragments.reduce((a, f) => (f.length > a.length ? f : a), []));
+const salt = MOL.atoms.map((_, i) => i).filter((i) => !drugSet.has(i));
+const name = (i) => `${MOL.atoms[i].el}${i}`;
+
+/* the drug fitted to the box above a strip; the salt's one-atom pieces spaced along the strip */
+const STRIP = 34;
+/* RDKit lays the drug on a diagonal: turn it onto its long (principal) axis so it fills the box */
+const ROT = (() => {
+  const ids = [...drugSet], mx = mean(ids.map((i) => MOL.atoms[i].x)), my = mean(ids.map((i) => MOL.atoms[i].y));
+  let sxx = 0, syy = 0, sxy = 0;
+  ids.forEach((i) => { const dx = MOL.atoms[i].x - mx, dy = MOL.atoms[i].y - my; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; });
+  const th = -0.5 * Math.atan2(2 * sxy, sxx - syy), c = Math.cos(th), s = Math.sin(th);
+  return MOL.atoms.map((a) => ({ x: a.x * c - a.y * s, y: a.x * s + a.y * c }));
+})();
+function placeAll(x0, y0, w, h) {
+  const ids = [...drugSet], xs = ids.map((i) => ROT[i].x), ys = ids.map((i) => ROT[i].y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const hh = h - STRIP, s = Math.min((w - 30) / (maxX - minX), (hh - 24) / (maxY - minY));
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const P = ROT.map((a) => [x0 + w / 2 + (a.x - cx) * s, y0 + hh / 2 + (a.y - cy) * s]);
+  salt.forEach((i, k) => { P[i] = [x0 + 150 + k * 46, y0 + h - STRIP / 2]; });
+  return P;
+}
+const RAMPS = {
+  A: (v) => mix(T.surface3, T.magnitude, v),
+  B: (v) => mix(T.surface3, T.ink2, v),
+  C: (v) => `rgb(255,${Math.round(255 * (1 - 0.7 * v))},0)`,
+};
+function drawScored(ctx, P, atomV, bondV, { ramp = RAMPS.A, x0 = 0, y0 = 0, w = W, h = H, kept = null, atomsPlain = false } = {}) {
+  line(ctx, x0 + 12, y0 + h - STRIP, x0 + w - 12, y0 + h - STRIP, T.grid, 1);
+  label(ctx, "separate pieces:", x0 + 14, y0 + h - STRIP / 2 + 4, { size: 10, colour: T.ink3 });
+  MOL.bonds.forEach(([i, j], b) => {
+    const v = bondV ? bondV[b] : 0;
+    if (kept) { const on = kept[b]; line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], on ? ramp(1) : T.surface3, on ? 5 : 2); return; }
+    line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], T.ink3, 1);
+    line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], ramp(v), 1.5 + 5 * v);
+  });
+  MOL.atoms.forEach((a, i) => {
+    const v = atomV ? atomV[i] : 0;
+    dot(ctx, P[i][0], P[i][1], 7.5, atomsPlain ? T.surface1 : ramp(v), T.ink3, 0.8);
+    const txt = a.el + (a.charge > 0 ? "+" : a.charge < 0 ? "−" : "");
+    const fill = atomsPlain ? null : ramp(v).match(/\d+/g).map(Number);
+    const light = fill ? (0.299 * fill[0] + 0.587 * fill[1] + 0.114 * fill[2]) > 140 : null;
+    label(ctx, txt, P[i][0], P[i][1] + 0.5, { size: 8.5, align: "center", baseline: "middle", weight: "600", colour: fill ? (light ? "#111" : "#f4f4f4") : T.ink1 });
+  });
+}
+function rampKey(ctx, ramp, x, y, w = 110, txt = ["0", "1"]) {
+  for (let k = 0; k < w; k++) line(ctx, x + k, y, x + k + 1, y, ramp(k / (w - 1)), 8);
+  label(ctx, txt[0], x - 4, y + 3, { size: 9, align: "right", colour: T.ink3 }); label(ctx, txt[1], x + w + 4, y + 3, { size: 9, colour: T.ink3 });
+}
+
+/* ------------------------------------------------------------ section 0 */
+{
+  const m = D.models;
+  set("p0", f2(X.p[1])); set("f1", f2(m["42"].test_macro_f1));
+  table("t0", ["", "the lesson's GAT (seed 42)", "seed 43", "seed 44"], [
+    ["split (cell 28)", `${D.split.train} / ${D.split.val} / ${D.split.test}`, "the same", "the same"],
+    ["test macro F1 · actives found of 5", ...["42", "43", "44"].map((s) => `${f2(m[s].test_macro_f1)} · ${m[s].actives_found}`)],
+    ["ceftriaxone: prediction, p", ...["42", "43", "44"].map((s) => { const e = m[s].explained; return `${e.pred ? "active" : "inactive"}, ${f2(e.p[e.pred])}`; })],
+    ["graph", `${MOL.atoms.length} atoms (36 drug, 3 water O, 2 Na⁺), ${MOL.bonds.length} bonds`, "", ""],
+  ]);
+}
+
+/* ------------------------------------------------------------ section 1 */
+{
+  const r = RUNS[0];
+  for (const [k, title] of [["A", "A · --c-magnitude"], ["B", "B · grey"], ["C", "C · the lesson's heat"]]) {
+    const ctx = canvasIn(cand("r1", title, "run 1 · cell 90's scores, 0–1 within the molecule"), W, H);
+    const P = placeAll(0, 18, W, H - 18);
+    drawScored(ctx, P, r.node_imp, r.edge_imp, { ramp: RAMPS[k] });
+    label(ctx, "ceftriaxone disodium · predicted active, p 0.92", 12, 16, { size: 11, colour: T.ink1, weight: "600" });
+    rampKey(ctx, RAMPS[k], 420, 12, 90, ["0", "1"]);
+  }
+}
+
+/* ------------------------------------------------------------ section 2 */
+{
+  const tr = RUNS[0].trace;
+  set("p1", f2(tr[0].p)); set("p1b", f2(tr[0].p)); set("mid", `${Math.round(100 * S["edge_raw_share_between_0.1_and_0.9"])}%`);
+  const frames = [0, 3, 10, tr.length - 1];
+  const dirToBond = (edge) => MOL.bonds.map((_, b) => Math.max(edge[2 * b], edge[2 * b + 1]));
+  for (const f of frames) {
+    const t = tr[f];
+    const ctx = canvasIn(cand("r2", `epoch ${t.epoch}`, `bond = its mask (the larger direction) · p(active) of the masked graph ${f2(t.p)}`, 400), 400, 230);
+    const P = (() => { const Q = placeAll(0, 4, 400, 226); return Q; })();
+    drawScored(ctx, P, null, dirToBond(t.edge), { w: 400, h: 230, atomsPlain: true, y0: 0 });
+  }
+  /* the run's curve: p and the loss */
+  const box = cand("r2b", "the run, epoch by epoch", "p(active) of the masked graph (ink) · total loss (grey, right axis) · bonds above 0.5 (bars)", W);
+  const ctx = canvasIn(box, W, 170);
+  const x0 = 46, x1 = W - 46, y0 = 14, y1 = 140, ex = (e) => x0 + (x1 - x0) * (e - 1) / 299;
+  line(ctx, x0, y1, x1, y1, T.grid); line(ctx, x0, y0, x0, y1, T.grid); line(ctx, x1, y0, x1, y1, T.grid);
+  const Lmax = Math.max(...tr.map((t) => t.loss));
+  tr.forEach((t) => { const n = t.edge.filter((v, k) => k % 2 === 0 && Math.max(v, t.edge[k + 1]) > 0.5).length; ctx.fillStyle = T.surface3; ctx.fillRect(ex(t.epoch) - 2, y1 - (y1 - y0) * n / 39, 4, (y1 - y0) * n / 39); });
+  for (let k = 1; k < tr.length; k++) {
+    line(ctx, ex(tr[k - 1].epoch), y1 - (y1 - y0) * tr[k - 1].loss / Lmax, ex(tr[k].epoch), y1 - (y1 - y0) * tr[k].loss / Lmax, T.ink3, 1.4);
+    line(ctx, ex(tr[k - 1].epoch), y1 - (y1 - y0) * tr[k - 1].p, ex(tr[k].epoch), y1 - (y1 - y0) * tr[k].p, T.ink1, 2);
+  }
+  line(ctx, x0, y1 - (y1 - y0) * X.p[1], x1, y1 - (y1 - y0) * X.p[1], T.ink2, 1, [3, 3]);
+  label(ctx, `unmasked ${f2(X.p[1])}`, x1 - 4, y1 - (y1 - y0) * X.p[1] + 12, { size: 9, align: "right" });
+  label(ctx, "1", x0 - 5, y0 + 4, { size: 9, align: "right" }); label(ctx, "0", x0 - 5, y1 + 3, { size: 9, align: "right" });
+  label(ctx, f2(Lmax), x1 + 5, y0 + 4, { size: 9 }); label(ctx, "epoch 1", x0, y1 + 14, { size: 9 }); label(ctx, "300", x1, y1 + 14, { size: 9, align: "right" });
+}
+
+/* ------------------------------------------------------------ section 3 */
+{
+  set("jac", f2(SUB.jaccard_median)); set("always", String(SUB.kept_in_every_run.length));
+  for (let r = 0; r < 4; r++) {
+    const pr = SUB.per_run[r], kept = RUNS[r].edge_raw.map((v) => v > 0.5);
+    const ctx = canvasIn(cand("r3", `run ${r + 1}`, `keeps ${pr.kept} of 39 bonds · p(active) with only these ${f2(pr.p_only_kept)}\nrandom sets of ${pr.kept}: median ${f2(pr.p_random_same_size_median)}`, 400), 400, 230);
+    drawScored(ctx, placeAll(0, 4, 400, 226), null, null, { w: 400, h: 230, kept, atomsPlain: true });
+  }
+  const cnt = SUB.kept_count_per_bond;
+  const ctx = canvasIn(cand("r3b", "all twenty runs", "bond shade and width = how many of the 20 runs keep it · ringed atom: N10, whose three bonds every run keeps", W), W, H);
+  const P = placeAll(0, 18, W, H - 18);
+  drawScored(ctx, P, null, cnt.map((c) => c / 20), { atomsPlain: true });
+  dot(ctx, P[10][0], P[10][1], 12, null, T.ink1, 1.6);
+  rampKey(ctx, RAMPS.A, 400, 12, 90, ["0 runs", "20"]);
+  table("t3", ["run", "bonds kept", "p(active), only those", "random sets, median", "random at or above"],
+    SUB.per_run.slice(0, 8).map((p) => [String(p.run + 1), String(p.kept), f3(p.p_only_kept), f3(p.p_random_same_size_median), `${Math.round(100 * p.share_random_at_or_above)}%`]));
+}
+
+/* ------------------------------------------------------------ section 4 */
+{
+  const occ = X.occlusion_atom_zeroed, occB = X.occlusion_edge;
+  set("wz", f3(Math.abs(occ[36]))); set("bz", f3(Math.max(...occB.map(Math.abs))));
+  table("t4", ["atom", "score (cell 90, mean of 20)", "rank of 41", "p change, its features set to 0", "gradient size"],
+    S.salt_atoms.map((s) => [name(s.atom), f2(s.mean_node_imp), String(s.rank_of), (occ[s.atom] > 0 ? "−" : "+") + f3(Math.abs(occ[s.atom])), f2(X.saliency_node[s.atom])])
+      .concat([["drug atoms, median", f2(median([...drugSet].map((i) => mean(RUNS.map((r) => r.node_imp[i]))))), "", f3(median([...drugSet].map((i) => Math.abs(occ[i])))), f2(median([...drugSet].map((i) => X.saliency_node[i])))]]));
+}
+function mean(a) { return a.reduce((s, v) => s + v, 0) / a.length; }
+function median(a) { const b = [...a].sort((p, q) => p - q); const n = b.length; return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; }
+
+/* ------------------------------------------------------------ section 5 */
+{
+  const F = S.fidelity;
+  set("nob", f2(F.no_bonds)); set("nzc", f2(S.node_imp_vs_nonzero_features_spearman)); set("nzc2", f2(S.node_imp_nonzero_only_vs_nonzero_features_spearman));
+  table("t5", ["check (the lesson's model, 20 runs)", "result"], [
+    ["two runs' bond scores, Spearman", `median ${f2(S.edge_spearman_between_runs.median)} (lowest ${f2(S.edge_spearman_between_runs.min)})`],
+    ["two runs' top 5 bonds in common", `median ${S.top5_bond_overlap_between_runs.median} of 5; ${S.bonds_ever_in_top5} bonds reach some run's top 5, none every run's`],
+    ["two runs' atom scores, Spearman", `median ${f2(S.node_spearman_between_runs.median)} — steadier than the bonds`],
+    ["bond mask before scaling", `${f2(S.edge_raw_range_per_run.median_min)}–${f2(S.edge_raw_range_per_run.median_max)} (median run), so the 0–1 scaling changes the bonds little`],
+    ["atom score before scaling", `${f2(S.node_raw_range_per_run.median_min)}–${f2(S.node_raw_range_per_run.median_max)}: the scaling stretches it ~11×`],
+    ["bond scores against deleting each bond (occlusion)", `Spearman ${f2(S.edge_vs_occlusion_spearman)}; one bond deleted moves p by ${f3(S.occlusion_edge_range[0])} to ${f3(S.occlusion_edge_range[1])}`],
+    ["bond scores against the gradient", `Spearman ${f2(S.edge_vs_saliency_spearman)}`],
+  ]);
+  table("t5b", ["bonds deleted", "p(active) after the run's top k (median of 20)", "after k random bonds (median of 200)", "random lower than top"],
+    ["1", "3", "5", "10"].map((k) => [k, f3(F[k].p_after_top_median), f3(F[k].p_after_random_median), `${Math.round(100 * F[k].share_random_lower_than_top)}%`])
+      .concat([["every bond", f3(F.no_bonds), "", ""]]));
+}
+</script>
+</body>
+</html>

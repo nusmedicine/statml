@@ -24798,6 +24798,68 @@ switch probe needs `?h=1800` on the Split page (a taller page, the same
 scrollbar). A run made while the pane was hidden came back at DPR 1 (sizes in
 CSS px) and was discarded — read the size column before trusting a run.
 
+### Slot 98 · `gnn-explainer` — Graphs: Explainability — MEASURED AND MOCKED 2026-10-10
+
+**Host:** 09-1 cell 26 (gradient · perturbation · model-based; GNNExplainer,
+Ying et al. 2019); 09-2 cells 84–92 (PyG `GNNExplainer(epochs=300, lr=0.01)`,
+`node_mask_type='attributes'`, `edge_mask_type='object'`, graph-level
+multiclass on raw logits; cell 90's scores — an atom the mean |mask| over all
+its features, a bond the larger of its two directions, each min–max scaled
+0–1 within the molecule; cell 92's heat overlay) on `test_set[3]` under cell
+28's seed-42 split: row 76, **ceftriaxone disodium**, active, 36 drug atoms
+plus three waters and two Na⁺ as five one-atom pieces (41 nodes, 39 bonds).
+
+**Measured** (`_lab/gnn-explainer-measure.py train <seed>` ~5 min a model,
+`… explain` ~50 s; untracked `.pt` weights and JSON). Cell 64's GATNet
+(95's GATConv write-out) trained with cells 67–79's set-up on the lesson's
+split, seeds 42 · 43 · 44: test macro F1 0.70 · 0.56 · 0.50. GNNExplainer
+written out from PyG master (checked 2026-10-10: default_coeffs edge_size
+0.005 sum, edge_ent 1.0, node_feat_size 1.0 mean, node_feat_ent 0.1; masks
+start as normal noise, sd 0.1 on features and gain(relu)·√(2/2N) on edges;
+hard masks are grad ≠ 0 after the first step; the edge mask scales each
+layer's message after attention, self-loops fixed at 1), 20 runs per model.
+
+- **The mask is not unique — the lead.** A bond is kept when its mask ends
+  above 0.5. Each run keeps 15–20 of 39 bonds, and those alone hold p(active)
+  at 0.91–0.97 against 0.66–0.82 for random sets of the same size. But two
+  runs' kept sets overlap by median Jaccard 0.52 (0.33–0.78); all 39 bonds are
+  kept by some run and only **3 by every run — the three bonds of N10**, the
+  β-lactam nitrogen (also the largest gradient, 14.7, and the largest
+  zeroing effect, 0.17). Two runs share a median of 1 of their top 5 bonds;
+  bond-score Spearman between runs median 0.39 (lowest −0.12). **Not a
+  convergence artefact:** at 100 · 300 · 1,000 · 3,000 epochs the top-5
+  overlap stays at a median of 1; at 3,000 every mask is 0 or 1. Tested and
+  **ruled out**: that an ignored bond follows the side of its random start
+  (57%, chance) — many sets keep the prediction, and the start picks one.
+- **The bonds move late and not far.** At 300 epochs 53% of bond masks sit
+  between 0.1 and 0.9 (17% at 1,000). The starting masks (every feature × ~0.5,
+  atomic number included) flip the prediction: p(active) 0.08 at epoch 1,
+  0.89 by epoch 51, 0.98 at 300.
+- **The salt is scored and read.** The waters rank 13–18 of 41 atoms (cell
+  90's score ~0.51–0.57), Na⁺ 29–30. Max pooling lets an unbonded atom supply
+  a channel's maximum: zeroing a water's features moves p by 0.045, more than
+  deleting any bond but one (N10–C11, 0.063). The explainer is right to score
+  them — it explains the model, as 87's attributions do.
+- **Weaker, not the lead:** deleting a run's top 1 · 3 · 5 bonds changes p no
+  more than random bonds (0.92 → 0.90 at 5); its top 10, 0.78 against 0.91;
+  every bond, 0.11. Atom scores steadier than bonds (Spearman 0.81). Cell 90's
+  atom score correlates 0.35 with how many features an atom has non-zero
+  (0.07 averaged over its own features only). Min–max stretches the atom
+  scores ~11× (raw 0–0.09) and the bonds barely (raw 0.04–0.97). Bond scores
+  against occlusion 0.26, against the gradient 0.49.
+- **Other models:** seed 43 predicts ceftriaxone **inactive** (p 0.53); seed 44
+  active, its run-averaged bond scores 0.63 with seed 42's.
+
+**Mock** `_lab/gnn-explainer-mock.html` (data `_lab/gnn-explainer-export.py`
+→ untracked `gnn-explainer-mock-data.json`): § 1 cell 92's picture in three
+colours; § 2 the Mask page (four epochs, the run's curve); § 3 the Runs page
+(four runs' kept sets, all twenty as a count); § 4 the salt; § 5 the checks;
+§ 6 nine calls; § 7 four notebook findings. Recommended: Step **Mask ·
+Scores · Runs** on ceftriaxone alone, the lesson's model alone, salt drawn in
+a strip, M_x as a grid on Scores, Run 1–20 with Show One run · All runs,
+`--c-magnitude`, 300 epochs fixed, title *Deep Learning - Graphs:
+Explainability*. NEXT: his picks.
+
 ---
 
 ## Two arcs, not one — now three
