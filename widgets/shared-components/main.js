@@ -98,6 +98,7 @@ const S = {
 
   blockA: "mRNA",
   blockE: "mRNA: E, after latent variable 1",
+  blockE2: "mRNA: E, after latent variables 1 and 2",
   blockB: "Methylation",
   featA: ["gene 1", "gene 2"],
   featB: ["CpG 1", "CpG 2"],
@@ -113,13 +114,19 @@ const S = {
     "Score: the loading vector w₁ (arrow) is the direction that explains the most variance in X. Each sample is projected onto it: its score on latent variable 1 is t₁ = row × w₁, a linear combination of its two genes.",
     "Reconstruct: t₁w₁ᵀ puts every sample at its projection on the loading vector (hollow). This is the part of X that latent variable 1 explains.",
     "Subtract: the residual E = X − t₁w₁ᵀ is what is left, the gap from each projection to its dot.",
-    "Latent variable 2: each sample moves to its row of E, its gap from loading vector 1. With 2 features E lies on one line, so w₂ has no choice: the one direction left. With thousands of features, w₂ is E's direction of most variance. The score matrix T and the loading matrix W now have two columns each, and X = T·Wᵀ exactly.",
+    "Latent variable 2: each sample moves to its row of E, its gap from loading vector 1. With 2 genes E lies on one line, so w₂ has no choice: the one direction left (with thousands of genes, w₂ is E's direction of most variance). T gains a column, the scores t₂; Wᵀ gains a row, the loadings w₂. Wᵀ has one row per latent variable and one column per gene.",
+    "Subtract again: E − t₂w₂ᵀ. Every row of E lies on w₂, so its projection is the whole row and nothing is left: every sample moves to 0. Two latent variables reconstruct two genes exactly; with thousands of genes E stays, and L is kept far below P.",
   ],
   fRow: (n, a, b) => `sample ${n}: gene 1 = ${a}, gene 2 = ${b}`,
   fScore: (k, x, w, t) => `t${k} = ${x[0]} × ${w[0]} + ${x[1]} × ${w[1]} = ${t}`,
   fRebuilt: (t, w, r) => `reconstructed row = t₁ × w₁ = ${t} × (${w}) = (${r})`,
   fE: (e) => `E row = row − reconstructed = (${e})`,
   fBoth: (r) => `t₁w₁ + t₂w₂ = (${r}), the row of X exactly`,
+  fE2: (e, t, w, r) => `E row − t₂ × w₂ = (${e}) − ${t} × (${w}) = (${r})`,
+  sizeX: "80 × 2",
+  sizeT: (l) => `80 × ${l}`,
+  sizeW: (l) => `${l} × 2`,
+  sizeL: (l) => `L = ${l}`,
   shapes: ["N × P", "N × L", "L × P"],
 
   /* N-integration */
@@ -211,12 +218,13 @@ const SLOTS = 2 + 2 * MAX_ROUNDS + AFTER.length;
 const N_LABELS = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopLabel(n)]));
 const N_TITLES = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopTitle(n)]));
 const FIND_TITLE = "In each block, find the loading vector whose scores covary most with the other block's, and project every sample onto it";
-const F_LABELS = { 0: "Score", 1: "Reconstruct", 2: "Subtract", 3: "Latent variable 2" };
+const F_LABELS = { 0: "Score", 1: "Reconstruct", 2: "Subtract", 3: "Latent variable 2", 4: "Subtract again" };
 const F_TITLES = {
   0: "Find the loading vector that explains the most variance in X, and project every sample onto it: t₁ = Xw₁",
   1: "Reconstruct X from the scores: t₁w₁ᵀ",
   2: "Subtract the reconstruction: E = X − t₁w₁ᵀ",
-  3: "Find latent variable 2 in E the same way",
+  3: "Find latent variable 2 in E the same way: T gains a column and Wᵀ a row",
+  4: "Subtract latent variable 2's reconstruction from E: E − t₂w₂ᵀ",
 };
 const P_LABELS = { 0: "Stack", 1: "Find w", 2: "Score" };
 const P_TITLES = {
@@ -228,7 +236,7 @@ const P_TITLES = {
 S.stepLabel = {
   param: "page",
   labels: {
-    factorization: { anim: "beat", labels: F_LABELS, default: F_LABELS[3] },
+    factorization: { anim: "beat", labels: F_LABELS, default: F_LABELS[4] },
     "n-integration": { anim: "beat", labels: N_LABELS, default: AFTER[2] },
     "p-integration": { anim: "beat", labels: P_LABELS, default: P_LABELS[2] },
     data: "Find latent variable 1",
@@ -238,7 +246,7 @@ S.stepLabel = {
 S.stepTitle = {
   param: "page",
   labels: {
-    factorization: { anim: "beat", labels: F_TITLES, default: F_TITLES[3] },
+    factorization: { anim: "beat", labels: F_TITLES, default: F_TITLES[4] },
     "n-integration": { anim: "beat", labels: N_TITLES, default: AFTER_TITLE[2] },
     "p-integration": { anim: "beat", labels: P_TITLES, default: P_TITLES[2] },
     data: FIND_TITLE,
@@ -313,7 +321,8 @@ function corr(a, b) {
   for (let i = 0; i < a.length; i++) { sab += (a[i] - ma) * (b[i] - mb); saa += (a[i] - ma) ** 2; sbb += (b[i] - mb) ** 2; }
   return sab / Math.sqrt(saa * sbb);
 }
-const f2 = (v) => v.toFixed(2);
+/* a value that rounds to zero prints as 0.00, never −0.00 (Subtract again leaves rounding residue) */
+const f2 = (v) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2);
 /** a factor in a product: negatives in brackets, so "× (−0.39)" reads as one term */
 const fx = (v) => (v < 0 ? `(${f2(v)})` : f2(v));
 const pair2 = (v) => `${f2(v[0])}, ${f2(v[1])}`;
@@ -566,7 +575,7 @@ function panelFrame(ctx, colors, P, name, ax) {
 
 /* One block, its scatter on the left and its matrices to the right in the
    notebook's shapes, the traced sample's arithmetic underneath. */
-const FL = { cap: 64, s: 200, rh: 2.5, cw: 15 };
+const FL = { cap: 80, s: 200, rh: 2.5, cw: 15 };
 const H_FACTOR = FL.cap + 14 + FL.s + 128;
 function factorLayout(w) {
   const s = Math.min(FL.s, Math.floor(w * 0.38));
@@ -577,55 +586,71 @@ function factorLayout(w) {
 }
 
 function drawFactorization(ctx, colors, w, params, st, anim, pointer) {
-  const L = factorLayout(w), n = Math.min(anim.n.factorization ?? 0, 4), p = inFlight(anim, "factorization");
+  const L = factorLayout(w), n = Math.min(anim.n.factorization ?? 0, 5), p = inFlight(anim, "factorization");
   const F = st.fac, X = st.A, pick = tracedOf(params), px = toPxOf(L.P, st.span), R = 0.92 * st.span;
   wrapText(ctx, colors, S.fCap[n], 10, 14, w - 20, 16, { fill: colors.ink1 });
-  /* Component 2 (round 5, his "it just draws the orthogonal arrow?"): the
-     samples first move to their rows of E, their gaps from arrow 1, drawn
-     from the centre (0–0.55); with 2 features E lies on one line, so w₂ is
-     drawn along it once they land. With P features it would be E's
-     direction of largest variance among P − 1; here it has no choice. */
-  const comp2 = n >= 4, mv = comp2 ? (p != null && n === 4 ? ease(seg(p, 0, 0.55)) : 1) : 0;
-  const w2On = comp2 && (p == null || n !== 4 || p >= 0.55);
-  panelFrame(ctx, colors, L.P, comp2 && mv >= 1 ? S.blockE : S.blockA, S.featA);
+  /* Latent variable 2 is two presses (round 5, his "can we see E becoming 0,
+     and why does Wᵀ become 2 × 2?"). Latent variable 2: the samples move to
+     their rows of E, their gaps from loading vector 1 (0–0.55); w₂ is drawn
+     along the line they land on, and T's new column and Wᵀ's new row arrive
+     framed. Subtract again: each row of E lies on w₂, so its projection is
+     the whole row, and every sample moves to the centre: E = 0. */
+  const lv2 = n >= 4, sub2 = n >= 5;
+  const mv = lv2 ? (p != null && n === 4 ? ease(seg(p, 0, 0.55)) : 1) : 0;
+  const mv2 = sub2 ? (p != null && n === 5 ? ease(seg(p, 0, 0.8)) : 1) : 0;
+  const w2On = lv2 && (p == null || n !== 4 || p >= 0.55);
+  panelFrame(ctx, colors, L.P, sub2 && mv2 >= 1 ? S.blockE2 : lv2 && mv >= 1 ? S.blockE : S.blockA, S.featA);
   const scored = n >= 1, drop = p != null && n === 1 ? ease(seg(p, 0.1, 0.8)) : 1;
   if (scored) axisArrow(ctx, px(-R * F.w[0][0], -R * F.w[0][1]), px(R * F.w[0][0], R * F.w[0][1]), colors.highlight);
   if (w2On) axisArrow(ctx, px(-R * F.w[1][0], -R * F.w[1][1]), px(R * F.w[1][0], R * F.w[1][1]), colors.ink2, 1.6);
   const posOf = (i) => {
     const q = X[i];
-    if (!comp2) return q;
+    if (!lv2) return q;
     const t = F.t[0][i], e = [q[0] - t * F.w[0][0], q[1] - t * F.w[0][1]];
-    return [lerp(q[0], e[0], mv), lerp(q[1], e[1], mv)];
+    const at = [lerp(q[0], e[0], mv), lerp(q[1], e[1], mv)];
+    return sub2 ? [lerp(at[0], 0, mv2), lerp(at[1], 0, mv2)] : at;
   };
   X.forEach((q, i) => {
     const [x, y] = px(...posOf(i));
-    if (scored && !comp2) {
+    if (scored && !lv2) {
       const t = F.t[0][i], ft = px(t * F.w[0][0], t * F.w[0][1]), fp = [lerp(x, ft[0], drop), lerp(y, ft[1], drop)];
       if (drop < 1) line(ctx, x, y, fp[0], fp[1], colors.ink3, 1);
-      /* Subtract: E as the gap from each foot to its dot */
+      /* Subtract: E as the gap from each projection to its dot */
       if (n >= 3) line(ctx, ft[0], ft[1], x, y, colors.ink3, 1);
       if (n >= 2) hollow(ctx, fp[0], fp[1], 2.4, colors.ink2); else dot(ctx, colors, fp[0], fp[1], 2.2, subColour(colors, st.g[i]), false);
     }
     dot(ctx, colors, x, y, 3.6, subColour(colors, st.g[i]));
   });
   const pq = px(...posOf(pick)); ring(ctx, pq[0], pq[1], 6.5, colors.ink1);
-  if (scored && !comp2 && p == null) { const t = F.t[0][pick], ft = px(t * F.w[0][0], t * F.w[0][1]); line(ctx, pq[0], pq[1], ft[0], ft[1], colors.ink1, 1, [2, 2]); ring(ctx, ft[0], ft[1], 4.5, colors.ink1); }
+  if (scored && !lv2 && p == null) { const t = F.t[0][pick], ft = px(t * F.w[0][0], t * F.w[0][1]); line(ctx, pq[0], pq[1], ft[0], ft[1], colors.ink1, 1, [2, 2]); ring(ctx, ft[0], ft[1], 4.5, colors.ink1); }
 
-  /* the matrices, in the notebook's shapes */
+  /* the matrices, in the notebook's shapes, with their sizes in numbers */
   const { my, m, cw, rh } = L, H = N_CONCEPT * rh, xm = Math.max(...X.flat().map(Math.abs)), tm = Math.max(...F.t[0].map(Math.abs));
   const head = (x, wdt, name, shape) => { txt(ctx, colors, name, x + wdt / 2, my - 18, { align: "center", fill: colors.ink1, weight: "600", size: colors.fsXs }); txt(ctx, colors, shape, x + wdt / 2, my - 6, { align: "center", fill: colors.ink3, size: colors.fsXs }); };
   cols(ctx, colors, m.X, my, rh, cw, st.order, (i, j) => X[i][j], 2, xm); head(m.X, 2 * cw, "X", S.shapes[0]);
-  const Lc = n >= 4 ? 2 : 1;
+  const Lc = lv2 ? 2 : 1;
   if (scored) {
     cols(ctx, colors, m.T, my, rh, cw, st.order, (i, j) => F.t[j][i], Lc, tm); head(m.T, Lc * cw, "T", S.shapes[1]);
     for (let l = 0; l < Lc; l++) for (let j = 0; j < 2; j++) { ctx.fillStyle = valueColour(colors, F.w[l][j]); ctx.fillRect(m.W + j * cw, my + l * cw, cw - 1, cw - 1); }
     frame(ctx, colors, m.W, my, 2 * cw, Lc * cw); head(m.W, 2 * cw, "Wᵀ", S.shapes[2]);
+    /* the sizes, in numbers: one row of Wᵀ and one column of T per latent variable */
+    txt(ctx, colors, S.sizeT(Lc), m.T + Lc * cw / 2, my + H + 13, { align: "center", size: colors.fsXs, fill: colors.ink2 });
+    txt(ctx, colors, S.sizeW(Lc), m.W + cw, my + Lc * cw + 13, { align: "center", size: colors.fsXs, fill: colors.ink2 });
+    txt(ctx, colors, S.sizeL(Lc), m.W + cw, my + Lc * cw + 27, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
+    /* the press that added latent variable 2 frames what it added */
+    if (n === 4 && w2On) {
+      frame(ctx, colors, m.T + cw - 2, my - 2, cw + 4, H + 4, colors.highlight, 2);
+      frame(ctx, colors, m.W - 2, my + cw - 2, 2 * cw + 4, cw + 4, colors.highlight, 2);
+    }
   }
+  txt(ctx, colors, S.sizeX, m.X + cw, my + H + 13, { align: "center", size: colors.fsXs, fill: colors.ink2 });
   if (n >= 2) txt(ctx, colors, "≈", m.X + 2 * cw + 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
   if (n >= 3) {
     txt(ctx, colors, "+", m.E - 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
-    const rest = (i, j) => X[i][j] - F.t[0][i] * F.w[0][j] - (n >= 4 ? F.t[1][i] * F.w[1][j] : 0);
-    cols(ctx, colors, m.E, my, rh, cw, st.order, rest, 2, xm); head(m.E, 2 * cw, "E", n >= 4 ? "= 0" : S.shapes[0]);
+    /* E is what latent variable 1 left until Subtract again takes latent variable 2's part out too */
+    const rest = (i, j) => X[i][j] - F.t[0][i] * F.w[0][j] - (sub2 ? F.t[1][i] * F.w[1][j] : 0);
+    cols(ctx, colors, m.E, my, rh, cw, st.order, rest, 2, xm); head(m.E, 2 * cw, "E", sub2 ? "= 0" : S.shapes[0]);
+    if (n === 5) frame(ctx, colors, m.E - 2, my - 2, 2 * cw + 4, H + 4, colors.highlight, 2);
   }
   [0, 1].forEach((g) => { const ra = st.order.findIndex((i) => st.g[i] === g); bracket(ctx, colors, m.X - 5, my + ra * rh, my + (ra + N_CONCEPT / 2) * rh, S.sub[g]); });
   const r = st.order.indexOf(pick), right = n >= 3 ? m.E + 2 * cw : scored ? m.T + Lc * cw : m.X + 2 * cw;
@@ -635,15 +660,15 @@ function drawFactorization(ctx, colors, w, params, st, anim, pointer) {
   const x = X[pick], tx = L.text.x;
   let yy = L.text.y;
   const put = (s, fill = colors.ink2) => { txt(ctx, colors, s, tx, yy, { size: colors.fsXs, fill }); yy += 15; };
+  const t1 = F.t[0][pick], e = [x[0] - t1 * F.w[0][0], x[1] - t1 * F.w[0][1]], t2 = F.t[1][pick];
   put(S.fRow(pick + 1, f2(x[0]), f2(x[1])), colors.ink1);
-  if (scored) put(S.fScore("₁", [fx(x[0]), fx(x[1])], [fx(F.w[0][0]), fx(F.w[0][1])], f2(F.t[0][pick])));
-  if (n >= 2) { const t = F.t[0][pick]; put(S.fRebuilt(f2(t), pair2(F.w[0]), pair2([t * F.w[0][0], t * F.w[0][1]]))); }
-  if (n === 3) { const t = F.t[0][pick]; put(S.fE(pair2([x[0] - t * F.w[0][0], x[1] - t * F.w[0][1]])), colors.ink1); }
-  if (n >= 4) {
-    const t1 = F.t[0][pick], e = [x[0] - t1 * F.w[0][0], x[1] - t1 * F.w[0][1]];
-    put(S.fE(pair2(e)));
-    put(S.fScore("₂", [fx(e[0]), fx(e[1])], [fx(F.w[1][0]), fx(F.w[1][1])], f2(F.t[1][pick])));
-    put(S.fBoth(pair2([F.t[0][pick] * F.w[0][0] + F.t[1][pick] * F.w[1][0], F.t[0][pick] * F.w[0][1] + F.t[1][pick] * F.w[1][1]])), colors.ink1);
+  if (scored) put(S.fScore("₁", [fx(x[0]), fx(x[1])], [fx(F.w[0][0]), fx(F.w[0][1])], f2(t1)));
+  if (n >= 2 && n < 4) put(S.fRebuilt(f2(t1), pair2(F.w[0]), pair2([t1 * F.w[0][0], t1 * F.w[0][1]])));
+  if (n >= 3) put(S.fE(pair2(e)), n === 3 ? colors.ink1 : colors.ink2);
+  if (n >= 4) put(S.fScore("₂", [fx(e[0]), fx(e[1])], [fx(F.w[1][0]), fx(F.w[1][1])], f2(t2)), n === 4 ? colors.ink1 : colors.ink2);
+  if (n >= 5) {
+    put(S.fE2(pair2(e), f2(t2), pair2(F.w[1]), pair2([e[0] - t2 * F.w[1][0], e[1] - t2 * F.w[1][1]])), colors.ink1);
+    put(S.fBoth(pair2([t1 * F.w[0][0] + t2 * F.w[1][0], t1 * F.w[0][1] + t2 * F.w[1][1]])), colors.ink1);
   }
   hoverSample(ctx, colors, w, pointer, pickAtFactor(L, st, pointer));
 }
@@ -1049,12 +1074,12 @@ function drawData(ctx, colors, w, params, anim, pointer) {
 
 /* ==================================================== stages and easing */
 
-const stepsOf = (stage, st) => (stage === "n-integration" ? st.blocks.loopEnd + 3 : stage === "factorization" ? 4 : stage === "p-integration" ? 3 : 1);
+const stepsOf = (stage, st) => (stage === "n-integration" ? st.blocks.loopEnd + 3 : stage === "factorization" ? 5 : stage === "p-integration" ? 3 : 1);
 const durOf = (stage, n, st) => {
   if (stage === "data") return 1600;
   if (stage === "n-integration") return n > st.blocks.loopEnd ? 450 : 1400;
   if (stage === "p-integration") return n === 1 ? 1100 : 450;
-  return n === 1 ? 1200 : n === 4 ? 1600 : 450;
+  return n === 1 ? 1200 : n === 4 ? 1600 : n === 5 ? 1300 : 450;
 };
 const EASE_MS = 900;
 const shownStep = (anim, stage) => (anim.n[stage] ?? 0) - (anim.stage === stage && anim.t < 1 ? 1 : 0);
@@ -1193,7 +1218,7 @@ defineWidget({
       const F = state.blocks.fac;
       return [
         { label: S.tileK1, value: n >= 1 ? pct(F.kept1) : S.tileWait, note: S.tileKNote },
-        { label: S.tileK2, value: n >= 4 ? pct(1) : S.tileWait, note: S.tileKNote },
+        { label: S.tileK2, value: n >= 5 ? pct(1) : S.tileWait, note: S.tileKNote },
         { label: S.tileShape, value: n >= 1 ? `80 × ${n >= 4 ? 2 : 1} · 2 × ${n >= 4 ? 2 : 1}` : S.tileWait, note: S.tileShapeNote },
       ];
     }
@@ -1224,7 +1249,7 @@ defineWidget({
 
   summary({ params, state, anim }) {
     const page = params.page, n = shownStep(anim, page);
-    if (page === "factorization") return `One simulated block, mRNA: 80 samples, 2 genes, written as X ≈ T·Wᵀ; ${n} of 4 presses; sample ${params.sample} traced.`;
+    if (page === "factorization") return `One simulated block, mRNA: 80 samples, 2 genes, written as X ≈ T·Wᵀ; ${n} of 5 presses; sample ${params.sample} traced.`;
     if (page === "n-integration") {
       const st = state.blocks, F0 = nView(st, clamp(n, 0, st.loopEnd + 3)).frame;
       return `Two simulated blocks on the same 80 samples, each block's scatter above its matrix; sample ${params.sample} traced. ${n} of ${st.loopEnd + 3} presses${F0.r != null ? `; the scores correlate ${f2(F0.r)}` : ""}.`;
