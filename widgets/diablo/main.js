@@ -131,17 +131,19 @@ const S = {
 
   /* Select */
   sCap: [
-    `mRNA's last update at design weight 0.1, every gene included. keepX for mRNA's component 1 is ${KEEPX.mRNA}.`,
+    `On the real blocks a loading vector has one entry per feature: ${FEATURES.mRNA.toLocaleString("en-US")} for mRNA. DIABLO's sparse version keeps a fixed number per block, keepX, and sets the rest to 0. Update computes mRNA's loading vector at weight 0.1 with every gene; Keep ${KEEPX.mRNA} makes the cut.`,
     `Update: each of the ${FEATURES.mRNA.toLocaleString("en-US")} genes' loading is its covariance with z, the methylation and RPPA scores times 0.1 plus Y's scores. Every gene gets a loading; the bars are the largest 60.`,
-    `Keep ${KEEPX.mRNA}: each of the ${KEEPX.mRNA} largest keeps only its part above the largest one dropped (violet), and every other gene's loading is set to 0. Scaled to length 1, this is the loading vector mixOmics reports. The ${KEEPX.mRNA}th and ${KEEPX.mRNA + 1}th largest differ by ${pctOf(SELECT.raw)}: keepX sets the number, not a gap in the loadings.`,
+    `Keep ${KEEPX.mRNA}: each of the ${KEEPX.mRNA} largest keeps only its part above the largest one dropped (violet), and every other gene's loading is set to 0. Scaled to length 1, this is the loading vector mixOmics reports. The ${KEEPX.mRNA}th and ${KEEPX.mRNA + 1}th largest differ by ${pctOf(SELECT.raw)}: keepX sets the number, not a gap in the loadings. The genes just above the cut keep almost nothing.`,
     `Score: each tumour's score from the ${KEEPX.mRNA} kept genes against its score from all ${FEATURES.mRNA.toLocaleString("en-US")}. The two nearly agree, and the ${KEEPX.mRNA}-gene score separates the subtypes slightly better.`,
   ],
-  sBars: (n) => `|loading| of the largest 60 of ${n} genes`,
-  sAll: (n) => `all ${n}, sorted`,
+  sBars: (n) => `size of each gene's loading, sign dropped: the largest 60 of ${n}`,
+  sAll: (n) => `all ${n} sizes, largest first; the bars are its left end`,
+  sTop: (names) => `largest kept: ${names.join(", ")}`,
+  sSame: "This share is Weight's at weight 0.1.",
   sCut: "the largest one dropped",
   sWeight1: (k, n) => `At weight 1, ${k} of these ${n} genes are different ones.`,
   sZ: "z = 0.1 · methylation scores + 0.1 · RPPA scores + 1 · Y's scores",
-  sScat: ["score from all genes", (k) => `score from ${k} genes`],
+  sScat: ["score from all genes (no cut)", (k) => `score from ${k} genes`],
   sHov: (nm, v) => `${nm} · loading ${v}`,
 
   /* Predict */
@@ -702,14 +704,14 @@ function drawWeight(ctx, colors, w, params, anim, pointer) {
 
 /* ========================================================= SELECT page */
 
-const SL = { cap: 72, barsH: 150, stripH: 26, sMax: 200 };
+const SL = { cap: 88, barsH: 150, stripH: 26, sMax: 200 };
 const N_BARS = 60;
-const H_SELECT = SL.cap + 30 + SL.barsH + 40 + SL.stripH + 44 + SL.sMax + 30;
+const H_SELECT = SL.cap + 30 + SL.barsH + 40 + SL.stripH + 64 + SL.sMax + 30;
 function sLayout(w) {
   const x0 = 34, bw = Math.floor((w - x0 - 16) / N_BARS);
   const by = SL.cap + 30, sy = by + SL.barsH + 40;
   const s = Math.min(SL.sMax, Math.floor((w - x0) * 0.42));
-  return { x0, bw, by, sy, scat: { x: x0, y: sy + SL.stripH + 44, s }, side: x0 + s + 30 };
+  return { x0, bw, by, sy, scat: { x: x0, y: sy + SL.stripH + 64, s }, side: x0 + s + 30 };
 }
 const SEL_ETA = { all: etaOf(SELECT.tAll, Y, 4), cut: etaOf(SELECT.tCut, Y, 4) };
 const SEL_MAX = Math.abs(SELECT.raw[0]);
@@ -754,7 +756,11 @@ function drawSelect(ctx, colors, w, params, anim, pointer) {
     if (n >= 2) { ctx.fillStyle = colors.highlight; ctx.fillRect(L.x0, sy, Math.max(2, (K / P) * sw), SL.stripH); }
     txt(ctx, colors, S.sAll(FEATURES.mRNA.toLocaleString("en-US")), L.x0, sy + SL.stripH + 13, { size: colors.fsXs, fill: colors.ink3 });
     /* moved here from Weight (walk-through 2026-10-10): the kept genes are the design weight's too */
-    if (n >= 2) txt(ctx, colors, S.sWeight1(SEL_W1_DIFF, K), L.x0 + sw, sy + SL.stripH + 13, { size: colors.fsXs, fill: colors.ink2, align: "right" });
+    if (n >= 2) {
+      txt(ctx, colors, S.sWeight1(SEL_W1_DIFF, K), L.x0, sy + SL.stripH + 43, { size: colors.fsXs, fill: colors.ink2 });
+      /* as selectVar lists them (the next step after the fit) */
+      txt(ctx, colors, S.sTop(SELECT.names.slice(0, 5)), L.x0, sy + SL.stripH + 28, { size: colors.fsXs, fill: colors.ink1 });
+    }
   }
   if (n >= 3 && p == null) drawSelectScores(ctx, colors, L, w);
   else if (n >= 3) drawSelectScores(ctx, colors, L, w, ease(seg(p, 0, 1)));
@@ -762,7 +768,7 @@ function drawSelect(ctx, colors, w, params, anim, pointer) {
     const j = Math.floor((pointer.x - L.x0) / L.bw);
     if (j >= 0 && j < N_BARS && j < SELECT.names.length) {
       /* the loading as mixOmics reports it: scaled to length 1, before the cut over all genes, after it over the kept */
-      const v = SELECT.raw[j], cutV = n >= 2 ? (j < K ? Math.sign(v) * (Math.abs(v) - cut) / SEL_NORM.kept : 0) : v / SEL_NORM.all;
+      const v = SELECT.mixSign * SELECT.raw[j], cutV = n >= 2 ? (j < K ? Math.sign(v) * (Math.abs(v) - cut) / SEL_NORM.kept : 0) : v / SEL_NORM.all;
       hoverLabel(ctx, colors, S.sHov(SELECT.names[j], f3(cutV)), pointer.x, pointer.y, w);
     }
   }
@@ -783,7 +789,8 @@ function drawSelectScores(ctx, colors, L, w, grow = 1) {
   txt(ctx, colors, S.tileEtaS, x, P.y + 14, { size: colors.fsXs, fill: colors.ink1, weight: "600" });
   txt(ctx, colors, `all ${FEATURES.mRNA.toLocaleString("en-US")} genes  ${pct(SEL_ETA.all)}`, x, P.y + 32, { size: colors.fsXs });
   txt(ctx, colors, `${KEEPX.mRNA} kept genes  ${pct(SEL_ETA.cut)}`, x, P.y + 47, { size: colors.fsXs, fill: colors.ink1 });
-  wrapText(ctx, colors, S.tileEtaNote, x, P.y + 68, w - x - 8, 13, { size: colors.fsXs, fill: colors.ink3 });
+  const n2 = wrapText(ctx, colors, S.tileEtaNote, x, P.y + 68, w - x - 8, 13, { size: colors.fsXs, fill: colors.ink3 });
+  wrapText(ctx, colors, S.sSame, x, P.y + 74 + 13 * n2, w - x - 8, 13, { size: colors.fsXs, fill: colors.ink2 });
 }
 
 /* ========================================================= PREDICT page */

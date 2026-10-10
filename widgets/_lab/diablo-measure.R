@@ -215,16 +215,19 @@ if (stage == "widget100") {
   soft <- ifelse(rank(-abs(raw), ties.method = "first") <= k, sign(raw) * (abs(raw) - cutAt), 0)
   soft <- soft / sqrt(sum(soft^2))
   lm1 <- m$loadings$mRNA[, 1]
+  # the sign mixOmics reports (selectVar, 04 cell 4): the page multiplies its
+  # loadings by mixSign so a hover reads what the notebook prints
+  mixSign <- sign(sum(soft * lm1))
   if (sum(soft * lm1) < 0) lm1 <- -lm1
   out$selectCheck <- max(abs(soft - lm1))
   cat("Select: |cut(X'z) - mixOmics loadings| max", signif(out$selectCheck, 3), "\n")
   wAll <- raw / sqrt(sum(raw^2))
   tAll <- drop(Xm %*% wAll); tCut <- drop(Xm %*% soft)
-  if (mean(tAll[d$Y == "CN_HIGH"]) < 0) { tAll <- -tAll; tCut <- -tCut; raw <- -raw }
+  if (mean(tAll[d$Y == "CN_HIGH"]) < 0) { tAll <- -tAll; tCut <- -tCut; raw <- -raw; mixSign <- -mixSign }
   select <- list(p = length(raw), keep = k, raw = signif(raw[o], 4), names = colnames(Xm)[o[1:40]],
                  cut = signif(cutAt, 4), tAll = r3(tAll), tCut = r3(tCut), r = round(cor(tAll, tCut), 4),
                  eta = round(c(eta(tAll, d$Y), eta(tCut, d$Y)), 4),
-                 zParts = r3(c(meth = 0.1, rppa = 0.1, subtype = 1)))
+                 zParts = r3(c(meth = 0.1, rppa = 0.1, subtype = 1)), mixSign = mixSign)
   cat("Select: r(all, 25)", select$r, "eta", select$eta, "\n")
   # Predict: the lesson's saved model
   e <- new.env(); load(file.path(nbdir, "diablo.ucec.rds"), envir = e); ml <- e$diablo.ucec
