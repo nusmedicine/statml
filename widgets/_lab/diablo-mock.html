@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · diablo — measured, and the plan re-read against 99</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .find { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--ink-3); background: var(--surface-2); max-width: 110ch; }
+  .nb { border-left-color: var(--c-extreme); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 1200px; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+  td.gap { color: var(--c-extreme); }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 28px; font-weight: 600; }
+  .rail .grp { font-size: 10px; color: var(--ink-3); margin-left: 8px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 100 <code>diablo</code> &middot; measured, and the arc's plan re-read against what 99 became</h1>
+  <p class="note">At the arc's start you picked <b>Design &middot; Predict</b>, Predict at 2 components (814b8bd). Since
+    then 99 settled four things this plan now follows: the method is shown <i>being done</i>, press by press; the pages
+    follow the notebook's order and nouns; Method pages use a small example, the Data pages use the lesson's own blocks; and a setting is
+    varied before it is chosen. All TCGA numbers are the lesson's, from <code>_lab/diablo-measure.R</code> (mixOmics 6.34
+    on the lesson's saved files). The example blocks are computed on this page by mixOmics' loop written out, which
+    matches <code>block.plsda</code> to 5&times;10&#8315;&#7495; in every loading (<code>_lab/diablo-toy.mjs</code>). The mock
+    draws finished states so they can be judged; the widget opens empty. On-canvas strings are candidates, not copy.
+    Blue-ruled boxes are my recommendations, grey-ruled what the measurement found, red-ruled what to tell you about the
+    notebook, and the plain grey ones (&sect;8) are the calls.</p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div class="find"><b>1 &middot; DIABLO's loop is 99's loop with the subtype added as one more block.</b> mixOmics'
+    <code>sparse.mint.block_iteration</code>: each block's loading vector is X&#7488;z, where z is the other blocks'
+    scores weighted by the design matrix; the subtype (Y, as an indicator matrix) is a block linked to every omics block
+    at 1 (03 cell 16 prints "Design matrix has changed to include Y"). Then the vector is cut to its <code>keepX</code>
+    largest entries, and the next block updates. The loop <b>starts each block at its own direction of largest variance</b>
+    (<code>init = "svd.single"</code>), which is 99's dashed benchmark.</div>
+  <div class="find"><b>2 &middot; The design weight trades separating the subtypes against agreeing, and agreement barely
+    moves.</b> On the lesson's blocks, weight 0 &rarr; 1 takes the mRNA&ndash;methylation agreement 0.849 &rarr; 0.868
+    and the CV error 0.195 &rarr; 0.256 (4 components); component 1's subtype share in mRNA 0.75 &rarr; 0.63. The blocks
+    already agree through the subtype they are all fitted to. The example blocks reproduce this: r 0.95 &rarr; 0.98,
+    subtype share 0.51 &rarr; 0.17, the arrow turning 35&deg;.</div>
+  <div class="find"><b>3 &middot; With three blocks the vote helps; with RPPA missing it is mRNA's call.</b> 10-fold CV on
+    the 405 (one repeat, the lesson's keepX and design 0.1): the vote's BER at 4 components is 0.232 against 0.242 · 0.295
+    · 0.355 for mRNA, methylation and RPPA alone, overruling mRNA on 12&ndash;33 samples. With two blocks a weighted vote
+    goes to the heavier block on every disagreement, and mRNA's weight (0.62) beats methylation's (0.60): on the 102 test
+    samples the vote equals mRNA's call <b>102 of 102 times at every number of components</b>, including where methylation
+    alone scores better (test BER at 4 components: mRNA 0.304, methylation 0.280, vote 0.304).</div>
+  <div class="find"><b>4 &middot; keepX keeps a component, from few genes.</b> Component 1 of mRNA from 25 genes correlates
+    0.95 with component 1 from all 8,383 and separates the subtypes better (share 0.72 against 0.66). The 25 are not simply
+    the top 25 of the full loading vector: 16 are, and the rest come from ranks up to 58, because the cut happens inside
+    every update and changes the other blocks' scores too. CV BER at 4 components, same folds: 0.232 with keepX, 0.274 with
+    every feature (keepX was tuned on these samples, so the first is optimistic; 101's subject).</div>
+  <div class="find nb"><b>Notebook finding 6 &middot; 05 cell 6's table is not the final model's CV.</b> It loads 03's
+    <code>perf.diablo.ucec.rds</code>, which is <code>perf</code> on 03 cell 16's <code>block.plsda</code> with 5
+    components and every feature (its columns run comp1&ndash;comp5; the final model has 4). 05 cell 3 shows the
+    <code>perf(diablo.ucec, &hellip;)</code> call as if run on the sparse model.<br>
+    <b>Notebook finding 7 &middot; 05 cells 21&ndash;24's prediction is mRNA's alone.</b> The warning says it is "based on
+    mRNA, meth"; with two blocks the weighted vote returns the heavier block's call on all 102 samples.</div>
+
+  <h2>1 &middot; Each concept the DIABLO lessons introduce, and where it goes</h2>
+  <table>
+    <tr><th>notebook (cell)</th><th>concept</th><th>proposed page</th></tr>
+    <tr><td>03 c6&ndash;8, c16</td><td>X a list of blocks, Y the subtype; Y joins the design as a block linked at 1</td><td><b>Design</b>, the design matrix drawn with a subtype row</td></tr>
+    <tr><td>03 c10&ndash;14</td><td>the design matrix: 0.1 by convention, or 0.7&ndash;0.9 from the PLS correlations</td><td><b>Design</b> (example, the loop pressed through at a chosen weight) and <b>Weight</b> (the lesson's blocks at four weights)</td></tr>
+    <tr><td>01 c2</td><td>max &Sigma; cov(T&#8321;&#11388;, T&#8322;&#11388;): the objective, now with the subtype among the blocks</td><td><b>Design</b>, the middle panel's arithmetic</td></tr>
+    <tr><td>03 c25&ndash;28</td><td>keepX: sparse PLS-DA, an L1 cut to a fixed number of features</td><td><b>Select</b></td></tr>
+    <tr><td>03 c15&ndash;24, 05 c5&ndash;9</td><td>number of components by CV BER; the columns are cumulative</td><td><b>Predict</b>'s Components control (after the method is learned)</td></tr>
+    <tr><td>05 c17&ndash;24</td><td>predict with a block missing; the weighted vote; confusion matrix and BER</td><td><b>Predict</b>, a traced test sample</td></tr>
+    <tr><td>04 c6&ndash;10</td><td><code>plotDiablo</code>: the correlation between blocks' components</td><td><b>Weight</b>, the score scatter</td></tr>
+    <tr><td>04 c11&ndash;13</td><td><code>plotIndiv</code>: each block's samples on components 1 and 2</td><td><b>Predict</b>'s panels</td></tr>
+    <tr><td>05 c10&ndash;15</td><td><code>auroc</code> per block</td><td class="gap">not drawn (35 <code>metrics</code> teaches ROC)</td></tr>
+    <tr><td>04 c14&ndash;29</td><td>plotArrow, correlation circle, circos, network, loadings, cimDiablo</td><td class="gap">not drawn (103 <code>correlation-circle</code>, not picked)</td></tr>
+  </table>
+
+  <h2>2 &middot; The rail</h2>
+  <div class="rail"><span class="w">A</span><span class="grp">Method</span><span class="pg">Design</span><span class="grp">TCGA UCEC</span><span class="pg">Weight</span><span class="pg">Select</span><span class="pg">Predict</span><span class="n">the notebook's order: 03 c10&ndash;14 &rarr; c25 &rarr; 05 c17&ndash;24</span></div>
+  <div class="rail"><span class="w">B</span><span class="pg">Design</span><span class="pg">Predict</span><span class="n">the arc's pick: Design on the lesson's blocks as a weight slider; Predict; keepX one line</span></div>
+  <div class="rail"><span class="w">C</span><span class="grp">Method</span><span class="pg">Design</span><span class="grp">TCGA UCEC</span><span class="pg">Weight</span><span class="pg">Predict</span><span class="n">A without Select; keepX named on Predict</span></div>
+  <p class="note">Only Design uses the example: Select needs a block with many features, and Predict needs a third block to
+    lose. The group heads are core's grouped control, as 94 and 99.</p>
+
+  <h2>3 &middot; Design (example): 99's loop, with the subtype as a third block</h2>
+  <p class="note">99's two blocks rebuilt for this question: they share a large axis that has nothing to do with the
+    subtype (as the lesson's latent variable 3 does: r 0.85, subtype share 0.02), and each holds the subtype on an axis of
+    its own. Features scaled, as mixOmics scales them. Presses: <i>Start</i> (each arrow on its block's direction of
+    largest variance, mixOmics' start) &middot; <i>Update mRNA</i> &middot; <i>Update methylation</i> &middot; &hellip;
+    until the arrows stop (2&ndash;6 rounds by weight). Each update's arithmetic is the middle panel:
+    z = c&middot;u + 1&middot;y, then w &prop; X&#7488;z, so the weight c sets how much the arrow follows the other block
+    against the subtype. <b>Weight</b> 0 &middot; 0.1 &middot; 0.5 &middot; 1, a data control (it resets the presses).
+    Left: Start. Middle and right: the end at weight 0 and at weight 1.</p>
+  <div class="row" id="s3"></div>
+  <div class="row" id="s3b"></div>
+  <p class="rec">Recommend the three-panel row 99's N-integration page uses (mRNA &middot; Scores &middot; methylation),
+    the design matrix drawn beside it with the subtype as its third row and column, the weight cells in
+    <code>--c-highlight</code> while the control is the thing being changed. The table of four weights is the page's last
+    readout. Claim, as measured: <i>a larger weight makes the blocks' scores agree a little more and separate the subtypes
+    less.</i></p>
+
+  <h2>4 &middot; Weight (TCGA UCEC): the lesson's blocks at four weights</h2>
+  <p class="note">03 cell 10's 0.1 and cell 14's 0.7&ndash;0.9 side by side, as <code>plotDiablo</code> draws a component
+    (04 c6): mRNA's component 1 against methylation's, coloured by subtype. Left 0, right 1. The table is the sweep
+    (multiomics-design.json; CV 10-fold &times; 3 repeats, 4 components).</p>
+  <div class="row" id="s4"></div>
+  <div id="t4"></div>
+
+  <h2>5 &middot; Select (TCGA UCEC): keepX on mRNA's component 1</h2>
+  <p class="note">Left: mRNA's component-1 loading vector with every feature (<code>block.plsda</code>), the 70 largest
+    by size, the 25 that <code>keepX</code> keeps marked where they rank. The kept values are shrunk: mixOmics subtracts
+    the largest dropped value from each (<code>soft_thresholding_L1</code>) and zeroes the rest. Right: the component-1
+    score from 25 genes against the score from 8,383. Presses would be <i>Update</i> (X&#7488;z over all 8,383)
+    &middot; <i>Keep 25</i> &middot; <i>Score</i>.</p>
+  <div class="row" id="s5"></div>
+
+  <h2>6 &middot; Predict (TCGA UCEC): a test sample with no RPPA</h2>
+  <p class="note">05 cells 17&ndash;24. Each block places the sample on its own components (here 1 and 2, as
+    <code>plotIndiv</code> draws them), calls the nearest subtype centre of its training scores, and the calls are
+    weighted by each block's correlation with the subtype's score (<code>get.weights</code>: mRNA 0.62, methylation 0.60,
+    RPPA 0.45). RPPA is not measured, so its vote is absent. The traced sample is one where the blocks disagree.</p>
+  <div class="row" id="s6"></div>
+  <div id="t6"></div>
+  <p class="rec">Recommend saying finding 3 on the page, as a count: <i>with two blocks, the vote follows the block with
+    the larger weight: mRNA's call on 102 of 102</i>, with the CV line beside it (three blocks: the vote overrules mRNA on
+    12&ndash;33 of 405). <b>Components</b> 1&ndash;4, default 2 (your earlier pick, the lesson's <code>[,2]</code>), the tile
+    counting BER and the non-POLE samples called POLE.</p>
+
+  <h2>7 &middot; Colours</h2>
+  <p class="note">Settled at the arc's start: subtypes <code>--c-cluster-a&hellip;d</code> (two on the example, four on
+    TCGA), blocks never coloured. New here: the arrows <code>--c-highlight</code> and the largest-variance start dashed
+    <code>--c-reference</code> (as 99); the missing RPPA block <code>--c-unknown</code> (the role's own words: not
+    measured); the 25 kept genes <code>--c-highlight</code> among ink bars; the design matrix's cells in ink with
+    the weight cells <code>--c-highlight</code>.</p>
+
+  <h2>8 &middot; The calls</h2>
+  <div class="q"><b class="h">8.1 &middot; The rail</b> A <b>Method [Design] &middot; TCGA UCEC [Weight &middot; Select
+    &middot; Predict]</b> (rec) &middot; B Design &middot; Predict, the arc's pick &middot; C A without Select.</div>
+  <div class="q"><b class="h">8.2 &middot; Design's weights</b> A <b>0 &middot; 0.1 &middot; 0.5 &middot; 1</b>, the
+    lesson's 0.1 the default (rec) &middot; B the sweep's seven (0 &middot; 0.1 &middot; 0.25 &middot; 0.5 &middot; 0.75
+    &middot; 0.9 &middot; 1).</div>
+  <div class="q"><b class="h">8.3 &middot; Design's start</b> A <b>mixOmics' own: each block's direction of largest
+    variance</b>, dashed after the first update (rec; it is the library's start and 99's benchmark) &middot; B 99's start,
+    80&deg; off the answer.</div>
+  <div class="q"><b class="h">8.4 &middot; The example's subtypes</b> A <b>two, as 99's Method pages</b> (rec; the
+    subtype block is then one column and its score is the subtype) &middot; B four, as TCGA.</div>
+  <div class="q"><b class="h">8.5 &middot; Select</b> A <b>on mRNA's real loading vector, Update &middot; Keep 25
+    &middot; Score</b> (rec) &middot; B the cut drawn without presses.</div>
+  <div class="q"><b class="h">8.6 &middot; Predict's finding</b> A <b>stated as a count on the page</b> (rec, &sect;6)
+    &middot; B left for the student to find by clicking.</div>
+  <div class="q"><b class="h">8.7 &middot; Colours</b> A <b>as &sect;7</b> (rec) &middot; B your changes.</div>
+  <div class="q"><b class="h">8.8 &middot; Title</b> A <b>"Multi-omics: DIABLO"</b>, the arc's pick (rec) &middot; B
+    "Multi-omics: Supervised Integration".</div>
+  <p class="note">Left to the draft as conventional: the traced sample's click through core's region door; Weight's four
+    fits and Select's vector computed ahead into <code>data.js</code> from <code>diablo-measure.R</code>, as 99; derived
+    numbers only, credited as 99.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, alpha = 1) { ctx.save(); ctx.globalAlpha = alpha; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
+function ring(ctx, x, y, r, col, w = 1.6) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+function box(ctx, x, y, w, h, col = T.axis, lw = 1, dash = null) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; if (dash) ctx.setLineDash(dash); ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+function head(ctx, x0, y0, x1, y1, col) { const a = Math.atan2(y1 - y0, x1 - x0); ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 7 * Math.cos(a - 0.42), y1 - 7 * Math.sin(a - 0.42)); ctx.lineTo(x1 - 7 * Math.cos(a + 0.42), y1 - 7 * Math.sin(a + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function cross(ctx, x, y, r, col) { line(ctx, x - r, y - r, x + r, y + r, col, 2.4); line(ctx, x - r, y + r, x + r, y - r, col, 2.4); }
+const f2 = (x) => x.toFixed(2), f3 = (x) => x.toFixed(3);
+const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
+const corr = (a, b) => { const ma = mean(a), mb = mean(b); let s = 0, x = 0, y = 0; for (let i = 0; i < a.length; i++) { s += (a[i] - ma) * (b[i] - mb); x += (a[i] - ma) ** 2; y += (b[i] - mb) ** 2; } return s / Math.sqrt(x * y); };
+const etaOf = (t, g, K) => { const mt = mean(t); let b = 0; for (let k = 0; k < K; k++) { const v = t.filter((_, i) => g[i] === k); if (v.length) b += v.length * (mean(v) - mt) ** 2; } return b / t.reduce((a, x) => a + (x - mt) ** 2, 0); };
+
+/* ------------------------------------------------ the example: _lab/diablo-toy.mjs, seed 100 */
+const N = 80;
+const unitAt = (deg) => [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180)];
+const toy = (() => {
+  const rng = makeRng(100);
+  const ha = unitAt(35), za = unitAt(115), hb = unitAt(145), zb = unitAt(60);
+  const g = [], A0 = [], B0 = [];
+  for (let i = 0; i < N; i++) {
+    const grp = i % 2, h = 1.8 * rng.normal(), z = (grp ? 0.8 : -0.8) + 0.4 * rng.normal();
+    g.push(grp);
+    A0.push([0, 1].map((j) => h * ha[j] + z * za[j] + 0.25 * rng.normal()));
+    B0.push([0, 1].map((j) => h * hb[j] + z * zb[j] + 0.25 * rng.normal()));
+  }
+  const col = (X, j) => X.map((r) => r[j]);
+  const scale = (X) => { const p = X[0].length, m = [], s = []; for (let j = 0; j < p; j++) { const c = col(X, j); m[j] = mean(c); s[j] = Math.sqrt(c.reduce((a, x) => a + (x - m[j]) ** 2, 0) / (c.length - 1)); } return X.map((r) => r.map((x, j) => (x - m[j]) / s[j])); };
+  return { g, A: scale(A0), B: scale(B0), Yd: scale(g.map((k) => (k ? [0, 1] : [1, 0]))) };
+})();
+const norm = (v) => { const n = Math.hypot(...v); return v.map((x) => x / n); };
+const proj = (X, w) => X.map((r) => r.reduce((a, x, j) => a + x * w[j], 0));
+const xtz = (X, z) => X[0].map((_, j) => X.reduce((a, r, i) => a + r[j] * z[i], 0));
+function pc1(X) { let v = norm(X[0].map((_, j) => 1 + 0.1 * j)); for (let k = 0; k < 500; k++) v = norm(xtz(X, proj(X, v))); return v; }
+/* mixOmics' horst loop, Gauss-Seidel, one frame per block update (the subtype block's own update is
+   recorded but not pressed: with two subtypes its score is the subtype whatever the weight) */
+function sgcca(c) {
+  const blocks = [toy.A, toy.B, toy.Yd], C = [[0, c, 1], [c, 0, 1], [1, 1, 0]];
+  const Wt = blocks.map(pc1), Tt = blocks.map((X, q) => proj(X, Wt[q]));
+  /* sign: keep subtype 2 positive on each block's start, so arrows read one way */
+  for (const q of [0, 1]) if (mean(Tt[q].filter((_, i) => toy.g[i])) < 0) { Wt[q] = Wt[q].map((x) => -x); Tt[q] = Tt[q].map((x) => -x); }
+  const frames = [{ press: "Start", W: Wt.map((w) => [...w]), T: Tt.map((t) => [...t]) }];
+  for (let it = 0; it < 100; it++) {
+    const old = Wt.map((w) => [...w]);
+    for (let q = 0; q < 3; q++) {
+      const z = Tt[0].map((_, i) => C[q].reduce((a, cc, l) => a + cc * Tt[l][i], 0));
+      Wt[q] = norm(xtz(blocks[q], z)); Tt[q] = proj(blocks[q], Wt[q]);
+      if (q < 2) frames.push({ press: q ? "Update methylation" : "Update mRNA", q, z, W: Wt.map((w) => [...w]), T: Tt.map((t) => [...t]) });
+    }
+    if (Math.max(...Wt.map((w, q) => w.reduce((a, x, j) => a + (x - old[q][j]) ** 2, 0))) < 1e-6) break;
+  }
+  return frames;
+}
+const ang = (w) => ((Math.atan2(w[1], w[0]) * 180) / Math.PI + 360) % 180;
+const covW = (X, s) => [0, 1].map((j) => X.reduce((a, p, i) => a + p[j] * s[i], 0) / X.length);
+
+function designPanel(c, which, title) {
+  const frames = sgcca(c), F = which === "start" ? frames[0] : frames.at(-1);
+  const t = F.T[0], u = F.T[1], ty = F.T[2];
+  const r = corr(t, u), eA = etaOf(t, toy.g, 2), eB = etaOf(u, toy.g, 2);
+  const rounds = (frames.length - 1) / 2;
+  const sub = which === "start"
+    ? `weight ${c} · Start: each block's direction of largest variance\nr(t, u) ${f2(r)} · subtype share of t ${f2(eA)}, of u ${f2(eB)}`
+    : `weight ${c} · after ${frames.length - 1} updates (${rounds} rounds), the arrows stopped\nr(t, u) ${f2(r)} · subtype share of t ${f2(eA)}, of u ${f2(eB)}`;
+  const bx = cand(which === "start" ? "s3" : "s3", title, sub);
+  const ctx = canvasIn(bx, W, 360);
+  const s = 150, top = 30, gx = [10, 200, 390];
+  const sp = 1.12 * Math.max(...toy.A.flat().map(Math.abs), ...toy.B.flat().map(Math.abs));
+  const P = (x0, p, span) => [x0 + s / 2 + (p[0] / span) * (s / 2), top + s / 2 - (p[1] / span) * (s / 2)];
+  const panel = (x0, X, w, wStart, name, xl, yl) => {
+    label(ctx, name, x0, top - 8, { weight: "600", colour: T.ink1 }); box(ctx, x0, top, s, s);
+    X.forEach((p, i) => { const q = P(x0, p, sp); dot(ctx, q[0], q[1], 2.6, T.clusters[toy.g[i]]); });
+    const R = 0.95 * sp;
+    if (which !== "start") line(ctx, ...P(x0, [-R * wStart[0], -R * wStart[1]], sp), ...P(x0, [R * wStart[0], R * wStart[1]], sp), T.reference, 1.6, [5, 4]);
+    const a = P(x0, [-R * w[0], -R * w[1]], sp), b = P(x0, [R * w[0], R * w[1]], sp);
+    line(ctx, ...a, ...b, T.highlight, 2.2); head(ctx, ...a, ...b, T.highlight);
+    label(ctx, `w = (${f2(w[0])}, ${f2(w[1])})`, x0, top + s + 14, { size: 10, colour: T.highlight, weight: "600" });
+    label(ctx, xl, x0 + s, top + s + 14, { size: 9, colour: T.ink3, align: "right" });
+  };
+  panel(gx[0], toy.A, F.W[0], frames[0].W[0], "mRNA", "gene 1 →");
+  panel(gx[2], toy.B, F.W[1], frames[0].W[1], "methylation", "site 1 →");
+  /* scores */
+  const ss = 1.1 * Math.max(...t.map(Math.abs), ...u.map(Math.abs));
+  label(ctx, "Scores", gx[1], top - 8, { weight: "600", colour: T.ink1 }); box(ctx, gx[1], top, s, s);
+  t.forEach((tv, i) => { const q = P(gx[1], [tv, u[i]], ss); dot(ctx, q[0], q[1], 2.6, T.clusters[toy.g[i]]); });
+  label(ctx, "t (mRNA) →", gx[1] + s, top + s + 14, { size: 9, colour: T.ink3, align: "right" });
+  label(ctx, `r ${f2(r)}`, gx[1] + 4, top + 12, { size: 10, colour: T.ink1 });
+  /* the design matrix, 03 cell 11's picture with the subtype row 03 cell 16 adds */
+  const dx = 10, dy = 222, cs = 30, names = ["mRNA", "meth", "subtype"];
+  label(ctx, "design matrix", dx, dy - 8, { size: 10, weight: "600", colour: T.ink1 });
+  names.forEach((n, k) => { label(ctx, n, dx + 52 + k * cs + cs / 2, dy + 8, { size: 9, align: "center", colour: T.ink3 }); label(ctx, n, dx + 48, dy + 14 + k * cs + cs / 2 + 4, { size: 9, align: "right", colour: T.ink3 }); });
+  const D = [[0, c, 1], [c, 0, 1], [1, 1, 0]];
+  D.forEach((rw, i) => rw.forEach((v, j) => { const x = dx + 52 + j * cs, y = dy + 14 + i * cs; box(ctx, x, y, cs, cs, T.grid); const hot = (i < 2 && j < 2 && i !== j); label(ctx, i === j ? "0" : String(v), x + cs / 2, y + cs / 2 + 4, { size: 11, align: "center", colour: hot ? T.highlight : T.ink1, weight: hot ? "600" : "" }); }));
+  /* this press's arithmetic: what set mRNA's arrow */
+  const ax = 200, ay = 222;
+  if (which === "start") {
+    label(ctx, "Start: each arrow on its block's direction of largest variance", ax, ay, { size: 10, colour: T.ink1 });
+    label(ctx, "(mixOmics' first step; 99's dashed benchmark)", ax, ay + 16, { size: 10 });
+    label(ctx, "Next press, Update mRNA:", ax, ay + 44, { size: 10, colour: T.ink1, weight: "600" });
+    label(ctx, `z = ${c} · u (methylation's score) + 1 · y (the subtype's)`, ax, ay + 60, { size: 10 });
+    label(ctx, "w ∝ Xᵀz: each gene's covariance with z", ax, ay + 76, { size: 10 });
+  } else {
+    const last = frames.filter((f) => f.q === 0).at(-1);
+    const cu = covW(toy.A, F.T[1]).map((x) => c * x), cy = covW(toy.A, ty);
+    label(ctx, "Update mRNA, the last round:", ax, ay, { size: 10, colour: T.ink1, weight: "600" });
+    label(ctx, `z = ${c} · u + 1 · y`, ax, ay + 16, { size: 10 });
+    label(ctx, `${c} · cov(X, u) = (${f2(cu[0])}, ${f2(cu[1])})  the other block's pull`, ax, ay + 34, { size: 10 });
+    label(ctx, `1 · cov(X, y) = (${f2(cy[0])}, ${f2(cy[1])})  the subtype's pull`, ax, ay + 50, { size: 10 });
+    const sum = [cu[0] + cy[0], cu[1] + cy[1]], n = Math.hypot(...sum);
+    label(ctx, `w ∝ sum = (${f2(sum[0] / n)}, ${f2(sum[1] / n)})`, ax, ay + 68, { size: 10, colour: T.highlight, weight: "600" });
+    void last;
+  }
+  label(ctx, "dashed: where the loop started · colour: subtype", 10, 352, { size: 9, colour: T.ink3 });
+}
+designPanel(0.1, "start", "Start (weight 0.1)");
+designPanel(0, "end", "End at weight 0: the subtype alone pulls");
+designPanel(1, "end", "End at weight 1: methylation pulls as hard as the subtype");
+
+/* the four weights as the page's last readout, and each weight's path of mRNA's arrow */
+(() => {
+  const bx = cand("s3b", "The four weights (the page's last readout) and mRNA's arrow by update", "mRNA arrow angle after each press · the subtype's own direction 106° · the shared axis 45°", 1130);
+  const ctx = canvasIn(bx, 1130, 150);
+  const rows = [0, 0.1, 0.5, 1].map((c) => { const F = sgcca(c), L = F.at(-1); return { c, F, r: corr(L.T[0], L.T[1]), eA: etaOf(L.T[0], toy.g, 2), eB: etaOf(L.T[1], toy.g, 2), angle: ang(L.W[0]) }; });
+  label(ctx, "weight", 14, 22, { size: 10, weight: "600", colour: T.ink1 });
+  ["r(t, u)", "subtype share t", "subtype share u", "mRNA arrow", "presses to stop"].forEach((h, k) => label(ctx, h, 80 + k * 100, 22, { size: 10, weight: "600", colour: T.ink1 }));
+  rows.forEach((R, i) => {
+    const y = 44 + i * 24;
+    label(ctx, String(R.c), 14, y, { size: 11, colour: R.c === 0.1 ? T.highlight : T.ink1 });
+    [f3(R.r), f2(R.eA), f2(R.eB), `${R.angle.toFixed(0)}°`, String(R.F.length - 1)].forEach((v, k) => label(ctx, v, 80 + k * 100, y, { size: 11, colour: T.ink1 }));
+    /* the path: angle per press as a sparkline */
+    const x0 = 600, w = 480, angs = R.F.map((f) => ang(f.W[0]));
+    const X = (k) => x0 + (k / 12) * w, Y = (a) => y - 6 - ((a - 40) / 80) * 18;
+    line(ctx, x0, Y(106), x0 + w, Y(106), T.reference, 1, [3, 3]);
+    ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.6; ctx.beginPath(); angs.forEach((a, k) => (k ? ctx.lineTo(X(k), Y(a)) : ctx.moveTo(X(k), Y(a)))); ctx.stroke(); ctx.restore();
+    angs.forEach((a, k) => dot(ctx, X(k), Y(a), 2, T.highlight));
+  });
+  label(ctx, "angle of mRNA's arrow, Start → each press (dashed: the subtype's direction)", 600, 140, { size: 9, colour: T.ink3 });
+})();
+
+/* ------------------------------------------------ TCGA */
+const J = (f) => fetch(f).then((r) => r.json());
+const [SW, DES, SEL, EXP, VOTE, CV] = await Promise.all([J("diablo-sweep.json"), J("multiomics-design.json"), J("diablo-select.json"), J("multiomics-export.json"), J("diablo-vote.json"), J("diablo-cv.json")]);
+const LEVELS = ["CN_HIGH", "CN_LOW", "MSI", "POLE"];
+
+/* §4 Weight */
+function weightPanel(fit) {
+  const g = SW.subtype.map((s) => LEVELS.indexOf(s));
+  const t = fit.var.mRNA.c1, u = fit.var.meth.c1;
+  const r = corr(t, u), e1 = etaOf(t, g, 4), e2 = etaOf(u, g, 4);
+  const base = SW.fits.find((f) => f.w === 0.1).genes, changed = fit.genes.filter((x) => !base.includes(x)).length;
+  const bx = cand("s4", `weight ${fit.w}`, `mRNA–methylation component 1: r ${f3(Math.abs(r))} · subtype share mRNA ${f2(e1)}, methylation ${f2(e2)}\n${changed} of 25 kept mRNA genes differ from weight 0.1's`);
+  const ctx = canvasIn(bx, W, 300);
+  const x0 = 40, y0 = 20, s = 250, sp = 1.08 * Math.max(...t.map(Math.abs), ...u.map(Math.abs)), sg = Math.sign(r);
+  box(ctx, x0, y0, s, s);
+  t.forEach((tv, i) => { dot(ctx, x0 + s / 2 + (tv / sp) * s / 2, y0 + s / 2 - (sg * u[i] / sp) * s / 2, 2.3, T.clusters[g[i]], 0.85); });
+  label(ctx, "mRNA component 1 →", x0 + s, y0 + s + 14, { size: 9, colour: T.ink3, align: "right" });
+  ctx.save(); ctx.translate(x0 - 8, y0 + s); ctx.rotate(-Math.PI / 2); label(ctx, "methylation component 1 →", 0, 0, { size: 9, colour: T.ink3 }); ctx.restore();
+  LEVELS.forEach((l, k) => { dot(ctx, 320, 40 + k * 18, 4, T.clusters[k]); label(ctx, l, 330, 44 + k * 18, { size: 10, colour: T.ink1 }); });
+  label(ctx, "as plotDiablo draws one component (04 c6)", 310, 130, { size: 10 });
+  label(ctx, `r ${f3(Math.abs(r))}`, 310, 160, { size: 14, colour: T.ink1, weight: "600" });
+}
+weightPanel(SW.fits[0]); weightPanel(SW.fits[3]);
+(() => {
+  const rows = DES.sweep.map((s) => `<tr><td class="num">${s.w}</td>${s.corComp1.map((v) => `<td class="num">${f3(v)}</td>`).join("")}<td class="num">${f2(s.eta2[0][0])}</td><td class="num">${f3(s.cvBER[3])}</td><td class="num">${f3(s.testBER[3])}</td></tr>`).join("");
+  document.getElementById("t4").innerHTML = `<table><tr><th>weight</th><th>r mRNA–meth</th><th>r mRNA–RPPA</th><th>r meth–RPPA</th><th>subtype share, mRNA comp 1</th><th>CV BER, 4 comps</th><th>test BER, 4 comps (102, no RPPA)</th></tr>${rows}</table>`;
+})();
+
+/* §5 Select */
+(() => {
+  const bx = cand("s5", "mRNA's component 1 with every gene, and the 25 keepX keeps", `kept genes rank ${Math.min(...SEL.kept.fullRank)}–${Math.max(...SEL.kept.fullRank)} in the full vector · ${SEL.keptInFullTop25} of 25 are its top 25\nscore from 25 genes vs from 8,383: r ${f2(SEL.rScore)} · subtype share ${f2(SEL.eta.full[0])} → ${f2(SEL.eta.sparse[0])}`, 1130);
+  const ctx = canvasIn(bx, 1130, 300);
+  const ord = SEL.full.map((v, i) => i).sort((a, b) => Math.abs(SEL.full[b]) - Math.abs(SEL.full[a]));
+  const keptSet = new Map(SEL.kept.name.map((n, k) => [n, SEL.kept.value[k]]));
+  const x0 = 30, y0 = 30, h = 200, bw = 7, top = ord.slice(0, 70), vmax = Math.abs(SEL.full[ord[0]]);
+  label(ctx, "|loading| with every gene (block.plsda), largest 70 of 8,383", x0, y0 - 12, { size: 10, weight: "600", colour: T.ink1 });
+  line(ctx, x0, y0 + h, x0 + 70 * bw, y0 + h, T.axis);
+  top.forEach((i, k) => { const v = Math.abs(SEL.full[i]), bh = (v / vmax) * h, kept = keptSet.has(SEL.genes[i]);
+    ctx.fillStyle = kept ? T.highlight : T.ink3; ctx.fillRect(x0 + k * bw, y0 + h - bh, bw - 1.5, bh);
+    if (kept) { const kv = Math.abs(keptSet.get(SEL.genes[i])); void kv; } });
+  const cut = Math.abs(SEL.full[ord[25]]);
+  label(ctx, "rank →", x0 + 70 * bw, y0 + h + 14, { size: 9, colour: T.ink3, align: "right" });
+  [1, 25, 58].forEach((k) => label(ctx, String(k), x0 + (k - 0.5) * bw, y0 + h + 14, { size: 9, colour: T.ink3, align: "center" }));
+  label(ctx, "violet: kept by keepX = 25 (the cut happens inside every update, so not simply the first 25)", x0, y0 + h + 34, { size: 10 });
+  label(ctx, `everything else after the cut: 0 · each kept value shrinks by the largest dropped one`, x0, y0 + h + 50, { size: 10 });
+  void cut;
+  /* the two scores */
+  const g = SEL.subtype.map((s) => LEVELS.indexOf(s)), a = SEL.score.full, b = SEL.score.sparse;
+  /* each axis its own range: a score from 8,383 genes spreads wider than one from 25 */
+  const sx = 640, sy = 30, s = 220, spa = 1.08 * Math.max(...a.map(Math.abs)), spb = 1.08 * Math.max(...b.map(Math.abs));
+  label(ctx, "component 1 score: 8,383 genes vs 25", sx, sy - 12, { size: 10, weight: "600", colour: T.ink1 });
+  box(ctx, sx, sy, s, s);
+  a.forEach((v, i) => dot(ctx, sx + s / 2 + (v / spa) * s / 2, sy + s / 2 - (b[i] / spb) * s / 2, 2.2, T.clusters[g[i]], 0.85));
+  label(ctx, "from 8,383 genes →", sx + s, sy + s + 14, { size: 9, colour: T.ink3, align: "right" });
+  label(ctx, `r ${f2(SEL.rScore)}`, sx + 6, sy + 16, { size: 12, colour: T.ink1, weight: "600" });
+  label(ctx, "subtype share of the score", 890, 60, { size: 10, colour: T.ink1, weight: "600" });
+  label(ctx, `8,383 genes  ${f2(SEL.eta.full[0])}`, 890, 80, { size: 10 });
+  label(ctx, `25 genes     ${f2(SEL.eta.sparse[0])}`, 890, 96, { size: 10 });
+  const cvs = CV.arms.find((x) => x.arm === "sparse3").ber.vote[3], cvf = CV.arms.find((x) => x.arm === "full3").ber.vote[3];
+  label(ctx, "CV BER, 4 comps, same folds", 890, 130, { size: 10, colour: T.ink1, weight: "600" });
+  label(ctx, `every feature  ${f3(cvf)}`, 890, 150, { size: 10 });
+  label(ctx, `keepX          ${f3(cvs)}`, 890, 166, { size: 10 });
+})();
+
+/* §6 Predict */
+(() => {
+  const P = EXP.predict, K = 2;
+  const gtr = EXP.subtype.map((s) => LEVELS.indexOf(s));
+  const cents = {};
+  for (const b of ["mRNA", "meth"]) cents[b] = LEVELS.map((_, k) => [mean(P.train[b].c1.filter((_, i) => gtr[i] === k)), mean(P.train[b].c2.filter((_, i) => gtr[i] === k))]);
+  const callOf = (b, i) => { const x = [P.var[b].c1[i], P.var[b].c2[i]]; let best = 0, bd = Infinity; cents[b].forEach((c, k) => { const d = (x[0] - c[0]) ** 2 + (x[1] - c[1]) ** 2; if (d < bd) { bd = d; best = k; } }); return LEVELS[best]; };
+  let agreeCheck = 0; for (let i = 0; i < P.truth.length; i++) if (callOf("mRNA", i) === P.call2.mRNA[i] && callOf("meth", i) === P.call2.meth[i]) agreeCheck++;
+  /* a sample where the blocks disagree and methylation is right */
+  const pick = P.truth.findIndex((tr, i) => P.call2.mRNA[i] !== P.call2.meth[i] && P.call2.meth[i] === tr);
+  const bx = cand("s6", `test sample ${pick + 1} of 102 · truth ${P.truth[pick]} · Components 2`, `each block: nearest subtype centre of its training scores (this page's recomputation matches mixOmics on ${agreeCheck} of 102)\nvote: mRNA ${P.call2.mRNA[pick]} (weight ${f2(VOTE.weights[0])}) · methylation ${P.call2.meth[pick]} (${f2(VOTE.weights[1])}) · RPPA absent → ${P.vote2[pick]}`, 1130);
+  const ctx = canvasIn(bx, 1130, 330);
+  const s = 230, y0 = 30;
+  const panel = (x0, b, name) => {
+    const c1 = P.train[b].c1, c2 = P.train[b].c2, sp = 1.08 * Math.max(...c1.map(Math.abs), ...c2.map(Math.abs));
+    const Q = (x, y) => [x0 + s / 2 + (x / sp) * s / 2, y0 + s / 2 - (y / sp) * s / 2];
+    label(ctx, name, x0, y0 - 10, { weight: "600", colour: T.ink1 }); box(ctx, x0, y0, s, s);
+    c1.forEach((x, i) => { const q = Q(x, c2[i]); dot(ctx, q[0], q[1], 1.8, T.clusters[gtr[i]], 0.3); });
+    cents[b].forEach((c, k) => { const q = Q(c[0], c[1]); cross(ctx, q[0], q[1], 5, T.clusters[k]); });
+    const q = Q(P.var[b].c1[pick], P.var[b].c2[pick]);
+    const call = LEVELS.indexOf(P.call2[b][pick]), cq = Q(...cents[b][call]);
+    line(ctx, q[0], q[1], cq[0], cq[1], T.ink1, 1.2, [3, 3]);
+    dot(ctx, q[0], q[1], 4, T.ink1); ring(ctx, q[0], q[1], 8, T.ink1);
+    label(ctx, "component 1 →", x0 + s, y0 + s + 14, { size: 9, colour: T.ink3, align: "right" });
+    label(ctx, `calls ${P.call2[b][pick]}`, x0, y0 + s + 32, { size: 11, colour: T.ink1, weight: "600" });
+    label(ctx, `weight ${f2(VOTE.weights[b === "mRNA" ? 0 : 1])}`, x0, y0 + s + 48, { size: 10 });
+  };
+  panel(14, "mRNA", "mRNA"); panel(274, "meth", "methylation");
+  /* RPPA: not measured */
+  box(ctx, 534, y0, 150, s, T.unknown, 1, [4, 3]);
+  label(ctx, "RPPA", 534, y0 - 10, { weight: "600", colour: T.ink1 });
+  label(ctx, "not measured", 609, y0 + s / 2, { size: 11, colour: T.unknown, align: "center" });
+  label(ctx, "no vote", 534, y0 + s + 32, { size: 11, colour: T.unknown, weight: "600" });
+  label(ctx, `weight ${f2(VOTE.weights[2])}`, 534, y0 + s + 48, { size: 10, colour: T.unknown });
+  /* the vote */
+  const vx = 720;
+  label(ctx, "the weighted vote", vx, y0 + 4, { size: 11, weight: "600", colour: T.ink1 });
+  label(ctx, `${P.call2.mRNA[pick]}: ${f2(VOTE.weights[0])} (mRNA)`, vx, y0 + 28, { size: 11, colour: T.ink1 });
+  label(ctx, `${P.call2.meth[pick]}: ${f2(VOTE.weights[1])} (methylation)`, vx, y0 + 46, { size: 11, colour: T.ink1 });
+  label(ctx, `→ ${P.vote2[pick]}`, vx, y0 + 74, { size: 15, colour: T.ink1, weight: "600" });
+  label(ctx, `truth ${P.truth[pick]}`, vx, y0 + 96, { size: 11 });
+  const k2 = VOTE.byComp[1];
+  label(ctx, "on all 102 test samples, 2 components:", vx, y0 + 140, { size: 10, colour: T.ink1, weight: "600" });
+  label(ctx, `blocks disagree on ${k2.disagree}; the vote goes to mRNA on ${k2.disagreeWonByMRNA}`, vx, y0 + 158, { size: 10 });
+  label(ctx, `vote = mRNA's call on ${k2.voteIsMRNA} of 102`, vx, y0 + 174, { size: 10 });
+  label(ctx, `BER: mRNA ${f3(k2.ber[0])} · methylation ${f3(k2.ber[1])} · vote ${f3(k2.ber[2])}`, vx, y0 + 190, { size: 10 });
+  label(ctx, "×: each subtype's centre in that block · ringed: the test sample", 14, 322, { size: 9, colour: T.ink3 });
+  const rows = VOTE.byComp.map((b) => `<tr><td class="num">${b.k}</td><td class="num">${b.disagree}</td><td class="num">${b.voteIsMRNA}</td><td class="num">${f3(b.ber[0])}</td><td class="num">${f3(b.ber[1])}</td><td class="num">${f3(b.ber[2])}</td></tr>`).join("");
+  const s3 = CV.arms.find((x) => x.arm === "sparse3");
+  const cvRows = [0, 1, 2, 3].map((k) => `<tr><td class="num">${k + 1}</td><td class="num">${f3(s3.ber.mRNA[k])}</td><td class="num">${f3(s3.ber.meth[k])}</td><td class="num">${f3(s3.ber.rppa[k])}</td><td class="num">${f3(s3.ber.vote[k])}</td><td class="num">${s3.voteOverrulesMRNA[k]}</td></tr>`).join("");
+  document.getElementById("t6").innerHTML =
+    `<table><tr><th colspan="6">test set, 102 samples, RPPA missing (05 c21&ndash;24)</th></tr><tr><th>components</th><th>blocks disagree</th><th>vote = mRNA</th><th>BER mRNA</th><th>BER methylation</th><th>BER vote</th></tr>${rows}</table>` +
+    `<table><tr><th colspan="6">10-fold CV on the 405, all three blocks (one repeat, seed 123)</th></tr><tr><th>components</th><th>BER mRNA</th><th>BER methylation</th><th>BER RPPA</th><th>BER vote</th><th>vote &ne; mRNA</th></tr>${cvRows}</table>`;
+})();
+</script>
+</body>
+</html>
