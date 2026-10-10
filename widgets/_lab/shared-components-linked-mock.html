@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · shared-components — the picture and the matrix, linked</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 190px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 99 <code>shared-components</code> &middot; round 3 &middot; the picture and the matrix, on one page</h1>
+  <p class="note">Your report: switching from Concept to Factorize is confusing, and the concept itself is unclear. The
+    two pages draw the same numbers in two pictures and nothing joins them. This mock puts each block's <b>scatter</b>
+    and its <b>matrix</b> side by side, updated by the same press, and traces <b>one sample</b> (ringed) through the
+    arithmetic, so every mark in the picture has its number beside it. Drawn at the widget's 550px from the widget's own
+    blocks (seed 1).</p>
+
+  <table>
+    <tr><th>in the scatter</th><th>in the matrix</th><th>formula</th></tr>
+    <tr><td>a dot</td><td>a row of X: one sample, its two feature values</td><td>X</td></tr>
+    <tr><td>the arrow</td><td>w: one weight per feature, the two numbers over X's columns</td><td>w</td></tr>
+    <tr><td>a dot's foot on the arrow</td><td>that row's score in the t column: its values times the weights, added</td><td>t = Xw</td></tr>
+    <tr><td><i>Update mRNA</i> turns the arrow</td><td>w becomes each gene's covariance with methylation's scores u</td><td>w₁ &prop; X₁&#7488;u</td></tr>
+  </table>
+
+  <h2>1 &middot; One page: Start &middot; Update mRNA &middot; Update methylation &hellip; Converged</h2>
+  <p class="note">Three moments of the same page. Each block: the scatter on the left, the matrix on the right (rows
+    sorted by subtype, the ringed sample's row outlined), the weights w above the matrix, the score column t (or u)
+    beside it. Under each block, the ringed sample's arithmetic. Under <i>Update</i>, the weights' own arithmetic: each
+    is a covariance with the other block's score column.</p>
+  <div class="row" id="s1"></div>
+  <p class="rec">Recommend this as the Concept page, with the Scores panel (t against u) kept below it. A press then
+    changes three things at once and the student can see they are one thing: the arrow turns, the two numbers of w
+    change, and the score column recolours, with the ringed sample's arithmetic updating in words. Clicking any dot or
+    row picks the traced sample.</p>
+
+  <h2>2 &middot; Then Factorize continues the same picture</h2>
+  <p class="note">After Converged the same layout carries on: <i>Rebuild</i> adds c&#7488; and draws each sample's
+    rebuilt point (t&middot;c) on the scatter as a small hollow dot, <i>Subtract</i> draws E as the gap from rebuilt to
+    real, and <i>Shortcut</i> shows X&#8321;&#7488;X&#8322;. One page, one picture, ten presses; the N/P band stays at the top.</p>
+  <div class="row" id="s2"></div>
+
+  <h2>3 &middot; The calls</h2>
+  <div class="q"><b class="h">3.1 &middot; The linked layout</b> A <b>scatter and matrix side by side for each block, one
+    traced sample</b> (rec) &middot; B keep the pages as they are.</div>
+  <div class="q"><b class="h">3.2 &middot; Pages</b> A <b>one page for the method, Concept, carrying the loop and then
+    Rebuild &middot; Subtract &middot; Shortcut; Data unchanged</b> (rec: the switch that confused you goes) &middot; B
+    Concept and Factorize kept as two pages, both in this layout.</div>
+  <div class="q"><b class="h">3.3 &middot; The traced sample</b> A <b>one sample, ringed, chosen by a click on a dot or a
+    row; default a sample of subtype 2</b> (rec) &middot; B no traced sample, the arithmetic as a formula only.</div>
+
+  <h2>4 &middot; The rail, as proposed</h2>
+  <div class="rail"><span class="w">shared-components</span><span class="pg">Method</span><span class="pg">Data</span><span class="n">Method: Start · Update mRNA · Update methylation … Converged · Rebuild · Subtract · Shortcut; a click picks the traced sample. Data: Pair, Find component 1</span></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "", mono = false } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
+function ring(ctx, x, y, r, col) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.stroke(); ctx.restore(); }
+function box(ctx, x, y, w, h, col = T.axis, lw = 1) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+function head(ctx, x0, y0, x1, y1, col) { const a = Math.atan2(y1 - y0, x1 - x0); ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 7 * Math.cos(a - 0.42), y1 - 7 * Math.sin(a - 0.42)); ctx.lineTo(x1 - 7 * Math.cos(a + 0.42), y1 - 7 * Math.sin(a + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function axisArrow(ctx, p0, p1, col) { line(ctx, p0[0], p0[1], p1[0], p1[1], col, 2.2); head(ctx, ...p0, ...p1, col); head(ctx, ...p1, ...p0, col); }
+const f2 = (x) => x.toFixed(2);
+const sg = (x) => (x < 0 ? `(${f2(x)})` : f2(x));
+const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+function vramp(v) { const t = Math.max(-1, Math.min(1, v)); const a = rgb(T.surface3), b = rgb(t < 0 ? T.valueLow : T.valueHigh), k = Math.abs(t); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(",")})`; }
+
+/* ------------------------------------------- the widget's Concept blocks, seed 1 */
+const unitAt = (d) => [Math.cos(d * Math.PI / 180), Math.sin(d * Math.PI / 180)];
+const unit = (v) => { const n = Math.hypot(v[0], v[1]); return [v[0] / n, v[1] / n]; };
+const rot = (v, deg) => { const c = Math.cos(deg * Math.PI / 180), s = Math.sin(deg * Math.PI / 180); return [c * v[0] - s * v[1], s * v[0] + c * v[1]]; };
+const rng = makeRng(1), G = [], A0 = [], B0 = [];
+const ua = unitAt(62), va = unitAt(-28), ub = unitAt(18), vb = unitAt(108);
+for (let i = 0; i < 80; i++) { const g = i % 2, s = (g ? 0.85 : -0.85) + 0.35 * rng.normal(), a = 1.6 * rng.normal(), b = 1.6 * rng.normal(); G.push(g); A0.push([0, 1].map((j) => s * ua[j] + a * va[j] + 0.2 * rng.normal())); B0.push([0, 1].map((j) => s * ub[j] + b * vb[j] + 0.2 * rng.normal())); }
+const cen = (X) => { const m = [0, 1].map((j) => mean(X.map((p) => p[j]))); return X.map((p) => [p[0] - m[0], p[1] - m[1]]); };
+const A = cen(A0), B = cen(B0);
+const proj = (X, w) => X.map((p) => p[0] * w[0] + p[1] * w[1]);
+const covWith = (X, s) => [0, 1].map((j) => X.reduce((acc, p, i) => acc + p[j] * s[i], 0) / X.length);
+/* the loop as frames, as the widget runs it */
+function frames(start, rounds) {
+  let w2 = start, u = proj(B, w2); const F = [{ w2, u }];
+  for (let r = 0; r < rounds; r++) { const c1 = covWith(A, u), w1 = unit(c1), t = proj(A, w1); F.push({ w1, t, w2, u, c1, upd: "a" }); const c2 = covWith(B, t); w2 = unit(c2); u = proj(B, w2); F.push({ w1, t, w2, u, c2, upd: "b" }); }
+  return F;
+}
+let conv = frames([0, 1], 60).at(-1);
+let start = unit(rot(conv.w2, 80));
+let FR = frames(start, 3);
+if (mean(FR.at(-1).t.filter((_, i) => G[i])) < 0) { start = [-start[0], -start[1]]; FR = frames(start, 3); }
+const SPAN = 1.08 * Math.max(...A.flat().map(Math.abs), ...B.flat().map(Math.abs));
+const order = [...A.keys()].sort((i, j) => G[i] - G[j] || i - j);
+/* the traced sample: subtype 2, with clearly non-zero values in both blocks */
+const PICK = order.filter((i) => G[i] === 1).sort((i, j) => (Math.abs(A[j][0]) + Math.abs(A[j][1])) - (Math.abs(A[i][0]) + Math.abs(A[i][1])))[6];
+
+/* one block row: scatter, matrix (X | t), w above, the traced row outlined, arithmetic under */
+function blockRow(ctx, y, X, w, t, name, feats, scoreName, cov, otherScore, extra = {}) {
+  const s = 150, sx = 14, P = (p) => [sx + s / 2 + (p[0] / SPAN) * (s / 2), y + s / 2 - (p[1] / SPAN) * (s / 2)];
+  label(ctx, name, sx, y - 8, { weight: "600", colour: T.ink1 });
+  box(ctx, sx, y, s, s);
+  label(ctx, feats[0], sx + s / 2, y + s + 12, { size: 9, colour: T.ink3, align: "center" });
+  if (w) { const R = 0.92 * SPAN; axisArrow(ctx, P([-R * w[0], -R * w[1]]), P([R * w[0], R * w[1]]), T.highlight); }
+  X.forEach((p, i) => { if (w) { const tt = p[0] * w[0] + p[1] * w[1]; const q = P([tt * w[0], tt * w[1]]); dot(ctx, q[0], q[1], 2.2, T.clusters[G[i]]); } const q = P(p); dot(ctx, q[0], q[1], 3.2, T.clusters[G[i]]); });
+  const pp = P(X[PICK]); ring(ctx, pp[0], pp[1], 7, T.ink1);
+  if (w) { const tt = X[PICK][0] * w[0] + X[PICK][1] * w[1]; const q = P([tt * w[0], tt * w[1]]); line(ctx, pp[0], pp[1], q[0], q[1], T.ink1, 1, [2, 2]); ring(ctx, q[0], q[1], 5, T.ink1); }
+  /* matrix */
+  const mx = sx + s + 34, rh = 1.85, cw = 16, m = Math.max(...X.flat().map(Math.abs));
+  order.forEach((i, r) => { for (let j = 0; j < 2; j++) { ctx.fillStyle = vramp(X[i][j] / m); ctx.fillRect(mx + j * cw, y + r * rh, cw, rh + 0.2); } });
+  box(ctx, mx, y, 2 * cw, 80 * rh);
+  label(ctx, "X", mx + cw, y - 22, { align: "center", weight: "600", colour: T.ink1 });
+  if (w) {
+    label(ctx, "w", mx + 2 * cw + 10, y - 22, { weight: "600", colour: T.highlight });
+    label(ctx, `(${f2(w[0])}, ${f2(w[1])})`, mx + 2 * cw + 22, y - 22, { size: 10, colour: T.highlight, mono: true });
+  }
+  const tx = mx + 2 * cw + 18;
+  if (t) {
+    const tm = Math.max(...t.map(Math.abs));
+    order.forEach((i, r) => { ctx.fillStyle = vramp(t[i] / tm); ctx.fillRect(tx, y + r * rh, cw, rh + 0.2); });
+    box(ctx, tx, y, cw, 80 * rh);
+    label(ctx, scoreName, tx + cw / 2, y - 10, { size: 10, align: "center", weight: "600", colour: T.ink1 });
+  }
+  const pr = order.indexOf(PICK);
+  box(ctx, mx - 2, y + pr * rh - 2, (t ? tx + cw - mx : 2 * cw) + 4, rh + 4, T.ink1, 1.5);
+  /* the traced sample's arithmetic */
+  const ax = tx + cw + 14, x = X[PICK];
+  label(ctx, `sample ${PICK + 1}: ${feats[0]} ${f2(x[0])}, ${feats[1]} ${f2(x[1])}`, ax, y + 12, { size: 10, colour: T.ink1 });
+  if (w) {
+    const tt = x[0] * w[0] + x[1] * w[1];
+    label(ctx, `${scoreName} = ${sg(x[0])} × ${sg(w[0])} + ${sg(x[1])} × ${sg(w[1])}`, ax, y + 28, { size: 10, mono: true });
+    label(ctx, `  = ${f2(tt)}: its foot on the arrow`, ax, y + 42, { size: 10, mono: true, colour: T.ink1 });
+  } else label(ctx, "no arrow yet", ax, y + 28, { size: 10, colour: T.ink3 });
+  if (cov) {
+    label(ctx, `this press set w from ${otherScore}:`, ax, y + 70, { size: 10, colour: T.ink1, weight: "600" });
+    label(ctx, `cov(${feats[0]}, ${otherScore}) = ${f2(cov[0])}`, ax, y + 86, { size: 10, mono: true });
+    label(ctx, `cov(${feats[1]}, ${otherScore}) = ${f2(cov[1])}`, ax, y + 100, { size: 10, mono: true });
+    const n = Math.hypot(cov[0], cov[1]);
+    label(ctx, `÷ ${f2(n)} (length 1) → w = (${f2(cov[0] / n)}, ${f2(cov[1] / n)})`, ax, y + 116, { size: 10, mono: true, colour: T.highlight });
+  }
+  if (extra.rebuild) {
+    const { c } = extra.rebuild, tt = t[PICK];
+    label(ctx, `Rebuild: c = (${f2(c[0])}, ${f2(c[1])})`, ax, y + 70, { size: 10, colour: T.ink1, weight: "600" });
+    label(ctx, `rebuilt row = ${f2(tt)} × c = (${f2(tt * c[0])}, ${f2(tt * c[1])})`, ax, y + 86, { size: 10, mono: true });
+    label(ctx, `E row = real − rebuilt = (${f2(x[0] - tt * c[0])}, ${f2(x[1] - tt * c[1])})`, ax, y + 100, { size: 10, mono: true });
+    const q = P([tt * c[0], tt * c[1]]); ring(ctx, q[0], q[1], 4, T.ink2); line(ctx, q[0], q[1], pp[0], pp[1], T.ink2, 1);
+  }
+}
+
+function snapshot(rowId, title, sub, F, extra = {}) {
+  const bx = cand(rowId, title, sub);
+  const ctx = canvasIn(bx, W, 420);
+  blockRow(ctx, 38, A, F.w1, F.t, "mRNA", ["gene 1", "gene 2"], "t", F.upd === "a" ? F.c1 : null, "u", extra.a ? { rebuild: extra.a } : {});
+  blockRow(ctx, 240, B, F.w2, F.u, "Methylation", ["CpG 1", "CpG 2"], "u", F.upd === "b" ? F.c2 : null, "t", extra.b ? { rebuild: extra.b } : {});
+}
+snapshot("s1", "Start", "methylation's arrow points anywhere; every sample gets a methylation score u", FR[0]);
+snapshot("s1", "Update mRNA (round 1)", "mRNA's w is each gene's covariance with u; the arrow, w and the t column change together", FR[1]);
+snapshot("s1", "Converged", "another round changes neither w", FR.at(-1));
+const fin = FR.at(-1);
+const cOf = (X, t) => { const tt = t.reduce((s, v) => s + v * v, 0); return [0, 1].map((j) => X.reduce((s, p, i) => s + p[j] * t[i], 0) / tt); };
+snapshot("s2", "Rebuild and Subtract, on the same picture", "hollow dot: the traced sample rebuilt as t × c; the grey line to its real dot is its row of E", fin, { a: { c: cOf(A, fin.t) }, b: { c: cOf(B, fin.u) } });
+</script>
+</body>
+</html>
