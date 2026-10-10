@@ -160,14 +160,17 @@ const S = {
 
   /* P-integration */
   pCap: [
-    "Two studies measured the same 2 genes on different samples, 40 each. Study 2 reads higher on both genes.",
-    "Stack: the studies share their columns, so their tables stack into one, X = [X₁; X₂].",
-    "Find w: one loading vector for both studies, each gene's covariance with the subtype, scaled to length 1.",
-    "Score: every sample, from either study, is projected onto the same loading vector: its score is t = row × w.",
+    "Two studies measured the same 2 genes on different samples, 40 each. Same genes, so both studies' samples share one pair of axes; in N-integration each block needed its own.",
+    "Stack: the studies share their columns, the genes, so their tables stack into one, X = [X₁; X₂]: the scatter's single pair of axes, written as a matrix.",
+    "Find w: PLS needs a second table to covary with; here it is the response y, the subtype. Each gene's loading is its covariance with y, scaled to length 1: one loading vector for both studies.",
+    "Score: every sample, from either study, is projected onto the same loading vector, so both studies' samples lie on one latent variable. Real studies also differ in baseline; mixOmics' MINT centres each study before finding w.",
   ],
+  yHead: "y",
+  ySub: "subtype",
+  byStudy: "scores t, by study",
   study: ["study 1", "study 2"],
   studyKey: "● study 1   ■ study 2",
-  pCov: (g, v) => `cov(${g}, subtype) = ${v}`,
+  pCov: (g, v) => `cov(${g}, y) = ${v}`,
   pW: (n, w) => `÷ ${n} (length 1) → w = (${w}), one loading vector for both studies`,
   pScore: (s, t) => `${s}: scores from ${t}`,
 
@@ -538,14 +541,17 @@ function makeBlocks(rng) {
 
 /* P-integration: two studies, 40 samples each, the same two genes, an even
    subtype mix in each (an uneven one confounds study with subtype, measured
-   in round 4's mock, and is not this page's subject). Study 2 reads higher
-   on both genes. The stacked table is centred as one, as 01 cell 2 stacks
-   it; w ∝ Xᵀy with y the subtype, centred. */
+   in round 4's mock, and is not this page's subject). The stacked table is
+   centred as one, as 01 cell 2 stacks it; w ∝ Xᵀy with y the subtype,
+   centred (−0.5 / +0.5). */
 function makeStudies(rng) {
-  const d = unitAt(-35), sh = unitAt(60), X0 = [], study = [], g = [];
+  /* no study shift (his walk-through, round 5: "study 2 reads higher" was set
+     up and never used; a study baseline is MINT's subject, named in the last
+     caption, not computed) */
+  const d = unitAt(-35), X0 = [], study = [], g = [];
   for (let st = 0; st < 2; st++) for (let i = 0; i < N_STUDY; i++) {
     const grp = i % 2, s = grp ? 0.8 : -0.8;
-    X0.push([0, 1].map((j) => s * d[j] + 0.55 * rng.normal() + (st ? 0.9 * sh[j] : 0)));
+    X0.push([0, 1].map((j) => s * d[j] + 0.55 * rng.normal()));
     study.push(st); g.push(grp);
   }
   const X = centre(X0), y = g.map((v) => v - 0.5);
@@ -553,7 +559,7 @@ function makeStudies(rng) {
   /* rows: each study's in subtype order, study 1's first */
   const order = [...X.keys()].sort((i, j) => study[i] - study[j] || g[i] - g[j] || i - j);
   const span = 1.1 * Math.max(...X.flat().map(Math.abs));
-  return { X, study, g, c, w, t, order, span, rSub: corr(t, g) };
+  return { X, study, g, y, c, w, t, order, span, rSub: corr(t, g) };
 }
 
 /* ======================================================= shared drawing */
@@ -915,13 +921,14 @@ function pickAtN(Lm, st, F, pointer) {
    shape: a circle or a square, so colour carries one grouping); on the
    right the two studies' tables, side by side until Stack moves study 2's
    under study 1's, then the shared w and the score column. */
-const PL = { cap: 50, s: 200, rh: 2.5, cw: 15 };
+const PL = { cap: 66, s: 180, rh: 2.5, cw: 15 };
 const H_P = PL.cap + 14 + PL.s + 104;
 function pLayout(w) {
-  const s = Math.min(PL.s, Math.floor(w * 0.38));
+  const s = Math.min(PL.s, Math.floor(w * 0.34));
   const P = { x: 30, y: PL.cap + 14, s };
-  const mx = P.x + s + 54, my = P.y + 20, cw = PL.cw, rh = PL.rh;
-  return { P, mx, my, cw, rh, tCol: mx + 2 * cw + 52, text: { x: 30, y: P.y + s + 48 } };
+  const mx = P.x + s + 50, my = P.y + 22, cw = PL.cw, rh = PL.rh;
+  const yCol = mx + 2 * cw + 14, tCol = yCol + cw + 22, bx = tCol + cw + 26;
+  return { P, mx, my, cw, rh, yCol, tCol, by: { x: bx, w: Math.max(90, w - bx - 12) }, text: { x: 30, y: P.y + s + 48 } };
 }
 
 function drawP(ctx, colors, w, params, pt, anim, pointer) {
@@ -944,14 +951,33 @@ function drawP(ctx, colors, w, params, pt, anim, pointer) {
   const x2 = lerp(mx + 2 * cw + 30, mx, stack), y2 = lerp(my, my + hS, stack);
   cols(ctx, colors, mx, my, rh, cw, o1, (i, j) => pt.X[i][j], 2, xm);
   cols(ctx, colors, x2, y2, rh, cw, o2, (i, j) => pt.X[i][j], 2, xm);
-  txt(ctx, colors, n >= 1 ? "X = [X₁; X₂]" : "X₁", mx, my - 8, { size: colors.fsXs, fill: colors.ink1, weight: "600" });
-  if (n < 1) txt(ctx, colors, "X₂", x2, y2 - 8, { size: colors.fsXs, fill: colors.ink1, weight: "600" });
+  /* "X" alone once stacked: X = [X₁; X₂] is on the formula card, and written here it ran over the y column's header */
+  txt(ctx, colors, n >= 1 ? "X" : "X₁", mx + cw, my - 8, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
+  if (n < 1) txt(ctx, colors, "X₂", x2 + cw, y2 - 8, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
   bracket(ctx, colors, mx - 5, my, my + hS, S.study[0]);
   bracket(ctx, colors, x2 - 5, y2, y2 + hS, S.study[1]);
-  if (n >= 2) txt(ctx, colors, `w = (${pair2(pt.w)})`, mx, my - 22, { size: colors.fsXs, fill: colors.highlight, weight: "600" });
+  if (n >= 2) {
+    txt(ctx, colors, `w = (${pair2(pt.w)})`, mx, my - 22, { size: colors.fsXs, fill: colors.highlight, weight: "600" });
+    /* the response y beside X: each loading is a gene column's covariance with this column (walk-through pick 3) */
+    cols(ctx, colors, L.yCol, my, rh, cw, pt.order, (i) => pt.y[i], 1, 0.5);
+    txt(ctx, colors, S.yHead, L.yCol + cw / 2, my - 8, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
+    txt(ctx, colors, S.ySub, L.yCol + cw / 2, my + 2 * hS + 13, { align: "center", size: colors.fsXs, fill: colors.ink3 });
+  }
   if (n >= 3) {
-    cols(ctx, colors, L.tCol, my, rh, cw, pt.order, (i) => pt.t[i], 1, Math.max(...pt.t.map(Math.abs)));
+    const tm = Math.max(...pt.t.map(Math.abs));
+    cols(ctx, colors, L.tCol, my, rh, cw, pt.order, (i) => pt.t[i], 1, tm);
     txt(ctx, colors, "t", L.tCol + cw / 2, my - 8, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
+    /* scores by study on one axis: both studies' samples on the same latent variable (walk-through pick 5) */
+    const { x: bx, w: bw } = L.by, sx = (v) => bx + bw / 2 + (v / tm) * (bw / 2 - 6);
+    txt(ctx, colors, S.byStudy, bx, my - 8, { size: colors.fsXs, fill: colors.ink1, weight: "600" });
+    [0, 1].forEach((st) => {
+      const yRow = my + 34 + st * 52;
+      txt(ctx, colors, S.study[st], bx, yRow - 14, { size: colors.fsXs, fill: colors.ink2 });
+      line(ctx, bx, yRow, bx + bw, yRow, colors.axis);
+      pt.t.forEach((t, i) => { if (pt.study[i] !== st) return; const jit = ((i % 5) - 2) * 2.5;
+        (st ? (cx, cy) => square(ctx, colors, cx, cy, 2.6, subColour(colors, pt.g[i])) : (cx, cy) => dot(ctx, colors, cx, cy, 3, subColour(colors, pt.g[i])))(sx(t), yRow + jit); });
+    });
+    line(ctx, sx(0), my + 14, sx(0), my + 100, colors.grid, 1, [2, 3]);
   }
 
   /* the arithmetic: the shared w, from each gene's covariance with the subtype */
