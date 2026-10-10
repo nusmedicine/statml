@@ -97,6 +97,7 @@ const S = {
   sampleDetail: "the sample whose numbers are worked through; a click on a dot or a matrix row picks one",
 
   blockA: "mRNA",
+  blockE: "mRNA: E, after component 1",
   blockB: "Methylation",
   featA: ["gene 1", "gene 2"],
   featB: ["CpG 1", "CpG 2"],
@@ -112,13 +113,13 @@ const S = {
     "Score: w₁ is the direction that rebuilds the most of X. Each sample's score is its row times w₁, its position along the arrow.",
     "Rebuild: t₁w₁ᵀ puts every sample at its foot on the arrow (hollow). This is the part of X that component 1 keeps.",
     "Subtract: E = X − t₁w₁ᵀ is what is left, the gap from each foot to its dot.",
-    "Component 2: w₂ is found in E the same way. T and W now have two columns each, and with as many components as features the rebuild is exact. Omics blocks have far more features than samples, so only a few components are kept.",
+    "Component 2: each sample moves to its row of E, its gap from arrow 1. With 2 features E lies on one line, so w₂ has no choice: the one direction left. With thousands of features, component 2 is E's direction of largest variance. T and W now have two columns, and X = T·Wᵀ exactly.",
   ],
   fRow: (n, a, b) => `sample ${n}: gene 1 = ${a}, gene 2 = ${b}`,
   fScore: (k, x, w, t) => `t${k} = ${x[0]} × ${w[0]} + ${x[1]} × ${w[1]} = ${t}`,
   fRebuilt: (t, w, r) => `rebuilt row = t₁ × w₁ = ${t} × (${w}) = (${r})`,
   fE: (e) => `E row = row − rebuilt = (${e})`,
-  fBoth: (r) => `t₁w₁ + t₂w₂ = (${r}), the row exactly`,
+  fBoth: (r) => `t₁w₁ + t₂w₂ = (${r}), the row of X exactly`,
   shapes: ["N × P", "N × L", "L × P"],
 
   /* N-integration */
@@ -564,8 +565,8 @@ function panelFrame(ctx, colors, P, name, ax) {
 
 /* One block, its scatter on the left and its matrices to the right in the
    notebook's shapes, the traced sample's arithmetic underneath. */
-const FL = { cap: 50, s: 200, rh: 2.5, cw: 15 };
-const H_FACTOR = FL.cap + 14 + FL.s + 104;
+const FL = { cap: 64, s: 200, rh: 2.5, cw: 15 };
+const H_FACTOR = FL.cap + 14 + FL.s + 128;
 function factorLayout(w) {
   const s = Math.min(FL.s, Math.floor(w * 0.38));
   const P = { x: 30, y: FL.cap + 14, s };
@@ -578,23 +579,36 @@ function drawFactorization(ctx, colors, w, params, st, anim, pointer) {
   const L = factorLayout(w), n = Math.min(anim.n.factorization ?? 0, 4), p = inFlight(anim, "factorization");
   const F = st.fac, X = st.A, pick = tracedOf(params), px = toPxOf(L.P, st.span), R = 0.92 * st.span;
   wrapText(ctx, colors, S.fCap[n], 10, 14, w - 20, 16, { fill: colors.ink1 });
-  panelFrame(ctx, colors, L.P, S.blockA, S.featA);
+  /* Component 2 (round 5, his "it just draws the orthogonal arrow?"): the
+     samples first move to their rows of E, their gaps from arrow 1, drawn
+     from the centre (0–0.55); with 2 features E lies on one line, so w₂ is
+     drawn along it once they land. With P features it would be E's
+     direction of largest variance among P − 1; here it has no choice. */
+  const comp2 = n >= 4, mv = comp2 ? (p != null && n === 4 ? ease(seg(p, 0, 0.55)) : 1) : 0;
+  const w2On = comp2 && (p == null || n !== 4 || p >= 0.55);
+  panelFrame(ctx, colors, L.P, comp2 && mv >= 1 ? S.blockE : S.blockA, S.featA);
   const scored = n >= 1, drop = p != null && n === 1 ? ease(seg(p, 0.1, 0.8)) : 1;
   if (scored) axisArrow(ctx, px(-R * F.w[0][0], -R * F.w[0][1]), px(R * F.w[0][0], R * F.w[0][1]), colors.highlight);
-  if (n >= 4) axisArrow(ctx, px(-R * F.w[1][0], -R * F.w[1][1]), px(R * F.w[1][0], R * F.w[1][1]), colors.ink2, 1.6);
+  if (w2On) axisArrow(ctx, px(-R * F.w[1][0], -R * F.w[1][1]), px(R * F.w[1][0], R * F.w[1][1]), colors.ink2, 1.6);
+  const posOf = (i) => {
+    const q = X[i];
+    if (!comp2) return q;
+    const t = F.t[0][i], e = [q[0] - t * F.w[0][0], q[1] - t * F.w[0][1]];
+    return [lerp(q[0], e[0], mv), lerp(q[1], e[1], mv)];
+  };
   X.forEach((q, i) => {
-    const [x, y] = px(q[0], q[1]);
-    if (scored) {
+    const [x, y] = px(...posOf(i));
+    if (scored && !comp2) {
       const t = F.t[0][i], ft = px(t * F.w[0][0], t * F.w[0][1]), fp = [lerp(x, ft[0], drop), lerp(y, ft[1], drop)];
       if (drop < 1) line(ctx, x, y, fp[0], fp[1], colors.ink3, 1);
       /* Subtract: E as the gap from each foot to its dot */
-      if (n >= 3 && n < 4) line(ctx, ft[0], ft[1], x, y, colors.ink3, 1);
+      if (n >= 3) line(ctx, ft[0], ft[1], x, y, colors.ink3, 1);
       if (n >= 2) hollow(ctx, fp[0], fp[1], 2.4, colors.ink2); else dot(ctx, colors, fp[0], fp[1], 2.2, subColour(colors, st.g[i]), false);
     }
     dot(ctx, colors, x, y, 3.6, subColour(colors, st.g[i]));
   });
-  const pq = px(...X[pick]); ring(ctx, pq[0], pq[1], 6.5, colors.ink1);
-  if (scored && p == null) { const t = F.t[0][pick], ft = px(t * F.w[0][0], t * F.w[0][1]); line(ctx, pq[0], pq[1], ft[0], ft[1], colors.ink1, 1, [2, 2]); ring(ctx, ft[0], ft[1], 4.5, colors.ink1); }
+  const pq = px(...posOf(pick)); ring(ctx, pq[0], pq[1], 6.5, colors.ink1);
+  if (scored && !comp2 && p == null) { const t = F.t[0][pick], ft = px(t * F.w[0][0], t * F.w[0][1]); line(ctx, pq[0], pq[1], ft[0], ft[1], colors.ink1, 1, [2, 2]); ring(ctx, ft[0], ft[1], 4.5, colors.ink1); }
 
   /* the matrices, in the notebook's shapes */
   const { my, m, cw, rh } = L, H = N_CONCEPT * rh, xm = Math.max(...X.flat().map(Math.abs)), tm = Math.max(...F.t[0].map(Math.abs));
@@ -610,7 +624,7 @@ function drawFactorization(ctx, colors, w, params, st, anim, pointer) {
   if (n >= 3) {
     txt(ctx, colors, "+", m.E - 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
     const rest = (i, j) => X[i][j] - F.t[0][i] * F.w[0][j] - (n >= 4 ? F.t[1][i] * F.w[1][j] : 0);
-    cols(ctx, colors, m.E, my, rh, cw, st.order, rest, 2, xm); head(m.E, 2 * cw, "E", n >= 4 ? "0" : S.shapes[0]);
+    cols(ctx, colors, m.E, my, rh, cw, st.order, rest, 2, xm); head(m.E, 2 * cw, "E", n >= 4 ? "= 0" : S.shapes[0]);
   }
   [0, 1].forEach((g) => { const ra = st.order.findIndex((i) => st.g[i] === g); bracket(ctx, colors, m.X - 5, my + ra * rh, my + (ra + N_CONCEPT / 2) * rh, S.sub[g]); });
   const r = st.order.indexOf(pick), right = n >= 3 ? m.E + 2 * cw : scored ? m.T + Lc * cw : m.X + 2 * cw;
@@ -623,9 +637,11 @@ function drawFactorization(ctx, colors, w, params, st, anim, pointer) {
   put(S.fRow(pick + 1, f2(x[0]), f2(x[1])), colors.ink1);
   if (scored) put(S.fScore("₁", [fx(x[0]), fx(x[1])], [fx(F.w[0][0]), fx(F.w[0][1])], f2(F.t[0][pick])));
   if (n >= 2) { const t = F.t[0][pick]; put(S.fRebuilt(f2(t), pair2(F.w[0]), pair2([t * F.w[0][0], t * F.w[0][1]]))); }
-  if (n >= 3 && n < 4) { const t = F.t[0][pick]; put(S.fE(pair2([x[0] - t * F.w[0][0], x[1] - t * F.w[0][1]])), colors.ink1); }
+  if (n === 3) { const t = F.t[0][pick]; put(S.fE(pair2([x[0] - t * F.w[0][0], x[1] - t * F.w[0][1]])), colors.ink1); }
   if (n >= 4) {
-    put(S.fScore("₂", [fx(x[0]), fx(x[1])], [fx(F.w[1][0]), fx(F.w[1][1])], f2(F.t[1][pick])));
+    const t1 = F.t[0][pick], e = [x[0] - t1 * F.w[0][0], x[1] - t1 * F.w[0][1]];
+    put(S.fE(pair2(e)));
+    put(S.fScore("₂", [fx(e[0]), fx(e[1])], [fx(F.w[1][0]), fx(F.w[1][1])], f2(F.t[1][pick])));
     put(S.fBoth(pair2([F.t[0][pick] * F.w[0][0] + F.t[1][pick] * F.w[1][0], F.t[0][pick] * F.w[0][1] + F.t[1][pick] * F.w[1][1]])), colors.ink1);
   }
   hoverSample(ctx, colors, w, pointer, pickAtFactor(L, st, pointer));
@@ -1032,7 +1048,7 @@ const durOf = (stage, n, st) => {
   if (stage === "data") return 1600;
   if (stage === "n-integration") return n > st.blocks.loopEnd ? 450 : 1400;
   if (stage === "p-integration") return n === 1 ? 1100 : 450;
-  return n === 1 ? 1200 : 450;
+  return n === 1 ? 1200 : n === 4 ? 1600 : 450;
 };
 const EASE_MS = 900;
 const shownStep = (anim, stage) => (anim.n[stage] ?? 0) - (anim.stage === stage && anim.t < 1 ? 1 : 0);
