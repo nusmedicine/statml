@@ -1,5 +1,45 @@
 # Handover
 
+**SESSION CLOSED 2026-10-10.** 97 `scaffold-split` SHIPPED AND PUSHED as
+"Deep Learning - Graphs: Scaffold Split" (20 states, three determinism runs
+and a MATCH pass at DPR 1.25). The record is the catalogue's § *Slot 97*.
+**The graph arc's picked slots (94 · 95 · 97) are COMPLETE. NEXT: his call**
+— multi-omics (PHM5003 10) was paused for this arc and takes the next free
+numbers; its three findings are not in the catalogue (re-derive from
+`10 - Multi-omics Analysis/`).
+
+**97 now.** Step **Scaffold · Split · Evaluate**. Scaffold: his figure's
+layout, Example Indoles · Quinolones, Find scaffold moves each scaffold
+across as a copy; the dataset below as blocks in bands by group size.
+Split: Label · Scaffold, Seed 42–51; Split 80 / 20 moves the molecules into
+Train | Held out columns (bands level across both, held-out cells leave
+first), both pieces of every shared scaffold ringed with the count; Split
+50 / 50 colours the held-out column validation (pale) and test; cell 30's
+bars. Evaluate: the same columns, Compare rings shared scaffolds, Score
+drops the lesson's GCN's macro F1 for ten seeds per split. All 2,335 rows of
+the lesson's df, so seed 42's scaffold split is cell 28's 1960 / 202 / 173.
+`data.js` from `_lab/scaffold-split-data.py` (needs the untracked CSV, RDKit,
+scikit-learn and `_lab/scaffold-split-gcn-<seed>.json` from
+`scaffold-split-measure.py gcn <seed>`, ~1 min a split).
+
+**Learned this session, worth keeping.** (1) Re-measure on the seeds the
+widget will show: the mock's 0–9 + 42 gave the GCN 8 of 11; 42–51 gave 7 of
+10 — the gap is ~0.05 under every model and metric, so the page draws every
+seed and claims nothing. (2) When he is confused by a diagram, answer in one
+table, then mock the view that would have answered it (the two columns). (3)
+Measure colour contrast before recommending: my grey pick was 1.06:1. (4) A
+page within ~20px of the harness's 1,197px frame flakes between 534 and 550
+wide — keep every page clear of it. (5) In this pane rAF runs only while a
+javascript_tool call is awaiting: wait inside the call; a run with the pane
+hidden comes back at DPR 1 (read the size column).
+
+**Untracked and safe to leave:** the `_lab` measurement JSON/CSV files
+(`scaffold-split-measure.json`, `scaffold-split-gcn-*.json`,
+`scaffold-split-mock-data.json`, `graph-fingat-training.csv` and the rest
+listed by `git status`), and `widgets/explainability/main.js.tmp.*`.
+
+---
+
 **SESSION CLOSED 2026-10-09, following 63d8f0d.** 95 `message-passing`
 SHIPPED AND PUSHED as "Deep Learning - Graphs: Message Passing" (27 states,
 three determinism runs and a MATCH pass at DPR 1.25; deploy 37953076693

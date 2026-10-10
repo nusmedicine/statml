@@ -13147,11 +13147,186 @@
       "tx": "13b1ab10"
     },
     {
-      "$note": "PLACEHOLDER, draft: scaffold-split · Scaffold, Indoles, opening",
+      "$note": "scaffold-split · Scaffold, Indoles, opening",
       "slug": "scaffold-split",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "d3d94ea8",
+      "tx": "9158ae6d"
+    },
+    {
+      "$note": "scaffold-split · Scaffold, Indoles, after Find scaffold: one scaffold, the block ringed",
+      "slug": "scaffold-split",
+      "state": "?theme=light&shown=1",
+      "px": "f0c3f650",
+      "tx": "d299920c"
+    },
+    {
+      "$note": "scaffold-split · Scaffold, Quinolones, after Find scaffold: two scaffolds",
+      "slug": "scaffold-split",
+      "state": "?theme=light&example=quinolones&shown=1",
+      "px": "1b0ddb25",
+      "tx": "e542542c"
+    },
+    {
+      "$note": "scaffold-split · Split, label, seed 42, the one grid before the split",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split&shown=0",
+      "px": "974d8882",
+      "tx": "8be6e79c"
+    },
+    {
+      "$note": "scaffold-split · Split, label, seed 42, Train and Held out, 123 shared scaffolds ringed",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split&shown=1",
+      "px": "dfe36fd2",
+      "tx": "f54f54ca"
+    },
+    {
+      "$note": "scaffold-split · Split, label, seed 42, validation and test, cell 30's bars",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split&shown=2",
+      "px": "f9f3e37e",
+      "tx": "cafa83dc"
+    },
+    {
+      "$note": "scaffold-split · Split, scaffold, seed 42 (the lesson's 1960 / 202 / 173), no rings",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split&split=scaffold&shown=1",
+      "px": "cc1bc5d6",
+      "tx": "adf596d1"
+    },
+    {
+      "$note": "scaffold-split · Split, scaffold, seed 42, validation and test, cell 30's bars",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split&split=scaffold&shown=2",
+      "px": "745fbaa4",
+      "tx": "81356fa8"
+    },
+    {
+      "$note": "scaffold-split · Split, scaffold, seed 48: 29% held out",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split&split=scaffold&seed=48&shown=2",
+      "px": "7a124183",
+      "tx": "ef802f75"
+    },
+    {
+      "$note": "scaffold-split · Split, label, dark theme, finished",
+      "slug": "scaffold-split",
+      "state": "?theme=dark&page=split&shown=2",
+      "px": "10549c07",
+      "tx": "cafa83dc"
+    },
+    {
+      "$note": "scaffold-split · Evaluate, label, seed 42, opening",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=evaluate&shown=0",
+      "px": "21152c36",
+      "tx": "50279751"
+    },
+    {
+      "$note": "scaffold-split · Evaluate, label, after Compare: shared scaffolds ringed in both columns",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=evaluate&shown=1",
+      "px": "306391be",
+      "tx": "f63912c0"
+    },
+    {
+      "$note": "scaffold-split · Evaluate, label, after Score: ten seeds' macro F1",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=evaluate&shown=2",
+      "px": "d1a0bd25",
+      "tx": "73cfca1d"
+    },
+    {
+      "$note": "scaffold-split · Evaluate, scaffold, after Score: no rings, the wider spread",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=evaluate&split=scaffold&shown=2",
+      "px": "ab8501ac",
+      "tx": "6becac3a"
+    },
+    {
+      "$note": "scaffold-split · DRIVEN: Scaffold, Find scaffold mid-press, the copies in their lanes",
+      "slug": "scaffold-split",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 35,
+        "dt": 32
+      },
+      "px": "5585cd29",
+      "tx": "9158ae6d"
+    },
+    {
+      "$note": "scaffold-split · DRIVEN: Split, Split 80 / 20 mid-move, held-out cells leaving first",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split",
+      "drive": {
+        "click": "step",
+        "frames": 45,
+        "dt": 32
+      },
+      "px": "05fbcaaa",
+      "tx": "8be6e79c"
+    },
+    {
+      "$note": "scaffold-split · DRIVEN: Split, Split 80 / 20 late, Train closing up",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split",
+      "drive": {
+        "click": "step",
+        "frames": 85,
+        "dt": 32
+      },
+      "px": "827ee1cf",
+      "tx": "8be6e79c"
+    },
+    {
+      "$note": "scaffold-split · DRIVEN: Split, Split 50 / 50 mid-sweep",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=split",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 120
+          }
+        ],
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "50a6547b",
+      "tx": "f54f54ca"
+    },
+    {
+      "$note": "scaffold-split · DRIVEN: Evaluate, Compare mid-sweep",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=evaluate",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "e4bd887e",
+      "tx": "50279751"
+    },
+    {
+      "$note": "scaffold-split · DRIVEN: Evaluate, Score mid-press, the dots appearing",
+      "slug": "scaffold-split",
+      "state": "?theme=light&page=evaluate",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 70
+          }
+        ],
+        "click": "step",
+        "frames": 28,
+        "dt": 32
+      },
+      "px": "14557655",
+      "tx": "f63912c0"
     }
   ]
 }

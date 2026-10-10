@@ -499,8 +499,10 @@ const swept = (k, t) => t >= (k / N) * SWEEP_END;
 
 /* ---------------------------------------------------------- geometry */
 
-const MOL_H = 356;
-const H_SCAF = MOL_H + 30 + GRID.h + 14;
+/* 32px under the first draft's: the page ran 1,210px in the harness's 1,197px frame, so a
+   scrollbar came and went between runs and the canvas hashed at 534 or 550 (the ship, 2026-10-10) */
+const MOL_H = 332;
+const H_SCAF = MOL_H + 30 + GRID.h + 6;
 /* the key on one line, the status on its own line under it: beside the key it was cut off at the harness's 534px */
 const GRID_TOP = 48;
 const BARS_H = 138, SCORE_H = 170;
@@ -515,7 +517,7 @@ function drawScaffold(ctx, colors, w, params, anim, pointer) {
   const fam = params.example, ex = EXAMPLES[fam], stage = stageOf(params);
   const done = shownStep(anim, stage) >= 1, t = inFlight(anim, stage);
   const pressed = done || t != null;
-  const lw = leftW(w), BW = lw - 20, BH = 124, tops = [40, 200];
+  const lw = leftW(w), BW = lw - 20, BH = 120, tops = [36, 188];
   const s = pairScale(ex, BW - 24, BH - 20);
   const rx = lw + (w - lw) / 2 + 12;
   const mids = tops.map((y) => y + BH / 2), meet = (mids[0] + mids[1]) / 2;
@@ -734,7 +736,7 @@ function drawScores(ctx, colors, w, top, params, anim) {
 
 defineWidget({
   slug: "scaffold-split",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Graphs: Scaffold Split",
   subtitle: S.subtitle,
   credit: "Molecule data: Stokes et al., Cell 2020, via FinGAT",
