@@ -24518,6 +24518,14 @@ notebook's single W; "kept" is the share of a block's variance along w
    (100's subject).
 4. **04 cell 11**: `plotIndiv` is said to use "the first 2 principal
    components" — they are DIABLO's components.
+5. **01 cell 2** (found in 99's N-integration walk-through, 2026-10-10):
+   N-integration is "akin to stacking the datasets vertically" and
+   P-integration "laying the datasets side by side" — the opposite of the
+   matrix layouts, and of its own P formula X = [X₁; X₂], which stacks the
+   studies vertically. "Vertical" means omics layers measured on the same
+   samples; the matrices themselves share rows and sit side by side. 99
+   says "also called vertical integration: different omics layers measured
+   on the same samples".
 
 ---
 

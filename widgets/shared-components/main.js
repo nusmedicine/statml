@@ -136,16 +136,17 @@ const S = {
 
   /* N-integration */
   caption: {
-    before: "Two blocks measured on the same 80 samples: each dot above is one row of the matrix below it.",
+    before: "N-integration looks for one latent variable per block, t and u, whose covariance across the same 80 samples is as large as possible. mRNA is the block from Factorization; each dot above is one row of the matrix below it.",
     start: "Start: methylation's loading vector (arrow) points in an arbitrary direction. Each sample's score u is its projection onto it.",
     updA: "Update mRNA: each gene's loading becomes its covariance with the methylation scores u. The arrow, w and the t column change together.",
     updB: "Update methylation: each CpG site's loading becomes its covariance with the mRNA scores t. The arrow, w and the u column change together.",
-    done: "Another round changes neither loading vector: t and u are each block's latent variable 1 (mixOmics calls it component 1). Dashed: each block's direction of most variance.",
+    done: (w, f2w) => `Another round changes neither loading vector: t and u are each block's latent variable 1 (mixOmics calls it component 1). mRNA's loading vector (${w}) is close to Factorization's latent variable 2 (${f2w}), the direction methylation shares. Dashed: each block's direction of most variance, Factorization's latent variable 1.`,
     rebuild: "Reconstruct: t wᵀ puts every sample at its projection on its block's loading vector (hollow).",
     subtract: "Subtract: the residual E = X − t wᵀ is what latent variable 1 leaves. Latent variable 2 is found in E the same way.",
     shortcut: "Solve directly: the loop computed the first singular pair of X₁ᵀX₂, the cross-covariance matrix. It multiplies the two tables row by row, so it exists only because the rows are the same samples.",
   },
   sameRows: "N-integration: the rows are the same 80 samples in both tables.",
+  vertical: "Also called vertical integration: different omics layers measured on the same samples.",
   sampleHead: (n, g) => `sample ${n} · ${g}`,
   noArrow: "no loading vector yet",
   covHead: (b) => (b === "a" ? "this press: w from u" : "this press: w from t"),
@@ -531,7 +532,11 @@ function makeBlocks(rng) {
   const ref = finish({ w1: ra, t: project(A, ra), w2: rb, u: project(B, rb) });
 
   /* Factorization: mRNA alone, components 1 and 2 (w₂ at right angles, found in E) */
-  const fw2 = [-ra[1], ra[0]];
+  /* turned to agree with PLS's mRNA loading vector, so N-integration's
+     bridge sentence compares (0.42, 0.91) with (0.48, 0.88), not with its
+     negative: a direction has no sign, but a student reads the numbers */
+  let fw2 = [-ra[1], ra[0]];
+  if (fw2[0] * fin.w1[0] + fw2[1] * fin.w1[1] < 0) fw2 = flip(fw2);
   const fac = { w: [ra, fw2], t: [project(A, ra), project(A, fw2)] };
   fac.kept1 = keptBy(A, fac.t[0]);
   /* the share of each score's variance that lies between the subtypes: latent
@@ -736,7 +741,7 @@ const tracedOf = (params) => clamp((Number(params.sample) || TRACED) - 1, 0, N_C
    reading left to right (X₁, t, then E) and methylation's mirrored (E, u,
    X₂), so the two score columns face each other across the middle panel
    and a row is one sample all the way across. */
-const L0 = { cap: 40, padL: 30, padR: 12, gap: 24, sMax: 150, mGap: 52, rh: 2, cw: 14 };
+const L0 = { cap: 72, padL: 30, padR: 12, gap: 24, sMax: 150, mGap: 52, rh: 2, cw: 14 };
 const H_N = L0.cap + 18 + L0.sMax + L0.mGap + N_CONCEPT * L0.rh + 18;
 function nLayout(w) {
   const s = Math.floor(Math.min(L0.sMax, (w - L0.padL - L0.padR - 2 * L0.gap) / 3));
@@ -792,7 +797,7 @@ function drawN(ctx, colors, w, params, st, anim, pointer) {
 
   const cap = k === 0 ? S.caption.before
     : V.after === 3 ? S.caption.shortcut : V.after === 2 ? S.caption.subtract : V.after === 1 ? S.caption.rebuild
-      : V.loopDone ? S.caption.done : k === 1 ? S.caption.start : k % 2 === 0 ? S.caption.updA : S.caption.updB;
+      : V.loopDone ? S.caption.done(pair2(F.w1), pair2(st.fac.w[1])) : k === 1 ? S.caption.start : k % 2 === 0 ? S.caption.updA : S.caption.updB;
   wrapText(ctx, colors, cap, 10, 14, w - 20, 16, { fill: colors.ink1 });
 
   [[Lm.A, S.blockA, S.featA], [Lm.S, S.scores, [S.scoreX, S.scoreY]], [Lm.B, S.blockB, S.featB]].forEach(([P, name, ax]) => panelFrame(ctx, colors, P, name, ax));
@@ -868,6 +873,12 @@ function drawNMatrices(ctx, colors, Lm, st, F, V, pick) {
   const xb0 = V.after >= 2 ? mB.E : F.u ? mB.t : mB.X;
   frame(ctx, colors, mA.X - 2, yr - 2, xa1 - mA.X + 4, rh + 4, colors.ink1, 1.5);
   frame(ctx, colors, xb0 - 2, yr - 2, mB.X + 2 * cw - xb0 + 4, rh + 4, colors.ink1, 1.5);
+  /* an update compares one block's feature columns with the other block's
+     score column: both framed (walk-through pick 2) */
+  if (F.cov && !V.loopDone) {
+    const H2 = N_CONCEPT * rh, hl = (x, wdt) => frame(ctx, colors, x - 2, my - 2, wdt + 4, H2 + 4, colors.highlight, 2);
+    if (F.cov.block === "a") { hl(mA.X, 2 * cw); hl(mB.t, cw); } else { hl(mB.X, 2 * cw); hl(mA.t, cw); }
+  }
   /* stubs toward each other in the gaps beside the middle panel, which holds text on that line */
   line(ctx, xa1 + 3, yr + rh / 2, Lm.mid.x - 4, yr + rh / 2, colors.ink3, 1, [2, 3]);
   line(ctx, Lm.mid.x + Lm.mid.w + 4, yr + rh / 2, xb0 - 3, yr + rh / 2, colors.ink3, 1, [2, 3]);
@@ -900,7 +911,12 @@ function drawNMiddle(ctx, colors, Lm, st, F, V, k, pick) {
     return;
   }
   put(S.sampleHead(pick + 1, S.sub[st.g[pick]]), { fill: colors.ink1, weight: "600" });
-  if (k === 0) { yy += 4; wrapText(ctx, colors, S.sameRows, x, yy, mw, lh, { size: xs, fill: colors.ink1 }); return; }
+  if (k === 0) {
+    yy += 4;
+    yy += lh * wrapText(ctx, colors, S.sameRows, x, yy, mw, lh, { size: xs, fill: colors.ink1 });
+    wrapText(ctx, colors, S.vertical, x, yy + 4, mw, lh, { size: xs, fill: colors.ink3 });
+    return;
+  }
   /* the traced sample's scores: a row of X times w */
   if (F.w1) { put(`t = ${fx(a[0])} × ${fx(F.w1[0])} + ${fx(a[1])} × ${fx(F.w1[1])}`); put(`  = ${f2(F.t[pick])}`, { fill: colors.ink1 }); }
   else put(`mRNA: ${S.noArrow}`, { fill: colors.ink3 });
@@ -1158,6 +1174,8 @@ const formulaKey = (params, anim, st) => {
   if (params.page === "factorization") return "factor1";
   if (params.page === "p-integration") return "stack";
   const after = shownStep(anim, "n-integration") - st.blocks.loopEnd;
+  /* the objective before the first press (walk-through pick 1: the notebook leads with max Σ cov), the update rule from Start */
+  if (shownStep(anim, "n-integration") === 0) return "pls";
   return after >= 3 ? "shortcut" : after >= 1 ? "factorN" : "loop";
 };
 const TRACED_ON = { param: "page", oneOf: ["factorization", "n-integration"] };
