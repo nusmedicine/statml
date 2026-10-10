@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · shared-components — aligned to 01's description</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 1100px; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.gap { color: var(--c-extreme); }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 120px; }
+  .rail .grp { font-size: 10px; color: var(--ink-3); margin-left: 8px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 99 <code>shared-components</code> &middot; round 4 &middot; aligned to the notebook's description</h1>
+  <p class="note">Your ask: review it as a student reading 01 cell 2, and make the widget explain the concepts the notebook
+    introduces, in its order. 01 cell 2 runs: <b>matrix factorization</b> (X &asymp; T&middot;W&#7488;, T the N &times; L
+    scores, W the P &times; L loadings, small N big P; PCA and PLS as examples) &rarr; <b>N-integration</b> (same samples,
+    X&#8321; &asymp; T&#8321;W&#8321;&#7488;, X&#8322; &asymp; T&#8322;W&#8322;&#7488;, max &Sigma; cov(T&#8321;&#11388;,
+    T&#8322;&#11388;)) &rarr; <b>P-integration</b> (same variables, X = [X&#8321;; X&#8322;] stacked, PLS against a
+    response). 02 cell 0 then names DIABLO, N-integration with three blocks.</p>
+
+  <h2>0 &middot; The review: each concept the notebook introduces, and where a student finds it now</h2>
+  <table>
+    <tr><th>notebook (cell)</th><th>concept</th><th>in the widget now</th><th>proposed</th></tr>
+    <tr><td>01 c2, matrix factorization</td><td>X &asymp; T&middot;W&#7488;: scores T (N &times; L), loadings W (P &times; L), L &lt; P</td>
+      <td class="gap">only as one component's t c&#7488; + E inside the PLS page; L components and W as a P &times; L matrix never shown; the letter is c, not the notebook's W</td>
+      <td><b>Factorization</b> page: one block, components 1 then 2, T and W drawn as the notebook's matrices</td></tr>
+    <tr><td>01 c2</td><td>a score is a sample's position on a latent variable; a loading is how much a feature contributes</td>
+      <td>yes, on the traced sample (t = x&#8321;w&#8321; + x&#8322;w&#8322;)</td><td>moves to Factorization, where it is first needed</td></tr>
+    <tr><td>01 c2, N-integration</td><td>same samples, different features; T&#8321;, T&#8322; chosen so cov(T&#8321;&#11388;, T&#8322;&#11388;) is largest</td>
+      <td>the whole Method page (the loop, Rebuild, Subtract, Shortcut)</td><td><b>N-integration</b> page, as now, and its last press says why the rows must match</td></tr>
+    <tr><td>01 c2, P-integration</td><td>same variables, samples from different studies, stacked; one set of loadings</td>
+      <td class="gap">one line of text on the first screen</td><td><b>P-integration</b> page: two studies stacked, one shared w</td></tr>
+    <tr><td>01 c2, small N big P</td><td>omics blocks have far more features than samples</td>
+      <td>Data: 405 samples &times; 8,383 genes</td><td>Data, as now; Factorization says L &lt; P in one line</td></tr>
+    <tr><td>03 c12&ndash;13</td><td>PLS between two real blocks; the correlation of the scores</td><td>Data</td><td>Data, as now</td></tr>
+    <tr><td>01 c2 / 02 c0</td><td>PLS-DA (a categorical response); DIABLO (three blocks + subtypes)</td><td>&mdash;</td><td>100 <code>diablo</code>, as planned</td></tr>
+  </table>
+
+  <h2>1 &middot; The rail: two groups, the notebook's order inside Method</h2>
+  <div class="rail"><span class="w">Step</span><span class="grp">Method</span><span class="pg">Factorization</span><span class="pg">N-integration</span><span class="pg">P-integration</span><span class="grp">Data</span><span class="pg">TCGA UCEC</span></div>
+  <p class="note">Core's grouped page control (widget 94's Basics &middot; Examples), so no core change. The three Method
+    pages use the same simulated mRNA block, so a student meets one table three times: alone, beside methylation's,
+    above a second study's.</p>
+
+  <h2>2 &middot; Factorization: one block, X &asymp; T&middot;W&#7488;</h2>
+  <p class="note">mRNA alone. Presses: <i>Score</i> (component 1: w&#8321;, the direction that rebuilds the most of X;
+    t&#8321; = Xw&#8321;) &middot; <i>Rebuild</i> (t&#8321;w&#8321;&#7488;) &middot; <i>Subtract</i> (E&#8321;) &middot;
+    <i>Component 2</i> (w&#8322; from E&#8321;; T and W gain their second columns, and with L = P = 2 the rebuild is exact).
+    The matrices are drawn in the notebook's shapes: X (N &times; P) &asymp; T (N &times; L) &middot; W&#7488; (L &times;
+    P). Left: after component 1. Right: after component 2.</p>
+  <div class="row" id="s2"></div>
+
+  <h2>3 &middot; N-integration: the current Method page</h2>
+  <p class="note">Unchanged: the loop, Rebuild, Subtract, Shortcut, with the matrices' rows aligned across. It gains one
+    sentence at Shortcut: <i>X&#8321;&#7488;X&#8322; multiplies the two tables row by row, so it exists only because the rows
+    are the same samples.</i> See <a href="../shared-components/">the widget</a>.</p>
+
+  <h2>4 &middot; P-integration: two studies stacked, one w</h2>
+  <p class="note">The same two genes measured in two studies of 40 samples each; study 2 reads higher on both genes (a
+    study effect), and the studies' subtype mix differs (study 1 mostly subtype 1, study 2 mostly subtype 2). Stacked, X = [X&#8321;; X&#8322;] is 80 &times; 2, and one w serves both. As 01 cell 2 says, PLS here
+    runs against a response: the subtype, so w &prop; X&#7488;y, each gene's covariance with the subtype. Colour is the
+    subtype; the study is the marker's shape (a circle or a square) and the row bracket, so colour carries one grouping.
+    <b>A</b>: the stacked table centred as one. <b>B</b>: each study centred on its own first, which is what mixOmics'
+    MINT does.</p>
+  <div class="row" id="s4"></div>
+  <p class="rec">Recommend <b>C: the notebook's description only</b>, Stack &middot; Find w, with the stacked table
+    centred as one (A's drawing, without B). Measured here, the centring arm does not give a clean lesson: with the two
+    studies' subtype mix different, A's scores track the subtype <i>better</i> (r 0.79) than B's (0.72), because part of
+    A's score is the study (r 0.44 with study), and showing why that is worse needs a held-out study, which the lesson
+    never runs. With an even mix the two arms differ by 0.03. So the page shows what 01 cell 2 says: the studies share the
+    features, so they are stacked and share one w; each study's samples get their own scores. 40 <code>batch-effect</code>
+    and 80 <code>integration</code> already cover removing a study effect.</p>
+
+  <h2>5 &middot; The notation: the notebook's W, or our c</h2>
+  <p class="note">01 cell 2 writes one matrix, W, for the loadings in X &asymp; T&middot;W&#7488;. The page uses w for the
+    weights (t = Xw) and c for the loadings that rebuild X (mixOmics' deflation, c = X&#7488;t / t&#7488;t). For the
+    largest-variance direction c = w; for PLS they differ a little (mRNA kept 9.4% with w, 9.9% with c).</p>
+  <p class="rec">Recommend <b>the notebook's single letter</b>: rebuild with t w&#7488; and call w the loadings, as 01
+    cell 2 and <code>plotLoadings</code> do; "kept" becomes the share of the block's variance along w. One letter fewer,
+    and every symbol on the page is one the student has read.</p>
+
+  <h2>6 &middot; The calls</h2>
+  <div class="q"><b class="h">6.1 &middot; The rail</b> A <b>Method [Factorization &middot; N-integration &middot;
+    P-integration] &middot; Data [TCGA UCEC]</b>, the notebook's order (rec) &middot; B Method [N-integration] &middot; Data, as
+    now.</div>
+  <div class="q"><b class="h">6.2 &middot; Factorization's direction</b> A <b>the direction that rebuilds the most of X,
+    named so</b> (rec; on one block nothing else picks a direction, and it is the dashed benchmark N-integration then
+    beats on agreement) &middot; B a direction the student turns with a control.</div>
+  <div class="q"><b class="h">6.3 &middot; P-integration</b> A drawn only, as now &middot; B computed with the centring
+    presses &middot; C <b>computed as the notebook describes it: Stack &middot; Find w</b> (rec, see &sect;4).</div>
+  <div class="q"><b class="h">6.4 &middot; Notation</b> A <b>the notebook's W for the loadings, rebuild with t w&#7488;</b>
+    (rec) &middot; B keep c.</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
+function square(ctx, x, y, r, fill) { ctx.fillStyle = fill; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); }
+function box(ctx, x, y, w, h, col = T.axis, lw = 1) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+function head(ctx, x0, y0, x1, y1, col) { const a = Math.atan2(y1 - y0, x1 - x0); ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 7 * Math.cos(a - 0.42), y1 - 7 * Math.sin(a - 0.42)); ctx.lineTo(x1 - 7 * Math.cos(a + 0.42), y1 - 7 * Math.sin(a + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function axisArrow(ctx, p0, p1, col, w = 2.2) { line(ctx, p0[0], p0[1], p1[0], p1[1], col, w); head(ctx, ...p0, ...p1, col); head(ctx, ...p1, ...p0, col); }
+const f2 = (x) => x.toFixed(2);
+const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
+const corr = (a, b) => { const ma = mean(a), mb = mean(b); let s = 0, x = 0, y = 0; for (let i = 0; i < a.length; i++) { s += (a[i] - ma) * (b[i] - mb); x += (a[i] - ma) ** 2; y += (b[i] - mb) ** 2; } return s / Math.sqrt(x * y); };
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+function vramp(v) { const t = Math.max(-1, Math.min(1, v)); const a = rgb(T.surface3), b = rgb(t < 0 ? T.valueLow : T.valueHigh), k = Math.abs(t); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(",")})`; }
+const unit = (v) => { const n = Math.hypot(v[0], v[1]); return [v[0] / n, v[1] / n]; };
+const unitAt = (d) => [Math.cos(d * Math.PI / 180), Math.sin(d * Math.PI / 180)];
+const cen = (X) => { const m = [0, 1].map((j) => mean(X.map((p) => p[j]))); return X.map((p) => [p[0] - m[0], p[1] - m[1]]); };
+function topEig(X) { const C = [[0, 0], [0, 0]]; X.forEach((p) => { for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) C[r][c] += p[r] * p[c]; }); const a = C[0][0], b = C[0][1], d = C[1][1], tr = a + d, l = tr / 2 + Math.sqrt(tr * tr / 4 - (a * d - b * b)); return unit([l - d, b]); }
+
+/* the widget's mRNA block, seed 1 */
+const rng = makeRng(1), G = [], A0 = [];
+const ua = unitAt(62), va = unitAt(-28);
+for (let i = 0; i < 80; i++) { const g = i % 2, s = (g ? 0.85 : -0.85) + 0.35 * rng.normal(), a = 1.6 * rng.normal(), b = 1.6 * rng.normal(); G.push(g); A0.push([0, 1].map((j) => s * ua[j] + a * va[j] + 0.2 * rng.normal())); rng.normal(); rng.normal(); }
+const A = cen(A0);
+const order = [...A.keys()].sort((i, j) => G[i] - G[j] || i - j);
+const SP = 1.08 * Math.max(...A.flat().map(Math.abs));
+
+/* ---------------------------------------------------------- §2 Factorization */
+function factorization(L) {
+  const w1 = topEig(A), t1 = A.map((p) => p[0] * w1[0] + p[1] * w1[1]);
+  const w2 = [-w1[1], w1[0]], t2 = A.map((p) => p[0] * w2[0] + p[1] * w2[1]);
+  const tot = A.reduce((s, p) => s + p[0] ** 2 + p[1] ** 2, 0), k1 = t1.reduce((s, v) => s + v * v, 0) / tot;
+  const bx = cand("s2", L === 1 ? "after Rebuild and Subtract: L = 1" : "after Component 2: L = 2",
+    L === 1 ? `component 1 keeps ${(100 * k1).toFixed(0)}% of X; E holds the rest` : "T is N × 2, W is P × 2; with L = P the rebuild is exact (E = 0)\nomics blocks have P ≫ N, so L is kept far below P");
+  const ctx = canvasIn(bx, W, 300);
+  const sx = 14, sy = 40, s = 170, P = (p) => [sx + s / 2 + (p[0] / SP) * (s / 2), sy + s / 2 - (p[1] / SP) * (s / 2)];
+  label(ctx, "mRNA", sx, sy - 8, { weight: "600", colour: T.ink1 }); box(ctx, sx, sy, s, s);
+  A.forEach((p, i) => { const q = P(p); dot(ctx, q[0], q[1], 3, T.clusters[G[i]]); });
+  const R = 0.92 * SP;
+  axisArrow(ctx, P([-R * w1[0], -R * w1[1]]), P([R * w1[0], R * w1[1]]), T.highlight);
+  if (L === 2) axisArrow(ctx, P([-R * w2[0], -R * w2[1]]), P([R * w2[0], R * w2[1]]), T.ink2, 1.6);
+  label(ctx, "w₁", P([R * w1[0], R * w1[1]])[0] + 4, P([R * w1[0], R * w1[1]])[1], { colour: T.highlight, weight: "600" });
+  if (L === 2) label(ctx, "w₂", P([R * w2[0], R * w2[1]])[0] + 4, P([R * w2[0], R * w2[1]])[1], { colour: T.ink2, weight: "600" });
+  /* the notebook's shapes: X (N × P) ≈ T (N × L) · Wᵀ (L × P) */
+  const mx = 214, my = 40, rh = 2.2, cw = 16, xm = Math.max(...A.flat().map(Math.abs));
+  const col = (x, vals, sc) => order.forEach((i, r) => { ctx.fillStyle = vramp(vals[i] / sc); ctx.fillRect(x, my + r * rh, cw, rh + 0.2); });
+  col(mx, A.map((p) => p[0]), xm); col(mx + cw, A.map((p) => p[1]), xm); box(ctx, mx, my, 2 * cw, 80 * rh);
+  label(ctx, "X", mx + cw, my - 18, { weight: "600", colour: T.ink1, align: "center" }); label(ctx, "N × P", mx + cw, my - 6, { size: 9, colour: T.ink3, align: "center" });
+  label(ctx, "≈", mx + 2 * cw + 12, my + 90, { colour: T.ink1, size: 15, align: "center" });
+  const tx = mx + 2 * cw + 24, tm = Math.max(...t1.map(Math.abs));
+  col(tx, t1, tm); if (L === 2) col(tx + cw, t2, tm);
+  box(ctx, tx, my, L * cw, 80 * rh);
+  label(ctx, "T", tx + L * cw / 2, my - 18, { weight: "600", colour: T.ink1, align: "center" }); label(ctx, `N × ${L}`, tx + L * cw / 2, my - 6, { size: 9, colour: T.ink3, align: "center" });
+  const wx = tx + L * cw + 14;
+  [w1, w2].slice(0, L).forEach((wv, l) => { for (let j = 0; j < 2; j++) { ctx.fillStyle = vramp(wv[j]); ctx.fillRect(wx + j * cw, my + l * cw, cw - 1, cw - 1); } });
+  box(ctx, wx, my, 2 * cw, L * cw);
+  label(ctx, "Wᵀ", wx + cw, my - 18, { weight: "600", colour: T.ink1, align: "center" }); label(ctx, `${L} × P`, wx + cw, my - 6, { size: 9, colour: T.ink3, align: "center" });
+  if (L === 1) {
+    const ex = wx + 2 * cw + 26;
+    label(ctx, "+", ex - 12, my + 90, { colour: T.ink1, size: 15, align: "center" });
+    order.forEach((i, r) => { for (let j = 0; j < 2; j++) { ctx.fillStyle = vramp((A[i][j] - t1[i] * w1[j]) / xm); ctx.fillRect(ex + j * cw, my + r * rh, cw, rh + 0.2); } });
+    box(ctx, ex, my, 2 * cw, 80 * rh); label(ctx, "E", ex + cw, my - 18, { weight: "600", colour: T.ink1, align: "center" });
+  }
+  label(ctx, `w₁ = (${f2(w1[0])}, ${f2(w1[1])}): the direction that rebuilds the most of X`, 14, 240, { size: 10, colour: T.ink1 });
+  if (L === 2) label(ctx, `w₂ = (${f2(w2[0])}, ${f2(w2[1])}): found in E, at right angles to w₁`, 14, 256, { size: 10 });
+  label(ctx, "a row of T is one sample's scores; a column of W is one component's loadings", 14, 280, { size: 10, colour: T.ink3 });
+}
+
+/* ---------------------------------------------------------- §4 P-integration */
+function pIntegration(perStudy) {
+  const r2 = makeRng(7), X = [], study = [], sub = [];
+  /* the studies' subtype mix differs (28/12 against 12/28): the case per-study centring exists for */
+  const sh = unitAt(60), shift = [1.6 * sh[0], 1.6 * sh[1]], d = unitAt(-35);
+  for (let st = 0; st < 2; st++) for (let i = 0; i < 40; i++) {
+    const g = st === 0 ? (i < 28 ? 0 : 1) : (i < 12 ? 0 : 1), s = (g ? 0.8 : -0.8);
+    X.push([0, 1].map((j) => s * d[j] + 0.55 * r2.normal() + (st ? shift[j] : 0))); study.push(st); sub.push(g);
+  }
+  let Xc;
+  if (perStudy) { Xc = X.map((p) => p.slice()); for (const st of [0, 1]) { const idx = X.map((_, i) => i).filter((i) => study[i] === st); const m = [0, 1].map((j) => mean(idx.map((i) => X[i][j]))); idx.forEach((i) => { Xc[i] = [X[i][0] - m[0], X[i][1] - m[1]]; }); } }
+  else Xc = cen(X);
+  const y = sub.map((g) => g - 0.5);
+  const w = unit([0, 1].map((j) => Xc.reduce((s, p, i) => s + p[j] * y[i], 0)));
+  const t = Xc.map((p) => p[0] * w[0] + p[1] * w[1]);
+  const rSub = corr(t, sub), rStudy = corr(t, study);
+  const bx = cand("s4", perStudy ? "B · each study centred on its own (MINT)" : "A · the stacked table centred as one",
+    `w ∝ Xᵀy, each gene's covariance with the subtype\nscores track subtype r = ${f2(rSub)} · study r = ${f2(rStudy)}`);
+  const ctx = canvasIn(bx, W, 270);
+  const sx = 14, sy = 34, s = 180, sp = 1.1 * Math.max(...Xc.flat().map(Math.abs)), P = (p) => [sx + s / 2 + (p[0] / sp) * (s / 2), sy + s / 2 - (p[1] / sp) * (s / 2)];
+  label(ctx, "stacked: two studies, the same two genes", sx, sy - 10, { weight: "600", colour: T.ink1, size: 10 }); box(ctx, sx, sy, s, s);
+  Xc.forEach((p, i) => { const q = P(p); (study[i] ? square : dot)(ctx, q[0], q[1], 3, T.clusters[sub[i]]); });
+  const R = 0.92 * sp; axisArrow(ctx, P([-R * w[0], -R * w[1]]), P([R * w[0], R * w[1]]), T.highlight);
+  label(ctx, "gene 1", sx + s / 2, sy + s + 13, { size: 9, colour: T.ink3, align: "center" });
+  /* the stacked matrix and the one score column, study brackets in ink */
+  const mx = 236, my = 34, rh = 2.2, cw = 16, xm = Math.max(...Xc.flat().map(Math.abs)), tm = Math.max(...t.map(Math.abs));
+  X.forEach((_, r) => { for (let j = 0; j < 2; j++) { ctx.fillStyle = vramp(Xc[r][j] / xm); ctx.fillRect(mx + j * cw, my + r * rh, cw, rh + 0.2); } ctx.fillStyle = vramp(t[r] / tm); ctx.fillRect(mx + 2 * cw + 10, my + r * rh, cw, rh + 0.2); });
+  box(ctx, mx, my, 2 * cw, 80 * rh); box(ctx, mx + 2 * cw + 10, my, cw, 80 * rh);
+  label(ctx, "X = [X₁; X₂]", mx, my - 10, { size: 10, weight: "600", colour: T.ink1 }); label(ctx, "t", mx + 2.5 * cw + 10, my - 10 + 0, { size: 10, weight: "600", colour: T.ink1, align: "center" });
+  [0, 1].forEach((st) => { line(ctx, mx - 5, my + st * 40 * rh + 2, mx - 5, my + (st + 1) * 40 * rh - 2, T.ink2, 1.5); label(ctx, `study ${st + 1}`, mx - 8, my + (st + 0.5) * 40 * rh + 3, { size: 9, align: "right" }); });
+  label(ctx, `one w = (${f2(w[0])}, ${f2(w[1])}) for both studies`, 300, 70, { size: 10, colour: T.highlight, weight: "600" });
+  label(ctx, "● study 1   ■ study 2 · colour: subtype", 300, 90, { size: 10 });
+  label(ctx, perStudy ? "the study effect is removed before w is found" : "the study effect stays in the table and pulls w", 300, 110, { size: 10, colour: T.ink1 });
+}
+
+factorization(1); factorization(2); pIntegration(false); pIntegration(true);
+</script>
+</body>
+</html>
