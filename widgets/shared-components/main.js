@@ -87,9 +87,9 @@ const TRACED = 62;
 
 const S = {
   subtitle:
-    "Partial least squares finds, in each of two omics blocks measured on the same samples, the direction whose scores covary most with the other block's. " +
-    "Each block's weights are its features' covariances with the other block's scores, found by alternating between the blocks. " +
-    "Like other matrix factorizations it writes each block as scores times loadings, but the components are chosen to agree across blocks rather than to keep the most variance within one.",
+    "Partial least squares finds, in each of two omics blocks measured on the same samples, a latent variable whose scores covary most with the other block's. " +
+    "Each block's loading vector holds its features' covariances with the other block's scores, found by alternating between the blocks. " +
+    "Like other matrix factorizations it writes each block as scores times loadings, X ≈ T·Wᵀ, but the latent variables are chosen to agree across blocks rather than to explain the most variance within one.",
   pageLabel: "Step",
   pairLabel: "Pair",
   pairDetail: "two of the three blocks, measured on the same 405 samples",
@@ -97,93 +97,93 @@ const S = {
   sampleDetail: "the sample whose numbers are worked through; a click on a dot or a matrix row picks one",
 
   blockA: "mRNA",
-  blockE: "mRNA: E, after component 1",
+  blockE: "mRNA: E, after latent variable 1",
   blockB: "Methylation",
   featA: ["gene 1", "gene 2"],
   featB: ["CpG 1", "CpG 2"],
-  scores: "Scores",
+  scores: "Latent variables t and u",
   scoreX: "mRNA score t",
   scoreY: "methylation score u",
   sub: ["Subtype 1", "Subtype 2"],
-  arrow: "component 1",
+  arrow: "loading vector w",
 
   /* Factorization */
   fCap: [
     "One block: mRNA, 2 genes measured on 80 samples. Each dot is one row of X.",
-    "Score: w₁ is the direction that rebuilds the most of X. Each sample's score is its row times w₁, its position along the arrow.",
-    "Rebuild: t₁w₁ᵀ puts every sample at its foot on the arrow (hollow). This is the part of X that component 1 keeps.",
-    "Subtract: E = X − t₁w₁ᵀ is what is left, the gap from each foot to its dot.",
-    "Component 2: each sample moves to its row of E, its gap from arrow 1. With 2 features E lies on one line, so w₂ has no choice: the one direction left. With thousands of features, component 2 is E's direction of largest variance. T and W now have two columns, and X = T·Wᵀ exactly.",
+    "Score: the loading vector w₁ (arrow) is the direction that explains the most variance in X. Each sample is projected onto it: its score on latent variable 1 is t₁ = row × w₁, a linear combination of its two genes.",
+    "Reconstruct: t₁w₁ᵀ puts every sample at its projection on the loading vector (hollow). This is the part of X that latent variable 1 explains.",
+    "Subtract: the residual E = X − t₁w₁ᵀ is what is left, the gap from each projection to its dot.",
+    "Latent variable 2: each sample moves to its row of E, its gap from loading vector 1. With 2 features E lies on one line, so w₂ has no choice: the one direction left. With thousands of features, w₂ is E's direction of most variance. The score matrix T and the loading matrix W now have two columns each, and X = T·Wᵀ exactly.",
   ],
   fRow: (n, a, b) => `sample ${n}: gene 1 = ${a}, gene 2 = ${b}`,
   fScore: (k, x, w, t) => `t${k} = ${x[0]} × ${w[0]} + ${x[1]} × ${w[1]} = ${t}`,
-  fRebuilt: (t, w, r) => `rebuilt row = t₁ × w₁ = ${t} × (${w}) = (${r})`,
-  fE: (e) => `E row = row − rebuilt = (${e})`,
+  fRebuilt: (t, w, r) => `reconstructed row = t₁ × w₁ = ${t} × (${w}) = (${r})`,
+  fE: (e) => `E row = row − reconstructed = (${e})`,
   fBoth: (r) => `t₁w₁ + t₂w₂ = (${r}), the row of X exactly`,
   shapes: ["N × P", "N × L", "L × P"],
 
   /* N-integration */
   caption: {
     before: "Two blocks measured on the same 80 samples: each dot above is one row of the matrix below it.",
-    start: "Start: methylation's arrow points in an arbitrary direction. Each sample's methylation score u is its position along it.",
-    updA: "Update mRNA: each gene's weight becomes its covariance with the methylation scores u. The arrow, w and the t column change together.",
-    updB: "Update methylation: each CpG site's weight becomes its covariance with the mRNA scores t. The arrow, w and the u column change together.",
-    done: "Another round changes neither arrow: PLS's component 1. Dashed: each block's direction of largest variance.",
-    rebuild: "Rebuild: t wᵀ puts every sample at its foot on its block's arrow (hollow).",
-    subtract: "Subtract: E = X − t wᵀ is what component 1 leaves. Component 2 is found in E the same way.",
+    start: "Start: methylation's loading vector (arrow) points in an arbitrary direction. Each sample's score u is its projection onto it.",
+    updA: "Update mRNA: each gene's loading becomes its covariance with the methylation scores u. The arrow, w and the t column change together.",
+    updB: "Update methylation: each CpG site's loading becomes its covariance with the mRNA scores t. The arrow, w and the u column change together.",
+    done: "Another round changes neither loading vector: t and u are each block's latent variable 1 (mixOmics calls it component 1). Dashed: each block's direction of most variance.",
+    rebuild: "Reconstruct: t wᵀ puts every sample at its projection on its block's loading vector (hollow).",
+    subtract: "Subtract: the residual E = X − t wᵀ is what latent variable 1 leaves. Latent variable 2 is found in E the same way.",
     shortcut: "Solve directly: the loop computed the first singular pair of X₁ᵀX₂, the cross-covariance matrix. It multiplies the two tables row by row, so it exists only because the rows are the same samples.",
   },
   sameRows: "N-integration: the rows are the same 80 samples in both tables.",
   sampleHead: (n, g) => `sample ${n} · ${g}`,
-  noArrow: "no arrow yet",
+  noArrow: "no loading vector yet",
   covHead: (b) => (b === "a" ? "this press: w from u" : "this press: w from t"),
   covLine: (f, o, v) => `cov(${f}, ${o}) = ${v}`,
   scaleLine: (n, w) => `÷ ${n} (length 1) → w = (${w})`,
-  rebuiltLine: (s, t, v) => `${s} rebuilt = ${t} × w = (${v})`,
+  rebuiltLine: (s, t, v) => `${s} reconstructed = ${t} × w = (${v})`,
   eLine: (s, v) => `${s} E row = (${v})`,
   crossHead: "X₁ᵀX₂ / n, the cross-covariance: each mRNA feature's covariance with each methylation feature",
   covIs: "cov(t, u) = w₁ᵀ (X₁ᵀX₂ / n) w₂ is largest at its first singular pair:",
-  pairLine: (a, b) => `w₁ = (${a}), w₂ = (${b}): the loop's arrows`,
+  pairLine: (a, b) => `w₁ = (${a}), w₂ = (${b}): the loop's loading vectors`,
   pcaIs: "PCA instead decomposes one block's own covariance, X₁ᵀX₁: the dashed line.",
   mX: ["X₁", "X₂"], mT: ["t", "u"], mE: "E",
   colPls: "PLS",
-  colRef: ["largest", "variance"],
+  colRef: ["most", "variance"],
   rowR: "correlation r",
-  rowKept: (name) => `${name} kept`,
+  rowKept: (name) => `${name} expl. var.`,
 
   /* P-integration */
   pCap: [
     "Two studies measured the same 2 genes on different samples, 40 each. Study 2 reads higher on both genes.",
     "Stack: the studies share their columns, so their tables stack into one, X = [X₁; X₂].",
-    "Find w: one w for both studies, each gene's covariance with the subtype, scaled to length 1.",
-    "Score: every sample, from either study, gets its score t = row × w along the same arrow.",
+    "Find w: one loading vector for both studies, each gene's covariance with the subtype, scaled to length 1.",
+    "Score: every sample, from either study, is projected onto the same loading vector: its score is t = row × w.",
   ],
   study: ["study 1", "study 2"],
   studyKey: "● study 1   ■ study 2",
   pCov: (g, v) => `cov(${g}, subtype) = ${v}`,
-  pW: (n, w) => `÷ ${n} (length 1) → w = (${w}), one w for both studies`,
+  pW: (n, w) => `÷ ${n} (length 1) → w = (${w}), one loading vector for both studies`,
   pScore: (s, t) => `${s}: scores from ${t}`,
 
   /* TCGA UCEC */
   dims: (b) => `${BLOCK_NAME[b]}: ${N_DATA} samples × ${BLOCKS[b].features.toLocaleString("en-US")} ${BLOCK_UNIT[b]}`,
-  strip: (b) => `${BLOCK_NAME[b]} component 1`,
-  dataBefore: "Component 1 gives each sample one score per block.",
-  weights: (b) => `${BLOCK_NAME[b]} w: ${BLOCKS[b].features.toLocaleString("en-US")} weights`,
+  strip: (b) => `${BLOCK_NAME[b]} latent variable 1`,
+  dataBefore: "Latent variable 1 gives each sample one score per block.",
+  weights: (b) => `${BLOCK_NAME[b]} loadings (${BLOCKS[b].features.toLocaleString("en-US")})`,
 
   /* tiles */
   tileR: "Correlation of the scores",
-  tileRNote: "t and u, the two blocks' component 1",
+  tileRNote: "t and u, each block's latent variable 1",
   tileCov: "Covariance of the scores",
   tileCovNote: "what PLS makes as large as it can",
-  tileKept: (b) => `${b} kept`,
-  tileKeptNote: "share of the block's variance along w",
-  tileK1: "Component 1 keeps",
-  tileK2: "Components 1 and 2 keep",
+  tileKept: (b) => `${b} variance explained`,
+  tileKeptNote: "share of the block's variance, along w",
+  tileK1: "Latent variable 1 explains",
+  tileK2: "Latent variables 1 and 2 explain",
   tileKNote: "share of X's variance",
-  tileShape: "T and W",
+  tileShape: "Score matrix T, loading matrix W",
   tileShapeNote: "N × L and P × L",
-  tileW: "Shared w",
-  tileWNote: "the same weights for both studies",
+  tileW: "Shared loading vector w",
+  tileWNote: "the same loadings for both studies",
   tileSub: "Scores and subtype",
   tileSubNote: "correlation of t with the subtype, all 80",
   tileN: "Samples",
@@ -195,34 +195,34 @@ const S = {
 };
 
 /* the N-integration presses: the loop (its length is the blocks', set in makeBlocks), then the factorization */
-const AFTER = ["Rebuild", "Subtract", "Solve directly"];
+const AFTER = ["Reconstruct", "Subtract", "Solve directly"];
 const AFTER_TITLE = [
-  "Rebuild each block from its score column: t wᵀ",
-  "Subtract the rebuilt part: E = X − t wᵀ",
-  "Find w₁ and w₂ in one step: the first singular pair of X₁ᵀX₂, the cross-covariance matrix",
+  "Reconstruct each block from its scores: t wᵀ",
+  "Subtract the reconstruction: E = X − t wᵀ",
+  "Find both loading vectors in one step: the first singular pair of X₁ᵀX₂, the cross-covariance matrix",
 ];
 const loopLabel = (n) => (n === 0 ? "Start" : n % 2 === 1 ? "Update mRNA" : "Update methylation");
 const loopTitle = (n) => (n === 0
-  ? "Point methylation's arrow in an arbitrary direction and score the samples along it"
+  ? "Point methylation's loading vector in an arbitrary direction and project the samples onto it"
   : n % 2 === 1
-    ? "Set each gene's weight to its covariance with the methylation scores u"
-    : "Set each CpG site's weight to its covariance with the mRNA scores t");
+    ? "Set each gene's loading to its covariance with the methylation scores u"
+    : "Set each CpG site's loading to its covariance with the mRNA scores t");
 const SLOTS = 2 + 2 * MAX_ROUNDS + AFTER.length;
 const N_LABELS = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopLabel(n)]));
 const N_TITLES = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopTitle(n)]));
-const FIND_TITLE = "In each block, find the direction whose scores covary most with the other block's, and give every sample its score along it";
-const F_LABELS = { 0: "Score", 1: "Rebuild", 2: "Subtract", 3: "Component 2" };
+const FIND_TITLE = "In each block, find the loading vector whose scores covary most with the other block's, and project every sample onto it";
+const F_LABELS = { 0: "Score", 1: "Reconstruct", 2: "Subtract", 3: "Latent variable 2" };
 const F_TITLES = {
-  0: "Find the direction that rebuilds the most of X, and score every sample along it: t₁ = Xw₁",
-  1: "Rebuild X from the scores: t₁w₁ᵀ",
-  2: "Subtract the rebuilt part: E = X − t₁w₁ᵀ",
-  3: "Find component 2 in E the same way",
+  0: "Find the loading vector that explains the most variance in X, and project every sample onto it: t₁ = Xw₁",
+  1: "Reconstruct X from the scores: t₁w₁ᵀ",
+  2: "Subtract the reconstruction: E = X − t₁w₁ᵀ",
+  3: "Find latent variable 2 in E the same way",
 };
 const P_LABELS = { 0: "Stack", 1: "Find w", 2: "Score" };
 const P_TITLES = {
   0: "Stack the two studies' tables into one: X = [X₁; X₂]",
-  1: "Set each gene's weight to its covariance with the subtype: one w for both studies",
-  2: "Score every sample along the shared w",
+  1: "Set each gene's loading to its covariance with the subtype: one loading vector for both studies",
+  2: "Project every sample onto the shared loading vector",
 };
 
 S.stepLabel = {
@@ -231,9 +231,9 @@ S.stepLabel = {
     factorization: { anim: "beat", labels: F_LABELS, default: F_LABELS[3] },
     "n-integration": { anim: "beat", labels: N_LABELS, default: AFTER[2] },
     "p-integration": { anim: "beat", labels: P_LABELS, default: P_LABELS[2] },
-    data: "Find component 1",
+    data: "Find latent variable 1",
   },
-  default: "Find component 1",
+  default: "Find latent variable 1",
 };
 S.stepTitle = {
   param: "page",
@@ -256,32 +256,32 @@ const MATH = {
   factor1: {
     math: `<math display="block"><mrow>${under(mi("X"), "N × P")}${mo("≈")}${under(mi("T"), "N × L")}${mo("·")}${under(supT(mi("W")), "L × P")}${mo(",")}${gap(1)}${mi("t")}${mo("=")}${mi("X")}${mi("w")}</mrow></math>`,
     plain: "X (N × P) ≈ T (N × L) · Wᵀ (L × P),   t = X w",
-    note: "A row of T is one sample's scores; a column of W is one component's loadings, how much each feature contributes. On one block, component 1's w is the direction that rebuilds the most of X.",
+    note: "A row of the score matrix T is one sample's scores on the latent variables; a column of the loading matrix W is one loading vector, how much each feature contributes. On one block, latent variable 1's loading vector is the direction that explains the most variance.",
   },
   pls: {
     math: `<math display="block"><mrow>${mi("t")}${mo("=")}${sub("X", 1)}${sub("w", 1)}${mo(",")}${gap(0.6)}${mi("u")}${mo("=")}${sub("X", 2)}${sub("w", 2)}${mo(",")}${gap(1)}<munder><mo>max</mo><mrow>${mo("‖")}${sub("w", 1)}${mo("‖")}${mo("=")}${mo("‖")}${sub("w", 2)}${mo("‖")}${mo("=")}<mn>1</mn></mrow></munder>${gap(0.3)}<mtext>cov</mtext>${mo("(")}${mi("t")}${mo(",")}${mi("u")}${mo(")")}</mrow></math>`,
     plain: "t = X₁w₁,  u = X₂w₂,   max over ‖w₁‖ = ‖w₂‖ = 1 of cov(t, u)",
-    note: "One pair (w₁, w₂) for the two blocks together: the first of the components that maximise Σ cov(T₁ⱼ, T₂ⱼ). The benchmark is each block's direction of largest variance.",
+    note: "One pair of loading vectors (w₁, w₂) for the two blocks together: the first of the latent variables that maximise Σ cov(T₁ⱼ, T₂ⱼ). The benchmark is each block's direction of most variance.",
   },
   loop: {
     math: `<math display="block"><mrow>${mi("t")}${mo("=")}${sub("X", 1)}${sub("w", 1)}${mo(",")}${gap(0.5)}${sub("w", 1)}${mo("∝")}${supT(sub("X", 1))}${mi("u")}${mo(";")}${gap(1.2)}${mi("u")}${mo("=")}${sub("X", 2)}${sub("w", 2)}${mo(",")}${gap(0.5)}${sub("w", 2)}${mo("∝")}${supT(sub("X", 2))}${mi("t")}</mrow></math>`,
     plain: "t = X₁w₁,  w₁ ∝ X₁ᵀu;    u = X₂w₂,  w₂ ∝ X₂ᵀt",
-    note: "Each block's weights are its features' covariances with the other block's scores, scaled to length 1; repeated until neither changes, they maximise cov(t, u). The dashed benchmark is each block's direction of largest variance.",
+    note: "Each block's loading vector holds its features' covariances with the other block's scores, scaled to length 1; repeated until neither changes, the latent variables t and u have the largest cov(t, u). The dashed benchmark is each block's direction of most variance.",
   },
   factorN: {
     math: `<math display="block"><mrow>${sub("X", 1)}${mo("≈")}${mi("t")}${supT(sub("w", 1))}${mo("+")}${sub("E", 1)}${mo(",")}${gap(1)}${sub("X", 2)}${mo("≈")}${mi("u")}${supT(sub("w", 2))}${mo("+")}${sub("E", 2)}</mrow></math>`,
     plain: "X₁ ≈ t w₁ᵀ + E₁,   X₂ ≈ u w₂ᵀ + E₂",
-    note: "Each block keeps its own factorization, X ≈ T·Wᵀ; what the two share is that their score columns are chosen to agree.",
+    note: "Each block keeps its own factorization, X ≈ T·Wᵀ; what the blocks share is that their latent variables are chosen to agree.",
   },
   shortcut: {
     math: `<math display="block"><mrow><mtext>cov</mtext>${mo("(")}${mi("t")}${mo(",")}${mi("u")}${mo(")")}${mo("=")}${supT(sub("w", 1))}<mfrac><mrow>${supT(sub("X", 1))}${sub("X", 2)}</mrow><mi>n</mi></mfrac>${sub("w", 2)}</mrow></math>`,
     plain: "cov(t, u) = w₁ᵀ (X₁ᵀX₂ / n) w₂",
-    note: "So the arrows are the first singular pair of X₁ᵀX₂, the cross-covariance between the two blocks' features. PCA decomposes one block's own covariance, X₁ᵀX₁, instead; its first direction is the dashed line.",
+    note: "So the loading vectors are the first singular pair of X₁ᵀX₂, the cross-covariance between the two blocks' features. PCA decomposes one block's own covariance, X₁ᵀX₁, instead; its first loading vector is the dashed line.",
   },
   stack: {
     math: `<math display="block"><mrow>${mi("X")}${mo("=")}<mrow>${mo("[")}<mtable><mtr><mtd>${sub("X", 1)}</mtd></mtr><mtr><mtd>${sub("X", 2)}</mtd></mtr></mtable>${mo("]")}</mrow>${mo(",")}${gap(1)}${mi("w")}${mo("∝")}${supT(mi("X"))}${mi("y")}${mo(",")}${gap(0.6)}${mi("t")}${mo("=")}${mi("X")}${mi("w")}</mrow></math>`,
     plain: "X = [X₁; X₂],   w ∝ Xᵀy,   t = X w",
-    note: "The studies share their features (P), so the tables stack and one w serves both; y is the response, here the subtype.",
+    note: "The studies share their features (P), so the tables stack and one loading vector serves both; y is the response, here the subtype.",
   },
 };
 let mathHost = null, mathKey = null;
@@ -1031,7 +1031,8 @@ function drawData(ctx, colors, w, params, anim, pointer) {
   if (found && rise >= 1) {
     const width = w - L.side - 4;
     drawTrade(ctx, colors, L.side, L.y + 30, width, [
-      [S.rowR, f2(V.r), f2(V.ref.r)], [S.rowKept(BLOCK_NAME[P.a]), pct(V.keptA), pct(V.ref.keptA)], [S.rowKept(BLOCK_NAME[P.b]), pct(V.keptB), pct(V.ref.keptB)]]);
+      /* the short block names: the column beside the scatter is ~200px at the narrowest */
+      [S.rowR, f2(V.r), f2(V.ref.r)], [S.rowKept(SHORT[P.a]), pct(V.keptA), pct(V.ref.keptA)], [S.rowKept(SHORT[P.b]), pct(V.keptB), pct(V.ref.keptB)]]);
     drawWeights(ctx, colors, L.side, L.y + 154, width, P.a, V.wA, V.topA);
     drawWeights(ctx, colors, L.side, L.y + 230, width, P.b, V.wB, V.topB);
   }
@@ -1230,6 +1231,6 @@ defineWidget({
     }
     if (page === "p-integration") return `Two simulated studies with the same two genes, ${n >= 1 ? "stacked into one table" : "as two tables"}; ${n >= 2 ? "one w for both" : "no w yet"}.`;
     const V = dataView(params.pair);
-    return `The lesson's ${BLOCK_NAME[V.P.a]} and ${BLOCK_NAME[V.P.b]} blocks, 405 samples coloured by subtype. ${n >= 1 ? `PLS component 1 scores plotted against each other; correlation ${f2(V.r)}, against ${f2(V.ref.r)} for the largest-variance directions.` : "No component found yet."}`;
+    return `The lesson's ${BLOCK_NAME[V.P.a]} and ${BLOCK_NAME[V.P.b]} blocks, 405 samples coloured by subtype. ${n >= 1 ? `PLS latent variable 1 scores plotted against each other; correlation ${f2(V.r)}, against ${f2(V.ref.r)} for the directions of most variance.` : "No latent variable found yet."}`;
   },
 });
