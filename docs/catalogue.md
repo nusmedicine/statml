@@ -24374,7 +24374,7 @@ are cell indices in those files.
 
 | # | slug (provisional) | host | misconception | state |
 |---|---|---|---|---|
-| 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **DRAFT 2026-10-10** (Concept · Factorize · Data after round 1, local); prerequisite for 100 |
+| 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **DRAFT 2026-10-10** (Method · Data after round 3, local); prerequisite for 100 |
 | 100 | `diablo` | 02 cell 0; 03 cells 10–28; 05 cells 17–24 | the design matrix records how correlated the omics types are (03 cell 10 says so; cells 12–14 measure 0.78–0.89 and suggest weights of 0.7–0.9) — it is a choice of objective: near 1 the blocks are made to agree, near 0 each block separates the subtypes on its own (Singh et al. 2019). Candidate pages: Design · Select (keepX) · Predict (each block votes; a sample with no protein data is still classified) | **PICKED 2026-10-10** |
 | 101 | `selection-bias` | 02 cells 37–50; 03 cells 18–24; 05 cells 3–6 | filtering features by a test against the labels is harmless preprocessing — filtered before cross-validation, data with no signal scores well (Ambroise & McLachlan 2002). Also covers arc B's `data-leakage` / `cv-nested`, never built | **PICKED 2026-10-10** |
 | 102 | `balanced-error` | 05 cells 5–9 | overall error hides a class (MSI 0.84 against 0.44 overall at one component) | **not picked** — 18 `balancing-data` and 35 `metrics` are close |
@@ -24460,6 +24460,26 @@ the loop's end, with each block's dashed direction beside; Data's table
 carries a "largest variance" column. Factorize's rows went from 3px to 2px
 to keep the page inside the harness's 1,197px frame (1,185 with the Draft
 banner).
+
+### Slot 99 — round 3 (2026-10-10): one page, the picture and the matrix linked
+
+His report: "when I switch from Concept to Factorize I get confused … I
+think I don't understand the concept." The two pages drew the same numbers
+in two pictures and nothing joined them. Answered with one table (a dot is a
+row of X; the arrow is w; a foot is the score t = Xw; Update sets w to the
+covariances with the other block's scores), then mock
+`_lab/shared-components-linked-mock.html` (822023a), three calls, all the
+recommendation. Built: Step **Method · Data**. Method: mRNA's scatter, the
+Scores panel and methylation's scatter in a row; under each scatter its
+matrix, mRNA's left to right (X₁ · t · E) and methylation's mirrored
+(E · u · X₂), rows aligned so a row is one sample all the way across
+(N-integration drawn, named at press 0 with P-integration as a line of
+text); a traced sample (rail control Traced sample, default 62; a click on a
+dot or a matrix row picks one) ringed everywhere and outlined in both
+tables; a middle panel with this press's arithmetic on it (t = x₁w₁ + x₂w₂,
+the covariances that set w, then c, the rebuilt row, E, and at Shortcut the
+2 × 2 X₁ᵀX₂). Ten presses: Start · Update ×6 · Rebuild · Subtract · Shortcut.
+Canvas 432px; the page 1,021px.
 
 ### Notebook findings, to tell him (from reading; told 2026-10-08 and 2026-10-10, not yet measured)
 
