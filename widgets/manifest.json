@@ -1456,7 +1456,7 @@
     {
       "slug": "diablo",
       "title": "Multi-omics: DIABLO",
-      "blurb": "DIABLO's design weight trades separating the subtypes against agreement between omics blocks.",
+      "blurb": "DIABLO's design matrix weights the covariance between omics blocks against each block's covariance with the outcome.",
       "course": "PHM5003",
       "topics": [
         "multi-omics",

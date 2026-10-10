@@ -71,8 +71,8 @@ const pctOf = (raw) => `${(100 * (Math.abs(raw[KEEPX.mRNA - 1]) - Math.abs(raw[K
 
 const S = {
   subtitle:
-    "DIABLO extends partial least squares to several omics blocks and a categorical outcome Y, here the cancer subtype. " +
-    "Each block's loading vector follows a weighted sum of the other blocks' scores and Y's, with the weights set by the design matrix; keepX keeps a few features per block, and a new sample is classified by a weighted vote of the blocks it was measured on.",
+    "DIABLO (multiblock sparse PLS-DA) extends partial least squares to several omics blocks measured on the same samples and a categorical outcome Y. " +
+    "Each block's component maximises the sum of its covariances with the other blocks' components and with Y's, each pair weighted by the design matrix; keepX sets the number of features retained per block and component, and new samples are classified by a vote of the measured blocks.",
   pageLabel: "Step",
   weightLabel: "Design weight",
   weightDetail: "the design matrix's entry between two omics blocks; every block is linked to Y at 1",
@@ -96,27 +96,27 @@ const S = {
   dCap: {
     before: "Two omics blocks on the same 80 samples, and Y, the subtype. DIABLO links each block to the others and to Y through the design matrix: the weight c between the omics blocks, and 1 between each block and Y.",
     start: "Start: each block's loading vector (arrow) is its direction of most variance, mixOmics' starting point. Here it is the axis the two blocks share, along which the subtypes do not differ.",
-    updA: "Update mRNA: each gene's loading becomes its covariance with z = c·u + y, the methylation scores times the weight c plus Y's scores. The two parts pull the arrow in different directions.",
+    updA: "Update mRNA: each gene's loading becomes its covariance with z = c·u + y, the methylation scores times the weight c plus Y's scores. Their sum sets the new arrow's direction.",
     updB: "Update methylation: each CpG site's loading becomes its covariance with z = c·t + y, the mRNA scores times the weight c plus Y's scores.",
-    done: (c, r, e, r0, e0) => `Another round changes neither loading vector. At Start the scores already agreed (r ${r0}) with the subtypes mixed (${e0} of the mRNA score's variance between them); at weight ${c} they end at r ${r}, with ${e} between the subtypes. A larger weight keeps more agreement and separates the subtypes less.`,
+    done: (c, r, e, r0, e0) => `Another round changes neither loading vector. At Start the scores already correlated (r ${r0}) with the subtypes mixed (${e0} of the mRNA score's variance between them); at weight ${c} they end at r ${r}, with ${e} between the subtypes. At a larger weight the correlation is higher and the subtypes separate less.`,
   },
   dmHead: "Design matrix",
   dmY: "Y: the subtype",
-  dmExplain: "The weight control sets c, the two violet entries; each block's entry with Y is 1. An update reads its block's row: how much each other block counts.",
+  dmExplain: "The weight control sets c, the two violet entries; each block's entry with Y is 1. An update uses its block's row: the weight on each other block.",
   yLine: (a, b) => `Y is the subtype written as a table of 0s and 1s, scaled like the other blocks; its score y is ${a} for subtype 1 and ${b} for subtype 2.`,
   startLine: (b, w) => `${b}: w = (${w}), the direction of most variance`,
   updHead: (b) => `this press: ${b}'s loading vector`,
   zLine: (c, o) => `z = ${c} · ${o} + 1 · y`,
   pullHead: (c, o) => [`${c} · cov(·, ${o})`, "cov(·, y)", "sum"],
   scaleLine: (n, w) => `÷ ${n} (length 1) → w = (${w})`,
-  pullKey: (c, o, b) => [`solid: ${c} · cov(·, ${o}), ${b}'s pull`, "dashed: cov(·, y), Y's pull", "violet: their sum, the direction of the new w"],
+  pullKey: (c, o, b) => [`solid: ${c} · cov(·, ${o}), the ${b} term`, "dashed: cov(·, y), the Y term", "violet: their sum, the direction of the new w"],
   tableHead: ["weight", "r(t, u)", "share t", "share u"],
   tableNote: "share: the score's variance between the subtypes",
 
   /* Weight */
   wCap: {
-    before: "The same loop on three omics blocks measured on 405 endometrial tumours, thousands of features each, and four subtypes; the weight c now sits between every pair of omics blocks. Fit runs DIABLO at the chosen weight and draws each tumour's mRNA component 1 against its methylation component 1.",
-    after: (c, r) => `At weight ${c} the two blocks' component 1 correlate ${r}. Component 1 separates CN_HIGH from the other three subtypes; later components separate those (Predict uses up to 4). Every block is also linked to Y at 1, so the blocks agree through the subtype at any weight; the weight changes how far the subtypes separate.`,
+    before: "The same loop on three omics blocks measured on 405 endometrial tumours, thousands of features each, and four subtypes; the weight c is now the entry for every pair of omics blocks. Fit runs DIABLO at the chosen weight and draws each tumour's mRNA component 1 against its methylation component 1.",
+    after: (c, r) => `At weight ${c} the two blocks' component 1 correlate ${r}. Component 1 separates CN_HIGH from the other three subtypes; later components separate those (Predict uses up to 4). Every block is also linked to Y at 1, so the blocks' scores correlate through the subtype at any weight; the weight changes how far the subtypes separate.`,
   },
   wDims: `${N_DATA} tumours: mRNA ${FEATURES.mRNA.toLocaleString("en-US")} genes · methylation ${FEATURES.meth.toLocaleString("en-US")} CpG sites · RPPA ${FEATURES.rppa} proteins`,
   wAxes: ["mRNA component 1", "methylation component 1"],
@@ -131,10 +131,10 @@ const S = {
 
   /* Select */
   sCap: [
-    `On the real blocks a loading vector has one entry per feature: ${FEATURES.mRNA.toLocaleString("en-US")} for mRNA. DIABLO's sparse version keeps a fixed number per block, keepX, and sets the rest to 0. Update computes mRNA's loading vector at weight 0.1 with every gene; Keep ${KEEPX.mRNA} makes the cut.`,
+    `On the TCGA blocks a loading vector has one entry per feature: ${FEATURES.mRNA.toLocaleString("en-US")} for mRNA. DIABLO's sparse version keeps a fixed number per block, keepX, and sets the rest to 0. Update computes mRNA's loading vector at weight 0.1 with every gene; Keep ${KEEPX.mRNA} makes the cut.`,
     `Update: each of the ${FEATURES.mRNA.toLocaleString("en-US")} genes' loading is its covariance with z, the methylation and RPPA scores times 0.1 plus Y's scores. Every gene gets a loading; the bars are the largest 60.`,
-    `Keep ${KEEPX.mRNA}: each of the ${KEEPX.mRNA} largest keeps only its part above the largest one dropped (violet), and every other gene's loading is set to 0. Scaled to length 1, this is the loading vector mixOmics reports. The ${KEEPX.mRNA}th and ${KEEPX.mRNA + 1}th largest differ by ${pctOf(SELECT.raw)}: keepX sets the number, not a gap in the loadings. The genes just above the cut keep almost nothing.`,
-    `Score: each tumour's score from the ${KEEPX.mRNA} kept genes against its score from all ${FEATURES.mRNA.toLocaleString("en-US")}. The two nearly agree, and the ${KEEPX.mRNA}-gene score separates the subtypes slightly better.`,
+    `Keep ${KEEPX.mRNA}: each of the ${KEEPX.mRNA} largest is reduced to its part above the largest one dropped (violet), and every other gene's loading is set to 0. Scaled to length 1, this is the loading vector mixOmics reports. The ${KEEPX.mRNA}th and ${KEEPX.mRNA + 1}th largest differ by ${pctOf(SELECT.raw)}: keepX sets the number, not a gap in the loadings. The genes just above the cut are left with loadings near 0.`,
+    `Score: each tumour's score from the ${KEEPX.mRNA} kept genes against its score from all ${FEATURES.mRNA.toLocaleString("en-US")}. The two correlate ${SELECT.r.toFixed(2)}, and the ${KEEPX.mRNA}-gene score separates the subtypes slightly better.`,
   ],
   sBars: (n) => `size of each gene's loading, sign dropped: the largest 60 of ${n}`,
   sAll: (n) => `all ${n} sizes, largest first; the bars are its left end`,
@@ -148,10 +148,10 @@ const S = {
 
   /* Predict */
   pCap: [
-    "A test tumour has mRNA and methylation measured but no RPPA. Each panel is one block's training tumours on components 1 and 2, with each subtype's centre (×). Component 2 separates MSI from CN_LOW; POLE sits between them.",
+    "A test tumour has mRNA and methylation measured but no RPPA. Each panel is one block's training tumours on components 1 and 2, with each subtype's centre (×). Component 2 separates MSI from CN_LOW; POLE is between them.",
     "Place: the test tumours (squares) are projected onto each block's components, using that block's loading vectors.",
     "Call: each block calls the subtype whose centre is nearest, over components 1 to the chosen number; the panels draw components 1 and 2.",
-    "Vote: each block's call counts with its weight, the correlation of its scores with Y's on the training tumours. RPPA has no data and no vote.",
+    "Vote: each block's call is counted with its weight, the correlation of its scores with Y's on the training tumours. RPPA has no data and no vote.",
   ],
   pAxes: ["component 1", "component 2"],
   rppa: "RPPA",
@@ -163,7 +163,7 @@ const S = {
   pTruth: (c) => `true subtype: ${c}`,
   pSum: (c, s) => `${c} ${s}`,
   pSums: (parts) => `summed weights: ${parts}`,
-  pTwo: (n) => `With two blocks every disagreement goes to the block with the larger weight: the vote is mRNA's call on ${n} of ${N_TEST} test tumours.`,
+  pTwo: (n) => `With two blocks every disagreement is decided by the block with the larger weight: the vote is mRNA's call on ${n} of ${N_TEST} test tumours.`,
   pThree: (n, v, m) => `With all three blocks (10-fold cross-validation on the ${N_DATA} training tumours) the vote overrules mRNA on ${n}, and its error is ${v} against mRNA's ${m}.`,
   pHov: (n, c) => `test tumour ${n} · ${c}`,
 
@@ -217,7 +217,9 @@ const FIT_TITLE = "Fit DIABLO at this design weight and draw each block's compon
 S.stepLabel = {
   param: "page",
   labels: {
-    design: { anim: "beat", labels: D_LABELS, default: "Update methylation" },
+    /* keyed on dbeat, which reads "end" once the arrows stop: the loop's length is the weight's, and a
+       disabled button naming another update would say there is one */
+    design: { anim: "dbeat", labels: { ...D_LABELS, end: "Converged" }, default: "Converged" },
     weight: "Fit",
     select: { anim: "beat", labels: SEL_LABELS, default: SEL_LABELS[2] },
     predict: { anim: "beat", labels: PRE_LABELS, default: PRE_LABELS[2] },
@@ -227,7 +229,7 @@ S.stepLabel = {
 S.stepTitle = {
   param: "page",
   labels: {
-    design: { anim: "beat", labels: D_TITLES, default: D_TITLES[2] },
+    design: { anim: "dbeat", labels: { ...D_TITLES, end: "The loading vectors have stopped changing" }, default: D_TITLES[2] },
     weight: FIT_TITLE,
     select: { anim: "beat", labels: SEL_TITLES, default: SEL_TITLES[2] },
     predict: { anim: "beat", labels: PRE_TITLES, default: PRE_TITLES[2] },
@@ -250,7 +252,7 @@ const MATH = {
   update: {
     math: `<math display="block"><mrow>${sub("z", 1)}${mo("=")}${mi("c")}${mi("u")}${mo("+")}${mi("y")}${mo(",")}${gap(0.5)}${sub("w", 1)}${mo("∝")}${supT(sub("X", 1))}${sub("z", 1)}${mo(";")}${gap(1.2)}${sub("z", 2)}${mo("=")}${mi("c")}${mi("t")}${mo("+")}${mi("y")}${mo(",")}${gap(0.5)}${sub("w", 2)}${mo("∝")}${supT(sub("X", 2))}${sub("z", 2)}</mrow></math>`,
     plain: "z₁ = c u + y,  w₁ ∝ X₁ᵀz₁;   z₂ = c t + y,  w₂ ∝ X₂ᵀz₂",
-    note: "Each block's loading vector is its features' covariances with z, the other block's scores times c plus Y's scores y, scaled to length 1. At c = 0 a block follows Y alone; at c = 1 the other block pulls as hard as Y.",
+    note: "Each block's loading vector is its features' covariances with z, the other block's scores times c plus Y's scores y, scaled to length 1. At c = 0 a block's loading vector is set by Y alone; at c = 1 the other block's scores count as much as Y's.",
   },
   sparse: {
     math: `<math display="block"><mrow>${mi("w")}${mo("∝")}<msub><mtext>keep</mtext>${mn(KEEPX.mRNA)}</msub>${mo("(")}${supT(mi("X"))}${mi("z")}${mo(")")}${mo(",")}${gap(1)}${mi("z")}${mo("=")}${mn("0.1")}${gap(0.1)}${sub("t", "meth")}${mo("+")}${mn("0.1")}${gap(0.1)}${sub("t", "RPPA")}${mo("+")}${mi("y")}</mrow></math>`,
@@ -903,6 +905,7 @@ const shownStep = (anim, stage) => (anim.n[stage] ?? 0) - (anim.stage === stage 
 const inFlight = (anim, stage) => (anim.stage === stage && anim.t < 1 ? anim.t : null);
 const ezOf = (anim, page) => (anim.ez && anim.ez.page === page && anim.ez.t < 1 ? anim.ez : null);
 const complete = (anim, stage, st, params) => (anim.n[stage] ?? 0) >= stepsOf(stage, st, params);
+const dbeatOf = (anim, st, params) => ((anim.n.design ?? 0) >= loopEnd(st, params) ? "end" : anim.n.design ?? 0);
 const formulaKey = (params, anim) => {
   if (params.page === "design") return shownStep(anim, "design") >= 1 ? "update" : "objective";
   if (params.page === "weight") return "objective";
@@ -970,6 +973,7 @@ defineWidget({
       /* the weights fitted on the Weight page, for its table's rows */
       anim.visited = stage === "weight" && anim.n.weight >= 1 ? [params.weight] : [];
       anim.beat = anim.n[stage];
+      anim.dbeat = dbeatOf(anim, state, params);
       anim.done = complete(anim, stage, state, params);
       return anim;
     },
@@ -992,6 +996,7 @@ defineWidget({
         anim.t = 0;
       }
       anim.beat = anim.n[stage] ?? 0;
+      anim.dbeat = dbeatOf(anim, state, params);
       anim.done = complete(anim, stage, state, params) && anim.t >= 1;
       if (anim.t >= 1 && anim.ez) anim.ez.t = 1;
       return anim.t < 1;
@@ -1015,6 +1020,7 @@ defineWidget({
       anim.last = { ...params };
       anim.stage = stage;
       anim.beat = anim.n[stage] ?? 0;
+      anim.dbeat = dbeatOf(anim, state, params);
       anim.done = complete(anim, stage, state, params) && anim.t >= 1;
     },
   },
