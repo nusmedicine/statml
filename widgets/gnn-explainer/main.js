@@ -56,7 +56,8 @@ const ON = (page) => ({ param: "page", equals: page });
 const NA = MOL.atoms.length, NB = MOL.bonds.length, NF = FEATURES.length, NR = RUNS.length, NE = EPOCHS.length;
 const DRUG = MOL.atoms.map((a, i) => i).filter((i) => MOL.atoms[i][4]);
 const SALT = MOL.atoms.map((a, i) => i).filter((i) => !MOL.atoms[i][4]);
-const STEPS = { mask: 2, scores: 3, "runs-one": 1, "runs-all": 1 };
+/* Mask: Initialise, then Optimise three times, 100 epochs a press (his round 2: the masks move in the second and third hundred) */
+const STEPS = { mask: 4, scores: 3, "runs-one": 1, "runs-all": 1 };
 const k = (v) => v / 1000;
 const f2 = (v) => v.toFixed(2);
 const atomName = (i) => `${MOL.atoms[i][0]}${i}`;
@@ -109,7 +110,7 @@ const S = {
   stepLabel: {
     param: "page",
     labels: {
-      mask: { anim: "beat", labels: { 0: "Initialise", 1: "Optimise" }, default: "Optimise" },
+      mask: { anim: "beat", labels: { 0: "Initialise", 1: "Optimise", 2: "Optimise", 3: "Optimise" }, default: "Optimise" },
       scores: { anim: "beat", labels: { 0: "Collapse", 1: "Average", 2: "Scale" }, default: "Scale" },
       runs: { param: "show", labels: { one: "Test", all: "Overlay" }, default: "Test" },
     },
@@ -118,7 +119,7 @@ const S = {
   stepTitle: {
     param: "page",
     labels: {
-      mask: { anim: "beat", labels: { 0: "Give every directed edge and every atom feature a random mask near 0.5", 1: "Optimise the masks for 300 epochs with Adam, learning rate 0.01" }, default: "Optimise the masks for 300 epochs with Adam, learning rate 0.01" },
+      mask: { anim: "beat", labels: { 0: "Give every directed edge and every atom feature a random mask near 0.5", 1: "Optimise the masks for epochs 1–100 with Adam, learning rate 0.01", 2: "Optimise the masks for epochs 101–200", 3: "Optimise the masks for epochs 201–300" }, default: "Optimise the masks for epochs 201–300" },
       scores: { anim: "beat", labels: { 0: "Score each bond as the larger of its two directions' masks", 1: "Score each atom as the mean of its 39 feature masks", 2: "Scale the bond scores and the atom scores to 0–1 within the molecule" }, default: "Scale the bond scores and the atom scores to 0–1 within the molecule" },
       runs: { param: "show", labels: { one: "Predict with only this run's kept bonds, and with random sets of as many bonds", all: "Add the 20 runs' kept bonds one run at a time" }, default: "Predict with only this run's kept bonds, and with random sets of as many bonds" },
     },
@@ -131,7 +132,8 @@ const S = {
   keyMask: ["mask 0", "1"],
   keyScore: ["score 0", "1"],
   keyCount: ["kept by 0 runs", "20"],
-  lanes: "Each bond carries a message each way, and each direction has its own mask: the two lanes.",
+  lanes: "two lanes a bond, one mask per direction, wider when larger · dashed: removed, both masks 0.5 or less",
+  linesHead: "each bond's mask (its larger direction)",
   goals: "each mask moves up or down: keep p(active) high, keep the masks small",
   maskPlain: "before the masks: every message and every feature passes whole",
 
@@ -175,8 +177,8 @@ const S = {
   tileFullNote: `p(active) from a GAT trained on the dataset's scaffold split; its test macro F1 is ${INFO.testF1.toFixed(2)}`,
   tileMasked: "Masked",
   tileMaskedNote: "p(active) with every message and every feature multiplied by its mask",
-  tileAbove: "Bonds above 0.5",
-  tileAboveNote: (e) => `of ${NB}, a bond counted by its larger direction · epoch ${e}`,
+  tileAbove: "Kept · removed",
+  tileAboveNote: (e) => `bonds with a mask above 0.5 in either direction, and the rest · epoch ${e}`,
   tileBonds: "Bond scores",
   tileBondsNote: "the larger of each bond's two directions",
   tileAtoms: "Atom scores",
@@ -301,6 +303,17 @@ function drawLanes(ctx, colors, p, q, u, v, sep = 1) {
   line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, ramp(colors, u), 3.4);
   line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, ramp(colors, v), 3.4);
 }
+/** THE MASK PAGE'S BOND (his round 2, pick A): colour alone, its 0 end near the background, read as
+    a bond fading, so the width carries the mask too, and a bond whose masks are both 0.5 or less is a
+    grey dashed line: removed is a state the reader sees, not an absence */
+function drawMaskBond(ctx, colors, p, q, u, v) {
+  if (Math.max(u, v) <= 0.5) { line(ctx, p[0], p[1], q[0], q[1], colors.ink3, 1.4, [3, 3]); return; }
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1;
+  [[u, 1], [v, -1]].forEach(([m, side]) => {
+    const off = (LANE + 0.6) * side, nx = (-dy / L) * off, ny = (dx / L) * off;
+    line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, ramp(colors, 0.25 + 0.75 * m), 0.6 + 4.4 * m);
+  });
+}
 /** one bond as one line, its width and colour a score in 0–1 */
 function drawScoredBond(ctx, colors, p, q, v) {
   line(ctx, p[0], p[1], q[0], q[1], colors.ink3, 1);
@@ -324,7 +337,7 @@ function nearestBond(P, pt) {
 
 /* ------------------------------------------------------------- timing */
 
-const DUR = { 1: 1400, 2: 7000 };
+const DUR = { 1: 1400, 2: 4000, 3: 4000, 4: 4000 };
 const DUR_SCORES = 1800, DUR_TEST = 2400, DUR_OVERLAY = 4000;
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -343,7 +356,7 @@ const runOf = (params) => Number(params.start) - 1;
 
 const CELL_W = 5, CELL_H = 5, GRID_W = NF * CELL_W, GRID_H = NA * CELL_H;
 const MASK_TOP = MOL_H + 22, MASK_GY = MASK_TOP + 28;
-const H_MASK = MASK_GY + GRID_H + 30;
+const H_MASK = MASK_GY + GRID_H + 46;
 const GRID_TOP = MOL_H + 40, SCORES_GY = GRID_TOP + 18;
 const H_SCORES = SCORES_GY + GRID_H + 34;
 const H_RUNS = MOL_H + 22 + 160;
@@ -387,24 +400,16 @@ function gridHit(gx, gy, pt) {
   const i = Math.floor((pt.y - gy) / CELL_H), q = Math.floor((pt.x - gx) / CELL_W);
   return i >= 0 && i < NA && q >= 0 && q <= NF + 3 ? [i, q] : null;
 }
-function wrapText(ctx, colors, s, x, y, maxW, lh, opts = {}) {
-  ctx.save(); ctx.font = opts.font ?? `${colors.fsXs} ${colors.font}`;
-  const lines = [];
-  let cur = "";
-  s.split(" ").forEach((wd) => { const t = cur ? `${cur} ${wd}` : wd; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = t; });
-  if (cur) lines.push(cur);
-  ctx.restore();
-  lines.forEach((l, q) => txt(ctx, colors, l, x, y + q * lh, opts));
-}
-
 /* ---------------------------------------------------------------- Mask */
 
 /** the mask page's epoch position: a frame index, fractional while Optimise plays */
 function maskFrame(anim, stage) {
   const done = shownStep(anim, stage), t = inFlight(anim, stage);
-  if (done >= 2) return NE - 1;
-  if (done === 1 && t != null) return (NE - 1) * Math.min(1, t / 0.94);
-  return 0;
+  /* a press of Optimise covers ten traced frames, 100 epochs: epochs 1–101, 101–201, 201–300 */
+  const per = (NE - 1) / 3;
+  if (done === 0) return 0;
+  if (t != null) return Math.min(NE - 1, per * (done - 1) + per * Math.min(1, t / 0.94));
+  return Math.min(NE - 1, per * (done - 1));
 }
 function edgeAt(R, f) {
   const f0 = Math.floor(f), f1 = Math.min(NE - 1, f0 + 1), u = f - f0;
@@ -412,6 +417,31 @@ function edgeAt(R, f) {
 }
 const seriesAt = (arr, f) => { const f0 = Math.floor(f), f1 = Math.min(NE - 1, f0 + 1); return k(lerp(arr[f0], arr[f1], f - f0)); };
 const epochAt = (f) => Math.round(lerp(EPOCHS[Math.floor(f)], EPOCHS[Math.min(NE - 1, Math.floor(f) + 1)], f - Math.floor(f)));
+
+/** each bond's mask (its larger direction) against the epoch, drawn up to the frame shown: violet
+    above 0.5, grey at or below; a hovered bond's line in ink */
+function drawMaskLines(ctx, colors, R, f, on, x0, top, pw, hover) {
+  const ph = 110, y0 = top + 18, y1 = y0 + ph, ex = (e) => x0 + (pw * (e - 1)) / 299, sy = (v) => y1 - v * ph;
+  txt(ctx, colors, S.linesHead, x0 - 28, top + 8, { font: capFont(colors), fill: colors.ink1, maxW: pw + 28 });
+  line(ctx, x0, y1, x0 + pw, y1, colors.axis); line(ctx, x0, y0, x0, y1, colors.axis);
+  line(ctx, x0, sy(0.5), x0 + pw, sy(0.5), colors.ink3, 1, [2, 3]);
+  txt(ctx, colors, "1", x0 - 4, y0 + 4, { align: "right", fill: colors.ink3 });
+  txt(ctx, colors, "0.5", x0 - 4, sy(0.5) + 3, { align: "right", fill: colors.ink3 });
+  txt(ctx, colors, "0", x0 - 4, y1 + 3, { align: "right", fill: colors.ink3 });
+  txt(ctx, colors, "1", x0, y1 + 14, { fill: colors.ink3 });
+  txt(ctx, colors, "300", x0 + pw, y1 + 14, { align: "right", fill: colors.ink3 });
+  if (!on) return;
+  const upto = Math.floor(f), f1 = Math.min(NE - 1, upto + 1), u = f - upto;
+  const order = MOL.bonds.map((_, b) => b).filter((b) => b !== hover).concat(hover >= 0 ? [hover] : []);
+  order.forEach((b) => {
+    const val = (q) => Math.max(R.edges[q][2 * b], R.edges[q][2 * b + 1]) / 1000;
+    const pts = [];
+    for (let q = 0; q <= upto; q++) pts.push([ex(EPOCHS[q]), sy(val(q))]);
+    if (u > 0) pts.push([ex(epochAt(f)), sy(lerp(val(upto), val(f1), u))]);
+    const v = (y1 - pts[pts.length - 1][1]) / ph;
+    polyline(ctx, pts, b === hover ? colors.ink1 : v <= 0.5 ? colors.ink3 : ramp(colors, 0.35 + 0.65 * v), b === hover ? 2.2 : 1.1);
+  });
+}
 
 /* BOTH MASKS LEARN ON THIS PAGE (his round 1, pick A): the bonds' on the molecule, the atoms'
    features as M_x's grid beside p(active) — the grid the Scores page then averages. The loss panel
@@ -426,7 +456,7 @@ function drawMask(ctx, colors, w, params, anim, pointer) {
   if (masked) rampKey(ctx, colors, w - 12, 12, S.keyMask);
   drawStrip(ctx, colors, w, 0);
   MOL.bonds.forEach(([i, j], b) => {
-    if (masked) drawLanes(ctx, colors, P[i], P[j], E[2 * b], E[2 * b + 1]);
+    if (masked) drawMaskBond(ctx, colors, P[i], P[j], E[2 * b], E[2 * b + 1]);
     else line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colors.ink2, 1.6);
   });
   MOL.atoms.forEach((_, i) => drawAtom(ctx, colors, P[i], i, null));
@@ -437,18 +467,19 @@ function drawMask(ctx, colors, w, params, anim, pointer) {
   const gx = w - 16 - GRID_W, gy = MASK_GY;
   const hit = pointer ? gridHit(gx, gy, pointer) : null;
   const hAtom = pointer ? nearestAtom(P, pointer) : -1;
+  const hBond = pointer && hAtom < 0 ? nearestBond(P, pointer) : -1;
   const M = masked ? mxAt(run, f) : null;
   drawGrid(ctx, colors, gx, gy, M, { hover: hAtom >= 0 ? hAtom : hit && hit[1] < NF ? hit[0] : -1 });
   txt(ctx, colors, S.gridCols, 12, gy + GRID_H + 18, { fill: colors.ink3, maxW: w - 24 });
+  if (masked) txt(ctx, colors, S.lanes, 12, gy + GRID_H + 34, { fill: colors.ink3, maxW: w - 24 });
 
-  const x0 = 40, pw = gx - 34 - 30 - x0, top = MASK_TOP, y0 = top + 18, ph = 120, y1 = y0 + ph;
+  /* p(active), short, over each bond's mask as a line (his round 2, pick B): the split the optimiser makes, and how slowly */
+  const x0 = 40, pw = gx - 34 - 30 - x0, top = MASK_TOP, y0 = top + 18, ph = 56, y1 = y0 + ph;
   const ex = (e) => x0 + (pw * (e - 1)) / 299, sy = (v) => y1 - v * ph;
   txt(ctx, colors, S.pHead, x0 - 28, top + 8, { font: capFont(colors), fill: colors.ink1, maxW: pw + 28 });
   line(ctx, x0, y1, x0 + pw, y1, colors.axis); line(ctx, x0, y0, x0, y1, colors.axis);
   txt(ctx, colors, "1", x0 - 4, y0 + 4, { align: "right", fill: colors.ink3 });
   txt(ctx, colors, "0", x0 - 4, y1 + 3, { align: "right", fill: colors.ink3 });
-  txt(ctx, colors, "1", x0, y1 + 14, { fill: colors.ink3 });
-  txt(ctx, colors, "300", x0 + pw, y1 + 14, { align: "right", fill: colors.ink3 });
   const pf = k(INFO.pFull);
   line(ctx, x0, sy(pf), x0 + pw, sy(pf), colors.ink3, 1, [3, 3]);
   /* under the line at its right end: the optimised curve ends above it */
@@ -464,11 +495,11 @@ function drawMask(ctx, colors, w, params, anim, pointer) {
       polyline(ctx, pp, colors.ink1, 2);
       const lastPt = pp[pp.length - 1]; dot(ctx, lastPt[0], lastPt[1], 3.5, colors.ink1);
     }
-    wrapText(ctx, colors, S.lanes, x0 - 28, y1 + 36, pw + 28, 15, { fill: colors.ink3 });
   }
+  drawMaskLines(ctx, colors, R, f, masked && beat >= 1, x0, top + 96, pw, hBond);
 
   if (pointer) {
-    const b = hAtom < 0 ? nearestBond(P, pointer) : -1;
+    const b = hBond;
     if (hAtom >= 0) { dot(ctx, P[hAtom][0], P[hAtom][1], NODE_R + 4, null, colors.ink1, 1.8); hoverLabel(ctx, colors, S.hovAtom(hAtom, null), pointer.x, pointer.y, w); }
     else if (b >= 0) hoverLabel(ctx, colors, masked ? S.hovLanes(b, f2(E[2 * b]), f2(E[2 * b + 1])) : S.hovBond(b, null), pointer.x, pointer.y, w);
     else if (hit && hit[1] < NF) {
@@ -647,7 +678,7 @@ defineWidget({
       when: { any: [{ param: "page", oneOf: ["mask", "scores"] }, { param: "show", equals: "one" }] } },
     show: { type: "segmented", label: S.showLabel, detail: S.showDetail, options: SHOW_OPTS, default: "one", display: true, when: ON("runs") },
     /* authoring escape hatch, first render only: presses already made on the stage the link opens */
-    shown: { type: "int", min: 0, max: 3, default: 0, hidden: true },
+    shown: { type: "int", min: 0, max: 4, default: 0, hidden: true },
   },
 
   /* none: each page keys its marks on the canvas (a ramp key, captions), and a legend reads params alone */
@@ -709,7 +740,7 @@ defineWidget({
       return [
         { label: S.tileFull, value: f2(k(INFO.pFull)), note: S.tileFullNote },
         { label: S.tileMasked, value: on ? f2(seriesAt(R.p, f)) : S.tileWait, note: S.tileMaskedNote },
-        { label: S.tileAbove, value: on ? String(above) : S.tileWait, note: on ? S.tileAboveNote(epochAt(f)) : "" },
+        { label: S.tileAbove, value: on ? `${above} · ${NB - above}` : S.tileWait, note: on ? S.tileAboveNote(epochAt(f)) : "" },
       ];
     }
     if (params.page === "scores") {
