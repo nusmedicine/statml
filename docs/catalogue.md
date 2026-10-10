@@ -24410,6 +24410,15 @@ correlations 0.889 · 0.886 · 0.779; the saved model and a 6.34 refit agree to
   (against 0.331 and 18). Two more findings: 04 cell 11 calls DIABLO's
   components "principal components"; 02 cell 37 equates differentially
   expressed with high-variance genes.
+- **For 100, measured during 99's review** (`_lab/multiomics-lv23.R`, his
+  question "why only latent variable 1?"): PLS on 03 cell 13's pairs at
+  ncomp = 3. mRNA–meth: LV1 r 0.89, subtype share of t's variance 0.65
+  (CN_HIGH against the rest); LV2 r 0.78, 0.34 (POLE and MSI against
+  CN_LOW); LV3 r 0.85, 0.02. mRNA–RPPA and meth–RPPA alike (LV3 r 0.71 ·
+  0.62, subtype share 0.00 · 0.13). The blocks still covary strongly after
+  the subtype signal is spent: unsupervised agreement is not relevance to
+  Y, which is the case for DIABLO adding Y. 99 keeps latent variable 1 only,
+  as cell 13 does (his pick).
 
 **His calls, 2026-10-10 — "all recommendations, build 99":** 99 Concept ·
 Data, Method PCA · PLS with one press *Find component 1*, Pair over the three
