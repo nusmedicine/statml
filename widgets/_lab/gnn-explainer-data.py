@@ -129,9 +129,12 @@ with open(OUT, "w", encoding="utf-8", newline="\n") as f:
             "   starts (torch seeds 0-19). Masks and probabilities in thousandths. EDGES: per run,\n"
             "   per traced epoch, the mask on each directed edge (bond b is edges 2b and 2b + 1).\n"
             "   MXI / MXT: per run, M_x every traced epoch, only the entries inside PyG's hard mask\n"
-            "   (index atom * 39 + feature); every other entry is 0. */\n")
+            "   (index atom * 39 + feature); every other entry is 0. XNZ: the molecule's non-zero\n"
+            "   features, the same indexing (what the grid shows before any mask). */\n")
     f.write(f"export const MOL = {json.dumps({'atoms': atoms, 'bonds': bonds}, separators=(',', ':'))};\n")
     f.write(f"export const FEATURES = {json.dumps(FEATURES, ensure_ascii=False)};\n")
+    # the molecule's non-zero features (atom * 39 + feature): the grid before any mask
+    f.write(f"export const XNZ = {json.dumps([int(q) for q in np.flatnonzero(x.numpy().reshape(-1) != 0)], separators=(',', ':'))};\n")
     f.write(f"export const EPOCHS = {json.dumps(EPOCHS)};\n")
     f.write(f"export const INFO = {json.dumps(INFO)};\n")
     f.write("export const RUNS = [\n")

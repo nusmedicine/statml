@@ -44,7 +44,7 @@
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
-import { MOL, FEATURES, EPOCHS, INFO, RUNS } from "./data.js";
+import { MOL, FEATURES, XNZ, EPOCHS, INFO, RUNS } from "./data.js";
 
 const PAGES = [
   { value: "mask", label: "Mask" },
@@ -139,6 +139,8 @@ const S = {
   lanes: "two lines a bond, one mask per direction, thicker when larger · dashed: not kept (both 0.5 or less)",
   linesHead: "each bond's mask (its larger direction)",
   goals: "Adam adjusts each mask: the loss rewards high p(active) and small masks",
+  /* the walk-through: nothing said why p(active) falls at Initialise */
+  maskStart: "masks near 0.5 halve every message and feature, so p(active) falls",
   maskPlain: "the unmasked molecule: every message and every feature at full value",
 
   /* Mask */
@@ -151,7 +153,8 @@ const S = {
   gridCols: "columns: six numbers · element · hybridisation · chirality; empty: the feature is 0 for that atom",
   meanHead: "mean",
   status: [
-    () => "each bond has two masks, one per direction; each atom has 39, one per feature (the grid)",
+    /* the walk-through: say these are the Mask page's finished masks */
+    () => "the masks at epoch 300: two per bond, one per direction; 39 per atom (the grid)",
     () => "each bond has one score now: the larger of its two directions",
     (amax) => `each atom has one score now: the mean of its row, mostly 0, so every atom score is small (largest ${f2(amax)})`,
     () => "both sets scaled to 0–1 within the molecule: the lowest score becomes 0 and the highest 1",
@@ -169,6 +172,8 @@ const S = {
   barHead: "the 39 bonds, by how many runs keep them",
   always: (n) => `kept by every run: ${n} bonds, all on N10 (ringed)`,
   epochs3000: "Optimised for 3,000 epochs, every mask is 0 or 1 and the runs still keep different bonds.",
+  /* an instruction, the one thing One run asks of the reader (the walk-through) */
+  tryStart: "change Random start to see the bonds another run keeps",
 
   /* hover */
   hovAtom: (i, v) => `${atomName(i)}${v == null ? "" : ` · ${v}`}`,
@@ -261,6 +266,17 @@ function hoverLabel(ctx, colors, str, x, y, w) {
   rect(ctx, bx, by, tw + 10, 18, colors.surface, colors.ink3);
   txt(ctx, colors, str, bx + 5, by + 9.5, { font: `600 ${colors.fsXs} ${colors.font}`, fill: colors.ink1, baseline: "middle" });
 }
+/** One run's key: a dashed grey sample for "not kept", a thick violet one for "kept", right-aligned at x1 */
+function keyLines(ctx, colors, x1, y) {
+  ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`;
+  const wk = ctx.measureText(S.keyKept[1]).width, wn = ctx.measureText(S.keyKept[0]).width; ctx.restore();
+  const xk = x1 - wk, xs = xk - 26;
+  line(ctx, xs, y, xs + 20, y, colors.magnitude, 6);
+  txt(ctx, colors, S.keyKept[1], xk, y + 3, { fill: colors.ink3 });
+  const xn = xs - 14 - wn, xd = xn - 26;
+  line(ctx, xd, y, xd + 20, y, colors.ink3, 1.4, [3, 3]);
+  txt(ctx, colors, S.keyKept[0], xn, y + 3, { fill: colors.ink3 });
+}
 /** the ramp's key: a bar and its two end words, right-aligned at x1 */
 function rampKey(ctx, colors, x1, y, words, w = 70) {
   ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`; const tw = ctx.measureText(words[1]).width; ctx.restore();
@@ -301,22 +317,14 @@ function drawStrip(ctx, colors, w, top) {
   txt(ctx, colors, S.salt, 12, y + STRIP / 2 + 4, { fill: colors.ink3 });
   txt(ctx, colors, S.saltNote, SALT_X + SALT.length * SALT_DX, y + STRIP / 2 + 4, { fill: colors.ink3, maxW: w - 10 - SALT_X - SALT.length * SALT_DX });
 }
-/** one bond as two lanes, one per direction; `sep` 1 is apart, 0 merged into one line */
-function drawLanes(ctx, colors, p, q, u, v, sep = 1) {
-  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = (-dy / L) * LANE * sep, ny = (dx / L) * LANE * sep;
-  /* the bond itself, under its lanes, so a direction masked to 0 still shows where it runs */
-  line(ctx, p[0], p[1], q[0], q[1], colors.ink3, 1);
-  line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, ramp(colors, u), 3.4);
-  line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, ramp(colors, v), 3.4);
-}
 /** THE MASK PAGE'S BOND (his round 2, pick A): colour alone, its 0 end near the background, read as
     a bond fading, so the width carries the mask too, and a bond whose masks are both 0.5 or less is a
     grey dashed line: removed is a state the reader sees, not an absence */
-function drawMaskBond(ctx, colors, p, q, u, v) {
+function drawMaskBond(ctx, colors, p, q, u, v, sep = 1) {
   if (Math.max(u, v) <= 0.5) { line(ctx, p[0], p[1], q[0], q[1], colors.ink3, 1.4, [3, 3]); return; }
   const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1;
   [[u, 1], [v, -1]].forEach(([m, side]) => {
-    const off = (LANE + 0.6) * side, nx = (-dy / L) * off, ny = (dx / L) * off;
+    const off = (LANE + 0.6) * side * sep, nx = (-dy / L) * off, ny = (dx / L) * off;
     line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, ramp(colors, 0.25 + 0.75 * m), 0.6 + 4.4 * m);
   });
 }
@@ -382,11 +390,13 @@ function mxAt(run, f) {
 }
 /** the grid both pages draw: a row an atom, a column a feature, the empty cells features the atom
     does not have; optionally the mean column, an outlined row, and a frame round the lot */
-function drawGrid(ctx, colors, gx, gy, M, { mean = null, hover = -1, frame = false } = {}) {
+function drawGrid(ctx, colors, gx, gy, M, { mean = null, hover = -1, frame = false, present = false } = {}) {
   const mx = gx + GRID_W + 8, right = mean ? mx + 24 : gx + GRID_W + 4;
   txt(ctx, colors, S.gridHead, gx - 30, gy - 12, { font: capFont(colors), fill: colors.ink1, maxW: right - gx + 30 });
   GROUPS.forEach(([a]) => { if (a > 0) line(ctx, gx + a * CELL_W, gy - 4, gx + a * CELL_W, gy + GRID_H + 2, colors.ink3, 1); });
   if (M) M.forEach((row, i) => row.forEach((v, q) => { if (v > 0) rect(ctx, gx + q * CELL_W, gy + i * CELL_H, CELL_W - 1, CELL_H - 1, ramp(colors, k(v))); }));
+  /* before any mask (the walk-through): the features the molecule has, in ink, so "empty: the feature is 0" is true then too */
+  else if (present) XNZ.forEach((q) => rect(ctx, gx + (q % NF) * CELL_W, gy + Math.floor(q / NF) * CELL_H, CELL_W - 1, CELL_H - 1, colors.ink3));
   for (let i = 0; i < NA; i++) {
     /* every tenth row, then the first and last of the one-atom pieces: one label a row there overprints */
     if ((i % 10 === 0 && i < SALT[0] - 4) || i === SALT[0] || i === SALT[SALT.length - 1]) txt(ctx, colors, atomName(i), gx - 4, gy + i * CELL_H + CELL_H, { align: "right", fill: colors.ink3, font: `${colors.fsXs} ${colors.mono}` });
@@ -466,7 +476,8 @@ function drawMask(ctx, colors, w, params, anim, pointer) {
     else line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colors.ink2, 1.6);
   });
   MOL.atoms.forEach((_, i) => drawAtom(ctx, colors, P[i], i, null));
-  txt(ctx, colors, masked ? S.goals : S.maskPlain, 12, MOL_H - STRIP - 6, { fill: masked ? colors.ink1 : colors.ink3, maxW: w - 120 });
+  const caption = !masked ? S.maskPlain : (anim.n[stage] ?? 0) <= 1 ? S.maskStart : S.goals;
+  txt(ctx, colors, caption, 12, MOL_H - STRIP - 6, { fill: masked ? colors.ink1 : colors.ink3, maxW: w - 120 });
   if (masked) txt(ctx, colors, S.epoch(epochAt(f)), w - 12, MOL_H - STRIP - 6, { align: "right", fill: colors.ink1, font: nodeFont(colors) });
 
   /* M_x on the right; p(active) on the left with the lanes' note under it */
@@ -475,7 +486,7 @@ function drawMask(ctx, colors, w, params, anim, pointer) {
   const hAtom = pointer ? nearestAtom(P, pointer) : -1;
   const hBond = pointer && hAtom < 0 ? nearestBond(P, pointer) : -1;
   const M = masked ? mxAt(run, f) : null;
-  drawGrid(ctx, colors, gx, gy, M, { hover: hAtom >= 0 ? hAtom : hit && hit[1] < NF ? hit[0] : -1 });
+  drawGrid(ctx, colors, gx, gy, M, { hover: hAtom >= 0 ? hAtom : hit && hit[1] < NF ? hit[0] : -1, present: true });
   txt(ctx, colors, S.gridCols, 12, gy + GRID_H + 18, { fill: colors.ink3, maxW: w - 24 });
   if (masked) txt(ctx, colors, S.lanes, 12, gy + GRID_H + 34, { fill: colors.ink3, maxW: w - 24 });
 
@@ -537,7 +548,8 @@ function drawScores(ctx, colors, w, params, anim, pointer) {
   const ts = beat >= 3 ? 1 : beat === 2 && t != null ? ease(seg(t, 0, 0.9)) : 0;
   const bondV = (b) => lerp(sc.bondRaw[b], sc.bond[b], ts);
   MOL.bonds.forEach(([i, j], b) => {
-    if (tc < 1) drawLanes(ctx, colors, P[i], P[j], k(last[2 * b]), k(last[2 * b + 1]), 1 - tc);
+    /* the walk-through: Scores opens on the Mask page's own last picture, then Collapse slides the lanes together */
+    if (tc < 1) drawMaskBond(ctx, colors, P[i], P[j], k(last[2 * b]), k(last[2 * b + 1]), 1 - tc);
     else drawScoredBond(ctx, colors, P[i], P[j], bondV(b));
   });
   /* Average: the grid's rows are averaged top to bottom, each atom taking its mean when the sweep reaches its row */
@@ -595,11 +607,13 @@ function drawRuns(ctx, colors, w, params, anim, pointer) {
   if (!all) {
     const run = runOf(params), R = RUNS[run], kept = keptOf(run);
     MOL.bonds.forEach(([i, j], b) => {
+      /* the Mask page's two marks (the walk-through: a thin solid line here meant what dashed meant there) */
       if (kept.has(b)) line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colors.magnitude, 6);
-      else line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colors.surface3, 2.2);
+      else line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colors.ink3, 1.4, [3, 3]);
     });
     MOL.atoms.forEach((_, i) => drawAtom(ctx, colors, P[i], i, null));
-    rampKey(ctx, colors, w - 12, 12, S.keyKept, 40);
+    keyLines(ctx, colors, w - 12, 12);
+    txt(ctx, colors, S.tryStart, 12, MOL_H - STRIP - 6, { fill: colors.ink3, maxW: w - 24 });
 
     /* Test: 100 random sets' p fall onto the axis, then this run's kept set */
     const x0 = 24, x1 = w - 24, ax = top + 92, sx = (v) => x0 + v * (x1 - x0);
@@ -627,7 +641,6 @@ function drawRuns(ctx, colors, w, params, anim, pointer) {
         txt(ctx, colors, S.testRand(R.kept.length), x0, ax + 32, { fill: colors.ink3 });
       }
     }
-    txt(ctx, colors, S.epochs3000, 12, top + 152, { fill: colors.ink3, maxW: w - 24 });
     if (pointer) {
       const a = nearestAtom(P, pointer), b = a < 0 ? nearestBond(P, pointer) : -1;
       if (a >= 0) hoverLabel(ctx, colors, S.hovAtom(a, null), pointer.x, pointer.y, w);
@@ -655,7 +668,7 @@ function drawRuns(ctx, colors, w, params, anim, pointer) {
   order.forEach((b, q) => { if (cnt[b]) rect(ctx, bx0 + q * bw + 1, by1 - (bh * cnt[b]) / NR, bw - 2, (bh * cnt[b]) / NR, ramp(colors, cnt[b] / NR)); });
   txt(ctx, colors, `run ${Math.min(NR, nIn)} of ${NR}`, w - 12, top + 8, { align: "right", fill: colors.ink3 });
   if (beat >= 1) txt(ctx, colors, S.always(ALWAYS.length), 12, by1 + 18, { fill: colors.ink1, maxW: w - 24 });
-  txt(ctx, colors, S.epochs3000, 12, top + 152, { fill: colors.ink3, maxW: w - 24 });
+  if (beat >= 1) txt(ctx, colors, S.epochs3000, 12, top + 152, { fill: colors.ink3, maxW: w - 24 });
   if (pointer) {
     const a = nearestAtom(P, pointer), b = a < 0 ? nearestBond(P, pointer) : -1;
     const q = Math.floor((pointer.x - bx0) / bw), inBars = pointer.y > by1 - bh - 4 && pointer.y < by1 + 2 && q >= 0 && q < NB;
