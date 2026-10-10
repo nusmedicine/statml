@@ -24374,7 +24374,7 @@ are cell indices in those files.
 
 | # | slug (provisional) | host | misconception | state |
 |---|---|---|---|---|
-| 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **DRAFT 2026-10-10** (Concept · Data, local); prerequisite for 100 |
+| 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **DRAFT 2026-10-10** (Concept · Factorize · Data after round 1, local); prerequisite for 100 |
 | 100 | `diablo` | 02 cell 0; 03 cells 10–28; 05 cells 17–24 | the design matrix records how correlated the omics types are (03 cell 10 says so; cells 12–14 measure 0.78–0.89 and suggest weights of 0.7–0.9) — it is a choice of objective: near 1 the blocks are made to agree, near 0 each block separates the subtypes on its own (Singh et al. 2019). Candidate pages: Design · Select (keepX) · Predict (each block votes; a sample with no protein data is still classified) | **PICKED 2026-10-10** |
 | 101 | `selection-bias` | 02 cells 37–50; 03 cells 18–24; 05 cells 3–6 | filtering features by a test against the labels is harmless preprocessing — filtered before cross-validation, data with no signal scores well (Ambroise & McLachlan 2002). Also covers arc B's `data-leakage` / `cv-nested`, never built | **PICKED 2026-10-10** |
 | 102 | `balanced-error` | 05 cells 5–9 | overall error hides a class (MSI 0.84 against 0.44 overall at one component) | **not picked** — 18 `balancing-data` and 35 `metrics` are close |
@@ -24420,6 +24420,27 @@ before CV `--c-group-a`, inside each fold `--c-group-b`, held-out fold
 via cBioPortal (terms checked before the draft); titles "Multi-omics: Shared
 Components" · "Multi-omics: DIABLO" · "Multi-omics: Selection Bias". Step on
 all three.
+
+### Slot 99 — round 1 (2026-10-10): how PLS is done, and N vs P
+
+His questions on the draft: *show how PLS is done, i.e. the matrix
+factorization*, and *does it help to illustrate N- and P-integration*.
+mixOmics' own steps (read from `internal_mint.block`): an SVD start on
+X₁ᵀX₂, then w₁ ∝ X₁ᵀu, w₂ ∝ X₂ᵀt in turn until the weights stop changing,
+then deflation X ← X − t cᵀ, c = Xᵀt / tᵀt. Measured: from a start 80° off,
+the Concept blocks settle in 3 rounds; the lesson's in 2 (r 0.874 → 0.889).
+Mock `_lab/shared-components-pls-mock.html` (45da694), five calls, all the
+recommendation. Built: Concept's PLS presses are the loop (Start · Update
+mRNA · Update methylation …, the covariance bars beside, the finished button
+reading Converged), PCA keeps one press, each Method its own progress; a
+Factorize page (Score · Rebuild · Subtract on the Concept blocks as
+matrices, rows sorted by subtype in ink brackets, `--c-value-low/high`)
+under an N-integration / P-integration band, P drawn only; Data gains each
+block's row of weights with its three largest named. "Kept" is now one thing
+on every page, the share t cᵀ rebuilds (PLS mRNA 9.4% → 9.9%; PCA
+unchanged). Found while building: r is not monotone in the loop (0.12 →
+0.48 → 0.95 → 0.87 → 0.88) because PLS maximises the covariance, which is
+(0.22 → 0.58 → 0.84 → 0.85); the page shows cov beside r and says so.
 
 ### Notebook findings, to tell him (from reading; told 2026-10-08 and 2026-10-10, not yet measured)
 
