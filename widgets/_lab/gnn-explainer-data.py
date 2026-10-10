@@ -65,15 +65,18 @@ assert [tuple(b) for b in MEAS["molecule"]["bond_list"]] == bkey
 assert all(ei[0, 2 * b] == bonds[b][0] and ei[1, 2 * b] == bonds[b][1] for b in range(len(bonds)))
 
 k1000 = lambda v: int(round(1000 * float(v)))
+NFEAT = x.shape[1]
 RUNS = []
 for r in range(20):
-    nm, em, hn, he, trace = gm.gnn_explainer(model, x, ei, ea, target, seed=r, trace_every=10)
+    nm, em, hn, he, trace = gm.gnn_explainer(model, x, ei, ea, target, seed=r, trace_every=10, trace_mx=True)
     # PyG reports 0 for an edge whose gradient was 0 on the first step (its hard mask,
     # 0-11 of 78 edges a run here); every traced frame shows what PyG would report then
     hard = he.numpy()
     for t in trace:
         t["edge"] = [v if h else 0.0 for v, h in zip(t["edge"], hard)]
     assert np.allclose(np.array(trace[-1]["edge"]), em.numpy(), atol=1e-3)
+    hard_idx = [int(q) for q in np.flatnonzero(hn.numpy().reshape(-1))]
+    assert np.allclose(np.array(trace[-1]["mx"]), nm.numpy(), atol=1e-3)
     kept = [b for b in range(len(bonds)) if max(float(em[2 * b]), float(em[2 * b + 1])) > 0.5]
     def p_with(keep):
         mm = torch.zeros(ei.shape[1])
@@ -88,7 +91,10 @@ for r in range(20):
         "p": [k1000(t["p"]) for t in trace],
         "loss": [k1000(t["loss"]) for t in trace],
         "pred": [k1000(t["pred_loss"]) for t in trace],
-        "mx": [[k1000(v) for v in rowv] for rowv in nm.numpy()],
+        # M_x every traced epoch, only the entries inside the hard mask (the rest are 0 throughout):
+        # mxi the flat indices (atom * 39 + feature), mxt one row of values per traced epoch
+        "mxi": hard_idx,
+        "mxt": [[k1000(t["mx"][q // NFEAT][q % NFEAT]) for q in hard_idx] for t in trace],
         "kept": kept,
         "pKept": k1000(p_with(kept)),
         "pRand": sorted(k1000(v) for v in rand),
@@ -119,7 +125,8 @@ with open(OUT, "w", encoding="utf-8", newline="\n") as f:
             "   scaffold split) and GNNExplainer on the lesson's trained GAT, 20 runs from random\n"
             "   starts (torch seeds 0-19). Masks and probabilities in thousandths. EDGES: per run,\n"
             "   per traced epoch, the mask on each directed edge (bond b is edges 2b and 2b + 1).\n"
-            "   MX: per run, the final 41 x 39 feature mask, 0 outside PyG's hard mask. */\n")
+            "   MXI / MXT: per run, M_x every traced epoch, only the entries inside PyG's hard mask\n"
+            "   (index atom * 39 + feature); every other entry is 0. */\n")
     f.write(f"export const MOL = {json.dumps({'atoms': atoms, 'bonds': bonds}, separators=(',', ':'))};\n")
     f.write(f"export const FEATURES = {json.dumps(FEATURES, ensure_ascii=False)};\n")
     f.write(f"export const EPOCHS = {json.dumps(EPOCHS)};\n")

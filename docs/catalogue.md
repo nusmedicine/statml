@@ -24874,7 +24874,9 @@ kept set's) · All runs (Overlay adds the 20 runs; bars by bond, N10 ringed).
 Every traced frame applies PyG's hard mask, so the Mask page ends on the
 reported mask. Checked: text sweep at 550 on every page and press (no NaN, no
 overflow, no collision), switch probe 0 flagged, heights by page only. NOT
-done: copy audit, student walk-through, baselines. NEXT: his review.
+done: copy audit, student walk-through, baselines.
+
+**Round 1, 2026-10-10** — his four questions on the draft (what Random start does after Optimise; is the mask deleting at random, and where are the nodes; the Scores page's dots and an idle matrix, does hover sync; Run doing nothing on Runs). Built directly (165c4e9): the control renamed **Random start** (URL `start`), every page keeps its progress when it changes, hidden in All runs; Scores hover synced. Mocked (`_lab/gnn-explainer-round1-mock.html`) and picked **A for Mask, B for Scores**: the Mask page names the two goals ("keep p(active) high, keep the masks small") and shows M_x's grid learning beside p(active), the loss panel removed (data.js now carries M_x every 10 epochs, the hard-mask entries only, 799 KB); Scores loses the dot axes for cell 90's three formulas beside the grid, the press's own bold and framed with its numbers, a status line under the molecule and a frame on the part each press changed — Scale is now seen on the molecule, every atom near blank before it (largest atom score 0.09). NEXT: his review.
 
 ---
 
