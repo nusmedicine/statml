@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 98 gnn-explainer — round 2 mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .bar { position: sticky; top: 0; z-index: 2; background: var(--surface-1); padding: 8px 0; border-bottom: 1px solid var(--grid);
+         display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: var(--fs-sm); }
+  .bar input[type=range] { width: 320px; }
+  .bar button { font: inherit; padding: 3px 10px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); border-radius: 3px; cursor: pointer; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>98 <code>gnn-explainer</code> &middot; round 2 mock &middot; making the masking visible</h1>
+  <p class="note">Your round-2 comment: on the Mask page the bonds seem to fade, and it is very fast. Start 1, measured on the widget's own
+    data &mdash; the two things move at different speeds:</p>
+  <table id="t0"></table>
+  <p class="note"><b>So the fast part is p(active), which recovers in the first ~50 epochs, about the first second of the draft's 7-second
+    play; the masks hardly move until epoch 100 and are still separating at 300.</b> And the draft draws a mask only as a colour whose 0
+    end is close to the background, so a mask going down reads as a bond fading rather than a bond being removed. Every canvas below
+    follows the scrubber; Play runs it at the speed chosen.</p>
+
+  <div class="bar">
+    <span>epoch</span><input id="ep" type="range" min="0" max="30" step="0.02" value="0"><b id="epv">1</b>
+    <button id="play7">Play · 7 s, one press (the draft)</button>
+    <button id="play3">Play · three presses of 100 epochs, 4 s each</button>
+    <span id="pressNote" style="color:var(--ink-3)"></span>
+  </div>
+
+  <h2>1 &middot; How a bond shows its mask</h2>
+  <p class="note"><b>Draft</b>: colour alone, both lanes the same width. <b>A</b>: the lane's <b>width</b> carries the mask too (a hairline at 0,
+    thick at 1), and a bond whose larger direction has fallen below 0.5 &mdash; one that would not be kept &mdash; is drawn as a grey
+    dashed line, so "removed" is a visible state, not an absence; a count under the molecule says how many are kept and removed.</p>
+  <div class="row" id="r1"></div>
+
+  <h2>2 &middot; Seeing the masks separate</h2>
+  <p class="note"><b>B</b>: A's molecule, and the left panel gains each bond's mask as a line against the epoch, 39 thin violet lines
+    starting near 0.5 and fanning out to 0 and 1, beside the p(active) curve (a shorter panel above them). The split the optimiser makes,
+    and how slowly, is then one picture; hovering a bond in the widget would pick out its line.</p>
+  <div class="row" id="r2"></div>
+
+  <div class="q"><b class="h">1 &middot; The bond encoding</b><b>A</b> width and colour, below 0.5 grey and dashed, with the kept / removed count
+    (recommended). <b>Draft</b> colour only.</div>
+  <div class="q"><b class="h">2 &middot; The masks' lines</b><b>B</b> each bond's mask as a line beside p(active) (recommended: it is the only place
+    the slow fan-out reads at a glance). <b>None</b> the left panel stays p(active) alone.</div>
+  <div class="q"><b class="h">3 &middot; Pacing</b><b>Three presses</b> Optimise runs 100 epochs a press, 4 s each, so a student can stop at 100 and
+    200 and look (recommended: the masks move in the second and third hundred). <b>One press</b> the draft's 7 s for all 300.</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { MOL, FEATURES, EPOCHS, INFO, RUNS } from "../gnn-explainer/data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const R = RUNS[0], NA = MOL.atoms.length, NB = MOL.bonds.length, NF = FEATURES.length, NE = EPOCHS.length;
+const DRUG = MOL.atoms.map((a, i) => i).filter((i) => MOL.atoms[i][4]);
+const SALT = MOL.atoms.map((a, i) => i).filter((i) => !MOL.atoms[i][4]);
+const k = (v) => v / 1000, f2 = (v) => v.toFixed(2), lerp = (a, b, t) => a + (b - a) * t;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); return ctx; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const ramp = (v) => { const a = rgb(T.surface3), b = rgb(T.magnitude), u = Math.max(0, Math.min(1, v)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+function txt(ctx, s, x, y, { size = 11, fill = T.ink2, align = "left", weight = "", baseline = "alphabetic", mono = false } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(String(s), x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, c, w = 1, dash = null) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = dash ? "butt" : "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + lw / 2, y + lw / 2, w - lw, h - lw); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function polyline(ctx, pts, c, w = 2) { if (pts.length < 2) return; ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineJoin = "round"; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); }
+function rampKey(ctx, x1, y, words, w = 70) { ctx.save(); ctx.font = `11px ${T.font}`; const tw = ctx.measureText(words[1]).width; ctx.restore(); const x0 = x1 - tw - 6 - w; for (let q = 0; q < w; q++) line(ctx, x0 + q, y, x0 + q + 1, y, ramp(q / (w - 1)), 8); txt(ctx, words[0], x0 - 6, y + 3, { align: "right", fill: T.ink3 }); txt(ctx, words[1], x1, y + 3, { align: "right", fill: T.ink3 }); }
+
+const NODE_R = 8, LANE = 2.6, STRIP = 30, MOL_H = 236;
+function placeMol(w, top) {
+  const xs = DRUG.map((i) => MOL.atoms[i][2]), ys = DRUG.map((i) => MOL.atoms[i][3]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const boxH = MOL_H - STRIP - 54, s = Math.min((w - 2 * NODE_R - 24) / (maxX - minX), boxH / (maxY - minY));
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, my = top + 30 + boxH / 2;
+  const P = MOL.atoms.map((a) => [w / 2 + (a[2] - cx) * s, my + (a[3] - cy) * s]);
+  SALT.forEach((i, q) => { P[i] = [116 + q * 34, top + MOL_H - STRIP / 2]; });
+  return P;
+}
+const P = placeMol(W, 0);
+function drawAtom(ctx, p, i) { const [e, ch] = MOL.atoms[i]; dot(ctx, p[0], p[1], NODE_R, T.surface1, T.ink3, 1); txt(ctx, e, p[0], p[1] + 0.5, { size: 10, weight: "600", align: "center", baseline: "middle", fill: T.ink1 }); if (ch) txt(ctx, ch > 0 ? "+" : "−", p[0] + NODE_R + 1, p[1] - NODE_R + 3, { size: 10, weight: "600", fill: T.ink1 }); }
+function strip(ctx) { const y = MOL_H - STRIP; line(ctx, 10, y, W - 10, y, T.grid); txt(ctx, "separate pieces:", 12, y + STRIP / 2 + 4, { fill: T.ink3 }); txt(ctx, "three waters and two Na⁺, no bond to the drug", 116 + 5 * 34, y + STRIP / 2 + 4, { fill: T.ink3 }); }
+const edgeAt = (f) => { const f0 = Math.floor(f), f1 = Math.min(NE - 1, f0 + 1), u = f - f0; return R.edges[f0].map((v, q) => k(lerp(v, R.edges[f1][q], u))); };
+const seriesAt = (arr, f) => { const f0 = Math.floor(f), f1 = Math.min(NE - 1, f0 + 1); return k(lerp(arr[f0], arr[f1], f - f0)); };
+const epochAt = (f) => Math.round(lerp(EPOCHS[Math.floor(f)], EPOCHS[Math.min(NE - 1, Math.floor(f) + 1)], f - Math.floor(f)));
+function mxAt(f) { const f0 = Math.floor(f), f1 = Math.min(NE - 1, f0 + 1), u = f - f0; const M = Array.from({ length: NA }, () => new Array(NF).fill(0)); R.mxi.forEach((q, j) => { M[Math.floor(q / NF)][q % NF] = lerp(R.mxt[f0][j], R.mxt[f1][j], u); }); return M; }
+
+/* the draft's lanes: colour only */
+function lanesDraft(ctx, p, q, u, v) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy), nx = (-dy / L) * LANE, ny = (dx / L) * LANE;
+  line(ctx, p[0], p[1], q[0], q[1], T.ink3, 1);
+  line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, ramp(u), 3.4); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, ramp(v), 3.4);
+}
+/* A: width and colour; a bond whose larger direction is under 0.5 is grey and dashed */
+function lanesA(ctx, p, q, u, v) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy);
+  if (Math.max(u, v) <= 0.5) { line(ctx, p[0], p[1], q[0], q[1], T.ink3, 1.4, [3, 3]); return; }
+  const lane = (m, s) => { const off = (LANE + 0.6) * s, nx = (-dy / L) * off, ny = (dx / L) * off; line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, ramp(0.25 + 0.75 * m), 0.6 + 4.4 * m); };
+  lane(u, 1); lane(v, -1);
+}
+function header(ctx, keyWords = ["mask 0", "1"]) { txt(ctx, "Ceftriaxone disodium · active", 12, 16, { size: 13, weight: "600", fill: T.ink1 }); rampKey(ctx, W - 12, 12, keyWords); }
+
+const CELL = 5, GROUPS = [6, NF - 8, NF - 3];
+function grid(ctx, gx, gy, M) {
+  txt(ctx, "M_x: one mask per atom per feature", gx - 30, gy - 12, { size: 12, weight: "600", fill: T.ink1 });
+  GROUPS.forEach((a) => line(ctx, gx + a * CELL, gy - 3, gx + a * CELL, gy + NA * CELL + 2, T.ink3, 1));
+  M.forEach((row, i) => row.forEach((v, q) => { if (v > 0) rect(ctx, gx + q * CELL, gy + i * CELL, CELL - 1, CELL - 1, ramp(k(v))); }));
+  rect(ctx, gx - 1, gy - 1, NF * CELL + 1, NA * CELL + 1, null, T.grid);
+}
+function pPanel(ctx, x0, top, pw, ph, f, { head = "p(active) of the masked molecule" } = {}) {
+  const y0 = top + 18, y1 = y0 + ph, ex = (e) => x0 + pw * (e - 1) / 299, sy = (v) => y1 - v * ph;
+  txt(ctx, head, x0 - 28, top + 8, { size: 12, weight: "600", fill: T.ink1 });
+  line(ctx, x0, y1, x0 + pw, y1, T.ink3); line(ctx, x0, y0, x0, y1, T.ink3);
+  txt(ctx, "1", x0 - 4, y0 + 4, { align: "right", fill: T.ink3 }); txt(ctx, "0", x0 - 4, y1 + 3, { align: "right", fill: T.ink3 });
+  const pf = k(INFO.pFull); line(ctx, x0, sy(pf), x0 + pw, sy(pf), T.ink3, 1, [3, 3]); txt(ctx, `unmasked ${f2(pf)}`, x0 + pw, sy(pf) + 13, { align: "right", fill: T.ink3 });
+  const pts = []; for (let q = 0; q <= Math.floor(f); q++) pts.push([ex(EPOCHS[q]), sy(k(R.p[q]))]); pts.push([ex(epochAt(f)), sy(seriesAt(R.p, f))]);
+  polyline(ctx, pts, T.ink1, 2); const l = pts[pts.length - 1]; dot(ctx, l[0], l[1], 3.5, T.ink1);
+  return { y1, ex };
+}
+function maskLines(ctx, x0, top, pw, ph, f) {
+  const y0 = top + 18, y1 = y0 + ph, ex = (e) => x0 + pw * (e - 1) / 299, sy = (v) => y1 - v * ph;
+  txt(ctx, "each bond's mask (its larger direction)", x0 - 28, top + 8, { size: 12, weight: "600", fill: T.ink1 });
+  line(ctx, x0, y1, x0 + pw, y1, T.ink3); line(ctx, x0, y0, x0, y1, T.ink3);
+  line(ctx, x0, sy(0.5), x0 + pw, sy(0.5), T.ink3, 1, [2, 3]);
+  txt(ctx, "1", x0 - 4, y0 + 4, { align: "right", fill: T.ink3 }); txt(ctx, "0.5", x0 - 4, sy(0.5) + 3, { align: "right", fill: T.ink3 }); txt(ctx, "0", x0 - 4, y1 + 3, { align: "right", fill: T.ink3 });
+  txt(ctx, "1", x0, y1 + 14, { fill: T.ink3 }); txt(ctx, "300", x0 + pw, y1 + 14, { align: "right", fill: T.ink3 });
+  for (let b = 0; b < NB; b++) {
+    const val = (q) => Math.max(R.edges[q][2 * b], R.edges[q][2 * b + 1]) / 1000;
+    const pts = []; for (let q = 0; q <= Math.floor(f); q++) pts.push([ex(EPOCHS[q]), sy(val(q))]);
+    const f0 = Math.floor(f), f1 = Math.min(NE - 1, f0 + 1); pts.push([ex(epochAt(f)), sy(lerp(val(f0), val(f1), f - f0))]);
+    const end = pts[pts.length - 1][1], v = (y1 - end) / ph;
+    polyline(ctx, pts, v < 0.5 ? T.ink3 : ramp(0.35 + 0.65 * v), 1.1);
+  }
+}
+
+/* --- the candidates; each redraws from the scrubber */
+const draws = [];
+function make(rowId, title, sub, H, fn) { const ctx = canvasIn(cand(rowId, title, sub), W, H); draws.push((f) => { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H); fn(ctx, f); }); }
+const GX = W - 16 - NF * CELL, GY = MOL_H + 50;
+function molecule(ctx, f, kind) {
+  const E = edgeAt(f); strip(ctx);
+  MOL.bonds.forEach(([i, j], b) => (kind === "A" ? lanesA : lanesDraft)(ctx, P[i], P[j], E[2 * b], E[2 * b + 1]));
+  MOL.atoms.forEach((_, i) => drawAtom(ctx, P[i], i));
+  const kept = MOL.bonds.filter((_, b) => Math.max(E[2 * b], E[2 * b + 1]) > 0.5).length;
+  if (kind === "A") {
+    txt(ctx, `kept ${kept} · removed ${NB - kept}`, 12, MOL_H - STRIP - 6, { fill: T.ink1, weight: "600" });
+    line(ctx, 150, MOL_H - STRIP - 10, 166, MOL_H - STRIP - 10, T.ink3, 1.4, [3, 3]); txt(ctx, "below 0.5", 170, MOL_H - STRIP - 6, { fill: T.ink3 });
+  } else txt(ctx, "each mask moves up or down: keep p(active) high, keep the masks small", 12, MOL_H - STRIP - 6, { fill: T.ink1 });
+  txt(ctx, `epoch ${epochAt(f)} of 300`, W - 12, MOL_H - STRIP - 6, { align: "right", fill: T.ink1, weight: "600" });
+}
+make("r1", "Draft", "colour only", 521, (ctx, f) => { header(ctx); molecule(ctx, f, "draft"); pPanel(ctx, 40, MOL_H + 22, GX - 104, 120, f); grid(ctx, GX, GY, mxAt(f)); });
+make("r1", "A", "width and colour; under 0.5 grey and dashed", 521, (ctx, f) => { header(ctx); molecule(ctx, f, "A"); pPanel(ctx, 40, MOL_H + 22, GX - 104, 120, f); grid(ctx, GX, GY, mxAt(f)); });
+make("r2", "B", "A's molecule; the masks' lines under a shorter p(active)", 521, (ctx, f) => {
+  header(ctx); molecule(ctx, f, "A");
+  pPanel(ctx, 40, MOL_H + 22, GX - 104, 56, f);
+  maskLines(ctx, 40, MOL_H + 22 + 96, GX - 104, 110, f);
+  grid(ctx, GX, GY, mxAt(f));
+});
+
+/* the scrubber and the two plays */
+const ep = document.getElementById("ep"), epv = document.getElementById("epv"), note = document.getElementById("pressNote");
+const render = () => { const f = Number(ep.value); epv.textContent = epochAt(f); draws.forEach((d) => d(f)); };
+ep.addEventListener("input", render);
+let raf = 0;
+function play(segments) {
+  cancelAnimationFrame(raf);
+  let s = 0, t0 = null;
+  const tick = (now) => {
+    if (t0 == null) t0 = now;
+    const [a, b, ms] = segments[s], u = Math.min(1, (now - t0) / ms);
+    ep.value = String(a + (b - a) * u); render();
+    note.textContent = segments.length > 1 ? `press ${s + 1} of ${segments.length}` : "";
+    if (u < 1) raf = requestAnimationFrame(tick);
+    else if (s + 1 < segments.length) { s += 1; t0 = null; setTimeout(() => { raf = requestAnimationFrame(tick); }, 900); }
+  };
+  raf = requestAnimationFrame(tick);
+}
+const fOf = (e) => EPOCHS.indexOf(e) + (e === 300 ? 0 : 0);
+document.getElementById("play7").onclick = () => play([[0, NE - 1, 7000]]);
+document.getElementById("play3").onclick = () => play([[0, 10, 4000], [10, 20, 4000], [20, NE - 1, 4000]]);
+render();
+
+/* the measured table */
+{
+  const t = document.getElementById("t0"), tr = el("tr");
+  ["epoch", "p(active)", "bond masks range", "bonds above 0.8", "bonds below 0.2"].forEach((h) => tr.appendChild(el("th", null, h))); t.appendChild(tr);
+  [0, 3, 5, 10, 15, 20, 30].forEach((f) => {
+    const b = MOL.bonds.map((_, q) => Math.max(R.edges[f][2 * q], R.edges[f][2 * q + 1]) / 1000);
+    const x = el("tr");
+    [EPOCHS[f], f2(k(R.p[f])), `${f2(Math.min(...b))}–${f2(Math.max(...b))}`, b.filter((v) => v > 0.8).length, b.filter((v) => v < 0.2).length].forEach((v) => x.appendChild(el("td", null, String(v))));
+    t.appendChild(x);
+  });
+}
+</script>
+</body>
+</html>
