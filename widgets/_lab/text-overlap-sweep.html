@@ -25,6 +25,13 @@
 const Q = new URLSearchParams(location.search);
 const slug = Q.get("slug") || "sequence-encoding", W = Number(Q.get("w") || 900);
 const STATES = {
+  /* widget 100's draft (2026-10-10): Design at every press and weight, Weight at every weight, Select, Predict at every press, component count and three tumours */
+  "diablo": [
+    ...["0", "0.1", "0.5", "1"].flatMap((c) => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => `?weight=${c}&shown=${s}`)),
+    ...["0", "0.1", "0.5", "1"].flatMap((c) => [0, 1].map((s) => `?page=weight&weight=${c}&shown=${s}`)),
+    ...[0, 1, 2, 3].map((s) => `?page=select&shown=${s}`),
+    ...["1", "2", "3", "4"].flatMap((k) => ["1", "12", "31"].flatMap((n) => [0, 1, 2, 3].map((s) => `?page=predict&components=${k}&sample=${n}&shown=${s}`))),
+  ],
   /* widget 97's draft (2026-10-10): every page at every press count, both examples, both splits, three seeds */
   "scaffold-split": [
     ...["indoles", "quinolones"].flatMap((e) => [0, 1].map((s) => `?example=${e}&shown=${s}`)),

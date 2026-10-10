@@ -24375,7 +24375,7 @@ are cell indices in those files.
 | # | slug (provisional) | host | misconception | state |
 |---|---|---|---|---|
 | 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **SHIPPED 2026-10-10** as "Multi-omics: Partial Least Squares" (40 states; Factorization · N-integration · P-integration · TCGA UCEC) — five review rounds, four student walk-throughs and the copy audit in one day; prerequisite for 100 |
-| 100 | `diablo` | 02 cell 0; 03 cells 10–28; 05 cells 17–24 | the design matrix records how correlated the omics types are (03 cell 10 says so; cells 12–14 measure 0.78–0.89 and suggest weights of 0.7–0.9) — it is a choice of objective: near 1 the blocks are made to agree, near 0 each block separates the subtypes on its own (Singh et al. 2019). Candidate pages: Design · Select (keepX) · Predict (each block votes; a sample with no protein data is still classified) | **PICKED 2026-10-10**; measured and mocked the same day (`_lab/diablo-mock.html`), the two-page plan re-read against 99 |
+| 100 | `diablo` | 02 cell 0; 03 cells 10–28; 05 cells 17–24 | the design matrix records how correlated the omics types are (03 cell 10 says so; cells 12–14 measure 0.78–0.89 and suggest weights of 0.7–0.9) — it is a choice of objective: near 1 the blocks are made to agree, near 0 each block separates the subtypes on its own (Singh et al. 2019). Candidate pages: Design · Select (keepX) · Predict (each block votes; a sample with no protein data is still classified) | **PICKED 2026-10-10**; measured and mocked the same day (`_lab/diablo-mock.html`), all eight calls the recommendation; **DRAFT** the same day (Design · Weight · Select · Predict) |
 | 101 | `selection-bias` | 02 cells 37–50; 03 cells 18–24; 05 cells 3–6 | filtering features by a test against the labels is harmless preprocessing — filtered before cross-validation, data with no signal scores well (Ambroise & McLachlan 2002). Also covers arc B's `data-leakage` / `cv-nested`, never built | **PICKED 2026-10-10** |
 | 102 | `balanced-error` | 05 cells 5–9 | overall error hides a class (MSI 0.84 against 0.44 overall at one component) | **not picked** — 18 `balancing-data` and 35 `metrics` are close |
 | 103 | `correlation-circle` | 04 cells 17–22 | reading the circle, circos and network plots, and their cutoffs | **not picked** — reading a plot, no misconception |
@@ -24578,6 +24578,36 @@ on a small example and Data pages on the lesson's blocks.
   against 0.66); 16 of the 25 are the full vector's top 25, the rest from
   ranks up to 58. Same-fold CV at 4 components: 0.232 with keepX, 0.274
   with every feature (keepX tuned on these samples).
+
+**His calls, 2026-10-10 — "all recommendations, build 100":** rail Method
+[Design] · TCGA UCEC [Weight · Select · Predict]; Design's weights 0 · 0.1 ·
+0.5 · 1 (0.1 the default); mixOmics' own start, dashed after the first
+update; two subtypes on the example; Select on mRNA's real loading vector,
+Update · Keep 25 · Score; Predict's finding stated as a count; colours as
+the mock's § 7; title "Multi-omics: DIABLO".
+
+### Slot 100 — draft (2026-10-10)
+
+Built from the eight calls. `data.js` from `_lab/diablo-measure.R
+widget100` (112 KB): the four-weight sweep's component-1 scores, mRNA's
+last update X'z before the keepX cut, and the lesson's saved model on the
+test set. The Design example keeps the mock's seed (a hidden `seed`, default
+100; core's default seed 1 swings the arrow 26° where 100 swings 35°).
+
+- **Select, found while drawing it:** the 25th and 26th largest values of
+  mRNA's last update are 371.9 and 371.1 (0.2% apart), and the largest is
+  only 14% above the cut, so the soft threshold leaves the kept loadings
+  50.7 down to 0.8. Bars shrunk to that read as nothing, so Keep draws every
+  bar at its update value, outlined, with the kept part above the largest
+  dropped value in violet; the caption says keepX sets the number, not a gap
+  in the loadings. Cutting that update reproduces mixOmics' loadings to
+  6×10⁻⁵ (its convergence tolerance).
+- **Predict:** the calls drawn are mixOmics' own; recomputed as the nearest
+  centre over components 1..k they agree on 815 of 816, the one a tie lost
+  to rounding (test tumour 31, 3 components).
+- Checked: the text-overlap sweep (100 states, `_lab/text-overlap-sweep.html
+  ?slug=diablo`), `_lab/switch-probe.html?only=diablo` (0 of 6 flagged).
+  Not done: copy audit, walk-through, baselines.
 
 ---
 

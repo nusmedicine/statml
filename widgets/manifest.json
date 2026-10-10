@@ -1452,6 +1452,22 @@
       ],
       "arc": 99,
       "status": "shipped"
+    },
+    {
+      "slug": "diablo",
+      "title": "Multi-omics: DIABLO",
+      "blurb": "DIABLO's design weight trades separating the subtypes against agreement between omics blocks.",
+      "course": "PHM5003",
+      "topics": [
+        "multi-omics",
+        "DIABLO",
+        "design matrix",
+        "sparse PLS-DA",
+        "N-integration",
+        "weighted vote"
+      ],
+      "arc": 100,
+      "status": "draft"
     }
   ]
 }
