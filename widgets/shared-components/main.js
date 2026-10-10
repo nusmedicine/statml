@@ -178,6 +178,11 @@ const S = {
   dims: (b) => `${BLOCK_NAME[b]}: ${N_DATA} samples × ${BLOCKS[b].features.toLocaleString("en-US")} ${BLOCK_UNIT[b]}`,
   strip: (b) => `${BLOCK_NAME[b]} latent variable 1`,
   dataBefore: "Latent variable 1 gives each sample one score per block.",
+  dataCapBefore: "The same N-integration, on 405 TCGA endometrial tumours with thousands of features per block. Each loading vector is now a row of thousands of numbers, not an arrow.",
+  dataCapAfter: (r, ref) => `Each tumour's two scores, t and u, correlate ${r}; the two blocks' directions of most variance correlate ${ref}. PLS was not given the subtypes, yet the CN_HIGH tumours sit at one end of the shared latent variable.`,
+  noteRef: "most variance: each block's own direction of most variance, found without the other block.",
+  noteTenth: "One latent variable explains about a tenth of a block of thousands of features; DIABLO keeps several.",
+  noteLoad: "Each loading is small: together they make one vector of length 1. The largest name the features that weigh most.",
   weights: (b) => `${BLOCK_NAME[b]} loadings (${BLOCKS[b].features.toLocaleString("en-US")})`,
 
   /* tiles */
@@ -1011,12 +1016,14 @@ function dataView(pairKey) {
   return DATA_VIEW[pairKey];
 }
 
-const D = { top: 34, x0: 66, sMax: 260, strip: 22, gapStrip: 8 };
+/* the walk-through (round 5) gave the page a caption, as the Method pages
+   have, and two notes in the right column: the layout grew by both */
+const D = { cap: 52, top: 86, x0: 66, sMax: 260, strip: 22, gapStrip: 8 };
 function dataLayout(w) {
   const s = Math.min(D.sMax, Math.floor(w - D.x0 - 240));
   return { s, x: D.x0, y: D.top, side: D.x0 + s + 34 };
 }
-const H_DATA = D.top + D.sMax + D.gapStrip + D.strip + 40;
+const H_DATA = D.top + D.sMax + D.gapStrip + D.strip + 100;
 
 function dataMarks(L, V) {
   const sx = (v) => L.x + L.s / 2 + (v / V.xs) * (L.s / 2), sy = (v) => L.y + L.s / 2 - (v / V.ys) * (L.s / 2);
@@ -1049,8 +1056,9 @@ function drawData(ctx, colors, w, params, anim, pointer) {
   const e = ez ? ease(ez.t) : 1;
   const at = (key, i) => (from ? lerpPt(from[key][i], to[key][i], e) : to[key][i]);
 
-  txt(ctx, colors, S.dims(P.a), L.x - D.gapStrip - D.strip, 14, { fill: colors.ink2 });
-  txt(ctx, colors, S.dims(P.b), L.x - D.gapStrip - D.strip, 28, { fill: colors.ink2 });
+  wrapText(ctx, colors, found && rise >= 1 ? S.dataCapAfter(f2(V.r), f2(V.ref.r)) : S.dataCapBefore, 10, 14, w - 20, 16, { fill: colors.ink1 });
+  txt(ctx, colors, S.dims(P.a), L.x - D.gapStrip - D.strip, D.cap + 10, { fill: colors.ink2 });
+  txt(ctx, colors, S.dims(P.b), L.x - D.gapStrip - D.strip, D.cap + 24, { fill: colors.ink2 });
 
   frame(ctx, colors, L.x, L.y + 4, L.s, L.s - 4);
   frame(ctx, colors, L.x, L.y + L.s + D.gapStrip, L.s, D.strip);
@@ -1059,7 +1067,7 @@ function drawData(ctx, colors, w, params, anim, pointer) {
   vText(ctx, colors, S.strip(P.b), L.x - D.gapStrip - D.strip - 8, L.y + L.s / 2, { size: colors.fsXs, fill: colors.ink3 });
 
   if (!found) {
-    txt(ctx, colors, S.dataBefore, L.x + L.s / 2, L.y + L.s / 2, { fill: colors.ink3, align: "center", baseline: "middle" });
+    wrapText(ctx, colors, S.dataBefore, L.x + 14, L.y + L.s / 2 - 8, L.s - 28, 16, { fill: colors.ink3 });
   } else {
     /* the strips appear at once with the press; the samples rise out of the
        bottom strip to their places, each in its own vertical lane */
@@ -1075,7 +1083,7 @@ function drawData(ctx, colors, w, params, anim, pointer) {
       if (y > L.y + L.s && rise < 1) continue;
       dot(ctx, colors, q[0], y, 3, subColour(colors, Y[i]));
     }
-    if (rise >= 1) txt(ctx, colors, `r = ${f2(V.r)}`, L.x + L.s - 6, L.y + 20, { fill: colors.ink1, align: "right", weight: "600" });
+    if (rise >= 1) txt(ctx, colors, `r = ${f2(V.r)}`, L.x + 8, L.y + 20, { fill: colors.ink1, weight: "600" });
   }
 
   /* beside it: PLS against the benchmark, then each block's row of weights */
@@ -1084,8 +1092,13 @@ function drawData(ctx, colors, w, params, anim, pointer) {
     drawTrade(ctx, colors, L.side, L.y + 30, width, [
       /* the short block names: the column beside the scatter is ~200px at the narrowest */
       [S.rowR, f2(V.r), f2(V.ref.r)], [S.rowKept(SHORT[P.a]), pct(V.keptA), pct(V.ref.keptA)], [S.rowKept(SHORT[P.b]), pct(V.keptB), pct(V.ref.keptB)]]);
-    drawWeights(ctx, colors, L.side, L.y + 154, width, P.a, V.wA, V.topA);
-    drawWeights(ctx, colors, L.side, L.y + 230, width, P.b, V.wB, V.topB);
+    /* what "most variance" is here, where no dashed line can be drawn, and why one latent variable explains a tenth */
+    let ny = L.y + 112;
+    ny += 13 * wrapText(ctx, colors, S.noteRef, L.side, ny, width, 13, { size: colors.fsXs, fill: colors.ink3 });
+    ny += 13 * wrapText(ctx, colors, S.noteTenth, L.side, ny, width, 13, { size: colors.fsXs, fill: colors.ink3 });
+    drawWeights(ctx, colors, L.side, ny + 16, width, P.a, V.wA, V.topA);
+    drawWeights(ctx, colors, L.side, ny + 90, width, P.b, V.wB, V.topB);
+    wrapText(ctx, colors, S.noteLoad, L.side, ny + 166, width, 13, { size: colors.fsXs, fill: colors.ink3 });
   }
 
   if (pointer && found && rise >= 1) {
@@ -1282,6 +1295,6 @@ defineWidget({
     }
     if (page === "p-integration") return `Two simulated studies with the same two genes, ${n >= 1 ? "stacked into one table" : "as two tables"}; ${n >= 2 ? "one w for both" : "no w yet"}.`;
     const V = dataView(params.pair);
-    return `The lesson's ${BLOCK_NAME[V.P.a]} and ${BLOCK_NAME[V.P.b]} blocks, 405 samples coloured by subtype. ${n >= 1 ? `PLS latent variable 1 scores plotted against each other; correlation ${f2(V.r)}, against ${f2(V.ref.r)} for the directions of most variance.` : "No latent variable found yet."}`;
+    return `The TCGA UCEC ${BLOCK_NAME[V.P.a]} and ${BLOCK_NAME[V.P.b]} blocks, 405 samples coloured by subtype. ${n >= 1 ? `PLS latent variable 1 scores plotted against each other; correlation ${f2(V.r)}, against ${f2(V.ref.r)} for the directions of most variance.` : "No latent variable found yet."}`;
   },
 });
