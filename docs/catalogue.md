@@ -24347,6 +24347,58 @@ arc's); and leave for the network (pip, the Hub configs, his figures).
 
 ---
 
+## The multi-omics arc — PROPOSED 2026-10-08, PICKED 2026-10-10, from PHM5003 week 10
+
+**Kenneth's call, 2026-10-10**, with the graph arc complete: return to
+PHM5003 10. The arc was proposed in chat on 2026-10-08 (as 94–98), deferred
+the same day for the graph notebooks, and renumbered to the next free slots;
+**he picked 99 · 100 · 101**, and allowed the install of mixOmics, tidyverse
+and BiocParallel into R 4.5.2 to measure on the lesson's own data.
+
+**The five notebooks were read in full** from
+`../jupyterbook/phm5003/notebook/10 - Multi-omics Analysis/` (with outputs):
+`01` Introduction (3 cells: integration approaches, X ≈ T·Wᵀ, N- and
+P-integration, max Σ cov(T₁ⱼ, T₂ⱼ)), `02` Data Preprocessing (52: TCGA-UCEC,
+529 patients, four subtypes CN_HIGH 163 · CN_LOW 147 · MSI 148 · POLE 49;
+mRNA, methylation, RPPA; samples with all three blocks train (405), samples
+missing RPPA test (102); an ANOVA filter at BH p ≤ 0.001 per block), `03`
+N-integration (31: the design matrix at 0.1, PLS correlations 0.78–0.89,
+`block.plsda` to 5 components, `perf` 10×10-fold, ncomp 4, `tune.block.splsda`
+keepX, `block.splsda` on blocks of 8,383 · 8,103 · 71), `04` Visualization (30:
+`selectVar`, `plotDiablo`, `plotIndiv`, `plotArrow`, `plotVar`, circos,
+network, loadings, `cimDiablo`) and `05` Evaluation (25: BER by component,
+`auroc` per block, `predict` with RPPA missing, test BER 0.33). Hosts below
+are cell indices in those files.
+
+### The slots
+
+| # | slug (provisional) | host | misconception | state |
+|---|---|---|---|---|
+| 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **PICKED 2026-10-10**; prerequisite for 100 |
+| 100 | `diablo` | 02 cell 0; 03 cells 10–28; 05 cells 17–24 | the design matrix records how correlated the omics types are (03 cell 10 says so; cells 12–14 measure 0.78–0.89 and suggest weights of 0.7–0.9) — it is a choice of objective: near 1 the blocks are made to agree, near 0 each block separates the subtypes on its own (Singh et al. 2019). Candidate pages: Design · Select (keepX) · Predict (each block votes; a sample with no protein data is still classified) | **PICKED 2026-10-10** |
+| 101 | `selection-bias` | 02 cells 37–50; 03 cells 18–24; 05 cells 3–6 | filtering features by a test against the labels is harmless preprocessing — filtered before cross-validation, data with no signal scores well (Ambroise & McLachlan 2002). Also covers arc B's `data-leakage` / `cv-nested`, never built | **PICKED 2026-10-10** |
+| 102 | `balanced-error` | 05 cells 5–9 | overall error hides a class (MSI 0.84 against 0.44 overall at one component) | **not picked** — 18 `balancing-data` and 35 `metrics` are close |
+| 103 | `correlation-circle` | 04 cells 17–22 | reading the circle, circos and network plots, and their cutoffs | **not picked** — reading a plot, no misconception |
+
+**Build order** is the lessons': 99 → 100 → 101.
+
+### Notebook findings, to tell him (from reading; told 2026-10-08 and 2026-10-10, not yet measured)
+
+1. **02 cells 40, 45, 50**: `filterANOVA` runs on `meta.data.all`, which
+   holds the 102 test samples and their subtypes — the test labels chose the
+   features, so 05 cell 24's test BER of 0.33 is not an independent estimate,
+   and the CV of 03 and 05 runs inside features already filtered.
+2. **05 cell 23** predicts from `WeightedVote$centroids.dist[,2]` — read as
+   components 1–2, where 03 chose 4; possibly why 18 non-POLE test samples
+   are called POLE. To confirm against mixOmics before it is told as wrong.
+3. **03 cells 10–14** present the design weight as a measured relationship
+   between blocks; it is a choice between discrimination and agreement
+   (100's subject).
+4. **04 cell 11**: `plotIndiv` is said to use "the first 2 principal
+   components" — they are DIABLO's components.
+
+---
+
 ## The graph arc — PROPOSED AND PICKED 2026-10-09, from `09-1` and `09-2`
 
 **Kenneth's ask, 2026-10-09:** *we need to work on PHM5005 notebooks on DL for
