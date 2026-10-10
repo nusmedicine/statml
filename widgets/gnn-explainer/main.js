@@ -97,10 +97,11 @@ const ALWAYS_ATOM = (() => { const c = {}; ALWAYS.forEach((b) => MOL.bonds[b].sl
 /* -------------------------------------------------------------- strings */
 
 const S = {
+  /* his pick S-A at the copy audit (2026-10-10) */
   subtitle:
-    "GNNExplainer learns a mask over a molecule's bonds and atom features that keeps the model's prediction while removing as much of the graph as it can. " +
-    "The masks start random and are optimised, then averaged and scaled into one score per bond and per atom. " +
-    "Each run from a new random start can keep a different set of bonds that holds the prediction just as well.",
+    "GNNExplainer learns a mask over a molecule's bonds and atom features: values between 0 and 1, optimised to keep the model's prediction while making the masks as small as possible. " +
+    "The masks are then averaged and scaled into one score per bond and per atom. " +
+    "Because the optimisation starts from random values, another run can produce a different set of bonds that preserves the prediction equally well.",
   pageLabel: "Step",
   startLabel: "Random start",
   startDetail: "the random values the masks begin from; each start is optimised separately, and is one run",
@@ -127,15 +128,18 @@ const S = {
   },
 
   head: "Ceftriaxone disodium · active",
-  salt: "separate pieces:",
-  saltNote: "three waters and two Na⁺, no bond to the drug",
+  salt: "disconnected fragments:",
+  saltNote: "waters and Na⁺, no bond to the drug",
   keyMask: ["mask 0", "1"],
   keyScore: ["score 0", "1"],
   keyCount: ["kept by 0 runs", "20"],
-  lanes: "two lanes a bond, one mask per direction, wider when larger · dashed: removed, both masks 0.5 or less",
+  keyKept: ["not kept", "kept"],
+  kept: "kept",
+  notKept: "not kept",
+  lanes: "two lines a bond, one mask per direction, thicker when larger · dashed: not kept (both 0.5 or less)",
   linesHead: "each bond's mask (its larger direction)",
-  goals: "each mask moves up or down: keep p(active) high, keep the masks small",
-  maskPlain: "before the masks: every message and every feature passes whole",
+  goals: "Adam adjusts each mask: the loss rewards high p(active) and small masks",
+  maskPlain: "the unmasked molecule: every message and every feature at full value",
 
   /* Mask */
   pHead: "p(active) of the masked molecule",
@@ -150,7 +154,7 @@ const S = {
     () => "each bond has two masks, one per direction; each atom has 39, one per feature (the grid)",
     () => "each bond has one score now: the larger of its two directions",
     (amax) => `each atom has one score now: the mean of its row, mostly 0, so every atom score is small (largest ${f2(amax)})`,
-    () => "both sets stretched to 0–1 within the molecule: the lowest score becomes 0, the highest 1",
+    () => "both sets scaled to 0–1 within the molecule: the lowest score becomes 0 and the highest 1",
   ],
   cardHead: "from masks to scores",
   card: [["1 · Collapse", "bond = max(→ mask, ← mask)"], ["2 · Average", "atom = mean of its 39 masks"], ["3 · Scale", "score = (s − min) / (max − min)"]],
@@ -164,7 +168,7 @@ const S = {
   testRand: (n) => `100 random sets of ${n} bonds`,
   barHead: "the 39 bonds, by how many runs keep them",
   always: (n) => `kept by every run: ${n} bonds, all on N10 (ringed)`,
-  epochs3000: "At 3,000 epochs every mask ends at 0 or 1, and the runs still keep different bonds.",
+  epochs3000: "Optimised for 3,000 epochs, every mask is 0 or 1 and the runs still keep different bonds.",
 
   /* hover */
   hovAtom: (i, v) => `${atomName(i)}${v == null ? "" : ` · ${v}`}`,
@@ -174,17 +178,17 @@ const S = {
 
   /* tiles */
   tileFull: "Unmasked",
-  tileFullNote: `p(active) from a GAT trained on the dataset's scaffold split; its test macro F1 is ${INFO.testF1.toFixed(2)}`,
+  tileFullNote: `p(active), active meaning it inhibits E. coli growth, from a GAT trained on a scaffold split; test macro F1 ${INFO.testF1.toFixed(2)}`,
   tileMasked: "Masked",
   tileMaskedNote: "p(active) with every message and every feature multiplied by its mask",
-  tileAbove: "Kept · removed",
-  tileAboveNote: (e) => `bonds with a mask above 0.5 in either direction, and the rest · epoch ${e}`,
+  tileAbove: "Kept",
+  tileAboveNote: (e) => `bonds with a mask above 0.5 in either direction · epoch ${e}`,
   tileBonds: "Bond scores",
   tileBondsNote: "the larger of each bond's two directions",
   tileAtoms: "Atom scores",
   tileAtomsNote: `the mean over ${NF} features; the mask is 0 where the feature is 0`,
   tileWater: "The waters",
-  tileWaterNote: "rank among 41 atoms; max pooling reads every atom, bonded or not",
+  tileWaterNote: "rank among 41 atoms; max pooling includes every atom, bonded or not",
   tileKept: "Kept bonds",
   tileKeptNote: `mask above 0.5, of ${NB}`,
   tileOnly: "Only those",
@@ -196,7 +200,7 @@ const S = {
   tileSome: "Kept by some run",
   tileSomeNote: `bonds kept by at least one of ${NR} runs`,
   tileShare: "Two runs share",
-  tileShareNote: "median, over every pair of runs, of the kept bonds they share as a share of the bonds either keeps",
+  tileShareNote: "median over every pair of runs: bonds both keep, as a share of bonds either keeps",
   tileWait: "—",
 
   sumMask: (run, beat, e, p) => `Random start ${run}: ${beat === 0 ? "the molecule before the masks" : `the masks at epoch ${e}, p(active) ${p}`}`,
@@ -269,6 +273,8 @@ function rampKey(ctx, colors, x1, y, words, w = 70) {
 /* ------------------------------------------------------------ the molecule */
 
 const NODE_R = 8, LANE = 2.6, STRIP = 30;
+/* the one-atom fragments' strip: room for its label, then the five atoms */
+const SALT_X = 160, SALT_DX = 30;
 const MOL_H = 236;
 /** the drug fitted to its box; the salt's one-atom pieces spaced along the strip under it */
 function placeMol(w, top) {
@@ -278,7 +284,7 @@ function placeMol(w, top) {
   const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, my = top + 30 + boxH / 2;
   const P = MOL.atoms.map((a) => [w / 2 + (a[2] - cx) * s, my + (a[3] - cy) * s]);
   const sy = top + MOL_H - STRIP / 2;
-  SALT.forEach((i, q) => { P[i] = [116 + q * 34, sy]; });
+  SALT.forEach((i, q) => { P[i] = [SALT_X + q * SALT_DX, sy]; });
   return P;
 }
 /* the element in the node, a charge as a sign outside it: "Na+" overflows a node */
@@ -293,7 +299,7 @@ function drawStrip(ctx, colors, w, top) {
   const y = top + MOL_H - STRIP;
   line(ctx, 10, y, w - 10, y, colors.grid);
   txt(ctx, colors, S.salt, 12, y + STRIP / 2 + 4, { fill: colors.ink3 });
-  txt(ctx, colors, S.saltNote, 116 + SALT.length * 34, y + STRIP / 2 + 4, { fill: colors.ink3, maxW: w - 126 - SALT.length * 34 });
+  txt(ctx, colors, S.saltNote, SALT_X + SALT.length * SALT_DX, y + STRIP / 2 + 4, { fill: colors.ink3, maxW: w - 10 - SALT_X - SALT.length * SALT_DX });
 }
 /** one bond as two lanes, one per direction; `sep` 1 is apart, 0 merged into one line */
 function drawLanes(ctx, colors, p, q, u, v, sep = 1) {
@@ -593,7 +599,7 @@ function drawRuns(ctx, colors, w, params, anim, pointer) {
       else line(ctx, P[i][0], P[i][1], P[j][0], P[j][1], colors.surface3, 2.2);
     });
     MOL.atoms.forEach((_, i) => drawAtom(ctx, colors, P[i], i, null));
-    rampKey(ctx, colors, w - 12, 12, ["dropped", "kept"], 40);
+    rampKey(ctx, colors, w - 12, 12, S.keyKept, 40);
 
     /* Test: 100 random sets' p fall onto the axis, then this run's kept set */
     const x0 = 24, x1 = w - 24, ax = top + 92, sx = (v) => x0 + v * (x1 - x0);
@@ -625,7 +631,7 @@ function drawRuns(ctx, colors, w, params, anim, pointer) {
     if (pointer) {
       const a = nearestAtom(P, pointer), b = a < 0 ? nearestBond(P, pointer) : -1;
       if (a >= 0) hoverLabel(ctx, colors, S.hovAtom(a, null), pointer.x, pointer.y, w);
-      else if (b >= 0) hoverLabel(ctx, colors, S.hovBond(b, kept.has(b) ? "kept" : "dropped"), pointer.x, pointer.y, w);
+      else if (b >= 0) hoverLabel(ctx, colors, S.hovBond(b, kept.has(b) ? S.kept : S.notKept), pointer.x, pointer.y, w);
     }
     return;
   }
@@ -740,7 +746,7 @@ defineWidget({
       return [
         { label: S.tileFull, value: f2(k(INFO.pFull)), note: S.tileFullNote },
         { label: S.tileMasked, value: on ? f2(seriesAt(R.p, f)) : S.tileWait, note: S.tileMaskedNote },
-        { label: S.tileAbove, value: on ? `${above} · ${NB - above}` : S.tileWait, note: on ? S.tileAboveNote(epochAt(f)) : "" },
+        { label: S.tileAbove, value: on ? `${above} of ${NB}` : S.tileWait, note: on ? S.tileAboveNote(epochAt(f)) : "" },
       ];
     }
     if (params.page === "scores") {

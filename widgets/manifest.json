@@ -1422,7 +1422,7 @@
     {
       "slug": "gnn-explainer",
       "title": "Deep Learning - Graphs: Explainability",
-      "blurb": "GNNExplainer learns a mask that keeps a prediction; another random start keeps a different set of bonds.",
+      "blurb": "GNNExplainer learns masks on bonds and atom features that keep a prediction; each random start gives different bonds.",
       "course": "PHM5005",
       "topics": [
         "GNNExplainer",

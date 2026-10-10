@@ -116,7 +116,10 @@ INFO = {
     "bondDeletedMax": round(max(abs(v) for v in res["occlusion_edge"]), 3),
     "noBonds": k1000(MEAS["summary"]["42"]["fidelity"]["no_bonds"]),
 }
-FEATURES = gm.FEAT_NAMES
+# the hover's names for cell 32's columns, in words (copy audit 2026-10-10: "is C" and "chiral none" were our shorthand)
+FEATURES = ["atomic number", "degree", "hydrogens", "formal charge", "aromatic", "in ring"] + \
+    [f"element {s}" for s in gm.ATOM_VOCAB] + [f"hybridisation {h}" for h in ("SP", "SP2", "SP3", "SP3D", "SP3D2")] + \
+    ["chirality unspecified", "chirality clockwise", "chirality counter-clockwise"]
 assert len(FEATURES) == x.shape[1]
 
 with open(OUT, "w", encoding="utf-8", newline="\n") as f:
