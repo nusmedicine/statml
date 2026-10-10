@@ -1,5 +1,84 @@
 # Handover
 
+**SESSION CLOSED 2026-10-10 (evening). 99 `shared-components` SHIPPED AND
+PUSHED** as "Multi-omics: Partial Least Squares" (2e16633, 40 states, three
+determinism runs and a MATCH pass at DPR 1.25, deploy 38050106506 green, the
+live page has no Draft banner and the live manifest says shipped). The
+multi-omics arc (PHM5003 10: 99 · 100 diablo · 101 selection-bias) was
+picked, measured in mixOmics and mocked this session; 99 then went through
+five review rounds, a student walk-through of each of its four pages, the
+copy audit and the ship, every call his. The record is the catalogue's
+§ *The multi-omics arc* and its § *Slot 99* rounds. **NEXT: 100 `diablo`**,
+measured and mocked at the arc's start (`_lab/multiomics-arc-mock.html`,
+his ten calls 814b8bd: Design · Predict, Predict defaulting to 2
+components) — re-read those calls against what 99 became before building.
+
+**99 now.** Step: Method [**Factorization · N-integration · P-integration**]
+· Data [**TCGA UCEC**], in 01 cell 2's order and the notebook's words
+(latent variable, loading vector, score, score matrix T, loading matrix W,
+reconstruct, residual E). A **Traced sample** (rail, or a click on a dot or
+a matrix row) carries its arithmetic through Factorization and
+N-integration.
+- Factorization (one simulated mRNA block, 80 × 2): Score · Reconstruct ·
+  Subtract · Latent variable 2 · Subtract again (E goes to 0; LV1 explains
+  71.5% of X but the subtypes differ in t₂: 0.4% vs 80% of each score's
+  variance).
+- N-integration (mRNA + methylation, same 80 rows): Start · Update ×6 (the
+  mixOmics loop from a start 80° off, each update framing what it compares)
+  · Reconstruct · Subtract · Solve directly (X₁ᵀX₂'s first singular pair).
+  PLS's w₁ (0.42, 0.91) lands near Factorization's LV2 (0.48, 0.88); the
+  dashed line is each block's direction of most variance.
+- P-integration: two studies, Stack · Find w (w ∝ Xᵀy, y the subtype) ·
+  Score; MINT named, not computed.
+- TCGA UCEC: the lesson's 405 training tumours, Pair over 03 cell 13's three
+  pairs, one press. r 0.89 · 0.89 · 0.78 against 0.37 · 0.51 · 0.47 for the
+  blocks' directions of most variance. **"expl. var." on this page is pls()'s
+  own `prop_expl_var`** (mRNA 9.9%) since a055b8a; the Method pages keep the
+  share along w (‖t‖²/‖X‖², the notebook's single W). `data.js` from
+  `_lab/multiomics-measure.R widget99`.
+
+**Measured, worth keeping for 100** (`_lab/multiomics-lv23.R`, his question
+"why only latent variable 1?"): PLS at ncomp = 3 on cell 13's pairs —
+mRNA–meth LV1 r 0.89 / subtype share 0.65, LV2 0.78 / 0.34 (POLE and MSI
+against CN_LOW), LV3 0.85 / 0.02; the other pairs alike. The blocks keep
+covarying after the subtype signal is spent: the case for DIABLO adding Y.
+His pick: 99 stays at latent variable 1, as cell 13 does.
+
+**Learned this session.** (1) Walk every page as a student, one page a
+round: each walk-through here found 4–5 fixes after the review rounds had
+passed the page. (2) Copy the notebook's nouns from the first draft — he got
+lost between widget and notebook until the vocabulary pass. (3) When a
+number on screen is one the library prints, show the library's number: the
+TCGA "expl. var." differed from pls()'s by half a point and nobody had
+noticed for four rounds. (4) Measure blurb options against `check`'s
+120-character cap BEFORE offering them (I offered 145 and trimmed after his
+pick). (5) Measure each press's length in harness frames before writing
+driven states (virtual-clock replay: N updates run 45 frames, LV2 and TCGA
+Find 51; 16-frame presses switch at once and make inert driven states).
+(6) The harness's size column is device pixels (547 css → 688 at DPR 1.25).
+(7) `Rscript` is not on Git Bash's PATH: `"/c/Program Files/R/R-4.5.2/bin/
+Rscript.exe"`. (8) Bash heredocs here eat backslashes in regexes: write
+patch scripts with the Write tool.
+
+**Open.**
+- N-integration's table still labels the share along w "expl. var."
+  (mixOmics' name, not its number); relabelling it "variance explained" was
+  offered, not decided.
+- Notebook findings for PHM5003 10 are in the catalogue's § *Notebook
+  findings* under the arc, #5 new this session: 01 cell 2 calls
+  N-integration "stacking vertically" and P-integration "side by side", the
+  opposite of the matrix layouts and of its own X = [X₁; X₂].
+- From the last session, still open: the attribution line never wraps at a
+  350px viewport (a core change, needs the full suite).
+
+**Dev server this session:** `widgets-alt4` on :8014, already stopped by
+the app at the close.
+
+**Untracked and safe to leave:** `_lab/multiomics-*.json` and the rest of
+the `_lab` measurement files `git status` lists.
+
+---
+
 **SESSION CLOSED 2026-10-10 (afternoon). 98 `gnn-explainer` SHIPPED AND
 PUSHED** as "Deep Learning - Graphs: Explainability" (d2efe72, 25 states,
 three determinism runs and a MATCH pass at DPR 1.25, deploy 38031195613
