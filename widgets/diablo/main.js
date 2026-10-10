@@ -44,7 +44,7 @@
    ========================================================================= */
 
 import { defineWidget, mathmlRenders } from "../core/index.js";
-import { SUBTYPES, Y, FEATURES, KEEPX, SWEEP, SELECT, PREDICT } from "./data.js";
+import { SUBTYPES, Y, FEATURES, KEEPX, SWEEP, SELECT, PREDICT, PLS_R } from "./data.js";
 
 const PAGES = [
   { value: "design", label: "Design", group: "Method" },
@@ -126,7 +126,8 @@ const S = {
     "share: the share of mRNA component 1's variance that lies between the four subtypes",
     "CV error: how often the full model (4 components) calls held-out tumours wrongly, averaged over the four subtypes (10-fold cross-validation); lower is better",
   ],
-  wRppa: (a, b) => `RPPA component 1: r ${a} with mRNA, ${b} with methylation`,
+  wRppa: (a, b, pa, pb) => `RPPA component 1: r ${a} with mRNA, ${b} with methylation (without Y: ${pa}, ${pb})`,
+  wPls: (r) => `PLS on the two blocks without Y: r ${r}`,
   wBefore: "Component 1: one score per tumour in each block.",
 
   /* Select */
@@ -692,7 +693,12 @@ function drawWeight(ctx, colors, w, params, anim, pointer) {
     /* the table keeps the room of four rows, so the notes under it stay put as rows arrive */
     y += 22 + 4 * 19 + 2;
     const width = w - x - 8;
-    y += 13 * wrapText(ctx, colors, S.wRppa(f3(f.r[1]), f3(f.r[2])), x, y, width, 13, { size: colors.fsXs, fill: colors.ink2 }) + 8;
+    /* the reference (his pick, 2026-10-11): the same pair's PLS without Y, as
+       03 cell 13 computes it before suggesting weights from it; DIABLO stays
+       below it at every weight, because Y is in the fit */
+    line(ctx, x, y - 4, x + 22, y - 4, colors.reference, 2, REF_DASH);
+    y += 13 * wrapText(ctx, colors, S.wPls(f3(PLS_R[0])), x + 30, y, width - 30, 13, { size: colors.fsXs, fill: colors.ink1 }) + 6;
+    y += 13 * wrapText(ctx, colors, S.wRppa(f3(f.r[1]), f3(f.r[2]), f3(PLS_R[1]), f3(PLS_R[2])), x, y, width, 13, { size: colors.fsXs, fill: colors.ink2 }) + 8;
     for (const n of S.wNotes) y += 13 * wrapText(ctx, colors, n, x, y, width, 13, { size: colors.fsXs, fill: colors.ink3 }) + 4;
   }
   if (pointer && t == null && !(ez && ez.t < 1)) {

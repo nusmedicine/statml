@@ -7,7 +7,7 @@
 // sample values, and adds the literals that live in draw/readout/legend, the manifest card and
 // the page's meta description.
 import { readFileSync } from "node:fs";
-import { SUBTYPES, Y, FEATURES, KEEPX, SWEEP, SELECT, PREDICT } from "../diablo/data.js";
+import { SUBTYPES, Y, FEATURES, KEEPX, SWEEP, SELECT, PREDICT, PLS_R } from "../diablo/data.js";
 
 const md = readFileSync(process.argv[2], "utf8");
 const terms = [];
