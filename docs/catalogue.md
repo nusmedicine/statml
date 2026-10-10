@@ -24858,7 +24858,23 @@ colours; § 2 the Mask page (four epochs, the run's curve); § 3 the Runs page
 Scores · Runs** on ceftriaxone alone, the lesson's model alone, salt drawn in
 a strip, M_x as a grid on Scores, Run 1–20 with Show One run · All runs,
 `--c-magnitude`, 300 epochs fixed, title *Deep Learning - Graphs:
-Explainability*. NEXT: his picks.
+Explainability*. **PICKED 2026-10-10: "all recommendations, build 98".**
+
+**DRAFTED 2026-10-10.** `widgets/gnn-explainer/` with a GENERATED `data.js`
+(271 KB) from `_lab/gnn-explainer-data.py`, which reruns the 20 runs on the
+saved model and asserts each matches the measurement. Step **Mask · Scores ·
+Runs**, Run 1–20 one control on every page (the Mask page's presses belong to
+its run). Mask: Initialise (the prediction falls 0.92 → 0.08 as one moving
+dot), Optimise (the 300 epochs, each bond as two lanes, one per direction;
+p(active) and the loss beside). Scores: Collapse (the lanes slide together
+into the larger value), Average (M_x's 41 × 39 grid, rows averaged top to
+bottom into a mean column), Scale (both score sets as dots moving from raw
+to 0–1). Runs: One run (kept bonds; Test drops 100 random sets' p, then the
+kept set's) · All runs (Overlay adds the 20 runs; bars by bond, N10 ringed).
+Every traced frame applies PyG's hard mask, so the Mask page ends on the
+reported mask. Checked: text sweep at 550 on every page and press (no NaN, no
+overflow, no collision), switch probe 0 flagged, heights by page only. NOT
+done: copy audit, student walk-through, baselines. NEXT: his review.
 
 ---
 

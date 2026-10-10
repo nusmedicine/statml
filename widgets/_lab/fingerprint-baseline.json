@@ -13327,6 +13327,13 @@
       },
       "px": "14557655",
       "tx": "f63912c0"
+    },
+    {
+      "$note": "PLACEHOLDER, draft: gnn-explainer · Mask, run 1, opening",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

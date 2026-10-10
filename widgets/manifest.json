@@ -1418,6 +1418,24 @@
       ],
       "arc": 97,
       "status": "shipped"
+    },
+    {
+      "slug": "gnn-explainer",
+      "title": "Deep Learning - Graphs: Explainability",
+      "blurb": "GNNExplainer learns a mask that keeps a prediction; another random start keeps a different set of bonds.",
+      "course": "PHM5005",
+      "topics": [
+        "GNNExplainer",
+        "explainability",
+        "edge mask",
+        "feature mask",
+        "graph neural network",
+        "GAT",
+        "molecular property prediction",
+        "deep learning"
+      ],
+      "arc": 98,
+      "status": "draft"
     }
   ]
 }
