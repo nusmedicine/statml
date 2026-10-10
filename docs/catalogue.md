@@ -24442,6 +24442,25 @@ unchanged). Found while building: r is not monotone in the loop (0.12 →
 0.48 → 0.95 → 0.87 → 0.88) because PLS maximises the covariance, which is
 (0.22 → 0.58 → 0.84 → 0.85); the page shows cov beside r and says so.
 
+### Slot 99 — round 2 (2026-10-10): PLS only
+
+His question, "do we still do PCA, or is it shown for comparison?", then
+"should we just remove it? … I'm also not sure how it is different from
+PCA, SVD, NMF". Answered in one table: all write a block as scores ×
+loadings; PCA keeps the most of one block (the SVD of X), NMF rebuilds one
+block from parts that only add, PLS makes two blocks' scores covary (the
+SVD of X₁ᵀX₂, or the alternating loop). 41 already sets PCA against NMF on
+one matrix. Mock `_lab/shared-components-plsonly-mock.html` (1ba7e0f), four
+calls, all the recommendation: the Method control goes; PCA survives as the
+BENCHMARK, each block's largest-variance direction dashed in
+`--c-reference`, brought in with Concept's last press (Converged) beside a
+PLS | largest-variance table; Factorize gains a fourth press, Shortcut:
+X₁ᵀX₂ / n and its first singular pair, (0.42, 0.91) · (1.00, 0.04), equal to
+the loop's end, with each block's dashed direction beside; Data's table
+carries a "largest variance" column. Factorize's rows went from 3px to 2px
+to keep the page inside the harness's 1,197px frame (1,185 with the Draft
+banner).
+
 ### Notebook findings, to tell him (from reading; told 2026-10-08 and 2026-10-10, not yet measured)
 
 1. **02 cells 40, 45, 50**: `filterANOVA` runs on `meta.data.all`, which
