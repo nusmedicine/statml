@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 98 gnn-explainer — round 1 mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>98 <code>gnn-explainer</code> &middot; round 1 mock &middot; the Mask page's atoms, and the Scores page</h1>
+  <p class="note">Your questions 2 and 3 on the draft. (1, 4, the rename to <b>Random start</b> and synced hover on Scores are already in
+    the draft, 165c4e9.) Start 1, drawn at the widget's 550px with the widget's own data; the feature mask every 10 epochs comes from
+    <code>gnn-explainer-round1-export.py</code>.</p>
+
+  <h2>1 &middot; Mask page: what the optimiser is doing, and the atoms' masks (your question 2)</h2>
+  <p class="note">Both options add a line under the molecule naming the two goals, and keep the bonds as two lanes. <b>A</b> puts the
+    feature mask <i>M<sub>x</sub></i> &mdash; one value per atom per feature, the grid the Scores page already uses &mdash; beside the
+    p(active) curve, learning with it; the loss panel goes (it repeats the curve's story in a quantity a student does not read). <b>B</b>
+    keeps the loss panel and colours each atom by the mean of the masks on its own features, so the atoms change on the molecule. B's
+    atom colour is <b>not</b> the lesson's atom score (that averages over all 39 features, zeros included &mdash; the Scores page), so
+    the two pages would show two different averages of the same mask.</p>
+  <div class="row" id="r1a"></div>
+  <div class="row" id="r1b"></div>
+  <div class="q"><b class="h">1 &middot; The Mask page</b><b>A</b> the M<sub>x</sub> grid learning beside p(active), loss panel removed
+    (recommended: one picture of each mask, the same grid on both pages). <b>B</b> atoms coloured on the molecule, loss panel kept.</div>
+
+  <h2>2 &middot; Scores page: one place to look per press (your question 3)</h2>
+  <p class="note">Both options add a status line that says what the last press did, frame the part each press changes, and keep the
+    synced hover (the third canvas of each shows atom N10 hovered). <b>A</b> keeps the draft's two dot axes, labelled. <b>B</b> drops
+    the axes and puts cell 90's three formulas beside the grid, the line for the press just made in bold with its numbers; Scale then
+    shows on the molecule itself &mdash; before it every atom is near blank (the largest atom score is <span id="amax"></span>), after it
+    the ramp is full &mdash; and the bonds barely change (they already ran <span id="brange"></span>).</p>
+  <div class="row" id="r2a"></div>
+  <div class="row" id="r2b"></div>
+  <div class="q"><b class="h">2 &middot; The Scores page</b><b>A</b> the dot axes kept, labelled, with the status line and frames.
+    <b>B</b> the axes replaced by the three formulas, the current one in bold (recommended: two views instead of three, and the
+    stretch the lesson's scaling makes is seen on the molecule where the score is read).</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { MOL, FEATURES, EPOCHS, INFO, RUNS } from "../gnn-explainer/data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const TR = await fetch("gnn-explainer-round1-mock-data.json").then((r) => r.json());
+const R = RUNS[0], NA = MOL.atoms.length, NB = MOL.bonds.length, NF = FEATURES.length, NE = EPOCHS.length;
+const DRUG = MOL.atoms.map((a, i) => i).filter((i) => MOL.atoms[i][4]);
+const SALT = MOL.atoms.map((a, i) => i).filter((i) => !MOL.atoms[i][4]);
+const k = (v) => v / 1000, f2 = (v) => v.toFixed(2);
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const ramp = (v) => { const a = rgb(T.surface3), b = rgb(T.magnitude), u = Math.max(0, Math.min(1, v)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+function txt(ctx, s, x, y, { size = 11, fill = T.ink2, align = "left", weight = "", baseline = "alphabetic", mono = false, maxW = null } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = baseline;
+  let t = String(s); if (maxW) while (ctx.measureText(t).width > maxW && t.length > 2) t = t.slice(0, -2) + "…";
+  ctx.fillText(t, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, c, w = 1, dash = null) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + lw / 2, y + lw / 2, w - lw, h - lw); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+function polyline(ctx, pts, c, w = 2, dash = null) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); }
+function rampKey(ctx, x1, y, words, w = 70) { ctx.save(); ctx.font = `11px ${T.font}`; const tw = ctx.measureText(words[1]).width; ctx.restore(); const x0 = x1 - tw - 6 - w; for (let q = 0; q < w; q++) line(ctx, x0 + q, y, x0 + q + 1, y, ramp(q / (w - 1)), 8); txt(ctx, words[0], x0 - 6, y + 3, { align: "right", fill: T.ink3 }); txt(ctx, words[1], x1, y + 3, { align: "right", fill: T.ink3 }); }
+
+/* --- the molecule, as the widget draws it */
+const NODE_R = 8, LANE = 2.6, STRIP = 30, MOL_H = 236;
+function placeMol(w, top) {
+  const xs = DRUG.map((i) => MOL.atoms[i][2]), ys = DRUG.map((i) => MOL.atoms[i][3]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const boxH = MOL_H - STRIP - 54, s = Math.min((w - 2 * NODE_R - 24) / (maxX - minX), boxH / (maxY - minY));
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, my = top + 30 + boxH / 2;
+  const P = MOL.atoms.map((a) => [w / 2 + (a[2] - cx) * s, my + (a[3] - cy) * s]);
+  SALT.forEach((i, q) => { P[i] = [116 + q * 34, top + MOL_H - STRIP / 2]; });
+  return P;
+}
+function drawAtom(ctx, p, i, v) {
+  const [elm, ch] = MOL.atoms[i];
+  dot(ctx, p[0], p[1], NODE_R, v == null ? T.surface1 : ramp(v), T.ink3, 1);
+  txt(ctx, elm, p[0], p[1] + 0.5, { size: 10, weight: "600", align: "center", baseline: "middle", fill: v != null && v > 0.55 ? T.surface1 : T.ink1 });
+  if (ch) txt(ctx, ch > 0 ? "+" : "−", p[0] + NODE_R + 1, p[1] - NODE_R + 3, { size: 10, weight: "600", fill: T.ink1 });
+}
+function drawLanes(ctx, p, q, u, v, sep = 1) {
+  const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, nx = (-dy / L) * LANE * sep, ny = (dx / L) * LANE * sep;
+  line(ctx, p[0], p[1], q[0], q[1], T.ink3, 1);
+  line(ctx, p[0] + nx, p[1] + ny, q[0] + nx, q[1] + ny, ramp(u), 3.4); line(ctx, p[0] - nx, p[1] - ny, q[0] - nx, q[1] - ny, ramp(v), 3.4);
+}
+function drawScoredBond(ctx, p, q, v) { line(ctx, p[0], p[1], q[0], q[1], T.ink3, 1); line(ctx, p[0], p[1], q[0], q[1], ramp(v), 2 + 4.5 * v); }
+function drawStrip(ctx, w) { const y = MOL_H - STRIP; line(ctx, 10, y, w - 10, y, T.grid); txt(ctx, "separate pieces:", 12, y + STRIP / 2 + 4, { fill: T.ink3 }); txt(ctx, "three waters and two Na⁺, no bond to the drug", 116 + 5 * 34, y + STRIP / 2 + 4, { fill: T.ink3 }); }
+const P = placeMol(W, 0);
+const frameOf = (epoch) => EPOCHS.indexOf(epoch);
+
+/* the M_x grid at one frame; rows an atom, columns a feature */
+const CELL = 5, GROUPS = [6, NF - 8, NF - 3];
+function drawGrid(ctx, gx, gy, mx, { head = "M_x: one mask per atom per feature", mean = null, frame = false, hover = -1 } = {}) {
+  txt(ctx, head, gx - 30, gy - 10, { size: 12, weight: "600", fill: T.ink1 });
+  GROUPS.forEach((a) => line(ctx, gx + a * CELL, gy - 3, gx + a * CELL, gy + NA * CELL + 2, T.ink3, 1));
+  mx.forEach((row, i) => {
+    if ((i % 10 === 0 && i < 32) || i === 36 || i === 40) txt(ctx, `${MOL.atoms[i][0]}${i}`, gx - 4, gy + i * CELL + CELL, { size: 9, align: "right", fill: T.ink3, mono: true });
+    row.forEach((v, q) => { if (v > 0) rect(ctx, gx + q * CELL, gy + i * CELL, CELL - 1, CELL - 1, ramp(k(v))); });
+  });
+  rect(ctx, gx - 1, gy - 1, NF * CELL + 1, NA * CELL + 1, null, T.grid);
+  const mx0 = gx + NF * CELL + 8;
+  if (mean) { txt(ctx, "mean", mx0 + 4, gy - 4, { size: 10, align: "center", fill: T.ink3 }); mean.forEach((v, i) => { if (v != null) rect(ctx, mx0, gy + i * CELL, 9, CELL - 1, ramp(v)); }); rect(ctx, mx0 - 1, gy - 1, 11, NA * CELL + 1, null, T.grid); }
+  if (frame) rect(ctx, gx - 34, gy - 24, (mean ? mx0 + 24 : gx + NF * CELL + 4) - gx + 34, NA * CELL + 30, null, T.ink1, 1.5);
+  if (hover >= 0) rect(ctx, gx - 2, gy + hover * CELL - 1, (mean ? mx0 + 11 : gx + NF * CELL) - gx + 2, CELL + 1, null, T.ink1, 1.2);
+}
+function drawP(ctx, x0, top, pw, f) {
+  const y0 = top + 18, ph = 120, y1 = y0 + ph, ex = (e) => x0 + pw * (e - 1) / 299, sy = (v) => y1 - v * ph;
+  txt(ctx, "p(active) of the masked molecule", x0 - 28, top + 8, { size: 12, weight: "600", fill: T.ink1 });
+  line(ctx, x0, y1, x0 + pw, y1, T.axis ?? T.ink3); line(ctx, x0, y0, x0, y1, T.axis ?? T.ink3);
+  txt(ctx, "1", x0 - 4, y0 + 4, { align: "right", fill: T.ink3 }); txt(ctx, "0", x0 - 4, y1 + 3, { align: "right", fill: T.ink3 });
+  txt(ctx, "1", x0, y1 + 14, { fill: T.ink3 }); txt(ctx, "300", x0 + pw, y1 + 14, { align: "right", fill: T.ink3 });
+  const pf = k(INFO.pFull); line(ctx, x0, sy(pf), x0 + pw, sy(pf), T.ink3, 1, [3, 3]); txt(ctx, `unmasked ${f2(pf)}`, x0 + pw, sy(pf) + 13, { align: "right", fill: T.ink3 });
+  const pts = []; for (let q = 0; q <= f; q++) pts.push([ex(EPOCHS[q]), sy(k(R.p[q]))]);
+  polyline(ctx, pts, T.ink1, 2); const l = pts[pts.length - 1]; dot(ctx, l[0], l[1], 3.5, T.ink1);
+}
+function drawLoss(ctx, x0, top, pw, f) {
+  const y0 = top + 18, ph = 120, y1 = y0 + ph, ex = (e) => x0 + pw * (e - 1) / 299, lmax = Math.max(...R.loss.map(k)), sy = (v) => y1 - (v / lmax) * ph;
+  txt(ctx, "loss", x0 - 28, top + 8, { size: 12, weight: "600", fill: T.ink1 });
+  line(ctx, x0, y1, x0 + pw, y1, T.ink3); line(ctx, x0, y0, x0, y1, T.ink3);
+  const a = [], b = []; for (let q = 0; q <= f; q++) { a.push([ex(EPOCHS[q]), sy(k(R.loss[q]))]); b.push([ex(EPOCHS[q]), sy(k(R.pred[q]))]); }
+  polyline(ctx, a, T.ink1, 2); polyline(ctx, b, T.ink3, 1.6, [4, 3]);
+  txt(ctx, "— total  ‐‐ prediction term", x0, y1 + 28, { fill: T.ink2 });
+}
+const GOALS = "each mask moves up or down: keep p(active) high, keep the masks small";
+
+/* ------------------------------------------------------- § 1, option A */
+for (const e of [1, 101, 300]) {
+  const f = frameOf(e), E = R.edges[f].map(k);
+  const ctx = canvasIn(cand("r1a", `A · epoch ${e}`, e === 1 ? "after Initialise" : e === 300 ? "after Optimise" : "while Optimise plays"), W, 520);
+  txt(ctx, "Ceftriaxone disodium · active", 12, 16, { size: 13, weight: "600", fill: T.ink1 }); rampKey(ctx, W - 12, 12, ["mask 0", "1"]);
+  drawStrip(ctx, W);
+  MOL.bonds.forEach(([i, j], b) => drawLanes(ctx, P[i], P[j], E[2 * b], E[2 * b + 1]));
+  MOL.atoms.forEach((_, i) => drawAtom(ctx, P[i], i, null));
+  txt(ctx, GOALS, 12, MOL_H - STRIP - 6, { fill: T.ink2, maxW: W - 110 });
+  txt(ctx, `epoch ${e} of 300`, W - 12, MOL_H - STRIP - 6, { align: "right", fill: T.ink1, weight: "600" });
+  drawP(ctx, 40, MOL_H + 22, 220, f);
+  drawGrid(ctx, 330, MOL_H + 50, TR.mx[f]);
+  txt(ctx, "columns: six numbers · element · hybridisation · chirality; empty: the feature is 0 for that atom", 12, 512, { fill: T.ink3, maxW: W - 24 });
+}
+
+/* ------------------------------------------------------- § 1, option B */
+for (const e of [1, 300]) {
+  const f = frameOf(e), E = R.edges[f].map(k), mx = TR.mx[f];
+  const own = mx.map((row) => { const nz = row.filter((v) => v > 0); return nz.length ? nz.reduce((s, v) => s + k(v), 0) / nz.length : 0; });
+  const ctx = canvasIn(cand("r1b", `B · epoch ${e}`, "atoms: the mean mask over the features each atom has"), W, 430);
+  txt(ctx, "Ceftriaxone disodium · active", 12, 16, { size: 13, weight: "600", fill: T.ink1 }); rampKey(ctx, W - 12, 12, ["mask 0", "1"]);
+  drawStrip(ctx, W);
+  MOL.bonds.forEach(([i, j], b) => drawLanes(ctx, P[i], P[j], E[2 * b], E[2 * b + 1]));
+  MOL.atoms.forEach((_, i) => drawAtom(ctx, P[i], i, own[i]));
+  txt(ctx, GOALS, 12, MOL_H - STRIP - 6, { fill: T.ink2, maxW: W - 110 });
+  txt(ctx, `epoch ${e} of 300`, W - 12, MOL_H - STRIP - 6, { align: "right", fill: T.ink1, weight: "600" });
+  drawP(ctx, 40, MOL_H + 22, 205, f); drawLoss(ctx, 40 + 205 + 52, MOL_H + 22, 205, f);
+}
+
+/* --------------------------------------------------------- § 2, Scores */
+const last = R.edges[NE - 1].map(k);
+const bondRaw = MOL.bonds.map((_, b) => Math.max(last[2 * b], last[2 * b + 1]));
+const atomRaw = R.mx.map((row) => row.reduce((s, v) => s + k(v), 0) / NF);
+const scale = (v) => { const lo = Math.min(...v), hi = Math.max(...v); return v.map((x) => (x - lo) / (hi - lo + 1e-8)); };
+const bondS = scale(bondRaw), atomS = scale(atomRaw);
+document.getElementById("amax").textContent = f2(Math.max(...atomRaw));
+document.getElementById("brange").textContent = `${f2(Math.min(...bondRaw))}–${f2(Math.max(...bondRaw))}`;
+const STATUS = [
+  "each bond still has two masks, one per direction; each atom has 39, one per feature (the grid)",
+  "each bond has one score now: the larger of its two directions",
+  `each atom has one score now: the mean of its row, most of it 0, so every atom score is small (largest ${f2(Math.max(...atomRaw))})`,
+  "both sets stretched to 0–1 within the molecule: the lowest score becomes 0, the highest 1",
+];
+const GY = MOL_H + 58, GX = 34;
+function scoresPage(rowId, title, beat, opt, hover = -1) {
+  const H = GY + NA * CELL + 34;
+  const ctx = canvasIn(cand(rowId, title, ["", "after Collapse", "after Average", "after Scale"][beat] + (hover >= 0 ? " · N10 hovered" : "")), W, H);
+  txt(ctx, "Ceftriaxone disodium · active", 12, 16, { size: 13, weight: "600", fill: T.ink1 }); rampKey(ctx, W - 12, 12, beat >= 3 ? ["score 0", "1"] : ["mask 0", "1"]);
+  drawStrip(ctx, W);
+  const bv = (b) => (beat >= 3 ? bondS[b] : bondRaw[b]), av = (i) => (beat >= 3 ? atomS[i] : atomRaw[i]);
+  MOL.bonds.forEach(([i, j], b) => (beat >= 1 ? drawScoredBond(ctx, P[i], P[j], bv(b)) : drawLanes(ctx, P[i], P[j], last[2 * b], last[2 * b + 1])));
+  MOL.atoms.forEach((_, i) => drawAtom(ctx, P[i], i, beat >= 2 ? av(i) : null));
+  /* the status line, and a frame on what the press changed */
+  txt(ctx, STATUS[beat], 12, MOL_H - STRIP - 6, { fill: T.ink1, weight: "600", maxW: W - 24 });
+  if (beat === 1 || beat === 3) rect(ctx, 6, 24, W - 12, MOL_H - STRIP - 38, null, T.ink1, 1.5);
+  if (hover >= 0) dot(ctx, P[hover][0], P[hover][1], NODE_R + 4, null, T.ink1, 1.8);
+  drawGrid(ctx, GX, GY, R.mx, { mean: beat >= 2 ? MOL.atoms.map((_, i) => av(i)) : null, frame: beat === 2, hover });
+  txt(ctx, "columns: six numbers · element · hybridisation · chirality; empty: the feature is 0 for that atom", 12, GY + NA * CELL + 18, { fill: T.ink3, maxW: W - 24 });
+  const sx0 = GX + NF * CELL + 54, sw = W - 16 - sx0;
+  if (opt === "A") {
+    txt(ctx, "scores on 0–1", sx0, GY - 10, { size: 12, weight: "600", fill: T.ink1 });
+    [["each dot is one bond's score", beat >= 1, NB, bv, GY + 46], ["each dot is one atom's score", beat >= 2, NA, av, GY + 126]].forEach(([name, ready, n, val, y], s) => {
+      txt(ctx, name, sx0, y - 24, { fill: T.ink1 });
+      line(ctx, sx0, y, sx0 + sw, y, T.ink3);
+      [0, 0.5, 1].forEach((v) => { line(ctx, sx0 + v * sw, y, sx0 + v * sw, y + 4, T.ink3); txt(ctx, String(v), sx0 + v * sw, y + 15, { align: "center", fill: T.ink3 }); });
+      if ((beat === 1 && s === 0) || (beat === 2 && s === 1) || beat === 3) rect(ctx, sx0 - 8, y - 38, sw + 16, 58, null, T.ink1, 1.5);
+      if (!ready) return;
+      for (let q = 0; q < n; q++) dot(ctx, sx0 + val(q) * sw, y - 6 - (q % 3) * 4, 2.6, ramp(val(q)), T.ink3, 0.6);
+      if (hover >= 0 && s === 1) dot(ctx, sx0 + val(hover) * sw, y - 6 - (hover % 3) * 4, 5.5, null, T.ink1, 1.6);
+    });
+  } else {
+    txt(ctx, "from masks to scores", sx0, GY - 10, { size: 12, weight: "600", fill: T.ink1 });
+    const lines = [
+      ["1 · Collapse", "bond = max(→ mask, ← mask)", `bonds now ${f2(Math.min(...bondRaw))}–${f2(Math.max(...bondRaw))}`],
+      ["2 · Average", "atom = mean of its 39 masks", `atoms now ${f2(Math.min(...atomRaw))}–${f2(Math.max(...atomRaw))}`],
+      ["3 · Scale", "score = (s − min) / (max − min)", "bonds and atoms now 0–1"],
+    ];
+    lines.forEach(([h, eq, num], q) => {
+      const y = GY + 14 + q * 64, cur = beat === q + 1, done = beat > q;
+      txt(ctx, h, sx0, y, { fill: done ? T.ink1 : T.ink3, weight: cur ? "700" : "600" });
+      txt(ctx, eq, sx0, y + 18, { fill: done ? T.ink1 : T.ink3, mono: true, size: 11, weight: cur ? "700" : "" , maxW: sw });
+      if (done) txt(ctx, num, sx0, y + 35, { fill: cur ? T.ink1 : T.ink2, maxW: sw });
+      if (cur) rect(ctx, sx0 - 8, y - 15, sw + 16, 58, null, T.ink1, 1.5);
+    });
+    if (hover >= 0 && beat >= 2) txt(ctx, `N10: mean ${f2(atomRaw[hover])} → score ${f2(atomS[hover])}`, sx0, GY + 14 + 3 * 64 + 4, { fill: T.ink1, weight: "600", maxW: sw });
+  }
+}
+[1, 2, 3].forEach((b) => scoresPage("r2a", `A · after press ${b}`, b, "A"));
+scoresPage("r2a", "A · hover", 3, "A", 10);
+[1, 2, 3].forEach((b) => scoresPage("r2b", `B · after press ${b}`, b, "B"));
+scoresPage("r2b", "B · hover", 3, "B", 10);
+</script>
+</body>
+</html>

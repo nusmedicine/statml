@@ -213,7 +213,7 @@ def logits(model, x, ei, ea, emask=None):
     model.set_edge_mask(None)
     return out[0]
 
-def gnn_explainer(model, x, ei, ea, target, seed, epochs=300, lr=0.01, trace_every=0):
+def gnn_explainer(model, x, ei, ea, target, seed, epochs=300, lr=0.01, trace_every=0, trace_mx=False):
     torch.manual_seed(seed)
     N, Fdim = x.shape; E = ei.shape[1]
     node_mask = nn.Parameter(torch.randn(N, Fdim) * 0.1)
@@ -250,6 +250,8 @@ def gnn_explainer(model, x, ei, ea, target, seed, epochs=300, lr=0.01, trace_eve
             trace.append({"epoch": i + 1, "pred_loss": round(pred_loss, 4), "loss": round(float(loss), 4), "p": round(p_now, 4),
                           "edge": [round(float(v), 3) for v in edge_mask.detach().sigmoid()],
                           "node": [round(float(v), 4) for v in nmt.mean(1)]})
+            if trace_mx:
+                trace[-1]["mx"] = [[round(float(v), 3) for v in r_] for r_ in nmt]
     nm = node_mask.detach().sigmoid(); nm[~hard_n] = 0.0
     em = edge_mask.detach().sigmoid(); em[~hard_e] = 0.0
     return nm, em, hard_n, hard_e, trace
