@@ -1439,15 +1439,15 @@
     },
     {
       "slug": "shared-components",
-      "title": "Multi-omics: Shared Components",
-      "blurb": "PCA takes each omics block's largest variation; PLS takes the directions two blocks share on the same samples.",
+      "title": "Multi-omics: Partial Least Squares",
+      "blurb": "PLS factorizes two omics blocks so their scores have the largest covariance, not the most variance within one block.",
       "course": "PHM5003",
       "topics": [
         "multi-omics",
         "PLS",
         "PCA",
         "N-integration",
-        "latent components",
+        "latent variables",
         "covariance"
       ],
       "arc": 99,

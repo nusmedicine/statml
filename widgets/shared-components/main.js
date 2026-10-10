@@ -1,5 +1,5 @@
 /* ============================================================================
-   Widget 99 · Multi-omics: Shared Components (`shared-components`) — PHM5003
+   Widget 99 · Multi-omics: Partial Least Squares (`shared-components`) — PHM5003
    10, 01 cell 2 (matrix factorization X ≈ T·Wᵀ; N-integration and its
    max Σ cov(T₁ⱼ, T₂ⱼ); P-integration, X = [X₁; X₂]), 02 cell 0 (DIABLO's
    latent variables) and 03 cells 12–13 (pls(X$mRNA, X$meth, ncomp = 1) and
@@ -13,46 +13,43 @@
    direction (PC1) correlates 0.37 · 0.51 · 0.47 with the other's; PLS
    component 1 0.89 · 0.89 · 0.78, keeping 1–2 points less of each block.
 
-   HOW IT GOT HERE, five rounds in a day, every call his from a `_lab` mock
-   ("all recommendations" each time): the draft set PCA against PLS; round 1
-   added mixOmics' loop and a Factorize page; round 2 dropped PCA as a method
-   and kept it as the dashed BENCHMARK; round 3 put the picture and the
-   matrix on one page with a traced sample; round 4 (his "review it from a
-   student's viewpoint ... this widget should explain the concepts the
-   notebook introduces", `_lab/shared-components-notebook-mock.html`) laid the
-   pages out in 01 cell 2's order and took the notebook's single letter W for
-   the loadings:
+   HOW IT GOT HERE, five rounds and four student walk-throughs in a day,
+   every call his from a `_lab` mock: the draft set PCA against PLS; round 1
+   added mixOmics' loop; round 2 dropped PCA as a method and kept each
+   block's direction of most variance as the dashed reference; round 3 put
+   the picture and the matrix on one page with a traced sample; round 4
+   (`_lab/shared-components-notebook-mock.html`) laid the pages out in 01
+   cell 2's order with the notebook's terms (latent variables t and u, score
+   matrix T, loading matrix W, reconstruct, residual E). The copy audit
+   (2026-10-10) retitled it "Multi-omics: Partial Least Squares".
 
      METHOD
-       Factorization   one block (mRNA): Score (w₁, the direction that
-                       rebuilds the most of X; t₁ = Xw₁) · Rebuild (t₁w₁ᵀ,
-                       each sample at its foot on the arrow) · Subtract (E) ·
-                       Component 2 (from E; T and W gain their second
-                       columns, and with L = P the rebuild is exact). The
-                       matrices in the notebook's shapes: X (N × P) ≈ T
-                       (N × L) · Wᵀ (L × P).
+       Factorization   one block (mRNA): Score (w₁, the first singular
+                       vector; t₁ = Xw₁) · Reconstruct (T·Wᵀ, drawn as its own
+                       table) · Subtract (E) · Latent variable 2 (from E; T
+                       and Wᵀ gain a column and a row) · Subtract again (E
+                       goes to 0: with L = P the reconstruction is exact).
        N-integration   the two blocks on the same samples, matrices' rows
                        aligned across the page; mixOmics' loop as presses
                        (Start · Update mRNA · Update methylation …, from a
-                       start 80° off so the rule can be seen), then Rebuild ·
-                       Subtract · Solve directly (X₁ᵀX₂ and its first singular pair,
-                       which is the loop's end, and exists only because the
-                       rows are the same samples).
-       P-integration   two studies with the same two genes: Stack (X₂ moves
-                       under X₁) · Find w (one w for both, each gene's
-                       covariance with the subtype, the notebook's "PLS
-                       against a response") · Score (each study's samples
-                       their own scores). Per-study centring (MINT) was
+                       start 80° off so the rule can be seen), then
+                       Reconstruct · Subtract · Solve directly (X₁ᵀX₂ and its
+                       first singular pair, which is the loop's end, and
+                       exists only because the rows are the same samples).
+       P-integration   two studies with the same two genes: Stack · Find w
+                       (one w for both, each gene's covariance with the
+                       response y, the subtype: the notebook's "PLS against
+                       a response") · Score. Per-study centring (MINT) was
                        measured and left out: it gave no clean lesson
-                       without a held-out study.
+                       without a held-out study; the last caption names it.
      DATA
        TCGA UCEC       the lesson's 405 training samples, Pair over the three
                        pairs 03 cell 13 correlates.
 
    A traced sample (rail control, or a click on a dot or a matrix row) runs
    through Factorization and N-integration with its arithmetic beside it.
-   "Kept" means one thing on every page: the share of a block's variance
-   along w, ‖t‖² / ‖X‖², what t wᵀ rebuilds.
+   "Explains" means one thing on every page: the share of a block's
+   variance along w, ‖t‖² / ‖X‖², what t wᵀ reconstructs.
 
    Nothing is fitted on the page for TCGA UCEC: data.js (generated by
    `_lab/multiomics-measure.R widget99`) holds the scores, weights and kept
@@ -87,9 +84,8 @@ const TRACED = 62;
 
 const S = {
   subtitle:
-    "Partial least squares finds, in each of two omics blocks measured on the same samples, a latent variable whose scores covary most with the other block's. " +
-    "Each block's loading vector holds its features' covariances with the other block's scores, found by alternating between the blocks. " +
-    "Like other matrix factorizations it writes each block as scores times loadings, X ≈ T·Wᵀ, but the latent variables are chosen to agree across blocks rather than to explain the most variance within one.",
+    "Partial least squares (PLS) writes each omics block as scores times loadings, X ≈ T·Wᵀ, like PCA, but its loading vectors maximise the covariance between the two blocks' scores rather than the variance within one block. " +
+    "In N-integration the blocks are different omics measured on the same samples; in P-integration, studies that measured the same features are stacked into one table.",
   pageLabel: "Step",
   pairLabel: "Pair",
   pairDetail: "two of the three blocks, measured on the same 405 samples",
@@ -114,8 +110,8 @@ const S = {
     "Score: the loading vector w₁ (arrow) is the direction that explains the most variance in X, found as the first singular vector of X. Each sample is projected onto it: its score on latent variable 1 is t₁ = row × w₁, a linear combination of its two genes.",
     "Reconstruct: T·Wᵀ is a table the size of X, every sample at its projection on the loading vector (hollow). This is the part of X that latent variable 1 explains.",
     "Subtract: the residual E = X − T·Wᵀ is what is left, the gap from each projection to its dot.",
-    "Latent variable 2: each sample moves to its row of E. With 2 genes E lies on one line, so w₂ has no choice; with thousands of genes it is E's direction of most variance. T gains a column, the scores t₂, and Wᵀ a row, the loadings w₂: one per latent variable. Omics blocks keep L far below P.",
-    "Subtract again: every row of E lies on w₂, so nothing is left and every sample moves to 0. Latent variable 1 explained 71.5% of X but did not separate the subtypes; latent variable 2 did. On N-integration, PLS finds that direction first, because methylation shares it.",
+    "Latent variable 2: each dot is now its sample's row of E. With 2 genes E lies on one line, so w₂ is that line's direction; with thousands of genes it is E's direction of most variance. T now has a second column, the scores t₂, and Wᵀ a second row, the loadings w₂: one per latent variable. In omics data L is far smaller than P.",
+    "Subtract again: every row of E lies on w₂, so nothing is left and every row of E is 0. Latent variable 1 explained 71.5% of X, but the subtypes differ in t₂, not in t₁. On N-integration, PLS's latent variable 1 is close to this direction, the one along which mRNA covaries with methylation.",
   ],
   fRow: (n, a, b) => `sample ${n}: gene 1 = ${a}, gene 2 = ${b}`,
   fScore: (k, x, w, t) => `t${k} = ${x[0]} × ${w[0]} + ${x[1]} × ${w[1]} = ${t}`,
@@ -137,13 +133,13 @@ const S = {
   /* N-integration */
   caption: {
     before: "N-integration looks for one latent variable per block, t and u, whose covariance across the same 80 samples is as large as possible. mRNA is the block from Factorization; each dot above is one row of the matrix below it.",
-    start: "Start: methylation's loading vector (arrow) points in an arbitrary direction. Each sample's score u is its projection onto it.",
+    start: "Start: methylation's loading vector (arrow) is set to an arbitrary starting direction. Each sample's score u is its projection onto it.",
     updA: "Update mRNA: each gene's loading becomes its covariance with the methylation scores u. The arrow, w and the t column change together.",
     updB: "Update methylation: each CpG site's loading becomes its covariance with the mRNA scores t. The arrow, w and the u column change together.",
-    done: (w, f2w) => `Another round changes neither loading vector: t and u are each block's latent variable 1 (mixOmics calls it component 1). mRNA's loading vector (${w}) is close to Factorization's latent variable 2 (${f2w}), the direction methylation shares. Dashed: each block's direction of most variance, Factorization's latent variable 1.`,
+    done: (w, f2w) => `Another round changes neither loading vector: t and u are each block's latent variable 1 (mixOmics calls it component 1). mRNA's loading vector (${w}) is close to Factorization's latent variable 2 (${f2w}), the direction along which mRNA covaries with methylation. Dashed: each block's direction of most variance, Factorization's latent variable 1.`,
     rebuild: "Reconstruct: t wᵀ puts every sample at its projection on its block's loading vector (hollow).",
-    subtract: "Subtract: the residual E = X − t wᵀ is what latent variable 1 leaves. Latent variable 2 is found in E the same way.",
-    shortcut: "Solve directly: the loop computed the first singular pair of X₁ᵀX₂, the cross-covariance matrix. It multiplies the two tables row by row, so it exists only because the rows are the same samples.",
+    subtract: "Subtract: the residual E = X − t wᵀ is the part of X not explained by latent variable 1. Latent variable 2 is found in E the same way.",
+    shortcut: "Solve directly: the alternating updates computed the first singular pair of X₁ᵀX₂, the cross-covariance matrix. Each entry sums, over samples, one mRNA feature times one methylation feature, so it is defined only when both tables' rows are the same samples.",
   },
   sameRows: "N-integration: the rows are the same 80 samples in both tables.",
   vertical: "Also called vertical integration: different omics layers measured on the same samples.",
@@ -156,7 +152,7 @@ const S = {
   eLine: (s, v) => `${s} E row = (${v})`,
   crossHead: "X₁ᵀX₂ / n, the cross-covariance: each mRNA feature's covariance with each methylation feature",
   covIs: "cov(t, u) = w₁ᵀ (X₁ᵀX₂ / n) w₂ is largest at its first singular pair:",
-  pairLine: (a, b) => `w₁ = (${a}), w₂ = (${b}): the loop's loading vectors`,
+  pairLine: (a, b) => `w₁ = (${a}), w₂ = (${b}): the loading vectors from the alternating updates`,
   pcaIs: "PCA instead decomposes one block's own covariance, X₁ᵀX₁: the dashed line.",
   mX: ["X₁", "X₂"], mT: ["t", "u"], mE: "E",
   colPls: "PLS",
@@ -169,7 +165,7 @@ const S = {
     "Two studies measured the same 2 genes on different samples, 40 each. Same genes, so both studies' samples share one pair of axes; in N-integration each block needed its own.",
     "Stack: the studies share their columns, the genes, so their tables stack into one, X = [X₁; X₂]: the scatter's single pair of axes, written as a matrix.",
     "Find w: PLS needs a second table to covary with; here it is the response y, the subtype. Each gene's loading is its covariance with y, scaled to length 1: one loading vector for both studies.",
-    "Score: every sample, from either study, is projected onto the same loading vector, so both studies' samples lie on one latent variable. Real studies also differ in baseline; mixOmics' MINT centres each study before finding w.",
+    "Score: every sample, from either study, is projected onto the same loading vector, so both studies' samples lie on one latent variable. Studies from different labs or platforms also differ in baseline; mixOmics' MINT centres each study before finding w.",
   ],
   yHead: "y",
   ySub: "subtype",
@@ -183,19 +179,19 @@ const S = {
   /* TCGA UCEC */
   dims: (b) => `${BLOCK_NAME[b]}: ${N_DATA} samples × ${BLOCKS[b].features.toLocaleString("en-US")} ${BLOCK_UNIT[b]}`,
   strip: (b) => `${BLOCK_NAME[b]} latent variable 1`,
-  dataBefore: "Latent variable 1 gives each sample one score per block.",
+  dataBefore: "Latent variable 1: one score per sample in each block.",
   dataCapBefore: "The same N-integration, on 405 TCGA endometrial tumours with thousands of features per block. Each loading vector is now a row of thousands of numbers, not an arrow.",
-  dataCapAfter: (r, ref) => `Each tumour's two scores, t and u, correlate ${r}; the two blocks' directions of most variance correlate ${ref}. PLS was not given the subtypes, yet the CN_HIGH tumours sit at one end of the shared latent variable.`,
+  dataCapAfter: (r, ref) => `Each tumour's two scores, t and u, correlate ${r}; scores on the two blocks' directions of most variance correlate ${ref}. PLS was fitted without the subtypes, and the CN_HIGH tumours are at one end of the shared latent variable.`,
   noteRef: "most variance: each block's own direction of most variance, found without the other block.",
-  noteTenth: "One latent variable explains about a tenth of a block of thousands of features; DIABLO keeps several.",
-  noteLoad: "Each loading is small: together they make one vector of length 1. The largest name the features that weigh most.",
+  noteTenth: "One latent variable explains about a tenth of a block of thousands of features; DIABLO uses several.",
+  noteLoad: "Each loading is small: together they make one vector of length 1. The features with the largest loadings contribute most to the score.",
   weights: (b) => `${BLOCK_NAME[b]} loadings (${BLOCKS[b].features.toLocaleString("en-US")})`,
 
   /* tiles */
   tileR: "Correlation of the scores",
   tileRNote: "t and u, each block's latent variable 1",
   tileCov: "Covariance of the scores",
-  tileCovNote: "what PLS makes as large as it can",
+  tileCovNote: "the quantity PLS maximises",
   tileKept: (b) => `${b} variance explained`,
   tileKeptNote: "share of the block's variance, along w",
   tileK1: "Latent variable 1 explains",
@@ -226,7 +222,7 @@ const AFTER_TITLE = [
 ];
 const loopLabel = (n) => (n === 0 ? "Start" : n % 2 === 1 ? "Update mRNA" : "Update methylation");
 const loopTitle = (n) => (n === 0
-  ? "Point methylation's loading vector in an arbitrary direction and project the samples onto it"
+  ? "Set methylation's loading vector to an arbitrary direction and project the samples onto it"
   : n % 2 === 1
     ? "Set each gene's loading to its covariance with the methylation scores u"
     : "Set each CpG site's loading to its covariance with the mRNA scores t");
@@ -239,7 +235,7 @@ const F_TITLES = {
   0: "Find the loading vector that explains the most variance in X, and project every sample onto it: t₁ = Xw₁",
   1: "Reconstruct X from the scores: t₁w₁ᵀ",
   2: "Subtract the reconstruction: E = X − t₁w₁ᵀ",
-  3: "Find latent variable 2 in E the same way: T gains a column and Wᵀ a row",
+  3: "Find latent variable 2 in E the same way: a second column of T and a second row of Wᵀ",
   4: "Subtract latent variable 2's reconstruction from E: E − t₂w₂ᵀ",
 };
 const P_LABELS = { 0: "Stack", 1: "Find w", 2: "Score" };
@@ -285,17 +281,17 @@ const MATH = {
   pls: {
     math: `<math display="block"><mrow>${mi("t")}${mo("=")}${sub("X", 1)}${sub("w", 1)}${mo(",")}${gap(0.6)}${mi("u")}${mo("=")}${sub("X", 2)}${sub("w", 2)}${mo(",")}${gap(1)}<munder><mo>max</mo><mrow>${mo("‖")}${sub("w", 1)}${mo("‖")}${mo("=")}${mo("‖")}${sub("w", 2)}${mo("‖")}${mo("=")}<mn>1</mn></mrow></munder>${gap(0.3)}<mtext>cov</mtext>${mo("(")}${mi("t")}${mo(",")}${mi("u")}${mo(")")}</mrow></math>`,
     plain: "t = X₁w₁,  u = X₂w₂,   max over ‖w₁‖ = ‖w₂‖ = 1 of cov(t, u)",
-    note: "One pair of loading vectors (w₁, w₂) for the two blocks together: the first of the latent variables that maximise Σ cov(T₁ⱼ, T₂ⱼ). The benchmark is each block's direction of most variance.",
+    note: "One pair of loading vectors (w₁, w₂) for the two blocks together: the first of the latent variables that maximise Σ cov(T₁ⱼ, T₂ⱼ).",
   },
   loop: {
     math: `<math display="block"><mrow>${mi("t")}${mo("=")}${sub("X", 1)}${sub("w", 1)}${mo(",")}${gap(0.5)}${sub("w", 1)}${mo("∝")}${supT(sub("X", 1))}${mi("u")}${mo(";")}${gap(1.2)}${mi("u")}${mo("=")}${sub("X", 2)}${sub("w", 2)}${mo(",")}${gap(0.5)}${sub("w", 2)}${mo("∝")}${supT(sub("X", 2))}${mi("t")}</mrow></math>`,
     plain: "t = X₁w₁,  w₁ ∝ X₁ᵀu;    u = X₂w₂,  w₂ ∝ X₂ᵀt",
-    note: "Each block's loading vector holds its features' covariances with the other block's scores, scaled to length 1; repeated until neither changes, the latent variables t and u have the largest cov(t, u). The dashed benchmark is each block's direction of most variance.",
+    note: "Each block's loading vector is its features' covariances with the other block's scores, scaled to length 1; repeated until neither changes, the latent variables t and u have the largest cov(t, u).",
   },
   factorN: {
     math: `<math display="block"><mrow>${sub("X", 1)}${mo("≈")}${mi("t")}${supT(sub("w", 1))}${mo("+")}${sub("E", 1)}${mo(",")}${gap(1)}${sub("X", 2)}${mo("≈")}${mi("u")}${supT(sub("w", 2))}${mo("+")}${sub("E", 2)}</mrow></math>`,
     plain: "X₁ ≈ t w₁ᵀ + E₁,   X₂ ≈ u w₂ᵀ + E₂",
-    note: "Each block keeps its own factorization, X ≈ T·Wᵀ; what the blocks share is that their latent variables are chosen to agree.",
+    note: "Each block has its own factorization, X ≈ T·Wᵀ; the two are linked only through cov(t, u), which the loading vectors maximise.",
   },
   shortcut: {
     math: `<math display="block"><mrow><mtext>cov</mtext>${mo("(")}${mi("t")}${mo(",")}${mi("u")}${mo(")")}${mo("=")}${supT(sub("w", 1))}<mfrac><mrow>${supT(sub("X", 1))}${sub("X", 2)}</mrow><mi>n</mi></mfrac>${sub("w", 2)}</mrow></math>`,
@@ -305,7 +301,7 @@ const MATH = {
   stack: {
     math: `<math display="block"><mrow>${mi("X")}${mo("=")}<mrow>${mo("[")}<mtable><mtr><mtd>${sub("X", 1)}</mtd></mtr><mtr><mtd>${sub("X", 2)}</mtd></mtr></mtable>${mo("]")}</mrow>${mo(",")}${gap(1)}${mi("w")}${mo("∝")}${supT(mi("X"))}${mi("y")}${mo(",")}${gap(0.6)}${mi("t")}${mo("=")}${mi("X")}${mi("w")}</mrow></math>`,
     plain: "X = [X₁; X₂],   w ∝ Xᵀy,   t = X w",
-    note: "The studies share their features (P), so the tables stack and one loading vector serves both; y is the response, here the subtype.",
+    note: "The studies share their features (P), so the tables stack and one loading vector applies to both; y is the response, here the subtype.",
   },
 };
 let mathHost = null, mathKey = null;
@@ -1067,7 +1063,8 @@ function dataLayout(w) {
   const s = Math.min(D.sMax, Math.floor(w - D.x0 - 240));
   return { s, x: D.x0, y: D.top, side: D.x0 + s + 34 };
 }
-const H_DATA = D.top + D.sMax + D.gapStrip + D.strip + 100;
+/* + 116: at a narrow side layout (546px canvas) the loadings note wraps to one line more (copy audit, 2026-10-10) */
+const H_DATA = D.top + D.sMax + D.gapStrip + D.strip + 116;
 
 function dataMarks(L, V) {
   const sx = (v) => L.x + L.s / 2 + (v / V.xs) * (L.s / 2), sy = (v) => L.y + L.s / 2 - (v / V.ys) * (L.s / 2);
@@ -1185,7 +1182,7 @@ const TRACED_ON = { param: "page", oneOf: ["factorization", "n-integration"] };
 defineWidget({
   slug: "shared-components",
   status: "draft",
-  title: "Multi-omics: Shared Components",
+  title: "Multi-omics: Partial Least Squares",
   subtitle: S.subtitle,
   credit: "Data: TCGA Research Network (PanCanAtlas UCEC), via cBioPortal",
   layout: "side",
