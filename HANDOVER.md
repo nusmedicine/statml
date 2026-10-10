@@ -1,5 +1,70 @@
 # Handover
 
+**SESSION CLOSED 2026-10-11. 100 `diablo` SHIPPED AND PUSHED** as
+"Multi-omics: DIABLO" (64fdb13, 35 states, three determinism runs and a
+35/35 MATCH pass at DPR 1.25, deploy 38068885429 green, the live manifest and page say shipped). Measured, mocked, built,
+walked page by page as a student (29 fixes), copy-audited and shipped in one
+session, every call his (all the recommendation, plus the PLS reference line
+he asked for). The record is the catalogue's § *Slot 100*. **NEXT: 101
+`selection-bias`**, the arc's last — re-read the arc mock's calls for it
+(`_lab/multiomics-arc-mock.html` § 5.7–5.8: Null · Lesson, before-CV
+`--c-group-a`, inside-fold `--c-group-b`, held-out `--c-holdout`, chance
+`--c-reference`) against what 99 and 100 became (the method shown being
+done, the notebook's order and nouns, an example page before the lesson's
+data), then measure and mock.
+
+**100 now.** Step: Method [**Design**] · TCGA UCEC [**Weight · Select ·
+Predict**].
+- Design (two simulated 2-feature blocks + Y, seed 100 via a hidden `seed`):
+  the design matrix with its Y row; Weight 0 · 0.1 · 0.5 · 1; presses Start
+  (each block's direction of most variance, mixOmics' svd.single start) ·
+  Update mRNA · Update methylation … · **Converged** (the disabled label,
+  keyed on `anim.dbeat`). Each update's arithmetic as a table (c · cov(·, u),
+  cov(·, y), sum) and the two terms head to tail. The hand loop matches
+  block.plsda to 5e-7.
+- Weight: the lesson's model at the four weights, mRNA vs methylation
+  component 1; a table row per weight fitted (`anim.visited`), and under it
+  **PLS without Y as a dashed reference** (03 cell 13's 0.889 · 0.886 ·
+  0.779; DIABLO stays below at every weight).
+- Select: mRNA's last update X'z over 8,383 genes, Keep 25 (outlined bars,
+  the kept part above the cut in violet; the 25th/26th are 0.2% apart),
+  Score (r 0.95, subtype share 68% → 72%). Hover in mixOmics' sign
+  (`SELECT.mixSign`; HIF3A −0.435 as selectVar prints).
+- Predict: Place · Call · Vote on the lesson's saved model; with RPPA
+  missing the vote is mRNA's call on 102 of 102; the three-block CV line
+  beside it. Components 1–4 (default 2), Test tumour (default 12, a click on
+  a square picks one).
+- `data.js` (112 KB) from `_lab/diablo-measure.R widget100`; the scan
+  `_lab/diablo-copy-scan.mjs`; the toy `_lab/diablo-toy.mjs`.
+
+**Notebook findings, new this session, NOT yet told to him** (catalogue §
+*Notebook findings* #6–7): 05 cell 6's CV table is the 5-component
+all-feature `block.plsda` (03's perf file), not the final sparse model; 05
+cells 21–24's two-block weighted vote is mRNA's call on all 102 test
+samples.
+
+**Learned this session.** (1) `jsonlite::toJSON` writes 4 digits whatever
+you round to: pass `digits =` (0.8855 printed 0.885). (2) A synthetic
+`.click()` on the step button loses the FIRST press after load (99 too); a
+real click works — test the first press with the computer tool. (3) The
+harness canvas is 550 css (688 device px) at its 900 frame; compute hit
+coordinates at 550, not at the sweep's 534. (4) `check` refuses `shown=` on
+a driven or hit state: reach the stage with `before` presses. (5) A pane
+hidden mid-run drops to DPR 1 and every px DIFFERs; the tx hashes still
+compare, and two DPR-1 runs agreeing shows a drive path is deterministic.
+(6) The walk-through's classes of fix: a term used before its page
+introduces it, a number printed at two precisions, a label naming our
+metaphor where the table names the column, a sign opposite to the
+notebook's printout.
+
+**Open.** Notebook findings #6–7 to tell him. From 99: the N-integration
+"expl. var." relabel (offered, not decided); the attribution line that never
+wraps at 350px (a core change, full suite).
+
+**Dev server this session:** `widgets-alt4` on :8014.
+
+---
+
 **SESSION CLOSED 2026-10-10 (evening). 99 `shared-components` SHIPPED AND
 PUSHED** as "Multi-omics: Partial Least Squares" (2e16633, 40 states, three
 determinism runs and a MATCH pass at DPR 1.25, deploy 38050106506 green, the
