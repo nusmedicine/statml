@@ -96,7 +96,7 @@ const S = {
     labels: {
       scaffold: "Remove each molecule's side chains, keeping its ring systems and linkers",
       split: { anim: "beat", labels: { 0: "Hold out 20% of the molecules; the other 80% train the model", 1: "Halve the held-out 20% into validation and test" }, default: "Halve the held-out 20% into validation and test" },
-      evaluate: { anim: "beat", labels: { 0: "Find the scaffolds shared by test and training molecules", 1: "Score the GCN on the test set, for every seed" }, default: "Score the GCN on the test set, for every seed" },
+      evaluate: { anim: "beat", labels: { 0: "Find the scaffolds shared by test and training molecules", 1: "Score a GCN trained on the training set, on the test set, for every seed" }, default: "Score a GCN trained on the training set, on the test set, for every seed" },
     },
     default: "Remove each molecule's side chains, keeping its ring systems and linkers",
   },
@@ -110,7 +110,7 @@ const S = {
   /* once the press lands the ring needs naming, and the count is on the tile */
   fileCapRing: "each block is one scaffold · ringed: the example's scaffold",
   benzene: (n) => `benzene · ${n}`,
-  empty: (n) => `no ring · ${n}`,
+  empty: (n) => `no ring · ${n} (1 unparsed)`,
   band: (b) => `${b.count} scaffold${b.count === 1 ? "" : "s"} with ${b.range} molecule${b.range === "1" ? "" : "s"} each`,
   active: "active",
 
@@ -123,7 +123,8 @@ const S = {
   splitStatus: [
     "the dataset grouped by scaffold, before the split",
     (kind) => (kind === "label" ? "80% of the molecules to train, assigned one at a time; 20% held out, on the right" : "80% of the scaffold groups to train, each group whole; 20% held out, on the right"),
-    (kind) => (kind === "label" ? "the held-out molecules halved into validation and test, one at a time" : "the held-out groups halved into validation and test, each group whole"),
+    /* the walk-through: nothing on the page said what validation is for (cell 18 does) */
+    (kind) => (kind === "label" ? "the held-out molecules halved, one at a time: validation for early stopping, test scored once" : "the held-out groups halved, each group whole: validation for early stopping, test scored once"),
   ],
   colBand: (range, narrow) => (narrow ? `${range} per scaffold` : `${range} molecule${range === "1" ? "" : "s"} per scaffold`),
   colHead: (side, n, share) => (side === 0 ? `Train · ${fmtN(n)} molecules (${Math.round(100 * share)}%)` : `Held out · ${fmtN(n)} (${Math.round(100 * share)}%)`),
@@ -138,7 +139,7 @@ const S = {
     (kind) => `the ${kind === "label" ? "label" : "scaffold"} split's test set`,
     "ringed: a scaffold found in both test and training, in both columns",
   ],
-  scoreHead: "Macro F1 of the GCN on the test set · one dot a seed",
+  scoreHead: "Test macro F1 of a GCN trained on the training set · one dot a seed",
   colName: { label: "Label split", scaffold: "Scaffold split" },
   meanTag: (v) => `mean ${v}`,
 
@@ -154,7 +155,7 @@ const S = {
   tileEx: "The example's scaffolds",
   tileExNote: (fam) => (fam === "indoles"
     ? "both molecules have the scaffold indole"
-    : "one family of antibiotics, two scaffolds: a cyclopropyl ring at N1 is kept, an ethyl is removed"),
+    : "one family of antibiotics, two scaffolds: ciprofloxacin's cyclopropyl ring is kept, norfloxacin's ethyl is removed"),
   tilePart: ["Train", "Validation", "Test"],
   tilePartNote: (a, n) => `${a} active · ${pct(a / n)}`,
   tileShared: "Shared scaffolds",
@@ -162,12 +163,12 @@ const S = {
   tileSharedAct: "Actives sharing",
   tileSharedActNote: "test actives whose scaffold also occurs in a training active",
   tileF1: "Macro F1",
-  tileF1Note: (m) => `the GCN on this seed's test set; the mean over ${SEEDS.length} seeds is ${m}`,
+  tileF1Note: (m) => `a GCN trained on this seed's training set, scored on its test set; the mean over ${SEEDS.length} seeds is ${m}`,
   tileWait: "—",
 
   sumScaf: (fam, done) => `${fam === "indoles" ? "3-methylindole and tryptamine" : "ciprofloxacin and norfloxacin"}${done ? (fam === "indoles" ? ", reduced to one scaffold, indole" : ", reduced to two different scaffolds") : ""}; below, ${fmtN(FILE.rows)} molecules in ${fmtN(FILE.scaffolds)} scaffold groups`,
   sumSplit: (kind, seed, beat, st) => `the ${kind} split, seed ${seed}${beat >= 2 ? `: train ${st.n[0]}, validation ${st.n[1]}, test ${st.n[2]}` : beat === 1 ? ": 80% to train, 20% held out" : ", not yet split"}`,
-  sumEval: (kind, seed, beat, st) => `the ${kind} split, seed ${seed}: ${beat >= 1 ? `${st.shared} of ${st.n[2]} test molecules share a scaffold with training` : `${st.n[2]} test molecules`}${beat >= 2 ? `; the GCN's macro F1 ${st.f1.toFixed(2)}` : ""}`,
+  sumEval: (kind, seed, beat, st) => `the ${kind} split, seed ${seed}: ${beat >= 1 ? `${st.shared} of ${st.n[2]} test molecules share a scaffold with training` : `${st.n[2]} test molecules`}${beat >= 2 ? `; a GCN trained on its training set scores macro F1 ${st.f1.toFixed(2)}` : ""}`,
 };
 
 /* ------------------------------------------------------ drawing helpers */
