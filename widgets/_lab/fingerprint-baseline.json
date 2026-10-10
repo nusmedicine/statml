@@ -13329,11 +13329,270 @@
       "tx": "f63912c0"
     },
     {
-      "$note": "PLACEHOLDER, draft: gnn-explainer · Mask, run 1, opening",
+      "$note": "gnn-explainer · Mask, start 1, opening: the molecule's features in the grid",
       "slug": "gnn-explainer",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "b6252306",
+      "tx": "3c924627"
+    },
+    {
+      "$note": "gnn-explainer · Mask, after Initialise: masks near 0.5, p(active) 0.08, Kept 30 of 39",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&shown=1",
+      "px": "0016a2d6",
+      "tx": "29378da0"
+    },
+    {
+      "$note": "gnn-explainer · Mask, after Optimise 1: epoch 101, Kept 20 of 39",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&shown=2",
+      "px": "cb4a6c6d",
+      "tx": "b7ca75d5"
+    },
+    {
+      "$note": "gnn-explainer · Mask, after Optimise 3: epoch 300, Kept 15 of 39, the masks' lines fanned out",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&shown=4",
+      "px": "af9b8652",
+      "tx": "51b37250"
+    },
+    {
+      "$note": "gnn-explainer · Mask, start 7, epoch 300: another run's masks",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&start=7&shown=4",
+      "px": "2de1720a",
+      "tx": "47eb293d"
+    },
+    {
+      "$note": "gnn-explainer · Mask, dark theme, epoch 300",
+      "slug": "gnn-explainer",
+      "state": "?theme=dark&shown=4",
+      "px": "2791e8e1",
+      "tx": "51b37250"
+    },
+    {
+      "$note": "gnn-explainer · Scores, opening: Mask's last picture, the masks at epoch 300",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores&shown=0",
+      "px": "0033afe7",
+      "tx": "bb69b9fd"
+    },
+    {
+      "$note": "gnn-explainer · Scores, after Collapse: one score a bond, the molecule framed",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores&shown=1",
+      "px": "c0412c36",
+      "tx": "26be7ea7"
+    },
+    {
+      "$note": "gnn-explainer · Scores, after Average: every atom near blank, largest 0.09, the grid framed",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores&shown=2",
+      "px": "5b0c1c37",
+      "tx": "3481d266"
+    },
+    {
+      "$note": "gnn-explainer · Scores, after Scale: the heat overlay, both sets 0-1",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores&shown=3",
+      "px": "4fd5c738",
+      "tx": "3481d266"
+    },
+    {
+      "$note": "gnn-explainer · Scores, start 7, after Scale",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores&start=7&shown=3",
+      "px": "f2ebdab6",
+      "tx": "011f6a67"
+    },
+    {
+      "$note": "gnn-explainer · Runs, One run, start 1: 15 kept bonds, not yet tested",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=runs&shown=0",
+      "px": "11e789c1",
+      "tx": "fbac1cc7"
+    },
+    {
+      "$note": "gnn-explainer · Runs, One run, start 1, after Test: 0.92 against 100 random sets",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=runs&shown=1",
+      "px": "2186e085",
+      "tx": "fa7df241"
+    },
+    {
+      "$note": "gnn-explainer · Runs, One run, start 5, after Test: 20 kept bonds",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=runs&start=5&shown=1",
+      "px": "5a274e6f",
+      "tx": "7c1b4a9d"
+    },
+    {
+      "$note": "gnn-explainer · Runs, All runs, opening: no run overlaid",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=runs&show=all&shown=0",
+      "px": "a6a4d890",
+      "tx": "48ef882d"
+    },
+    {
+      "$note": "gnn-explainer · Runs, All runs, after Overlay: 3 bonds kept by every run, N10 ringed",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=runs&show=all&shown=1",
+      "px": "fcaad479",
+      "tx": "afbf463a"
+    },
+    {
+      "$note": "gnn-explainer · DRIVEN: Mask, Initialise mid-press, the p(active) dot falling",
+      "slug": "gnn-explainer",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "ea5b5267",
+      "tx": "29378da0"
+    },
+    {
+      "$note": "gnn-explainer · DRIVEN: Mask, Optimise 1 mid-press, the lines and the grid part way",
+      "slug": "gnn-explainer",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 50
+          }
+        ],
+        "click": "step",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "752e025b",
+      "tx": "aae5fe91"
+    },
+    {
+      "$note": "gnn-explainer · DRIVEN: Scores, Collapse mid-press, the lanes sliding together",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores",
+      "drive": {
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "3d818ecd",
+      "tx": "bb69b9fd"
+    },
+    {
+      "$note": "gnn-explainer · DRIVEN: Scores, Average mid-sweep, rows averaged part way",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 70
+          }
+        ],
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "b960e55d",
+      "tx": "26be7ea7"
+    },
+    {
+      "$note": "gnn-explainer · DRIVEN: Scores, Scale mid-press, the scores moving to 0-1",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=scores",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 70
+          },
+          {
+            "click": "step",
+            "frames": 70
+          }
+        ],
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "d22aa0e0",
+      "tx": "3481d266"
+    },
+    {
+      "$note": "gnn-explainer · DRIVEN: Runs, One run, Test mid-press, the random sets dropping in",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=runs",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "0bb111e8",
+      "tx": "fbac1cc7"
+    },
+    {
+      "$note": "gnn-explainer · DRIVEN: Runs, All runs, Overlay mid-press, runs added part way",
+      "slug": "gnn-explainer",
+      "state": "?theme=light&page=runs&show=all",
+      "drive": {
+        "click": "step",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "f20a35e1",
+      "tx": "48ef882d"
+    },
+    {
+      "$note": "gnn-explainer · INTERRUPTED: Mask, Optimise 1 in flight, then the page switched to Scores: the press ends there",
+      "slug": "gnn-explainer",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 50
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "set": {
+          "page": "scores"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "0033afe7",
+      "tx": "bb69b9fd"
+    },
+    {
+      "$note": "gnn-explainer · INTERRUPTED: Mask, Optimise 1 in flight, then Random start 7: the press carries on with start 7",
+      "slug": "gnn-explainer",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 50
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "set": {
+          "start": 7
+        },
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "27413b28",
+      "tx": "41732ca8"
     }
   ]
 }

@@ -682,7 +682,7 @@ function drawRuns(ctx, colors, w, params, anim, pointer) {
 
 defineWidget({
   slug: "gnn-explainer",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Graphs: Explainability",
   subtitle: S.subtitle,
   credit: "Molecule data: Stokes et al., Cell 2020, via FinGAT",

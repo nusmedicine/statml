@@ -1,5 +1,54 @@
 # Handover
 
+**SESSION 2026-10-10 (afternoon): 98 `gnn-explainer` SHIPPED AND PUSHED** as
+"Deep Learning - Graphs: Explainability" (25 states, three determinism runs
+and a MATCH pass at DPR 1.25). Measured, mocked, drafted, two review rounds,
+the copy audit and the student walk-through in one session, every call his
+(all the recommendation). The record is the catalogue's § *Slot 98*. **NEXT:
+his call** — the graph arc (94 · 95 · 97 · 98) is complete; multi-omics
+(PHM5003 10) is paused and takes the next free numbers.
+
+**98 now.** Step **Mask · Scores · Runs** on ceftriaxone disodium
+(`test_set[3]`, row 76) and the lesson's GAT; **Random start** 1–20 on every
+page but All runs, and changing it keeps each page's progress. Mask:
+Initialise (p(active) falls 0.92 → 0.08), then Optimise ×3 (100 epochs a
+press); each bond two lines, width and colour = the mask, dashed = not kept
+(both ≤ 0.5); each bond's mask as a line under a short p(active); M_x's grid
+learning on the right (the molecule's features in ink before Initialise).
+Scores: Collapse · Average · Scale, a status line and a frame on what each
+press changed, cell 90's three formulas beside the grid, synced hover.
+Runs: One run (kept bonds, Test against 100 random sets) · All runs
+(Overlay; only N10's three bonds kept by all 20). `data.js` (799 KB) from
+`_lab/gnn-explainer-data.py`, which needs the untracked
+`_lab/gnn-explainer-gat-42.pt` and `gnn-explainer-measure.json` from
+`_lab/gnn-explainer-measure.py train 42` / `explain`.
+
+**Measured, worth keeping.** Each run keeps 15–21 of 39 bonds that alone
+hold p(active) 0.91–0.97 (random sets of that size 0.66–0.82); two runs
+share a median Jaccard of 0.52; 3,000 epochs changes none of it. The
+waters are scored and read through max pooling. A second trained GAT
+(seed 43) predicts ceftriaxone inactive.
+
+**Learned this session.** (1) A press whose visible change lands somewhere
+other than where the student is looking reads as nothing happening: say
+what changed, frame where (his round 1). (2) A value going to 0 drawn as a
+colour whose 0 is the background reads as fading, not removal: give
+"removed" its own mark (round 2). A live-scrubber mock let him judge motion.
+(3) `data.js` regeneration is not byte-identical (±0.001 from CPU threads):
+when only names change, patch the line. (4) `_lab/gnn-explainer-copy-scan.mjs`
+evaluates the strings object itself; 97's regex scan broke on apostrophes —
+copy it for the next widget. (5) The browser pane can shrink to 350px:
+emulate 900 for the harness width, 700 to judge by eye.
+
+**Open:** the attribution line never wraps, so every widget with a credit
+scrolls sideways at phone width (core; offered as a separate task, not
+started). Phone width crushes 98's lower panels — out of scope per the PRD.
+
+**Untracked and safe to leave:** `_lab/gnn-explainer-*.json`, `*.pt`, and the
+rest of the `_lab` measurement files `git status` lists.
+
+---
+
 **SESSION CLOSED 2026-10-10.** 97 `scaffold-split` SHIPPED AND PUSHED as
 "Deep Learning - Graphs: Scaffold Split" (7ac9412, 20 states, three
 determinism runs and a MATCH pass at DPR 1.25, deploy 38010253395 green, the
