@@ -61,7 +61,12 @@ notebook's printout.
 "expl. var." relabel (offered, not decided); the attribution line that never
 wraps at 350px (a core change, full suite).
 
-**Dev server this session:** `widgets-alt4` on :8014.
+**Dev server this session:** `widgets-alt4` on :8014, stopped at the close.
+
+**Untracked and safe to leave:** `_lab/diablo-*.json` and `diablo-toy.csv`
+(rebuilt by `diablo-measure.R <stage>` and `node diablo-toy.mjs`).
+`_lab/diablo-mock.html` reads `diablo-sweep/select/vote/cv.json` and
+`multiomics-design.json`, so keep them while the mock is wanted.
 
 ---
 
