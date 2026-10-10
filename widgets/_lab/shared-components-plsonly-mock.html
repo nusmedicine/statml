@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · shared-components — PLS only, with Shortcut</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 190px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 99 <code>shared-components</code> &middot; round 2 &middot; PLS only, with the Shortcut press</h1>
+  <p class="note">Your call after the comparison table: PCA goes as a Method; the widget is PLS, with the factorization
+    explained, and PCA survives only as a benchmark: each block's <b>largest-variance direction</b>, dashed in
+    <code>--c-reference</code> (the fixed benchmark the moving thing is judged against), and its numbers. Everything is drawn
+    at the widget's 550px from the widget's own Concept blocks (seed 1) and its <code>data.js</code>. Blue-ruled: my
+    recommendation; grey-ruled: the calls (&sect;4).</p>
+
+  <table>
+    <tr><th></th><th>input</th><th>the component is chosen to&hellip;</th><th>computed by</th></tr>
+    <tr><td>PCA</td><td>one block</td><td>rebuild this block as well as possible (largest variance)</td><td>SVD of X</td></tr>
+    <tr><td>NMF</td><td>one block, no negatives</td><td>rebuild it from parts that only add</td><td>iterative updates</td></tr>
+    <tr><td><b>PLS</b></td><td>two blocks, same samples</td><td>make the two blocks' scores covary as much as possible</td><td><b>SVD of X&#8321;&#7488;X&#8322;</b>, or the alternating loop</td></tr>
+  </table>
+
+  <h2>1 &middot; Concept: the loop, with the largest-variance direction as the benchmark</h2>
+  <p class="note">The rail: <b>Step</b> only; no Method. Presses: Start &middot; Update mRNA &middot; Update methylation
+    &hellip; Converged (7 on these blocks). The dashed line in each block is the direction of largest variance, the one
+    PCA would take. <b>A</b> shows it from the first frame; <b>B</b> brings it in with the last press, beside the
+    benchmark numbers.</p>
+  <div class="row" id="s1"></div>
+  <p class="rec">Recommend <b>B</b>. During the loop the student watches two moving arrows and a third line would compete
+    with them; at Converged the dashed line answers the question the page exists for: <i>is PLS's direction the one with
+    most variance?</i> No: it keeps 29% of mRNA where the dashed one keeps 72%, and in exchange its scores agree 0.88
+    where the dashed ones agree 0.06 (both shown).</p>
+
+  <h2>2 &middot; Factorize, then the Shortcut</h2>
+  <p class="note">Factorize keeps Score &middot; Rebuild &middot; Subtract (X &asymp; t c&#7488; + E, unchanged, PLS
+    only). A fourth press, <b>Shortcut</b>, answers "how is this different from SVD": the loop was a slow way to compute
+    one SVD. Left: the covariance of every mRNA feature with every methylation feature, X&#8321;&#7488;X&#8322; / n. Its
+    first singular pair is exactly the two arrows the loop converged to. Right, for contrast: the SVD of one block,
+    X&#8321; alone, gives the dashed largest-variance direction.</p>
+  <div class="row" id="s2"></div>
+  <p class="rec">Recommend Shortcut as Factorize's <b>fourth press</b>, after Subtract: by then the student has the arrows
+    (Concept) and the matrices (Factorize), and the Shortcut names the computation behind both, with the one sentence
+    that separates the methods: <i>PCA is the SVD of X; PLS is the SVD of X&#8321;&#7488;X&#8322;.</i> The formula card
+    at that press reads w&#8321;, w&#8322; = first singular pair of X&#8321;&#7488;X&#8322;.</p>
+
+  <h2>3 &middot; Data: PLS only, the benchmark as a column</h2>
+  <p class="note">No Method control; Pair stays. One press, Find component 1, raises the samples into the PLS scatter as
+    before. The table's second column is the benchmark, not a method to switch to.</p>
+  <div class="row" id="s3"></div>
+  <p class="rec">Recommend the column as drawn, headed <b>largest variance</b>, in <code>--ink-3</code> with the dashed
+    key: the same benchmark as Concept, on the real blocks (mRNA&ndash;meth: r 0.37 against 0.89; mRNA kept 11.2% against
+    9.9%).</p>
+
+  <h2>4 &middot; The calls</h2>
+  <div class="q"><b class="h">4.1 &middot; When the dashed benchmark appears on Concept</b> A from the first frame &middot;
+    B <b>with Converged, beside the benchmark numbers</b> (rec).</div>
+  <div class="q"><b class="h">4.2 &middot; Where Shortcut lives</b> A <b>Factorize's fourth press</b> (rec) &middot; B a
+    press after Converged on Concept &middot; C its own page.</div>
+  <div class="q"><b class="h">4.3 &middot; Data's benchmark</b> A <b>a "largest variance" column in the table</b> (rec)
+    &middot; B PLS numbers only.</div>
+  <div class="q"><b class="h">4.4 &middot; Wording</b> The benchmark is named <b>"largest variance"</b> on the canvas, and
+    the formula note on Concept says once that it is the direction PCA takes (rec) &middot; or named "PCA" throughout.</div>
+
+  <h2>5 &middot; The rail, as proposed</h2>
+  <div class="rail"><span class="w">shared-components</span><span class="pg">Concept</span><span class="pg">Factorize</span><span class="pg">Data</span><span class="n">no Method. Concept: Start · Update mRNA · Update methylation … Converged. Factorize: Score · Rebuild · Subtract · Shortcut. Data: Pair, Find component 1</span></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { SUBTYPES, Y, BLOCKS, PAIRS } from "../shared-components/data.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "", mono = false } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
+function box(ctx, x, y, w, h, col = T.axis) { ctx.save(); ctx.strokeStyle = col; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+function head(ctx, x0, y0, x1, y1, col) { const a = Math.atan2(y1 - y0, x1 - x0); ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 8 * Math.cos(a - 0.42), y1 - 8 * Math.sin(a - 0.42)); ctx.lineTo(x1 - 8 * Math.cos(a + 0.42), y1 - 8 * Math.sin(a + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function axisArrow(ctx, p0, p1, col) { line(ctx, p0[0], p0[1], p1[0], p1[1], col, 2.2); head(ctx, ...p0, ...p1, col); head(ctx, ...p1, ...p0, col); }
+function wrap(ctx, str, x, y, maxW, lh, opts = {}) { ctx.save(); ctx.font = `${opts.size ?? 12}px ${T.font}`; const lines = []; let cur = ""; for (const wd of str.split(" ")) { const t = cur ? `${cur} ${wd}` : wd; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = t; } if (cur) lines.push(cur); ctx.restore(); lines.forEach((l, i) => label(ctx, l, x, y + i * lh, { size: opts.size ?? 12, colour: opts.colour ?? T.ink2 })); return lines.length; }
+const f2 = (x) => x.toFixed(2), pct = (v) => `${(100 * v).toFixed(1)}%`;
+const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
+const corr = (a, b) => { const ma = mean(a), mb = mean(b); let s = 0, x = 0, y = 0; for (let i = 0; i < a.length; i++) { s += (a[i] - ma) * (b[i] - mb); x += (a[i] - ma) ** 2; y += (b[i] - mb) ** 2; } return s / Math.sqrt(x * y); };
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+function vramp(v) { const t = Math.max(-1, Math.min(1, v)); const a = rgb(T.surface3), b = rgb(t < 0 ? T.valueLow : T.valueHigh), k = Math.abs(t); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(",")})`; }
+
+/* ------------------------------------------- the widget's Concept blocks, seed 1 */
+const unitAt = (d) => [Math.cos(d * Math.PI / 180), Math.sin(d * Math.PI / 180)];
+const unit = (v) => { const n = Math.hypot(v[0], v[1]); return [v[0] / n, v[1] / n]; };
+const rot = (v, deg) => { const c = Math.cos(deg * Math.PI / 180), s = Math.sin(deg * Math.PI / 180); return [c * v[0] - s * v[1], s * v[0] + c * v[1]]; };
+const rng = makeRng(1), G = [], A0 = [], B0 = [];
+const ua = unitAt(62), va = unitAt(-28), ub = unitAt(18), vb = unitAt(108);
+for (let i = 0; i < 80; i++) { const g = i % 2, s = (g ? 0.85 : -0.85) + 0.35 * rng.normal(), a = 1.6 * rng.normal(), b = 1.6 * rng.normal(); G.push(g); A0.push([0, 1].map((j) => s * ua[j] + a * va[j] + 0.2 * rng.normal())); B0.push([0, 1].map((j) => s * ub[j] + b * vb[j] + 0.2 * rng.normal())); }
+const cen = (X) => { const m = [0, 1].map((j) => mean(X.map((p) => p[j]))); return X.map((p) => [p[0] - m[0], p[1] - m[1]]); };
+const A = cen(A0), B = cen(B0);
+const proj = (X, w) => X.map((p) => p[0] * w[0] + p[1] * w[1]);
+const covWith = (X, s) => [0, 1].map((j) => X.reduce((acc, p, i) => acc + p[j] * s[i], 0) / X.length);
+function topEig(X) { const C = [[0, 0], [0, 0]]; X.forEach((p) => { for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) C[r][c] += p[r] * p[c]; }); const a = C[0][0], b = C[0][1], d = C[1][1], tr = a + d, l = tr / 2 + Math.sqrt(tr * tr / 4 - (a * d - b * b)); return unit([l - d, b]); }
+function keptBy(X, t) { const tt = t.reduce((s, v) => s + v * v, 0), c = [0, 1].map((j) => X.reduce((s, p, i) => s + p[j] * t[i], 0) / tt); let e = 0, x = 0; X.forEach((p, i) => { for (let j = 0; j < 2; j++) { e += (p[j] - t[i] * c[j]) ** 2; x += p[j] ** 2; } }); return 1 - e / x; }
+function loop(start, rounds) { let w2 = start, u = proj(B, w2), w1; for (let r = 0; r < rounds; r++) { w1 = unit(covWith(A, u)); const t = proj(A, w1); w2 = unit(covWith(B, t)); u = proj(B, w2); } return { w1, w2, t: proj(A, w1), u }; }
+const conv = loop([0, 1], 60);
+let start = unit(rot(conv.w2, 80));
+let fin = loop(start, 60);
+if (mean(fin.t.filter((_, i) => G[i])) < 0) { start = [-start[0], -start[1]]; fin = loop(start, 60); }
+let refA = topEig(A), refB = topEig(B);
+if (refA[0] * fin.w1[0] + refA[1] * fin.w1[1] < 0) refA = [-refA[0], -refA[1]];
+if (corr(proj(A, refA), proj(B, refB)) < 0) refB = [-refB[0], -refB[1]];
+const REF = { r: corr(proj(A, refA), proj(B, refB)), keptA: keptBy(A, proj(A, refA)), keptB: keptBy(B, proj(B, refB)) };
+const PLS = { r: corr(fin.t, fin.u), cov: mean(fin.t.map((v, i) => v * fin.u[i])), keptA: keptBy(A, fin.t), keptB: keptBy(B, fin.u) };
+const SPAN = 1.08 * Math.max(...A.flat().map(Math.abs), ...B.flat().map(Math.abs));
+
+function panel(ctx, x, y, s, X, title, ax) {
+  label(ctx, title, x, y - 10, { weight: "600", colour: T.ink1 }); box(ctx, x, y, s, s);
+  label(ctx, ax, x + s / 2, y + s + 15, { size: 10, colour: T.ink3, align: "center" });
+  const P = (p) => [x + s / 2 + (p[0] / SPAN) * (s / 2), y + s / 2 - (p[1] / SPAN) * (s / 2)];
+  return P;
+}
+function dirLine(ctx, P, d, solid) { const R = 0.92 * SPAN; const p0 = P([-R * d[0], -R * d[1]]), p1 = P([R * d[0], R * d[1]]); if (solid) axisArrow(ctx, p0, p1, T.highlight); else line(ctx, p0[0], p0[1], p1[0], p1[1], T.reference, 2, [6, 5]); }
+
+/* ---------------------------------------------------------------- §1 */
+function concept(arm) {
+  const done = arm === "B";
+  const st = done ? fin : { w1: null, w2: start, t: null, u: proj(B, start) };
+  const bx = cand("s1", arm === "A" ? "A · Start, the benchmark already drawn" : "B · Converged, the benchmark comes in",
+    done ? "the dashed lines and the table's right column arrive with this press" : "the dashed lines from the first frame, before any press finds anything");
+  const ctx = canvasIn(bx, W, 554);
+  const s = 220, x0 = 30, x1 = 294, y1 = 26 + s + 58;
+  const PA = panel(ctx, x0, 26, s, A, "mRNA", "gene 1"), PB = panel(ctx, x1, 26, s, B, "Methylation", "CpG 1");
+  const PS = panel(ctx, x0, y1, s, A, "Scores", "mRNA score t");
+  if (arm === "A" || done) { dirLine(ctx, PA, refA, false); dirLine(ctx, PB, refB, false); }
+  [[PA, A, st.w1], [PB, B, st.w2]].forEach(([P, X, d]) => {
+    if (d) { dirLine(ctx, P, d, true); X.forEach((p, i) => { const t = p[0] * d[0] + p[1] * d[1]; const q = P([t * d[0], t * d[1]]); dot(ctx, q[0], q[1], 2.6, T.clusters[G[i]]); }); }
+    X.forEach((p, i) => { const q = P(p); dot(ctx, q[0], q[1], 4, T.clusters[G[i]]); });
+  });
+  if (done) {
+    const sp = 1.08 * Math.max(...fin.t.map(Math.abs), ...fin.u.map(Math.abs));
+    fin.t.forEach((v, i) => dot(ctx, x0 + s / 2 + (v / sp) * (s / 2), y1 + s / 2 - (fin.u[i] / sp) * (s / 2), 4, T.clusters[G[i]]));
+    label(ctx, `r = ${f2(PLS.r)}`, x0 + s - 6, y1 + 16, { align: "right", weight: "600", colour: T.ink1 });
+    label(ctx, `cov = ${f2(PLS.cov)}`, x0 + s - 6, y1 + 32, { align: "right" });
+    const nl = wrap(ctx, "Another round changes neither arrow: these are PLS's directions for component 1. Dashed: the direction of largest variance in each block.", x1, y1 - 4, 236, 17);
+    const ty = y1 + s - 66, cx = [x1 + 120, x1 + 190];
+    label(ctx, "PLS", cx[0], ty, { align: "center", weight: "600", colour: T.ink1 });
+    label(ctx, "largest", cx[1], ty - 12, { align: "center", size: 10, colour: T.ink3 }); label(ctx, "variance", cx[1], ty, { align: "center", size: 10, colour: T.ink3 });
+    line(ctx, cx[1] - 16, ty + 5, cx[1] + 16, ty + 5, T.reference, 2, [6, 5]);
+    [["correlation r", f2(PLS.r), f2(REF.r)], ["mRNA kept", pct(PLS.keptA), pct(REF.keptA)], ["Methylation kept", pct(PLS.keptB), pct(REF.keptB)]].forEach((r, i) => {
+      const yy = ty + 24 + i * 22; label(ctx, r[0], x1, yy, { size: 10 }); label(ctx, r[1], cx[0], yy, { align: "center", colour: T.ink1 }); label(ctx, r[2], cx[1], yy, { align: "center", colour: T.ink3 });
+    });
+    ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.strokeRect(cx[0] - 23, ty - 16, 46, 3 * 22 + 26); ctx.restore();
+  } else {
+    wrap(ctx, "Start: methylation's arrow points in an arbitrary direction. Each sample's methylation score u is its position along it.", x1, y1 - 4, 236, 17);
+  }
+}
+
+/* ---------------------------------------------------------------- §2 */
+function shortcut() {
+  const M = [[0, 0], [0, 0]]; A.forEach((p, i) => { for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) M[r][c] += p[r] * B[i][c] / A.length; });
+  let v = [0, 1], w1; for (let k = 0; k < 60; k++) { w1 = unit([M[0][0] * v[0] + M[0][1] * v[1], M[1][0] * v[0] + M[1][1] * v[1]]); v = unit([M[0][0] * w1[0] + M[1][0] * w1[1], M[0][1] * w1[0] + M[1][1] * w1[1]]); }
+  if (w1[0] * fin.w1[0] + w1[1] * fin.w1[1] < 0) { w1 = [-w1[0], -w1[1]]; v = [-v[0], -v[1]]; }
+  const bx = cand("s2", "Shortcut — Factorize's fourth press", `the loop's arrows: w₁ = (${f2(fin.w1[0])}, ${f2(fin.w1[1])}), w₂ = (${f2(fin.w2[0])}, ${f2(fin.w2[1])})\nthe SVD's first pair: (${f2(w1[0])}, ${f2(w1[1])}), (${f2(v[0])}, ${f2(v[1])})`);
+  const ctx = canvasIn(bx, W, 360);
+  label(ctx, "X₁ᵀX₂ / n", 20, 22, { weight: "600", colour: T.ink1 });
+  wrap(ctx, "each mRNA feature's covariance with each methylation feature", 20, 38, 240, 13, { size: 10 });
+  const x0 = 80, y0 = 74, cs = 56, m = Math.max(...M.flat().map(Math.abs));
+  ["CpG 1", "CpG 2"].forEach((n, j) => label(ctx, n, x0 + j * cs + cs / 2, y0 - 8, { size: 10, align: "center" }));
+  ["gene 1", "gene 2"].forEach((n, i) => label(ctx, n, x0 - 8, y0 + i * cs + cs / 2 + 4, { size: 10, align: "right" }));
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { ctx.fillStyle = vramp(M[i][j] / m); ctx.fillRect(x0 + j * cs, y0 + i * cs, cs - 2, cs - 2); label(ctx, f2(M[i][j]), x0 + j * cs + cs / 2, y0 + i * cs + cs / 2 + 4, { align: "center", colour: T.ink1, mono: true }); }
+  label(ctx, "first singular pair:", 20, 222, { size: 11, colour: T.ink1, weight: "600" });
+  label(ctx, `w₁ = (${f2(w1[0])}, ${f2(w1[1])})   w₂ = (${f2(v[0])}, ${f2(v[1])})`, 20, 240, { mono: true, colour: T.ink1 });
+  wrap(ctx, "the same two arrows the loop converged to, in one step. PCA is the SVD of X; PLS is the SVD of X₁ᵀX₂.", 20, 262, 230, 16, { size: 11 });
+  const s = 120, PA = panel(ctx, 300, 40, s, A, "mRNA", "solid: SVD of X₁ᵀX₂ · dashed: of X₁");
+  dirLine(ctx, PA, refA, false); A.forEach((p, i) => { const q = PA(p); dot(ctx, q[0], q[1], 2.4, T.clusters[G[i]]); }); dirLine(ctx, PA, w1, true);
+  const PB = panel(ctx, 300, 208, s, B, "Methylation", "solid: SVD of X₁ᵀX₂ · dashed: of X₂");
+  dirLine(ctx, PB, refB, false); B.forEach((p, i) => { const q = PB(p); dot(ctx, q[0], q[1], 2.4, T.clusters[G[i]]); }); dirLine(ctx, PB, v, true);
+}
+
+/* ---------------------------------------------------------------- §3 */
+function data() {
+  const P = PAIRS[0], t = P.t, u = P.u;
+  let pa = BLOCKS[P.a].pc1, pb = BLOCKS[P.b].pc1; const refR = Math.abs(corr(pa, pb));
+  const bx = cand("s3", "Data · mRNA–meth, PLS, after Find component 1", "no Method control; the right column is the benchmark");
+  const ctx = canvasIn(bx, W, 364);
+  const x0 = 66, y0 = 34, s = 244;
+  label(ctx, "mRNA: 405 samples × 8,383 genes", 36, 14); label(ctx, "Methylation: 405 samples × 8,103 CpG sites", 36, 28);
+  box(ctx, x0, y0 + 4, s, s - 4);
+  const xs = 1.08 * Math.max(...t.map(Math.abs)), ys = 1.08 * Math.max(...u.map(Math.abs));
+  t.forEach((v, i) => dot(ctx, x0 + s / 2 + (v / xs) * (s / 2), y0 + s / 2 - (u[i] / ys) * (s / 2), 3, T.clusters[Y[i]]));
+  label(ctx, `r = ${f2(corr(t, u))}`, x0 + s - 6, y0 + 20, { align: "right", weight: "600", colour: T.ink1 });
+  label(ctx, "mRNA component 1", x0 + s / 2, y0 + s + 16, { size: 10, colour: T.ink3, align: "center" });
+  const sx = x0 + s + 34, cx = [sx + 120, sx + 175], ty = y0 + 30;
+  label(ctx, "PLS", cx[0], ty, { align: "center", weight: "600", colour: T.ink1 });
+  label(ctx, "largest", cx[1], ty - 12, { align: "center", size: 10, colour: T.ink3 }); label(ctx, "variance", cx[1], ty, { align: "center", size: 10, colour: T.ink3 });
+  line(ctx, cx[1] - 16, ty + 5, cx[1] + 16, ty + 5, T.reference, 2, [6, 5]);
+  [["correlation r", f2(corr(t, u)), f2(refR)], ["mRNA kept", pct(P.keptA), pct(BLOCKS.mRNA.kept)], ["Methylation kept", pct(P.keptB), pct(BLOCKS.meth.kept)]].forEach((r, i) => {
+    const yy = ty + 24 + i * 22; label(ctx, r[0], sx, yy, { size: 10 }); label(ctx, r[1], cx[0], yy, { align: "center", colour: T.ink1 }); label(ctx, r[2], cx[1], yy, { align: "center", colour: T.ink3 });
+  });
+  ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.strokeRect(cx[0] - 23, ty - 16, 46, 3 * 22 + 26); ctx.restore();
+  label(ctx, "mRNA w: 8,383 weights (as now)", sx, y0 + 160, { size: 10, colour: T.ink3 });
+  label(ctx, "Methylation w: 8,103 weights", sx, y0 + 240, { size: 10, colour: T.ink3 });
+}
+
+concept("A"); concept("B"); shortcut(); data();
+</script>
+</body>
+</html>
