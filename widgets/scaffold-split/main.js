@@ -127,6 +127,7 @@ const S = {
   ],
   colBand: (range, narrow) => (narrow ? `${range} per scaffold` : `${range} molecule${range === "1" ? "" : "s"} per scaffold`),
   colHead: (side, n, share) => (side === 0 ? `Train · ${fmtN(n)} molecules (${Math.round(100 * share)}%)` : `Held out · ${fmtN(n)} (${Math.round(100 * share)}%)`),
+  sharedCap: (n) => `ringed: a scaffold in both Train and Held out · ${n} of ${fmtN(FILE.scaffolds)} scaffolds`,
   hoverPair: (n, a, inTrain, inHeld) => `${n} molecules · ${a} active · train ${inTrain} · held out ${inHeld}`,
   barTitle: ["Train", "Validation", "Test"],
   barY: "Proportion",
@@ -358,7 +359,11 @@ function pairOf(kind, seed) {
   const start = new Float32Array(N);
   held.forEach((k, i) => { start[k] = MOVE.held * (i / held.length); });
   train.forEach((k, i) => { start[k] = MOVE.train + (1 - MOVE.train - MOVE.each) * (i / train.length); });
-  PAIRS[key] = { pos, outlines, caps, heads, h: y, start, n: sides.map((sd) => sd.n) };
+  /* the scaffolds with a piece in both columns: what Split 80 / 20's rings mark */
+  const onSide = [new Set(), new Set()];
+  outlines.forEach((o) => onSide[o.side].add(o.g));
+  const shared = new Set([...onSide[0]].filter((g) => onSide[1].has(g)));
+  PAIRS[key] = { pos, outlines, caps, heads, h: y, start, shared, n: sides.map((sd) => sd.n) };
   return PAIRS[key];
 }
 
@@ -499,7 +504,7 @@ const H_SCAF = MOL_H + 30 + GRID.h + 14;
 const GRID_TOP = 48;
 const BARS_H = 138, SCORE_H = 170;
 /* the two columns' height depends on the split and the seed, so these read the parameters */
-const H_SPLIT = (params) => GRID_TOP + Math.max(GRID.h, pairOf(params.split, Number(params.seed)).h) + 26 + BARS_H;
+const H_SPLIT = (params) => GRID_TOP + Math.max(GRID.h, pairOf(params.split, Number(params.seed)).h) + 26 + 16 + BARS_H;
 const H_EVAL = (params) => GRID_TOP + pairOf(params.split, Number(params.seed)).h + 26 + SCORE_H;
 const leftW = (w) => Math.min(270, w * 0.48);
 
@@ -618,9 +623,15 @@ function drawSplit(ctx, colors, w, params, anim, pointer) {
     };
     drawCells(ctx, colors, b, (k) => P.pos[k], fillCol);
     const hov = t == null ? pieceAt(b, P, pointer) : null;
-    drawPairFrame(ctx, colors, b, P, { pairG: hov && hov.side != null ? hov.g : null });
+    /* SHARED SCAFFOLDS RINGED (round 5, his pick A from `_lab/scaffold-split-shared-mock.html`):
+       the two splits' columns looked alike, so both pieces of every scaffold in
+       Train and Held out are ringed once the move lands, with the count; the
+       scaffold split rings none */
+    drawPairFrame(ctx, colors, b, P, { ring: (o) => P.shared.has(o.g), pairG: hov && hov.side != null ? hov.g : null });
+    const capY = GRID_TOP + P.h * b.sc + 12;
+    txt(ctx, colors, S.sharedCap(P.shared.size), 12, capY, { fill: colors.ink1, maxW: w - 24 });
     /* cell 30's figure, once all three parts exist */
-    if (beat >= 2) drawBars(ctx, colors, w, GRID_TOP + P.h * b.sc + 22, st, pc);
+    if (beat >= 2) drawBars(ctx, colors, w, capY + 16, st, pc);
     if (hov) {
       const [n, a] = GROUPS[hov.g], pr = partsOf(kind, seed)[hov.g];
       hoverLabel(ctx, colors, beat >= 2 ? S.hoverParts(n, a, pr) : S.hoverPair(n, a, pr[0], pr[1] + pr[2]), pointer.x, pointer.y, w);
