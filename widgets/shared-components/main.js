@@ -1,8 +1,9 @@
 /* ============================================================================
    Widget 99 · Multi-omics: Shared Components (`shared-components`) — PHM5003
-   10, 01 cell 2 (X ≈ T·Wᵀ; N- and P-integration; N-integration's max Σ
-   cov(T₁ⱼ, T₂ⱼ)), 02 cell 0 (DIABLO's latent variables) and 03 cells 12–13
-   (pls(X$mRNA, X$meth, ncomp = 1) and the correlation of its two scores).
+   10, 01 cell 2 (matrix factorization X ≈ T·Wᵀ; N-integration and its
+   max Σ cov(T₁ⱼ, T₂ⱼ); P-integration, X = [X₁; X₂]), 02 cell 0 (DIABLO's
+   latent variables) and 03 cells 12–13 (pls(X$mRNA, X$meth, ncomp = 1) and
+   the correlation of its two scores).
 
    The misconception (catalogue § The multi-omics arc, slot 99): a block's
    component is its largest variation. PLS takes, in each block, the
@@ -10,48 +11,64 @@
    the direction of largest variance. Measured on the lesson's own blocks
    (`_lab/multiomics-measure.R shared`): each block's largest-variance
    direction (PC1) correlates 0.37 · 0.51 · 0.47 with the other's; PLS
-   component 1 0.89 · 0.89 · 0.78, rebuilding 1–2 points less of each block.
+   component 1 0.89 · 0.89 · 0.78, keeping 1–2 points less of each block.
 
-   HOW IT GOT HERE. The draft set PCA against PLS on Concept and Data. Round
-   1 (his "show how PLS is done ... matrix factorization") added mixOmics'
-   loop as presses and a Factorize page. Round 2 (his "should we just remove
-   it?") dropped PCA as a method and kept it as the dashed BENCHMARK. Round 3
-   (his "when I switch from Concept to Factorize I get confused ... I don't
-   understand the concept"): the two pages drew the same numbers in two
-   pictures and nothing joined them, so they are ONE page now, every call his
-   from `_lab/shared-components-linked-mock.html` ("all recommendations"):
+   HOW IT GOT HERE, five rounds in a day, every call his from a `_lab` mock
+   ("all recommendations" each time): the draft set PCA against PLS; round 1
+   added mixOmics' loop and a Factorize page; round 2 dropped PCA as a method
+   and kept it as the dashed BENCHMARK; round 3 put the picture and the
+   matrix on one page with a traced sample; round 4 (his "review it from a
+   student's viewpoint ... this widget should explain the concepts the
+   notebook introduces", `_lab/shared-components-notebook-mock.html`) laid the
+   pages out in 01 cell 2's order and took the notebook's single letter W for
+   the loadings:
 
-     METHOD  the two simulated blocks side by side — each block's scatter
-             above its matrix, the Scores panel between the scatters. The
-             matrices' rows are aligned across the page: row 62 of X₁ and row
-             62 of X₂ are one sample, which is N-integration drawn. One traced
-             sample (ringed in every panel, outlined in both matrices, picked
-             by a click or the rail) carries the arithmetic in the middle
-             panel, so every mark has its number beside it: the arrow is w,
-             a sample's foot is its score, t = Xw. Presses: Start · Update
-             mRNA · Update methylation … (mixOmics' loop, from a start 80° off
-             so the rule can be seen; its last press brings in the dashed
-             largest-variance benchmark) · Rebuild (t cᵀ, c = Xᵀt / tᵀt,
-             mixOmics' deflation) · Subtract (E) · Shortcut (X₁ᵀX₂ and its
-             first singular pair, which is the loop's end).
-     DATA    the lesson's 405 training samples, Pair over the three pairs 03
-             cell 13 correlates; one press fills each block's score strip and
-             raises the samples into the scatter; beside it PLS against the
-             benchmark, and each block's row of weights.
+     METHOD
+       Factorization   one block (mRNA): Score (w₁, the direction that
+                       rebuilds the most of X; t₁ = Xw₁) · Rebuild (t₁w₁ᵀ,
+                       each sample at its foot on the arrow) · Subtract (E) ·
+                       Component 2 (from E; T and W gain their second
+                       columns, and with L = P the rebuild is exact). The
+                       matrices in the notebook's shapes: X (N × P) ≈ T
+                       (N × L) · Wᵀ (L × P).
+       N-integration   the two blocks on the same samples, matrices' rows
+                       aligned across the page; mixOmics' loop as presses
+                       (Start · Update mRNA · Update methylation …, from a
+                       start 80° off so the rule can be seen), then Rebuild ·
+                       Subtract · Shortcut (X₁ᵀX₂ and its first singular pair,
+                       which is the loop's end, and exists only because the
+                       rows are the same samples).
+       P-integration   two studies with the same two genes: Stack (X₂ moves
+                       under X₁) · Find w (one w for both, each gene's
+                       covariance with the subtype, the notebook's "PLS
+                       against a response") · Score (each study's samples
+                       their own scores). Per-study centring (MINT) was
+                       measured and left out: it gave no clean lesson
+                       without a held-out study.
+     DATA
+       TCGA UCEC       the lesson's 405 training samples, Pair over the three
+                       pairs 03 cell 13 correlates.
 
-   "Kept" means one thing on both pages: the share of a block that t cᵀ
-   rebuilds. For the largest-variance direction it is PC1's share.
+   A traced sample (rail control, or a click on a dot or a matrix row) runs
+   through Factorization and N-integration with its arithmetic beside it.
+   "Kept" means one thing on every page: the share of a block's variance
+   along w, ‖t‖² / ‖X‖², what t wᵀ rebuilds.
 
-   Nothing is fitted on the page for Data: data.js (generated by
+   Nothing is fitted on the page for TCGA UCEC: data.js (generated by
    `_lab/multiomics-measure.R widget99`) holds the scores, weights and kept
-   shares. The Method blocks are simulated here; the benchmark directions are
-   exact 2 × 2 eigenvectors and PLS's the loop's end.
+   shares. The Method blocks are simulated here; the largest-variance
+   directions are exact 2 × 2 eigenvectors and PLS's the loop's end.
    ========================================================================= */
 
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import { SUBTYPES, Y, BLOCKS, PAIRS } from "./data.js";
 
-const PAGES = [{ value: "method", label: "Method" }, { value: "data", label: "Data" }];
+const PAGES = [
+  { value: "factorization", label: "Factorization", group: "Method" },
+  { value: "n-integration", label: "N-integration", group: "Method" },
+  { value: "p-integration", label: "P-integration", group: "Method" },
+  { value: "data", label: "TCGA UCEC", group: "Data" },
+];
 const SHORT = { mRNA: "mRNA", meth: "meth", rppa: "RPPA" };
 const PAIR_OPTS = PAIRS.map((p) => ({ value: `${p.a}-${p.b}`.toLowerCase(), label: `${SHORT[p.a]}–${SHORT[p.b]}` }));
 const ON = (page) => ({ param: "page", equals: page });
@@ -60,6 +77,7 @@ const BLOCK_UNIT = { mRNA: "genes", meth: "CpG sites", rppa: "proteins" };
 const N_DATA = Y.length;
 const MAX_ROUNDS = 5;
 const N_CONCEPT = 80;
+const N_STUDY = 40;
 /* the traced sample a link opens on: subtype 2, with values well away from
    0 in both blocks, so its arithmetic is not all near-zero terms (picked on
    seed 1's blocks, round 3's mock) */
@@ -87,25 +105,40 @@ const S = {
   scoreY: "methylation score u",
   sub: ["Subtype 1", "Subtype 2"],
   arrow: "component 1",
+
+  /* Factorization */
+  fCap: [
+    "One block: mRNA, 2 genes measured on 80 samples. Each dot is one row of X.",
+    "Score: w₁ is the direction that rebuilds the most of X. Each sample's score is its row times w₁, its position along the arrow.",
+    "Rebuild: t₁w₁ᵀ puts every sample at its foot on the arrow (hollow). This is the part of X that component 1 keeps.",
+    "Subtract: E = X − t₁w₁ᵀ is what is left, the gap from each foot to its dot.",
+    "Component 2: w₂ is found in E the same way. T and W now have two columns each, and with as many components as features the rebuild is exact. Omics blocks have far more features than samples, so only a few components are kept.",
+  ],
+  fRow: (n, a, b) => `sample ${n}: gene 1 = ${a}, gene 2 = ${b}`,
+  fScore: (k, x, w, t) => `t${k} = ${x[0]} × ${w[0]} + ${x[1]} × ${w[1]} = ${t}`,
+  fRebuilt: (t, w, r) => `rebuilt row = t₁ × w₁ = ${t} × (${w}) = (${r})`,
+  fE: (e) => `E row = row − rebuilt = (${e})`,
+  fBoth: (r) => `t₁w₁ + t₂w₂ = (${r}), the row exactly`,
+  shapes: ["N × P", "N × L", "L × P"],
+
+  /* N-integration */
   caption: {
     before: "Two blocks measured on the same 80 samples: each dot above is one row of the matrix below it.",
     start: "Start: methylation's arrow points in an arbitrary direction. Each sample's methylation score u is its position along it.",
     updA: "Update mRNA: each gene's weight becomes its covariance with the methylation scores u. The arrow, w and the t column change together.",
     updB: "Update methylation: each CpG site's weight becomes its covariance with the mRNA scores t. The arrow, w and the u column change together.",
     done: "Another round changes neither arrow: PLS's component 1. Dashed: each block's direction of largest variance.",
-    rebuild: "Rebuild: c rebuilds each block from its score column, t cᵀ. Every sample's rebuilt point (hollow) lies on one line.",
-    subtract: "Subtract: E = X − t cᵀ is what component 1 leaves. Component 2 is found in E the same way.",
-    shortcut: "Shortcut: the loop computed one table's first singular pair. The table is X₁ᵀX₂, each mRNA feature's covariance with each methylation feature.",
+    rebuild: "Rebuild: t wᵀ puts every sample at its foot on its block's arrow (hollow).",
+    subtract: "Subtract: E = X − t wᵀ is what component 1 leaves. Component 2 is found in E the same way.",
+    shortcut: "Shortcut: the loop computed the first singular pair of X₁ᵀX₂. It multiplies the two tables row by row, so it exists only because the rows are the same samples.",
   },
-  nLine: "N-integration: the rows are the same 80 samples in both tables.",
-  pLine: "P-integration would stack two studies with the same features; not used here.",
+  sameRows: "N-integration: the rows are the same 80 samples in both tables.",
   sampleHead: (n, g) => `sample ${n} · ${g}`,
   noArrow: "no arrow yet",
   covHead: (b) => (b === "a" ? "this press: w from u" : "this press: w from t"),
   covLine: (f, o, v) => `cov(${f}, ${o}) = ${v}`,
   scaleLine: (n, w) => `÷ ${n} (length 1) → w = (${w})`,
-  cLine: (b, c) => `${b} c = (${c})`,
-  rebuiltLine: (s, t, v) => `${s} rebuilt = ${t} × c = (${v})`,
+  rebuiltLine: (s, t, v) => `${s} rebuilt = ${t} × w = (${v})`,
   eLine: (s, v) => `${s} E row = (${v})`,
   crossHead: "X₁ᵀX₂ / n",
   pairHead: "first singular pair",
@@ -116,7 +149,20 @@ const S = {
   rowR: "correlation r",
   rowKept: (name) => `${name} kept`,
 
-  /* Data */
+  /* P-integration */
+  pCap: [
+    "Two studies measured the same 2 genes on different samples, 40 each. Study 2 reads higher on both genes.",
+    "Stack: the studies share their columns, so their tables stack into one, X = [X₁; X₂].",
+    "Find w: one w for both studies, each gene's covariance with the subtype, scaled to length 1.",
+    "Score: every sample, from either study, gets its score t = row × w along the same arrow.",
+  ],
+  study: ["study 1", "study 2"],
+  studyKey: "● study 1   ■ study 2",
+  pCov: (g, v) => `cov(${g}, subtype) = ${v}`,
+  pW: (n, w) => `÷ ${n} (length 1) → w = (${w}), one w for both studies`,
+  pScore: (s, t) => `${s}: scores from ${t}`,
+
+  /* TCGA UCEC */
   dims: (b) => `${BLOCK_NAME[b]}: ${N_DATA} samples × ${BLOCKS[b].features.toLocaleString("en-US")} ${BLOCK_UNIT[b]}`,
   strip: (b) => `${BLOCK_NAME[b]} component 1`,
   dataBefore: "Component 1 gives each sample one score per block.",
@@ -128,18 +174,29 @@ const S = {
   tileCov: "Covariance of the scores",
   tileCovNote: "what PLS makes as large as it can",
   tileKept: (b) => `${b} kept`,
-  tileKeptNote: "share of the block that t cᵀ rebuilds",
+  tileKeptNote: "share of the block's variance along w",
+  tileK1: "Component 1 keeps",
+  tileK2: "Components 1 and 2 keep",
+  tileKNote: "share of X's variance",
+  tileShape: "T and W",
+  tileShapeNote: "N × L and P × L",
+  tileW: "Shared w",
+  tileWNote: "the same weights for both studies",
+  tileSub: "Scores and subtype",
+  tileSubNote: "correlation of t with the subtype, all 80",
+  tileN: "Samples",
   tileWait: "—",
 
   hovSample: (n, g) => `sample ${n} · ${g}`,
+  hovStudy: (s, g) => `${s} · ${g}`,
   hovData: (st, a, ta, b, tb) => `${st} · ${a} ${ta} · ${b} ${tb}`,
 };
 
-/* the presses: the loop (its length is the blocks', set in makeBlocks), then the factorization */
+/* the N-integration presses: the loop (its length is the blocks', set in makeBlocks), then the factorization */
 const AFTER = ["Rebuild", "Subtract", "Shortcut"];
 const AFTER_TITLE = [
-  "Rebuild each block from its score column: t cᵀ, with c = Xᵀt / tᵀt",
-  "Subtract the rebuilt part: E = X − t cᵀ",
+  "Rebuild each block from its score column: t wᵀ",
+  "Subtract the rebuilt part: E = X − t wᵀ",
   "Find both weight vectors in one step, as the first singular pair of X₁ᵀX₂",
 ];
 const loopLabel = (n) => (n === 0 ? "Start" : n % 2 === 1 ? "Update mRNA" : "Update methylation");
@@ -149,18 +206,41 @@ const loopTitle = (n) => (n === 0
     ? "Set each gene's weight to its covariance with the methylation scores u"
     : "Set each CpG site's weight to its covariance with the mRNA scores t");
 const SLOTS = 2 + 2 * MAX_ROUNDS + AFTER.length;
-const METHOD_LABELS = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopLabel(n)]));
-const METHOD_TITLES = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopTitle(n)]));
+const N_LABELS = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopLabel(n)]));
+const N_TITLES = Object.fromEntries(Array.from({ length: SLOTS }, (_, n) => [n, loopTitle(n)]));
 const FIND_TITLE = "In each block, find the direction whose scores covary most with the other block's, and give every sample its score along it";
+const F_LABELS = { 0: "Score", 1: "Rebuild", 2: "Subtract", 3: "Component 2" };
+const F_TITLES = {
+  0: "Find the direction that rebuilds the most of X, and score every sample along it: t₁ = Xw₁",
+  1: "Rebuild X from the scores: t₁w₁ᵀ",
+  2: "Subtract the rebuilt part: E = X − t₁w₁ᵀ",
+  3: "Find component 2 in E the same way",
+};
+const P_LABELS = { 0: "Stack", 1: "Find w", 2: "Score" };
+const P_TITLES = {
+  0: "Stack the two studies' tables into one: X = [X₁; X₂]",
+  1: "Set each gene's weight to its covariance with the subtype: one w for both studies",
+  2: "Score every sample along the shared w",
+};
 
 S.stepLabel = {
   param: "page",
-  labels: { method: { anim: "beat", labels: METHOD_LABELS, default: AFTER[2] }, data: "Find component 1" },
+  labels: {
+    factorization: { anim: "beat", labels: F_LABELS, default: F_LABELS[3] },
+    "n-integration": { anim: "beat", labels: N_LABELS, default: AFTER[2] },
+    "p-integration": { anim: "beat", labels: P_LABELS, default: P_LABELS[2] },
+    data: "Find component 1",
+  },
   default: "Find component 1",
 };
 S.stepTitle = {
   param: "page",
-  labels: { method: { anim: "beat", labels: METHOD_TITLES, default: AFTER_TITLE[2] }, data: FIND_TITLE },
+  labels: {
+    factorization: { anim: "beat", labels: F_TITLES, default: F_TITLES[3] },
+    "n-integration": { anim: "beat", labels: N_TITLES, default: AFTER_TITLE[2] },
+    "p-integration": { anim: "beat", labels: P_TITLES, default: P_TITLES[2] },
+    data: FIND_TITLE,
+  },
   default: FIND_TITLE,
 };
 
@@ -169,26 +249,37 @@ S.stepTitle = {
 const MATHML = mathmlRenders();
 const mi = (s) => `<mi>${s}</mi>`, mo = (s) => `<mo>${s}</mo>`, sub = (a, b) => `<msub><mi>${a}</mi><mn>${b}</mn></msub>`;
 const supT = (s) => `<msup>${s}<mi>T</mi></msup>`, gap = (em) => `<mspace width="${em}em"/>`;
+const under = (s, u) => `<munder>${s}<mtext mathsize="70%">${u}</mtext></munder>`;
 const MATH = {
+  factor1: {
+    math: `<math display="block"><mrow>${under(mi("X"), "N × P")}${mo("≈")}${under(mi("T"), "N × L")}${mo("·")}${under(supT(mi("W")), "L × P")}${mo(",")}${gap(1)}${mi("t")}${mo("=")}${mi("X")}${mi("w")}</mrow></math>`,
+    plain: "X (N × P) ≈ T (N × L) · Wᵀ (L × P),   t = X w",
+    note: "A row of T is one sample's scores; a column of W is one component's loadings, how much each feature contributes. On one block, component 1's w is the direction that rebuilds the most of X.",
+  },
   pls: {
     math: `<math display="block"><mrow>${mi("t")}${mo("=")}${sub("X", 1)}${sub("w", 1)}${mo(",")}${gap(0.6)}${mi("u")}${mo("=")}${sub("X", 2)}${sub("w", 2)}${mo(",")}${gap(1)}<munder><mo>max</mo><mrow>${mo("‖")}${sub("w", 1)}${mo("‖")}${mo("=")}${mo("‖")}${sub("w", 2)}${mo("‖")}${mo("=")}<mn>1</mn></mrow></munder>${gap(0.3)}<mtext>cov</mtext>${mo("(")}${mi("t")}${mo(",")}${mi("u")}${mo(")")}</mrow></math>`,
     plain: "t = X₁w₁,  u = X₂w₂,   max over ‖w₁‖ = ‖w₂‖ = 1 of cov(t, u)",
-    note: "One pair (w₁, w₂) for the two blocks together: the first of the components that maximise Σ cov(T₁ⱼ, T₂ⱼ). The benchmark is each block's direction of largest variance, the one PCA takes.",
+    note: "One pair (w₁, w₂) for the two blocks together: the first of the components that maximise Σ cov(T₁ⱼ, T₂ⱼ). The benchmark is each block's direction of largest variance.",
   },
   loop: {
     math: `<math display="block"><mrow>${mi("t")}${mo("=")}${sub("X", 1)}${sub("w", 1)}${mo(",")}${gap(0.5)}${sub("w", 1)}${mo("∝")}${supT(sub("X", 1))}${mi("u")}${mo(";")}${gap(1.2)}${mi("u")}${mo("=")}${sub("X", 2)}${sub("w", 2)}${mo(",")}${gap(0.5)}${sub("w", 2)}${mo("∝")}${supT(sub("X", 2))}${mi("t")}</mrow></math>`,
     plain: "t = X₁w₁,  w₁ ∝ X₁ᵀu;    u = X₂w₂,  w₂ ∝ X₂ᵀt",
-    note: "A score is a row of X times w. Each block's weights are its features' covariances with the other block's scores, scaled to length 1; repeated until neither changes, they maximise cov(t, u). The dashed benchmark is the direction PCA takes.",
+    note: "Each block's weights are its features' covariances with the other block's scores, scaled to length 1; repeated until neither changes, they maximise cov(t, u). The dashed benchmark is each block's direction of largest variance.",
   },
-  factor: {
-    math: `<math display="block"><mrow>${mi("X")}${mo("≈")}${mi("t")}${supT(mi("c"))}${mo("+")}${mi("E")}${mo(",")}${gap(1)}${mi("c")}${mo("=")}<mfrac><mrow>${supT(mi("X"))}${mi("t")}</mrow><mrow>${supT(mi("t"))}${mi("t")}</mrow></mfrac></mrow></math>`,
-    plain: "X ≈ t cᵀ + E,   c = Xᵀt / tᵀt",
-    note: "Component 2 is found in E the same way; stacking the components gives X ≈ T·Wᵀ, the scores times the loadings.",
+  factorN: {
+    math: `<math display="block"><mrow>${sub("X", 1)}${mo("≈")}${mi("t")}${supT(sub("w", 1))}${mo("+")}${sub("E", 1)}${mo(",")}${gap(1)}${sub("X", 2)}${mo("≈")}${mi("u")}${supT(sub("w", 2))}${mo("+")}${sub("E", 2)}</mrow></math>`,
+    plain: "X₁ ≈ t w₁ᵀ + E₁,   X₂ ≈ u w₂ᵀ + E₂",
+    note: "Each block keeps its own factorization, X ≈ T·Wᵀ; what the two share is that their score columns are chosen to agree.",
   },
   shortcut: {
     math: `<math display="block"><mrow>${mo("(")}${sub("w", 1)}${mo(",")}${sub("w", 2)}${mo(")")}${mo("=")}<mtext>first singular pair of</mtext>${gap(0.3)}${supT(sub("X", 1))}${sub("X", 2)}</mrow></math>`,
     plain: "(w₁, w₂) = first singular pair of X₁ᵀX₂",
-    note: "The largest-variance direction of one block is the first singular vector of that block alone; PLS's pair is that of X₁ᵀX₂, the covariances between the blocks.",
+    note: "One block's largest-variance direction is the first singular vector of that block alone; PLS's pair is that of X₁ᵀX₂, the covariances between the blocks' features, summed over the samples they share.",
+  },
+  stack: {
+    math: `<math display="block"><mrow>${mi("X")}${mo("=")}<mrow>${mo("[")}<mtable><mtr><mtd>${sub("X", 1)}</mtd></mtr><mtr><mtd>${sub("X", 2)}</mtd></mtr></mtable>${mo("]")}</mrow>${mo(",")}${gap(1)}${mi("w")}${mo("∝")}${supT(mi("X"))}${mi("y")}${mo(",")}${gap(0.6)}${mi("t")}${mo("=")}${mi("X")}${mi("w")}</mrow></math>`,
+    plain: "X = [X₁; X₂],   w ∝ Xᵀy,   t = X w",
+    note: "The studies share their features (P), so the tables stack and one w serves both; y is the response, here the subtype.",
   },
 };
 let mathHost = null, mathKey = null;
@@ -238,6 +329,10 @@ function dot(ctx, colors, x, y, r, fill, edge = true) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill();
   if (edge) { ctx.lineWidth = 1; ctx.strokeStyle = colors.surface; ctx.stroke(); }
 }
+function square(ctx, colors, x, y, r, fill) {
+  ctx.fillStyle = fill; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  ctx.lineWidth = 1; ctx.strokeStyle = colors.surface; ctx.strokeRect(x - r, y - r, 2 * r, 2 * r);
+}
 function hollow(ctx, x, y, r, col) {
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.lineWidth = 1.2; ctx.strokeStyle = col; ctx.stroke(); ctx.restore();
 }
@@ -255,8 +350,8 @@ function arrowHead(ctx, x0, y0, x1, y1, col, head) {
   ctx.closePath(); ctx.fill(); ctx.restore();
 }
 /** a component's direction has no sign: drawn double-headed, as pca's are */
-function axisArrow(ctx, p0, p1, col) {
-  line(ctx, p0[0], p0[1], p1[0], p1[1], col, 2.2);
+function axisArrow(ctx, p0, p1, col, lw = 2.2) {
+  line(ctx, p0[0], p0[1], p1[0], p1[1], col, lw);
   arrowHead(ctx, p0[0], p0[1], p1[0], p1[1], col, 7); arrowHead(ctx, p1[0], p1[1], p0[0], p0[1], col, 7);
 }
 /** the benchmark: a direction drawn dashed in --c-reference, no heads */
@@ -295,6 +390,11 @@ function valueColour(colors, v) {
   if (!a || !b) return t < 0 ? colors.valueLow : colors.valueHigh;
   return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * Math.abs(t))).join(",")})`;
 }
+/** ink brackets naming row groups beside a matrix (a value-coloured panel colours nothing by identity) */
+function bracket(ctx, colors, x, y0, y1, label) {
+  line(ctx, x, y0 + 2, x, y1 - 2, colors.ink2, 1.5);
+  vText(ctx, colors, label, x - 6, (y0 + y1) / 2, { size: colors.fsXs, fill: colors.ink2 });
+}
 
 /** PLS beside the benchmark: PLS framed in --c-highlight, the benchmark in
    ink-3 under a dashed key. rows: [label, PLS, benchmark] */
@@ -315,7 +415,7 @@ function drawTrade(ctx, colors, x, y, width, rows) {
   ctx.strokeRect(cP - cw / 2 + 3.5, y - 16, cw - 6, rows.length * rh + 26); ctx.restore();
 }
 
-/* ========================================================= the two blocks */
+/* ========================================================= the simulations */
 
 /* Two blocks on the same samples. In each, the shared axis carries the
    subtype difference (±0.85 plus noise) and is the SMALLER spread; a private
@@ -334,15 +434,13 @@ function topEig2(a, b, d) {
 }
 const project = (X, d) => X.map((p) => p[0] * d[0] + p[1] * d[1]);
 const flip = (d) => [-d[0], -d[1]];
+const centre = (X) => { const m = [0, 1].map((j) => mean(X.map((p) => p[j]))); return X.map((p) => [p[0] - m[0], p[1] - m[1]]); };
+const crossOf = (X, Z) => { const M = [[0, 0], [0, 0]]; X.forEach((x, i) => { for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) M[r][c] += x[r] * Z[i][c]; }); return M; };
+const largestVar = (X) => { const C = crossOf(X, X); return topEig2(C[0][0], C[0][1], C[1][1]); };
 /** each feature's covariance with a score vector: Xᵀs / n */
 const covWith = (X, s) => [0, 1].map((j) => X.reduce((acc, p, i) => acc + p[j] * s[i], 0) / X.length);
-/** the share of X that t cᵀ rebuilds, c = Xᵀt / tᵀt (mixOmics' deflation) */
-function keptBy(X, t) {
-  const tt = t.reduce((s, v) => s + v * v, 0), c = [0, 1].map((j) => X.reduce((s, p, i) => s + p[j] * t[i], 0) / tt);
-  let e = 0, x = 0;
-  X.forEach((p, i) => { for (let j = 0; j < 2; j++) { e += (p[j] - t[i] * c[j]) ** 2; x += p[j] ** 2; } });
-  return { kept: 1 - e / x, c };
-}
+/** the share of X's variance along w: what t wᵀ rebuilds, ‖t‖² / ‖X‖² (round 4, the notebook's single W) */
+const keptBy = (X, t) => t.reduce((s, v) => s + v * v, 0) / X.reduce((s, p) => s + p[0] ** 2 + p[1] ** 2, 0);
 
 function makeBlocks(rng) {
   const ua = unitAt(ANG.a[0]), va = unitAt(ANG.a[1]), ub = unitAt(ANG.b[0]), vb = unitAt(ANG.b[1]);
@@ -355,9 +453,7 @@ function makeBlocks(rng) {
     A0.push([0, 1].map((j) => s * ua[j] + a * va[j] + 0.2 * rng.normal()));
     B0.push([0, 1].map((j) => s * ub[j] + b * vb[j] + 0.2 * rng.normal()));
   }
-  const centre = (X) => { const m = [0, 1].map((j) => mean(X.map((p) => p[j]))); return X.map((p) => [p[0] - m[0], p[1] - m[1]]); };
   const A = centre(A0), B = centre(B0);
-  const cross = (X, Z) => { const M = [[0, 0], [0, 0]]; X.forEach((x, i) => { for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) M[r][c] += x[r] * Z[i][c]; }); return M; };
 
   /* PLS: mixOmics' loop, run to its end from a start 80° off the answer.
      Signs: subtype 2 scores positive on mRNA, and the loop's start chosen so
@@ -388,29 +484,34 @@ function makeBlocks(rng) {
   const loopEnd = frames.length - 1;
   /* the button names the presses this loop has, then the factorization's */
   for (let n = loopEnd; n < SLOTS; n++) {
-    METHOD_LABELS[n] = AFTER[Math.min(n - loopEnd, 2)];
-    METHOD_TITLES[n] = AFTER_TITLE[Math.min(n - loopEnd, 2)];
+    N_LABELS[n] = AFTER[Math.min(n - loopEnd, 2)];
+    N_TITLES[n] = AFTER_TITLE[Math.min(n - loopEnd, 2)];
   }
   const fin = frames.at(-1);
   const finish = (f) => {
-    if (f.w1) { const k = keptBy(A, f.t); f.keptA = k.kept; f.cA = k.c; }
-    if (f.w2) { const k = keptBy(B, f.u); f.keptB = k.kept; f.cB = k.c; }
+    if (f.w1) f.keptA = keptBy(A, f.t);
+    if (f.w2) f.keptB = keptBy(B, f.u);
     if (f.t && f.u) { f.r = corr(f.t, f.u); f.cv = f.t.reduce((acc, v, i) => acc + v * f.u[i], 0) / f.t.length; }
     return f;
   };
   frames = frames.map(finish);
 
-  /* the benchmark: each block's direction of largest variance, turned to
-     agree with PLS's so the dashed and solid lines are read side by side */
-  const CA = cross(A, A), CB = cross(B, B);
-  let ra = topEig2(CA[0][0], CA[0][1], CA[1][1]), rb = topEig2(CB[0][0], CB[0][1], CB[1][1]);
+  /* the benchmark, and Factorization's component 1: each block's direction
+     of largest variance, turned to agree with PLS's so the dashed and solid
+     lines are read side by side */
+  let ra = largestVar(A), rb = largestVar(B);
   if (ra[0] * fin.w1[0] + ra[1] * fin.w1[1] < 0) ra = flip(ra);
   if (corr(project(A, ra), project(B, rb)) < 0) rb = flip(rb);
   const ref = finish({ w1: ra, t: project(A, ra), w2: rb, u: project(B, rb) });
 
+  /* Factorization: mRNA alone, components 1 and 2 (w₂ at right angles, found in E) */
+  const fw2 = [-ra[1], ra[0]];
+  const fac = { w: [ra, fw2], t: [project(A, ra), project(A, fw2)] };
+  fac.kept1 = keptBy(A, fac.t[0]);
+
   /* the Shortcut: X₁ᵀX₂ / n and its first singular pair, by the same
      alternation on the 2 × 2 table itself; it lands on the loop's end */
-  const M = cross(A, B).map((r) => r.map((v) => v / N_CONCEPT));
+  const M = crossOf(A, B).map((r) => r.map((v) => v / N_CONCEPT));
   let s1 = [1, 0], s2 = [0, 1];
   for (let k = 0; k < 200; k++) {
     s1 = unit2([M[0][0] * s2[0] + M[0][1] * s2[1], M[1][0] * s2[0] + M[1][1] * s2[1]]);
@@ -421,10 +522,132 @@ function makeBlocks(rng) {
   const span = 1.08 * Math.max(...A.flat().map(Math.abs), ...B.flat().map(Math.abs));
   const sspan = 1.08 * Math.max(...frames.filter((f) => f.t || f.u).flatMap((f) => [...(f.t ?? []), ...(f.u ?? [])]).map(Math.abs));
   const order = [...A.keys()].sort((i, j) => g[i] - g[j] || i - j);
-  return { g, A, B, loop: frames, loopEnd, ref, cross: { M, w1: s1, w2: s2 }, span, sspan, order };
+  return { g, A, B, loop: frames, loopEnd, ref, fac, cross: { M, w1: s1, w2: s2 }, span, sspan, order };
 }
 
-/* ========================================================== METHOD page */
+/* P-integration: two studies, 40 samples each, the same two genes, an even
+   subtype mix in each (an uneven one confounds study with subtype, measured
+   in round 4's mock, and is not this page's subject). Study 2 reads higher
+   on both genes. The stacked table is centred as one, as 01 cell 2 stacks
+   it; w ∝ Xᵀy with y the subtype, centred. */
+function makeStudies(rng) {
+  const d = unitAt(-35), sh = unitAt(60), X0 = [], study = [], g = [];
+  for (let st = 0; st < 2; st++) for (let i = 0; i < N_STUDY; i++) {
+    const grp = i % 2, s = grp ? 0.8 : -0.8;
+    X0.push([0, 1].map((j) => s * d[j] + 0.55 * rng.normal() + (st ? 0.9 * sh[j] : 0)));
+    study.push(st); g.push(grp);
+  }
+  const X = centre(X0), y = g.map((v) => v - 0.5);
+  const c = covWith(X, y), w = unit2(c), t = project(X, w);
+  /* rows: each study's in subtype order, study 1's first */
+  const order = [...X.keys()].sort((i, j) => study[i] - study[j] || g[i] - g[j] || i - j);
+  const span = 1.1 * Math.max(...X.flat().map(Math.abs));
+  return { X, study, g, c, w, t, order, span, rSub: corr(t, g) };
+}
+
+/* ======================================================= shared drawing */
+
+const toPxOf = (P, span) => (x, y) => [P.x + P.s / 2 + (x / span) * (P.s / 2), P.y + P.s / 2 - (y / span) * (P.s / 2)];
+/** a matrix column (or columns) of values, rows in `order`, coloured by value */
+function cols(ctx, colors, x, y, rh, cw, order, valueOf, ncol, scale) {
+  order.forEach((i, r) => { for (let j = 0; j < ncol; j++) { ctx.fillStyle = valueColour(colors, valueOf(i, j) / scale); ctx.fillRect(x + j * cw, y + r * rh, cw, rh + 0.2); } });
+  frame(ctx, colors, x, y, ncol * cw, order.length * rh);
+}
+function panelFrame(ctx, colors, P, name, ax) {
+  txt(ctx, colors, name, P.x, P.y - 6, { fill: colors.ink1, weight: "600", size: colors.fsXs });
+  frame(ctx, colors, P.x, P.y, P.s, P.s);
+  txt(ctx, colors, ax[0], P.x + P.s / 2, P.y + P.s + 12, { size: colors.fsXs, fill: colors.ink3, align: "center" });
+  vText(ctx, colors, ax[1], P.x - 7, P.y + P.s / 2, { size: colors.fsXs, fill: colors.ink3 });
+}
+
+/* ==================================================== FACTORIZATION page */
+
+/* One block, its scatter on the left and its matrices to the right in the
+   notebook's shapes, the traced sample's arithmetic underneath. */
+const FL = { cap: 50, s: 200, rh: 2.5, cw: 15 };
+const H_FACTOR = FL.cap + 14 + FL.s + 104;
+function factorLayout(w) {
+  const s = Math.min(FL.s, Math.floor(w * 0.38));
+  const P = { x: 30, y: FL.cap + 14, s };
+  const mx = P.x + s + 34, my = P.y + 20, cw = FL.cw;
+  const m = { X: mx, T: mx + 2 * cw + 22, W: mx + 4 * cw + 34, E: mx + 6 * cw + 56 };
+  return { P, my, m, cw, rh: FL.rh, text: { x: 30, y: P.y + s + 34 } };
+}
+
+function drawFactorization(ctx, colors, w, params, st, anim, pointer) {
+  const L = factorLayout(w), n = Math.min(anim.n.factorization ?? 0, 4), p = inFlight(anim, "factorization");
+  const F = st.fac, X = st.A, pick = tracedOf(params), px = toPxOf(L.P, st.span), R = 0.92 * st.span;
+  wrapText(ctx, colors, S.fCap[n], 10, 14, w - 20, 16, { fill: colors.ink1 });
+  panelFrame(ctx, colors, L.P, S.blockA, S.featA);
+  const scored = n >= 1, drop = p != null && n === 1 ? ease(seg(p, 0.1, 0.8)) : 1;
+  if (scored) axisArrow(ctx, px(-R * F.w[0][0], -R * F.w[0][1]), px(R * F.w[0][0], R * F.w[0][1]), colors.highlight);
+  if (n >= 4) axisArrow(ctx, px(-R * F.w[1][0], -R * F.w[1][1]), px(R * F.w[1][0], R * F.w[1][1]), colors.ink2, 1.6);
+  X.forEach((q, i) => {
+    const [x, y] = px(q[0], q[1]);
+    if (scored) {
+      const t = F.t[0][i], ft = px(t * F.w[0][0], t * F.w[0][1]), fp = [lerp(x, ft[0], drop), lerp(y, ft[1], drop)];
+      if (drop < 1) line(ctx, x, y, fp[0], fp[1], colors.ink3, 1);
+      /* Subtract: E as the gap from each foot to its dot */
+      if (n >= 3 && n < 4) line(ctx, ft[0], ft[1], x, y, colors.ink3, 1);
+      if (n >= 2) hollow(ctx, fp[0], fp[1], 2.4, colors.ink2); else dot(ctx, colors, fp[0], fp[1], 2.2, subColour(colors, st.g[i]), false);
+    }
+    dot(ctx, colors, x, y, 3.6, subColour(colors, st.g[i]));
+  });
+  const pq = px(...X[pick]); ring(ctx, pq[0], pq[1], 6.5, colors.ink1);
+  if (scored && p == null) { const t = F.t[0][pick], ft = px(t * F.w[0][0], t * F.w[0][1]); line(ctx, pq[0], pq[1], ft[0], ft[1], colors.ink1, 1, [2, 2]); ring(ctx, ft[0], ft[1], 4.5, colors.ink1); }
+
+  /* the matrices, in the notebook's shapes */
+  const { my, m, cw, rh } = L, H = N_CONCEPT * rh, xm = Math.max(...X.flat().map(Math.abs)), tm = Math.max(...F.t[0].map(Math.abs));
+  const head = (x, wdt, name, shape) => { txt(ctx, colors, name, x + wdt / 2, my - 18, { align: "center", fill: colors.ink1, weight: "600", size: colors.fsXs }); txt(ctx, colors, shape, x + wdt / 2, my - 6, { align: "center", fill: colors.ink3, size: colors.fsXs }); };
+  cols(ctx, colors, m.X, my, rh, cw, st.order, (i, j) => X[i][j], 2, xm); head(m.X, 2 * cw, "X", S.shapes[0]);
+  const Lc = n >= 4 ? 2 : 1;
+  if (scored) {
+    cols(ctx, colors, m.T, my, rh, cw, st.order, (i, j) => F.t[j][i], Lc, tm); head(m.T, Lc * cw, "T", S.shapes[1]);
+    for (let l = 0; l < Lc; l++) for (let j = 0; j < 2; j++) { ctx.fillStyle = valueColour(colors, F.w[l][j]); ctx.fillRect(m.W + j * cw, my + l * cw, cw - 1, cw - 1); }
+    frame(ctx, colors, m.W, my, 2 * cw, Lc * cw); head(m.W, 2 * cw, "Wᵀ", S.shapes[2]);
+  }
+  if (n >= 2) txt(ctx, colors, "≈", m.X + 2 * cw + 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
+  if (n >= 3) {
+    txt(ctx, colors, "+", m.E - 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
+    const rest = (i, j) => X[i][j] - F.t[0][i] * F.w[0][j] - (n >= 4 ? F.t[1][i] * F.w[1][j] : 0);
+    cols(ctx, colors, m.E, my, rh, cw, st.order, rest, 2, xm); head(m.E, 2 * cw, "E", n >= 4 ? "0" : S.shapes[0]);
+  }
+  [0, 1].forEach((g) => { const ra = st.order.findIndex((i) => st.g[i] === g); bracket(ctx, colors, m.X - 5, my + ra * rh, my + (ra + N_CONCEPT / 2) * rh, S.sub[g]); });
+  const r = st.order.indexOf(pick), right = n >= 3 ? m.E + 2 * cw : scored ? m.T + Lc * cw : m.X + 2 * cw;
+  frame(ctx, colors, m.X - 2, my + r * rh - 2, right - m.X + 4, rh + 4, colors.ink1, 1.5);
+
+  /* the traced sample's arithmetic */
+  const x = X[pick], tx = L.text.x;
+  let yy = L.text.y;
+  const put = (s, fill = colors.ink2) => { txt(ctx, colors, s, tx, yy, { size: colors.fsXs, fill }); yy += 15; };
+  put(S.fRow(pick + 1, f2(x[0]), f2(x[1])), colors.ink1);
+  if (scored) put(S.fScore("₁", [fx(x[0]), fx(x[1])], [fx(F.w[0][0]), fx(F.w[0][1])], f2(F.t[0][pick])));
+  if (n >= 2) { const t = F.t[0][pick]; put(S.fRebuilt(f2(t), pair2(F.w[0]), pair2([t * F.w[0][0], t * F.w[0][1]]))); }
+  if (n >= 3 && n < 4) { const t = F.t[0][pick]; put(S.fE(pair2([x[0] - t * F.w[0][0], x[1] - t * F.w[0][1]])), colors.ink1); }
+  if (n >= 4) {
+    put(S.fScore("₂", [fx(x[0]), fx(x[1])], [fx(F.w[1][0]), fx(F.w[1][1])], f2(F.t[1][pick])));
+    put(S.fBoth(pair2([F.t[0][pick] * F.w[0][0] + F.t[1][pick] * F.w[1][0], F.t[0][pick] * F.w[0][1] + F.t[1][pick] * F.w[1][1]])), colors.ink1);
+  }
+  hoverSample(ctx, colors, w, pointer, pickAtFactor(L, st, pointer));
+}
+
+function pickAtFactor(L, st, pointer) {
+  if (!pointer) return null;
+  const px = toPxOf(L.P, st.span);
+  let best = -1, bd = 64;
+  st.A.forEach((q, i) => { const p = px(q[0], q[1]), d = (p[0] - pointer.x) ** 2 + (p[1] - pointer.y) ** 2; if (d < bd) { bd = d; best = i; } });
+  if (best >= 0) return best;
+  const { my, rh, m, cw } = L;
+  if (pointer.x >= m.X && pointer.x <= m.E + 2 * cw && pointer.y >= my && pointer.y < my + N_CONCEPT * rh) return st.order[Math.floor((pointer.y - my) / rh)];
+  return null;
+}
+function hoverSample(ctx, colors, w, pointer, hit, st) {
+  if (hit == null || !pointer) return;
+  hoverLabel(ctx, colors, S.hovSample(hit + 1, S.sub[hit % 2]), pointer.x, pointer.y, w);
+}
+const tracedOf = (params) => clamp((Number(params.sample) || TRACED) - 1, 0, N_CONCEPT - 1);
+
+/* ==================================================== N-INTEGRATION page */
 
 /* Layout, one function read by `draw`, `regions` and the height constant:
    a caption across the top; three squares — mRNA's scatter, the Scores
@@ -433,8 +656,8 @@ function makeBlocks(rng) {
    X₂), so the two score columns face each other across the middle panel
    and a row is one sample all the way across. */
 const L0 = { cap: 34, padL: 30, padR: 12, gap: 24, sMax: 150, mGap: 52, rh: 2, cw: 14 };
-const H_METHOD = L0.cap + 18 + L0.sMax + L0.mGap + N_CONCEPT * L0.rh + 18;
-function methodLayout(w) {
+const H_N = L0.cap + 18 + L0.sMax + L0.mGap + N_CONCEPT * L0.rh + 18;
+function nLayout(w) {
   const s = Math.floor(Math.min(L0.sMax, (w - L0.padL - L0.padR - 2 * L0.gap) / 3));
   const y = L0.cap + 18, xA = L0.padL, xB = w - L0.padR - s, xS = (xA + s + xB) / 2 - s / 2;
   const my = y + s + L0.mGap, cw = L0.cw;
@@ -445,11 +668,10 @@ function methodLayout(w) {
 }
 
 /** what the page shows after `k` presses: the loop's frame, and how far the factorization has gone */
-const methodView = (st, k) => ({ frame: st.loop[Math.min(k, st.loopEnd)], loopDone: k >= st.loopEnd, after: Math.max(0, k - st.loopEnd) });
+const nView = (st, k) => ({ frame: st.loop[Math.min(k, st.loopEnd)], loopDone: k >= st.loopEnd, after: Math.max(0, k - st.loopEnd) });
 
-const toPxOf = (P, span) => (x, y) => [P.x + P.s / 2 + (x / span) * (P.s / 2), P.y + P.s / 2 - (y / span) * (P.s / 2)];
 /** pixel positions of every mark one loop frame draws */
-function methodMarks(Lm, st, F) {
+function nMarks(Lm, st, F) {
   const pa = toPxOf(Lm.A, st.span), pb = toPxOf(Lm.B, st.span), ps = toPxOf(Lm.S, st.sspan), R = 0.92 * st.span;
   const arrowOf = (p, d) => (d ? [p(-R * d[0], -R * d[1]), p(R * d[0], R * d[1])] : null);
   const feetOf = (p, X, d) => (d ? X.map((q) => { const t = q[0] * d[0] + q[1] * d[1]; return p(t * d[0], t * d[1]); }) : null);
@@ -477,36 +699,26 @@ function blendAxis(a, b, t) {
    did not exist appear at 0.8. The matrices, w and the middle panel switch
    at the press (tween-only-movement-no-fades). The factorization's presses
    switch at once too. */
-function drawMethod(ctx, colors, w, params, st, anim, pointer) {
-  const Lm = methodLayout(w), k = Math.min(anim.n.method ?? 0, st.loopEnd + 3), p = inFlight(anim, "method");
-  const V = methodView(st, k), F = V.frame;
+function drawN(ctx, colors, w, params, st, anim, pointer) {
+  const Lm = nLayout(w), k = Math.min(anim.n["n-integration"] ?? 0, st.loopEnd + 3), p = inFlight(anim, "n-integration");
+  const V = nView(st, k), F = V.frame;
   const inLoop = p != null && k >= 1 && k <= st.loopEnd;
   const prev = inLoop ? st.loop[k - 1] : null;
-  const M = methodMarks(Lm, st, F), P0 = prev ? methodMarks(Lm, st, prev) : null;
+  const M = nMarks(Lm, st, F), P0 = prev ? nMarks(Lm, st, prev) : null;
   const turn = inLoop ? ease(seg(p, 0, 0.45)) : 1, slide = inLoop ? ease(seg(p, 0.45, 1)) : 1;
-  const pick = clamp((Number(params.sample) || TRACED) - 1, 0, N_CONCEPT - 1);
+  const pick = tracedOf(params);
   const pa = toPxOf(Lm.A, st.span), pb = toPxOf(Lm.B, st.span);
 
-  /* caption */
   const cap = k === 0 ? S.caption.before
     : V.after === 3 ? S.caption.shortcut : V.after === 2 ? S.caption.subtract : V.after === 1 ? S.caption.rebuild
       : V.loopDone ? S.caption.done : k === 1 ? S.caption.start : k % 2 === 0 ? S.caption.updA : S.caption.updB;
   wrapText(ctx, colors, cap, 10, 14, w - 20, 16, { fill: colors.ink1 });
 
-  /* the three squares */
-  [[Lm.A, S.blockA, S.featA], [Lm.S, S.scores, [S.scoreX, S.scoreY]], [Lm.B, S.blockB, S.featB]].forEach(([P, name, ax]) => {
-    txt(ctx, colors, name, P.x, P.y - 6, { fill: colors.ink1, weight: "600", size: colors.fsXs });
-    frame(ctx, colors, P.x, P.y, P.s, P.s);
-    txt(ctx, colors, ax[0], P.x + P.s / 2, P.y + P.s + 12, { size: colors.fsXs, fill: colors.ink3, align: "center" });
-    vText(ctx, colors, ax[1], P.x - 7, P.y + P.s / 2, { size: colors.fsXs, fill: colors.ink3 });
-  });
+  [[Lm.A, S.blockA, S.featA], [Lm.S, S.scores, [S.scoreX, S.scoreY]], [Lm.B, S.blockB, S.featB]].forEach(([P, name, ax]) => panelFrame(ctx, colors, P, name, ax));
   if (V.loopDone) {
-    const R = methodMarks(Lm, st, st.ref);
+    const R = nMarks(Lm, st, st.ref);
     refLine(ctx, colors, ...R.arrowA); refLine(ctx, colors, ...R.arrowB);
   }
-  /* Rebuild: every sample's rebuilt point, t × c, on one line, drawn under the arrows and dots */
-  if (V.after >= 1) [[pa, st.A, F.cA, F.t], [pb, st.B, F.cB, F.u]].forEach(([px, X, c, sc]) =>
-    X.forEach((_, i) => { const q = px(sc[i] * c[0], sc[i] * c[1]); hollow(ctx, q[0], q[1], 2, colors.ink3); }));
   const arrowNow = (key) => (M[key] && P0 && P0[key] ? blendAxis(P0[key], M[key], turn) : M[key]);
   ["arrowA", "arrowB"].forEach((key) => { const a = arrowNow(key); if (a) axisArrow(ctx, a[0], a[1], colors.highlight); });
 
@@ -519,10 +731,15 @@ function drawMethod(ctx, colors, w, params, st, anim, pointer) {
     return foot;
   };
   const feetDrawn = { feetA: [], feetB: [] };
-  [[pa, st.A, "feetA", F.cA, F.t], [pb, st.B, "feetB", F.cB, F.u]].forEach(([px, X, key, c, sc]) => {
+  [[pa, st.A, "feetA"], [pb, st.B, "feetB"]].forEach(([px, X, key]) => {
     X.forEach((pt, i) => {
       const [x, y] = px(pt[0], pt[1]);
-      if (M[key]) { const foot = footAt(key, i, x, y); feetDrawn[key][i] = foot; dot(ctx, colors, foot[0], foot[1], 2.2, subColour(colors, st.g[i]), false); }
+      if (M[key]) {
+        const foot = footAt(key, i, x, y); feetDrawn[key][i] = foot;
+        /* Subtract: E as the gap from each foot to its dot; Rebuild: the feet are the rebuilt points (hollow) */
+        if (V.after >= 2) line(ctx, foot[0], foot[1], x, y, colors.ink3, 1);
+        if (V.after >= 1) hollow(ctx, foot[0], foot[1], 2.2, colors.ink2); else dot(ctx, colors, foot[0], foot[1], 2.2, subColour(colors, st.g[i]), false);
+      }
       dot(ctx, colors, x, y, 3.4, subColour(colors, st.g[i]));
     });
   });
@@ -533,60 +750,37 @@ function drawMethod(ctx, colors, w, params, st, anim, pointer) {
     txt(ctx, colors, `cov = ${f2(cv)}`, Lm.S.x + Lm.S.s - 5, Lm.S.y + 27, { fill: colors.ink2, align: "right", size: colors.fsXs });
   }
 
-  /* the traced sample, ringed in every panel; its rebuilt point and E once Subtract has run */
-  const pA = pa(...st.A[pick]), pB = pb(...st.B[pick]);
-  [[pA, "feetA"], [pB, "feetB"]].forEach(([q, key]) => {
+  /* the traced sample, ringed in every panel */
+  [[pa(...st.A[pick]), "feetA"], [pb(...st.B[pick]), "feetB"]].forEach(([q, key]) => {
     ring(ctx, q[0], q[1], 6, colors.ink1);
     const ft = feetDrawn[key][pick];
     if (ft && !inLoop) { line(ctx, q[0], q[1], ft[0], ft[1], colors.ink1, 1, [2, 2]); ring(ctx, ft[0], ft[1], 4.5, colors.ink1); }
   });
   if (scoresOn && !inLoop) ring(ctx, scoresNow[pick][0], scoresNow[pick][1], 6, colors.ink1);
-  if (V.after >= 2) {
-    [[pa, F.cA, F.t, pA], [pb, F.cB, F.u, pB]].forEach(([px, c, sc, q]) => { const rb = px(sc[pick] * c[0], sc[pick] * c[1]); line(ctx, rb[0], rb[1], q[0], q[1], colors.ink2, 1.5); });
-  }
 
-  /* the matrices: rows in subtype order, aligned across the page */
-  drawMatrices(ctx, colors, Lm, st, F, V, pick);
-  /* the middle panel: this press's arithmetic, on the traced sample */
-  drawMiddle(ctx, colors, Lm, st, F, V, k, pick);
-
-  if (pointer) {
-    const hit = pickAt(Lm, st, F, pointer.x, pointer.y);
-    if (hit != null) hoverLabel(ctx, colors, S.hovSample(hit + 1, S.sub[st.g[hit]]), pointer.x, pointer.y, w);
-  }
+  drawNMatrices(ctx, colors, Lm, st, F, V, pick);
+  drawNMiddle(ctx, colors, Lm, st, F, V, k, pick);
+  hoverSample(ctx, colors, w, pointer, pickAtN(Lm, st, F, pointer));
 }
 
-function drawMatrices(ctx, colors, Lm, st, F, V, pick) {
+function drawNMatrices(ctx, colors, Lm, st, F, V, pick) {
   const { my, rh, cw, mA, mB } = Lm, H = N_CONCEPT * rh;
-  const blocks = [
-    { X: st.A, m: mA, wv: F.w1, sc: F.t, c: F.cA, sideL: true, i: 0 },
-    { X: st.B, m: mB, wv: F.w2, sc: F.u, c: F.cB, sideL: false, i: 1 },
-  ];
-  blocks.forEach((B) => {
+  [{ X: st.A, m: mA, wv: F.w1, sc: F.t, sideL: true, i: 0 }, { X: st.B, m: mB, wv: F.w2, sc: F.u, sideL: false, i: 1 }].forEach((B) => {
     const xm = Math.max(...B.X.flat().map(Math.abs));
-    st.order.forEach((i, r) => { for (let j = 0; j < 2; j++) { ctx.fillStyle = valueColour(colors, B.X[i][j] / xm); ctx.fillRect(B.m.X + j * cw, my + r * rh, cw, rh); } });
-    frame(ctx, colors, B.m.X, my, 2 * cw, H);
+    cols(ctx, colors, B.m.X, my, rh, cw, st.order, (i, j) => B.X[i][j], 2, xm);
     txt(ctx, colors, S.mX[B.i], B.m.X + cw, my - 5, { align: "center", fill: colors.ink1, weight: "600", size: colors.fsXs });
     /* w over X: the arrow as two numbers */
     if (B.wv) txt(ctx, colors, `w = (${pair2(B.wv)})`, B.sideL ? B.m.X : B.m.X + 2 * cw, my - 20, { size: colors.fsXs, fill: colors.highlight, weight: "600", align: B.sideL ? "left" : "right" });
     if (B.sc) {
-      const tm = Math.max(...B.sc.map(Math.abs));
-      st.order.forEach((i, r) => { ctx.fillStyle = valueColour(colors, B.sc[i] / tm); ctx.fillRect(B.m.t, my + r * rh, cw, rh); });
-      frame(ctx, colors, B.m.t, my, cw, H);
+      cols(ctx, colors, B.m.t, my, rh, cw, st.order, (i) => B.sc[i], 1, Math.max(...B.sc.map(Math.abs)));
       txt(ctx, colors, S.mT[B.i], B.m.t + cw / 2, my - 5, { align: "center", fill: colors.ink1, weight: "600", size: colors.fsXs });
     }
     if (V.after >= 2) {
-      st.order.forEach((i, r) => { for (let j = 0; j < 2; j++) { ctx.fillStyle = valueColour(colors, (B.X[i][j] - B.sc[i] * B.c[j]) / xm); ctx.fillRect(B.m.E + j * cw, my + r * rh, cw, rh); } });
-      frame(ctx, colors, B.m.E, my, 2 * cw, H);
+      cols(ctx, colors, B.m.E, my, rh, cw, st.order, (i, j) => B.X[i][j] - B.sc[i] * B.wv[j], 2, xm);
       txt(ctx, colors, S.mE, B.m.E + cw, my - 5, { align: "center", fill: colors.ink1, weight: "600", size: colors.fsXs });
     }
   });
-  /* subtype brackets in ink, outside mRNA's X; a panel coloured by value colours nothing by identity */
-  [0, 1].forEach((g) => {
-    const ra = st.order.findIndex((i) => st.g[i] === g), rb = ra + st.order.filter((i) => st.g[i] === g).length;
-    line(ctx, mA.X - 5, my + ra * rh + 2, mA.X - 5, my + rb * rh - 2, colors.ink2, 1.5);
-    vText(ctx, colors, S.sub[g], mA.X - 11, my + ((ra + rb) / 2) * rh, { size: colors.fsXs, fill: colors.ink2 });
-  });
+  [0, 1].forEach((g) => { const ra = st.order.findIndex((i) => st.g[i] === g); bracket(ctx, colors, mA.X - 5, my + ra * rh, my + (ra + N_CONCEPT / 2) * rh, S.sub[g]); });
   /* the traced row, outlined in both tables: one sample all the way across */
   const r = st.order.indexOf(pick), yr = my + r * rh;
   const xa1 = V.after >= 2 ? mA.E + 2 * cw : F.t ? mA.t + cw : mA.X + 2 * cw;
@@ -596,21 +790,16 @@ function drawMatrices(ctx, colors, Lm, st, F, V, pick) {
   /* stubs toward each other in the gaps beside the middle panel, which holds text on that line */
   line(ctx, xa1 + 3, yr + rh / 2, Lm.mid.x - 4, yr + rh / 2, colors.ink3, 1, [2, 3]);
   line(ctx, Lm.mid.x + Lm.mid.w + 4, yr + rh / 2, xb0 - 3, yr + rh / 2, colors.ink3, 1, [2, 3]);
+  void H;
 }
 
-function drawMiddle(ctx, colors, Lm, st, F, V, k, pick) {
+function drawNMiddle(ctx, colors, Lm, st, F, V, k, pick) {
   const { x, y, w: mw } = Lm.mid, lh = 14, xs = colors.fsXs;
   let yy = y + 8;
   const put = (s, opts = {}) => { txt(ctx, colors, s, x, yy, { size: xs, fill: colors.ink2, ...opts }); yy += lh; };
   const a = st.A[pick], b = st.B[pick];
   put(S.sampleHead(pick + 1, S.sub[st.g[pick]]), { fill: colors.ink1, weight: "600" });
-  if (k === 0) {
-    yy += 4;
-    yy += lh * wrapText(ctx, colors, S.nLine, x, yy, mw, lh, { size: xs, fill: colors.ink1 });
-    yy += 4;
-    wrapText(ctx, colors, S.pLine, x, yy, mw, lh, { size: xs, fill: colors.ink3 });
-    return;
-  }
+  if (k === 0) { yy += 4; wrapText(ctx, colors, S.sameRows, x, yy, mw, lh, { size: xs, fill: colors.ink1 }); return; }
   if (V.after === 3) {
     /* Shortcut: the 2 × 2 table and its first singular pair */
     const { M, w1, w2 } = st.cross, m = Math.max(...M.flat().map(Math.abs)), cs = 38, x0 = x + 38;
@@ -633,14 +822,12 @@ function drawMiddle(ctx, colors, Lm, st, F, V, k, pick) {
   if (F.w2) { put(`u = ${fx(b[0])} × ${fx(F.w2[0])} + ${fx(b[1])} × ${fx(F.w2[1])}`); put(`  = ${f2(F.u[pick])}`, { fill: colors.ink1 }); }
   yy += 6;
   if (V.after >= 1) {
-    /* Rebuild and Subtract on the traced row */
-    put(S.cLine("mRNA", pair2(F.cA)), { fill: colors.ink1 });
-    put(S.cLine("methylation", pair2(F.cB)), { fill: colors.ink1 });
-    put(S.rebuiltLine("t", f2(F.t[pick]), pair2([F.t[pick] * F.cA[0], F.t[pick] * F.cA[1]])));
-    put(S.rebuiltLine("u", f2(F.u[pick]), pair2([F.u[pick] * F.cB[0], F.u[pick] * F.cB[1]])));
+    const ra = [F.t[pick] * F.w1[0], F.t[pick] * F.w1[1]], rb = [F.u[pick] * F.w2[0], F.u[pick] * F.w2[1]];
+    put(S.rebuiltLine("mRNA", f2(F.t[pick]), pair2(ra)));
+    put(S.rebuiltLine("methylation", f2(F.u[pick]), pair2(rb)));
     if (V.after >= 2) {
-      put(S.eLine("mRNA", pair2([a[0] - F.t[pick] * F.cA[0], a[1] - F.t[pick] * F.cA[1]])), { fill: colors.ink1 });
-      put(S.eLine("methylation", pair2([b[0] - F.u[pick] * F.cB[0], b[1] - F.u[pick] * F.cB[1]])), { fill: colors.ink1 });
+      put(S.eLine("mRNA", pair2([a[0] - ra[0], a[1] - ra[1]])), { fill: colors.ink1 });
+      put(S.eLine("methylation", pair2([b[0] - rb[0], b[1] - rb[1]])), { fill: colors.ink1 });
     }
     return;
   }
@@ -660,7 +847,9 @@ function drawMiddle(ctx, colors, Lm, st, F, V, k, pick) {
 }
 
 /** the sample under a point: a dot in either scatter or the Scores panel, or a row of either matrix */
-function pickAt(Lm, st, F, x, y) {
+function pickAtN(Lm, st, F, pointer) {
+  if (!pointer) return null;
+  const { x, y } = pointer;
   const pa = toPxOf(Lm.A, st.span), pb = toPxOf(Lm.B, st.span), ps = toPxOf(Lm.S, st.sspan);
   let best = -1, bd = 64;
   const tryPt = (q, i) => { const d = (q[0] - x) ** 2 + (q[1] - y) ** 2; if (d < bd) { bd = d; best = i; } };
@@ -674,7 +863,67 @@ function pickAt(Lm, st, F, x, y) {
   return null;
 }
 
-/* =========================================================== DATA page */
+/* ==================================================== P-INTEGRATION page */
+
+/* The stacked scatter on the left (subtype by colour, study by the marker's
+   shape: a circle or a square, so colour carries one grouping); on the
+   right the two studies' tables, side by side until Stack moves study 2's
+   under study 1's, then the shared w and the score column. */
+const PL = { cap: 50, s: 200, rh: 2.5, cw: 15 };
+const H_P = PL.cap + 14 + PL.s + 104;
+function pLayout(w) {
+  const s = Math.min(PL.s, Math.floor(w * 0.38));
+  const P = { x: 30, y: PL.cap + 14, s };
+  const mx = P.x + s + 54, my = P.y + 20, cw = PL.cw, rh = PL.rh;
+  return { P, mx, my, cw, rh, tCol: mx + 2 * cw + 52, text: { x: 30, y: P.y + s + 48 } };
+}
+
+function drawP(ctx, colors, w, params, pt, anim, pointer) {
+  const L = pLayout(w), n = Math.min(anim.n["p-integration"] ?? 0, 3), p = inFlight(anim, "p-integration");
+  const px = toPxOf(L.P, pt.span), R = 0.92 * pt.span;
+  wrapText(ctx, colors, S.pCap[n], 10, 14, w - 20, 16, { fill: colors.ink1 });
+  panelFrame(ctx, colors, L.P, `${S.study[0]} and ${S.study[1]}`, S.featA);
+  if (n >= 2) axisArrow(ctx, px(-R * pt.w[0], -R * pt.w[1]), px(R * pt.w[0], R * pt.w[1]), colors.highlight);
+  pt.X.forEach((q, i) => {
+    const [x, y] = px(q[0], q[1]);
+    if (n >= 3) { const t = pt.t[i], ft = px(t * pt.w[0], t * pt.w[1]); dot(ctx, colors, ft[0], ft[1], 2, subColour(colors, pt.g[i]), false); }
+    (pt.study[i] ? (cx, cy, r, f) => square(ctx, colors, cx, cy, r * 0.85, f) : (cx, cy, r, f) => dot(ctx, colors, cx, cy, r, f))(x, y, 3.6, subColour(colors, pt.g[i]));
+  });
+  txt(ctx, colors, S.studyKey, L.P.x, L.P.y + L.P.s + 28, { size: colors.fsXs, fill: colors.ink2 });
+
+  /* the two tables: study 2's beside study 1's, then moved under it by Stack */
+  const { mx, my, cw, rh } = L, hS = N_STUDY * rh, xm = Math.max(...pt.X.flat().map(Math.abs));
+  const stack = n >= 1 ? (p != null && n === 1 ? ease(p) : 1) : 0;
+  const o1 = pt.order.slice(0, N_STUDY), o2 = pt.order.slice(N_STUDY);
+  const x2 = lerp(mx + 2 * cw + 30, mx, stack), y2 = lerp(my, my + hS, stack);
+  cols(ctx, colors, mx, my, rh, cw, o1, (i, j) => pt.X[i][j], 2, xm);
+  cols(ctx, colors, x2, y2, rh, cw, o2, (i, j) => pt.X[i][j], 2, xm);
+  txt(ctx, colors, n >= 1 ? "X = [X₁; X₂]" : "X₁", mx, my - 8, { size: colors.fsXs, fill: colors.ink1, weight: "600" });
+  if (n < 1) txt(ctx, colors, "X₂", x2, y2 - 8, { size: colors.fsXs, fill: colors.ink1, weight: "600" });
+  bracket(ctx, colors, mx - 5, my, my + hS, S.study[0]);
+  bracket(ctx, colors, x2 - 5, y2, y2 + hS, S.study[1]);
+  if (n >= 2) txt(ctx, colors, `w = (${pair2(pt.w)})`, mx, my - 22, { size: colors.fsXs, fill: colors.highlight, weight: "600" });
+  if (n >= 3) {
+    cols(ctx, colors, L.tCol, my, rh, cw, pt.order, (i) => pt.t[i], 1, Math.max(...pt.t.map(Math.abs)));
+    txt(ctx, colors, "t", L.tCol + cw / 2, my - 8, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
+  }
+
+  /* the arithmetic: the shared w, from each gene's covariance with the subtype */
+  let yy = L.text.y;
+  const put = (s, fill = colors.ink2) => { txt(ctx, colors, s, L.text.x, yy, { size: colors.fsXs, fill }); yy += 15; };
+  if (n >= 2) {
+    const nn = Math.hypot(pt.c[0], pt.c[1]);
+    put(S.pCov("gene 1", f2(pt.c[0]))); put(S.pCov("gene 2", f2(pt.c[1])));
+    put(S.pW(f2(nn), pair2(pt.w)), colors.highlight);
+  }
+  if (pointer) {
+    let best = -1, bd = 64;
+    pt.X.forEach((q, i) => { const [x, y] = px(q[0], q[1]), d = (x - pointer.x) ** 2 + (y - pointer.y) ** 2; if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) hoverLabel(ctx, colors, S.hovStudy(S.study[pt.study[best]], S.sub[pt.g[best]]), pointer.x, pointer.y, w);
+  }
+}
+
+/* =========================================================== TCGA UCEC page */
 
 const pairOf = (key) => PAIRS.find((p) => `${p.a}-${p.b}`.toLowerCase() === key);
 /** one pair's PLS reading, and its benchmark: each block's PC1, the largest-variance direction */
@@ -778,8 +1027,13 @@ function drawData(ctx, colors, w, params, anim, pointer) {
 
 /* ==================================================== stages and easing */
 
-const stepsOf = (stage, st) => (stage === "method" ? st.blocks.loopEnd + 3 : 1);
-const durOf = (stage, n, st) => (stage === "data" ? 1600 : n > st.blocks.loopEnd ? 450 : 1400);
+const stepsOf = (stage, st) => (stage === "n-integration" ? st.blocks.loopEnd + 3 : stage === "factorization" ? 4 : stage === "p-integration" ? 3 : 1);
+const durOf = (stage, n, st) => {
+  if (stage === "data") return 1600;
+  if (stage === "n-integration") return n > st.blocks.loopEnd ? 450 : 1400;
+  if (stage === "p-integration") return n === 1 ? 1100 : 450;
+  return n === 1 ? 1200 : 450;
+};
 const EASE_MS = 900;
 const shownStep = (anim, stage) => (anim.n[stage] ?? 0) - (anim.stage === stage && anim.t < 1 ? 1 : 0);
 const inFlight = (anim, stage) => (anim.stage === stage && anim.t < 1 ? anim.t : null);
@@ -787,9 +1041,12 @@ const ezOf = (anim, page) => (anim.ez && anim.ez.page === page && anim.ez.t < 1 
 const complete = (anim, stage, st) => (anim.n[stage] ?? 0) >= stepsOf(stage, st);
 const formulaKey = (params, anim, st) => {
   if (params.page === "data") return "pls";
-  const after = shownStep(anim, "method") - st.blocks.loopEnd;
-  return after >= 3 ? "shortcut" : after >= 1 ? "factor" : "loop";
+  if (params.page === "factorization") return "factor1";
+  if (params.page === "p-integration") return "stack";
+  const after = shownStep(anim, "n-integration") - st.blocks.loopEnd;
+  return after >= 3 ? "shortcut" : after >= 1 ? "factorN" : "loop";
 };
+const TRACED_ON = { param: "page", oneOf: ["factorization", "n-integration"] };
 
 /* ------------------------------------------------------------- widget */
 
@@ -800,42 +1057,46 @@ defineWidget({
   subtitle: S.subtitle,
   credit: "Data: TCGA Research Network (PanCanAtlas UCEC), via cBioPortal",
   layout: "side",
-  height: (params) => (params.page === "method" ? H_METHOD : H_DATA),
+  height: (params) => ({ factorization: H_FACTOR, "n-integration": H_N, "p-integration": H_P }[params.page] ?? H_DATA),
   pointer: true,
 
   params: {
-    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "method", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, groupHeads: true, default: "factorization", display: true },
     pair: { type: "segmented", label: S.pairLabel, detail: S.pairDetail, options: PAIR_OPTS, default: PAIR_OPTS[0].value, display: true, when: ON("data") },
-    sample: { type: "int", label: S.sampleLabel, detail: S.sampleDetail, min: 1, max: N_CONCEPT, default: TRACED, display: true, when: ON("method") },
+    sample: { type: "int", label: S.sampleLabel, detail: S.sampleDetail, min: 1, max: N_CONCEPT, default: TRACED, display: true, when: TRACED_ON },
     /* authoring escape hatch, first render only: presses already made on the page the link opens */
     shown: { type: "int", min: 0, max: SLOTS, default: 0, hidden: true },
   },
 
-  /* a legend reads params only, so the dashed benchmark and the hollow rebuilt points (which arrive with presses) are named on the canvas */
-  legend: ({ params }) => (params.page === "method"
-    ? [
-      { token: "cluster-a", label: S.sub[0], mark: "dot" },
-      { token: "cluster-b", label: S.sub[1], mark: "dot" },
-      { token: "highlight", label: S.arrow, mark: "line" },
-      { token: "value-low", label: "low value", mark: "bar" },
-      { token: "value-high", label: "high value", mark: "bar" },
-    ]
-    : SUBTYPES.map((s, i) => ({ token: `cluster-${"abcd"[i]}`, label: s, mark: "dot" }))),
+  /* a legend reads params only, so the marks that arrive with presses (the dashed benchmark, the hollow rebuilt points) are named on the canvas */
+  legend: ({ params }) => {
+    const subs = [{ token: "cluster-a", label: S.sub[0], mark: "dot" }, { token: "cluster-b", label: S.sub[1], mark: "dot" }];
+    const ramp = [{ token: "value-low", label: "low value", mark: "bar" }, { token: "value-high", label: "high value", mark: "bar" }];
+    if (params.page === "data") return SUBTYPES.map((s, i) => ({ token: `cluster-${"abcd"[i]}`, label: s, mark: "dot" }));
+    return [...subs, { token: "highlight", label: S.arrow, mark: "line" }, ...ramp];
+  },
 
-  compute: ({ rng }) => ({ blocks: makeBlocks(rng) }),
+  compute: ({ rng }) => ({ blocks: makeBlocks(rng), studies: makeStudies(rng) }),
 
-  /* a click on a dot in any panel, or on a row of either matrix, picks the traced sample */
+  /* a click on a dot or on a matrix row picks the traced sample */
   regions: ({ w, params, state, anim }) => {
-    if (!state || params.page !== "method") return [];
-    const Lm = methodLayout(w), st = state.blocks, k = Math.min(anim?.n?.method ?? 0, st.loopEnd + 3);
-    const F = methodView(st, k).frame;
+    if (!state) return [];
+    const st = state.blocks, out = [];
+    const dotAt = (q, i, where) => out.push({ x: q[0] - 4, y: q[1] - 4, w: 8, h: 8, set: { sample: i + 1 }, label: `sample ${i + 1} in ${where}` });
+    if (params.page === "factorization") {
+      const L = factorLayout(w), px = toPxOf(L.P, st.span);
+      st.order.forEach((i, r) => out.push({ x: L.m.X, y: L.my + r * L.rh, w: L.m.E + 2 * L.cw - L.m.X, h: L.rh, set: { sample: i + 1 }, label: `row of sample ${i + 1}` }));
+      st.A.forEach((q, i) => dotAt(px(q[0], q[1]), i, "mRNA"));
+      return out;
+    }
+    if (params.page !== "n-integration") return [];
+    const Lm = nLayout(w), k = Math.min(anim?.n?.["n-integration"] ?? 0, st.loopEnd + 3), F = nView(st, k).frame;
     const pa = toPxOf(Lm.A, st.span), pb = toPxOf(Lm.B, st.span), ps = toPxOf(Lm.S, st.sspan);
-    const { my, rh, mA, mB, cw } = Lm, out = [];
+    const { my, rh, mA, mB, cw } = Lm;
     st.order.forEach((i, r) => {
       out.push({ x: mA.X, y: my + r * rh, w: 5 * cw + 14, h: rh, set: { sample: i + 1 }, label: `row of sample ${i + 1}` });
       out.push({ x: mB.E, y: my + r * rh, w: mB.X + 2 * cw - mB.E, h: rh, set: { sample: i + 1 }, label: `row of sample ${i + 1}` });
     });
-    const dotAt = (q, i, where) => out.push({ x: q[0] - 4, y: q[1] - 4, w: 8, h: 8, set: { sample: i + 1 }, label: `sample ${i + 1} in ${where}` });
     st.A.forEach((q, i) => dotAt(pa(q[0], q[1]), i, "mRNA"));
     st.B.forEach((q, i) => dotAt(pb(q[0], q[1]), i, "methylation"));
     if (F.t && F.u) F.t.forEach((t, i) => dotAt(ps(t, F.u[i]), i, "scores"));
@@ -884,7 +1145,7 @@ defineWidget({
       const stage = params.page, was = anim.stage;
       /* only a page change ends a press in flight (mid-press-page-switch); a new traced sample does not */
       if (stage !== was && anim.t < 1) { anim.t = 1; anim.halt = true; }
-      /* a change of Pair on Data, once component 1 is found, eases from the pair it leaves */
+      /* a change of Pair on TCGA UCEC, once component 1 is found, eases from the pair it leaves */
       if (stage === was && stage === "data" && complete(anim, "data", state) && params.pair !== anim.last.pair) {
         anim.ez = { page: "data", params: { ...anim.last }, t: 0 };
         anim.easing = true;
@@ -898,13 +1159,24 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
     renderFormula(formulaKey(params, anim, state));
-    if (params.page === "method") drawMethod(ctx, colors, w, params, state.blocks, anim, pointer);
+    if (params.page === "factorization") drawFactorization(ctx, colors, w, params, state.blocks, anim, pointer);
+    else if (params.page === "n-integration") drawN(ctx, colors, w, params, state.blocks, anim, pointer);
+    else if (params.page === "p-integration") drawP(ctx, colors, w, params, state.studies, anim, pointer);
     else drawData(ctx, colors, w, params, anim, pointer);
   },
 
   readout({ params, state, anim }) {
-    if (params.page === "method") {
-      const st = state.blocks, F0 = methodView(st, clamp(shownStep(anim, "method"), 0, st.loopEnd + 3)).frame;
+    const page = params.page, n = shownStep(anim, page);
+    if (page === "factorization") {
+      const F = state.blocks.fac;
+      return [
+        { label: S.tileK1, value: n >= 1 ? pct(F.kept1) : S.tileWait, note: S.tileKNote },
+        { label: S.tileK2, value: n >= 4 ? pct(1) : S.tileWait, note: S.tileKNote },
+        { label: S.tileShape, value: n >= 1 ? `80 × ${n >= 4 ? 2 : 1} · 2 × ${n >= 4 ? 2 : 1}` : S.tileWait, note: S.tileShapeNote },
+      ];
+    }
+    if (page === "n-integration") {
+      const st = state.blocks, F0 = nView(st, clamp(n, 0, st.loopEnd + 3)).frame;
       return [
         { label: S.tileR, value: F0.r != null ? f2(F0.r) : S.tileWait, note: S.tileRNote },
         { label: S.tileCov, value: F0.cv != null ? f2(F0.cv) : S.tileWait, note: S.tileCovNote },
@@ -912,20 +1184,31 @@ defineWidget({
         { label: S.tileKept(S.blockB), value: F0.keptB != null ? pct(F0.keptB) : S.tileWait, note: S.tileKeptNote },
       ];
     }
-    const on = shownStep(anim, "data") >= 1, V = dataView(params.pair);
+    if (page === "p-integration") {
+      const pt = state.studies;
+      return [
+        { label: S.tileN, value: `${N_STUDY} + ${N_STUDY}`, note: n >= 1 ? "stacked into one table" : "two tables" },
+        { label: S.tileW, value: n >= 2 ? `(${pair2(pt.w)})` : S.tileWait, note: S.tileWNote },
+        { label: S.tileSub, value: n >= 3 ? f2(pt.rSub) : S.tileWait, note: S.tileSubNote },
+      ];
+    }
+    const V = dataView(params.pair);
     return [
-      { label: S.tileR, value: on ? f2(V.r) : S.tileWait, note: S.tileRNote },
-      { label: S.tileKept(BLOCK_NAME[V.P.a]), value: on ? pct(V.keptA) : S.tileWait, note: S.tileKeptNote },
-      { label: S.tileKept(BLOCK_NAME[V.P.b]), value: on ? pct(V.keptB) : S.tileWait, note: S.tileKeptNote },
+      { label: S.tileR, value: n >= 1 ? f2(V.r) : S.tileWait, note: S.tileRNote },
+      { label: S.tileKept(BLOCK_NAME[V.P.a]), value: n >= 1 ? pct(V.keptA) : S.tileWait, note: S.tileKeptNote },
+      { label: S.tileKept(BLOCK_NAME[V.P.b]), value: n >= 1 ? pct(V.keptB) : S.tileWait, note: S.tileKeptNote },
     ];
   },
 
   summary({ params, state, anim }) {
-    if (params.page === "method") {
-      const st = state.blocks, n = clamp(shownStep(anim, "method"), 0, st.loopEnd + 3), F0 = methodView(st, n).frame;
-      return `Two simulated blocks of two features, 80 samples in two subtypes, each block's scatter above its matrix; sample ${params.sample} traced. ${n} of ${st.loopEnd + 3} presses${F0.r != null ? `; the scores correlate ${f2(F0.r)}` : ""}.`;
+    const page = params.page, n = shownStep(anim, page);
+    if (page === "factorization") return `One simulated block, mRNA: 80 samples, 2 genes, written as X ≈ T·Wᵀ; ${n} of 4 presses; sample ${params.sample} traced.`;
+    if (page === "n-integration") {
+      const st = state.blocks, F0 = nView(st, clamp(n, 0, st.loopEnd + 3)).frame;
+      return `Two simulated blocks on the same 80 samples, each block's scatter above its matrix; sample ${params.sample} traced. ${n} of ${st.loopEnd + 3} presses${F0.r != null ? `; the scores correlate ${f2(F0.r)}` : ""}.`;
     }
-    const n = shownStep(anim, "data"), V = dataView(params.pair);
+    if (page === "p-integration") return `Two simulated studies with the same two genes, ${n >= 1 ? "stacked into one table" : "as two tables"}; ${n >= 2 ? "one w for both" : "no w yet"}.`;
+    const V = dataView(params.pair);
     return `The lesson's ${BLOCK_NAME[V.P.a]} and ${BLOCK_NAME[V.P.b]} blocks, 405 samples coloured by subtype. ${n >= 1 ? `PLS component 1 scores plotted against each other; correlation ${f2(V.r)}, against ${f2(V.ref.r)} for the largest-variance directions.` : "No component found yet."}`;
   },
 });

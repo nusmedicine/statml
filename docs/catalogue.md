@@ -24374,7 +24374,7 @@ are cell indices in those files.
 
 | # | slug (provisional) | host | misconception | state |
 |---|---|---|---|---|
-| 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **DRAFT 2026-10-10** (Method · Data after round 3, local); prerequisite for 100 |
+| 99 | `shared-components` | 01 cell 2; 02 cell 0; 03 cells 12–13 | a block's component is its largest variation — PCA takes the biggest spread within one omics type, which may have nothing to do with the others; PLS takes, in each block, the direction whose scores covary most with the other block's. Two blocks, each with a large axis of its own and a smaller shared one: PCA finds the large axis, PLS the shared one. Adds to 19 `pca` and 41 `matrix-factorization` the second block the components must agree with | **DRAFT 2026-10-10** (Factorization · N-integration · P-integration · TCGA UCEC after round 4, local); prerequisite for 100 |
 | 100 | `diablo` | 02 cell 0; 03 cells 10–28; 05 cells 17–24 | the design matrix records how correlated the omics types are (03 cell 10 says so; cells 12–14 measure 0.78–0.89 and suggest weights of 0.7–0.9) — it is a choice of objective: near 1 the blocks are made to agree, near 0 each block separates the subtypes on its own (Singh et al. 2019). Candidate pages: Design · Select (keepX) · Predict (each block votes; a sample with no protein data is still classified) | **PICKED 2026-10-10** |
 | 101 | `selection-bias` | 02 cells 37–50; 03 cells 18–24; 05 cells 3–6 | filtering features by a test against the labels is harmless preprocessing — filtered before cross-validation, data with no signal scores well (Ambroise & McLachlan 2002). Also covers arc B's `data-leakage` / `cv-nested`, never built | **PICKED 2026-10-10** |
 | 102 | `balanced-error` | 05 cells 5–9 | overall error hides a class (MSI 0.84 against 0.44 overall at one component) | **not picked** — 18 `balancing-data` and 35 `metrics` are close |
@@ -24480,6 +24480,29 @@ tables; a middle panel with this press's arithmetic on it (t = x₁w₁ + x₂w�
 the covariances that set w, then c, the rebuilt row, E, and at Shortcut the
 2 × 2 X₁ᵀX₂). Ten presses: Start · Update ×6 · Rebuild · Subtract · Shortcut.
 Canvas 432px; the page 1,021px.
+
+### Slot 99 — round 4 (2026-10-10): the notebook's order
+
+His ask: "do we need to split it into 2 groups, method and data? Then under
+method: general? N? P? … review from a student's viewpoint … this widget
+should be able to explain concepts introduced in the notebook." Reviewed
+against 01 cell 2: matrix factorization (X ≈ T·Wᵀ, T N × L, W P × L) and
+P-integration were the gaps; N-integration was covered. Mock
+`_lab/shared-components-notebook-mock.html` (06aeb1b), four calls, all the
+recommendation. Built: Step **Method [Factorization · N-integration ·
+P-integration] · Data [TCGA UCEC]** (core's grouped segmented control, as 94).
+Factorization: mRNA alone, Score · Rebuild · Subtract · Component 2, the
+matrices in the notebook's shapes (X N × P ≈ T N × L · Wᵀ L × P), the traced
+sample's arithmetic. N-integration: round 3's page, rebuilt with t wᵀ (the
+rebuilt points are the feet on the arrow), Shortcut saying why the rows must
+match. P-integration: two studies, the same two genes, an even subtype mix;
+Stack (study 2's table moves under study 1's) · Find w (each gene's
+covariance with the subtype, one w for both) · Score. Per-study centring
+(MINT) was measured in the mock and left out: with an uneven mix the pooled
+scores track the subtype better (0.79 vs 0.72) because part of them is the
+study (r 0.44), which only a held-out study could show. Notation: the
+notebook's single W; "kept" is the share of a block's variance along w
+(data.js regenerated: PLS mRNA 9.4%, methylation 10.9%).
 
 ### Notebook findings, to tell him (from reading; told 2026-10-08 and 2026-10-10, not yet measured)
 

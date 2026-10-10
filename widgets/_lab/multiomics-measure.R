@@ -340,7 +340,10 @@ if (stage == "widget99") {
   d <- loadLesson()
   r3 <- function(x) round(as.numeric(x), 3)
   Xs <- lapply(d$X, scale)
-  kept <- function(X, t) { c <- crossprod(X, t) / sum(t^2); 1 - sum((X - t %*% t(c))^2) / sum(X^2) }
+  # round 4 (his pick of the notebook's single W): a block is rebuilt as t wᵀ
+  # with w the unit weights, so "kept" is the share of the block's variance
+  # along w, ‖t‖² / ‖X‖². For PC1 it equals PC1's share either way.
+  kept <- function(X, t) sum(t^2) / sum(X^2)
   label <- function(b, n) if (b == "rppa") sub(".*[|]", "", n) else n
   top <- function(b, w) { o <- order(-abs(w))[1:5]; list(name = sapply(colnames(d$X[[b]])[o], function(n) label(b, n), USE.NAMES = FALSE), value = r3(w[o])) }
   pcs <- lapply(Xs, function(X) prcomp(X, center = FALSE, scale. = FALSE, rank. = 1))
