@@ -353,8 +353,13 @@ if (stage == "widget99") {
     r <- pls(d$X[[ab[1]]], d$X[[ab[2]]], ncomp = 1)
     t <- r$variates$X[, 1]; u <- r$variates$Y[, 1]; wA <- r$loadings$X[, 1]; wB <- r$loadings$Y[, 1]
     if (cor(t, u) < 0) { u <- -u; wB <- -wB }
+    # his pick 2026-10-10: the TCGA page shows what pls() itself reports,
+    # prop_expl_var (each feature regressed on t, the share mixOmics deflates),
+    # so a student running 03 cell 13 reads the same number. 9.9%, not the
+    # 9.4% along w the Method pages' single-W definition would give. For PC1
+    # the two definitions agree.
     list(a = ab[1], b = ab[2], t = t, u = u, wA = wA, wB = wB,
-         keptA = kept(Xs[[ab[1]]], t), keptB = kept(Xs[[ab[2]]], u))
+         keptA = unname(r$prop_expl_var$X[1]), keptB = unname(r$prop_expl_var$Y[1]))
   })
   ref <- list(mRNA = P[[1]]$t, meth = P[[1]]$u, rppa = P[[2]]$u)
   for (b in names(pc1)) if (cor(pc1[[b]], ref[[b]]) < 0) { pc1[[b]] <- -pc1[[b]]; rot[[b]] <- -rot[[b]] }
