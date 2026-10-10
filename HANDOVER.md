@@ -1,12 +1,74 @@
 # Handover
 
 **SESSION CLOSED 2026-10-10.** 97 `scaffold-split` SHIPPED AND PUSHED as
-"Deep Learning - Graphs: Scaffold Split" (20 states, three determinism runs
-and a MATCH pass at DPR 1.25). The record is the catalogue's § *Slot 97*.
-**The graph arc's picked slots (94 · 95 · 97) are COMPLETE. NEXT: his call**
-— multi-omics (PHM5003 10) was paused for this arc and takes the next free
-numbers; its three findings are not in the catalogue (re-derive from
-`10 - Multi-omics Analysis/`).
+"Deep Learning - Graphs: Scaffold Split" (7ac9412, 20 states, three
+determinism runs and a MATCH pass at DPR 1.25, deploy 38010253395 green, the
+live manifest says shipped). The record is the catalogue's § *Slot 97*.
+**NEXT: 98 `gnn-explainer`, his call 2026-10-10** — the slot the arc left
+unpicked ("87 teaches it"), now the graph arc's fourth widget. Measure first,
+then mock; nothing is built or mocked yet.
+
+**98 — what the next session starts from.**
+
+- **Hosts.** 09-1 cell 26: three families of GNN explanation —
+  gradient-based (saliency), perturbation-based (occlusion, edge masking),
+  model-based (GNNExplainer, GraphMask) — with GNNExplainer (Ying et al.,
+  NeurIPS 2019) as "the most widely used". 09-2 cells 84–92: GNNExplainer on
+  the lesson's trained **GAT** (cell 64's GATNet), `Explainer(..., GNNExplainer
+  (epochs=300, lr=0.01), explanation_type='model', node_mask_type=
+  'attributes', edge_mask_type='object', task_level='graph',
+  mode='multiclass_classification', return_type='raw')`. Cell 84 defines the
+  masks: a node feature mask M_x ∈ R^{N×F} and an edge mask M_e ∈ R^E, chosen
+  so the masked graph's prediction stays close to f(G), "the smallest set of
+  atoms/bonds and features that preserve the model's output". Cell 90: node
+  importance = mean |mask| over a node's features, edge importance = the max
+  over a bond's two directions, **each min–max normalised to 0–1 within the
+  molecule**; cell 92 draws them as a heat overlay with RDKit.
+- **The molecule the lesson explains.** Cell 88's `test_set[3]` under the
+  seed-42 scaffold split is row 76, **ceftriaxone disodium salt** (Activity 1,
+  one of the test set's 5 actives). Its SMILES carries three waters and two
+  Na⁺ as separate pieces of the graph: GNNExplainer will score atoms that
+  share no bond with the drug. At seed 42 the unparsed SMILES is not in the
+  test set, so cell 92's `df.iloc[test_idx[idx]]` does match `test_set[idx]`
+  (the arc's finding about the shift holds only for a split that puts it in
+  test).
+- **The catalogue's stated misconception** (§ *The graph arc*, slot 98): *the
+  highlighted bonds are why the molecule stops E. coli growing, and the mask
+  is unique.* Candidate claims to MEASURE before any mock, each on the
+  lesson's trained GAT and ceftriaxone: (1) the mask changes between
+  GNNExplainer runs (it starts from a random mask) — how much, and do the top
+  bonds agree; (2) min–max normalisation always paints one atom 1 and one 0,
+  however flat the raw mask is — print the raw spread; (3) the importance the
+  salt's waters and Na⁺ receive; (4) does deleting the top-ranked bonds change
+  the prediction more than deleting random ones (a fidelity check, the
+  perturbation family of cell 26); (5) the masks of two trained GATs (95
+  trained three seeds) on the same molecule. Keep the claim to what the
+  numbers show (97's lesson: the GCN gap held on 7 of 10 seeds, and the page
+  said only that).
+- **What exists to build on.** 87 `explainability` (shipped 2026-10-05)
+  teaches attention, integrated gradients and occlusion on the language
+  models — the gradient and perturbation families of cell 26; read its
+  catalogue section and reuse its framing, and say in the plan what 98 adds
+  that 87 does not (a learned mask; graphs). 95's
+  `_lab/message-passing-trained.py` writes out PyG's GATConv and trains the
+  lesson's GATNet (torch installed, torch_geometric NOT) — it saves α
+  statistics, not weights, so 98's measurement must save the trained state
+  dict. GNNExplainer must be written out too (sigmoid masks on edges and node
+  features, the predicted class's log-likelihood plus PyG's size and entropy
+  regularisers, Adam lr 0.01, 300 epochs); check the coefficients against
+  PyG's source before trusting a mask. 94's `graph-representation/data.js`
+  and 95's drawing code draw a molecule with atoms as nodes.
+- **Data terms**, as 94, 95, 97: the lesson's molecules credited
+  "Molecule data: Stokes et al., Cell 2020, via FinGAT"; derived numbers only
+  beyond the molecules drawn (his 97 call).
+- **Process** (his rhythm): measure → a `_lab` mock with every visible choice
+  asked (pages and their names under Step, the molecule(s), which families,
+  the colour of importance — `--c-magnitude` is violet and must not meet
+  `--c-highlight`), all asked before the draft → draft → review rounds → copy
+  audit (banlist + register + subtitle/blurb options) → student walk-through
+  → his "tested ok" → status flip, states, determinism, MATCH, push. Keep every
+  page clear of the harness's 1,197px frame (97's Scaffold page flaked at
+  1,210).
 
 **97 now.** Step **Scaffold · Split · Evaluate**. Scaffold: his figure's
 layout, Example Indoles · Quinolones, Find scaffold moves each scaffold
