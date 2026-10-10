@@ -1,8 +1,9 @@
 # Handover
 
-**SESSION 2026-10-10 (afternoon): 98 `gnn-explainer` SHIPPED AND PUSHED** as
-"Deep Learning - Graphs: Explainability" (25 states, three determinism runs
-and a MATCH pass at DPR 1.25). Measured, mocked, drafted, two review rounds,
+**SESSION CLOSED 2026-10-10 (afternoon). 98 `gnn-explainer` SHIPPED AND
+PUSHED** as "Deep Learning - Graphs: Explainability" (d2efe72, 25 states,
+three determinism runs and a MATCH pass at DPR 1.25, deploy 38031195613
+green, the live manifest says shipped). Measured, mocked, drafted, two review rounds,
 the copy audit and the student walk-through in one session, every call his
 (all the recommendation). The record is the catalogue's § *Slot 98*. **NEXT:
 his call** — the graph arc (94 · 95 · 97 · 98) is complete; multi-omics
@@ -40,9 +41,15 @@ evaluates the strings object itself; 97's regex scan broke on apostrophes —
 copy it for the next widget. (5) The browser pane can shrink to 350px:
 emulate 900 for the harness width, 700 to judge by eye.
 
-**Open:** the attribution line never wraps, so every widget with a credit
-scrolls sideways at phone width (core; offered as a separate task, not
-started). Phone width crushes 98's lower panels — out of scope per the PRD.
+**Open:** the attribution line never wraps (`span.w-attrib`, `white-space:
+nowrap`), so every widget with a credit scrolls sideways at a 350px viewport
+(scrollWidth 399 against 334 on 97 and 98) — a core change, so it needs the
+full fingerprint suite; offered as a separate task at the close, not started.
+Phone width crushes 98's lower panels — out of scope per the PRD (§3, the
+projector; the narrowest track designed for is 534px).
+
+**Dev server this session:** `widgets-alt4` on :8014 (8013 was another
+chat's), stopped at the close.
 
 **Untracked and safe to leave:** `_lab/gnn-explainer-*.json`, `*.pt`, and the
 rest of the `_lab` measurement files `git status` lists.
