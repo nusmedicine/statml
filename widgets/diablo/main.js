@@ -98,26 +98,25 @@ const S = {
     start: "Start: each block's loading vector (arrow) is its direction of most variance, mixOmics' starting point. Here it is the axis the two blocks share, along which the subtypes do not differ.",
     updA: "Update mRNA: each gene's loading becomes its covariance with z = c·u + y, the methylation scores times the weight c plus Y's scores. The two parts pull the arrow in different directions.",
     updB: "Update methylation: each CpG site's loading becomes its covariance with z = c·t + y, the mRNA scores times the weight c plus Y's scores.",
-    done: (c, r, e) => `Another round changes neither loading vector. At weight ${c} the scores correlate ${r}, and ${e} of the mRNA score's variance lies between the subtypes. A larger weight pulls each arrow toward the shared axis: the scores agree a little more and separate the subtypes less.`,
+    done: (c, r, e, r0, e0) => `Another round changes neither loading vector. At Start the scores already agreed (r ${r0}) with the subtypes mixed (${e0} of the mRNA score's variance between them); at weight ${c} they end at r ${r}, with ${e} between the subtypes. A larger weight keeps more agreement and separates the subtypes less.`,
   },
   dmHead: "Design matrix",
   dmY: "Y: the subtype",
-  dmExplain: "The weight control sets c, the two violet entries. Each block's entry with Y is 1. An update uses its block's row: how much each other block's scores count in z.",
-  yLine: (a, b) => `Y's score y: subtype 1 ${a}, subtype 2 ${b}`,
+  dmExplain: "The weight control sets c, the two violet entries; each block's entry with Y is 1. An update reads its block's row: how much each other block counts.",
+  yLine: (a, b) => `Y is the subtype written as a table of 0s and 1s, scaled like the other blocks; its score y is ${a} for subtype 1 and ${b} for subtype 2.`,
   startLine: (b, w) => `${b}: w = (${w}), the direction of most variance`,
   updHead: (b) => `this press: ${b}'s loading vector`,
   zLine: (c, o) => `z = ${c} · ${o} + 1 · y`,
   pullHead: (c, o) => [`${c} · cov(·, ${o})`, "cov(·, y)", "sum"],
   scaleLine: (n, w) => `÷ ${n} (length 1) → w = (${w})`,
-  pullOther: (o) => `${o}'s pull`,
-  pullY: "Y's pull",
+  pullKey: (c, o, b) => [`solid: ${c} · cov(·, ${o}), ${b}'s pull`, "dashed: cov(·, y), Y's pull", "violet: their sum, the direction of the new w"],
   tableHead: ["weight", "r(t, u)", "share t", "share u"],
   tableNote: "share: the score's variance between the subtypes",
 
   /* Weight */
   wCap: {
-    before: "The lesson's three blocks, 405 tumours. Fit runs DIABLO at the chosen design weight and draws each tumour's mRNA component 1 against its methylation component 1.",
-    after: (c, r) => `At weight ${c} the two blocks' component 1 correlate ${r}. Every block is also linked to Y at 1, so the blocks agree through the subtype at any weight; the weight changes how the subtypes separate and which features are kept.`,
+    before: "The same loop on three omics blocks measured on 405 endometrial tumours, thousands of features each, and four subtypes; the weight c now sits between every pair of omics blocks. Fit runs DIABLO at the chosen weight and draws each tumour's mRNA component 1 against its methylation component 1.",
+    after: (c, r) => `At weight ${c} the two blocks' component 1 correlate ${r}. Component 1 separates CN_HIGH from the other three subtypes; later components separate those (Predict uses up to 4). Every block is also linked to Y at 1, so the blocks agree through the subtype at any weight; the weight changes how far the subtypes separate.`,
   },
   wDims: `${N_DATA} tumours: mRNA ${FEATURES.mRNA.toLocaleString("en-US")} genes · methylation ${FEATURES.meth.toLocaleString("en-US")} CpG sites · RPPA ${FEATURES.rppa} proteins`,
   wAxes: ["mRNA component 1", "methylation component 1"],
@@ -125,9 +124,9 @@ const S = {
   wNotes: [
     "r: the correlation of mRNA and methylation component 1",
     "share: the share of mRNA component 1's variance that lies between the four subtypes",
-    "CV error: balanced error rate, 10-fold cross-validation, 4 components",
+    "CV error: how often the full model (4 components) calls held-out tumours wrongly, averaged over the four subtypes (10-fold cross-validation); lower is better",
   ],
-  wGenes: (k, c) => `${k} of 25 genes kept on mRNA component 1 differ from weight ${c}'s`,
+  wRppa: (a, b) => `RPPA component 1: r ${a} with mRNA, ${b} with methylation`,
   wBefore: "Component 1: one score per tumour in each block.",
 
   /* Select */
@@ -140,6 +139,7 @@ const S = {
   sBars: (n) => `|loading| of the largest 60 of ${n} genes`,
   sAll: (n) => `all ${n}, sorted`,
   sCut: "the largest one dropped",
+  sWeight1: (k, n) => `At weight 1, ${k} of these ${n} genes are different ones.`,
   sZ: "z = 0.1 · methylation scores + 0.1 · RPPA scores + 1 · Y's scores",
   sScat: ["score from all genes", (k) => `score from ${k} genes`],
   sHov: (nm, v) => `${nm} · loading ${v}`,
@@ -173,7 +173,7 @@ const S = {
   tileRw: "Correlation, mRNA–methylation",
   tileRwNote: "component 1 of each block",
   tileCv: "CV error",
-  tileCvNote: "balanced error rate, 4 components",
+  tileCvNote: "held-out tumours called wrongly, averaged over the subtypes",
   tileKept: "Genes with a loading",
   tileKeptNote: "mRNA component 1",
   tileRs: "Kept-gene score vs all-gene score",
@@ -242,11 +242,11 @@ const MATH = {
   objective: {
     math: `<math display="block"><mrow><munder><mo>max</mo><mrow>${sub("w", 1)}${mo(",")}${mo("…")}</mrow></munder>${gap(0.3)}<munder><mo>∑</mo><mrow>${mi("k")}${mo("&lt;")}${mi("l")}</mrow></munder>${subI("c", "kl")}${gap(0.2)}<mtext>cov</mtext>${mo("(")}${subI("X", "k")}${subI("w", "k")}${mo(",")}${subI("X", "l")}${subI("w", "l")}${mo(")")}</mrow></math>`,
     plain: "max over w₁, … of Σₖ₍ₗ cₖₗ cov(Xₖwₖ, Xₗwₗ)",
-    note: "The sum runs over every pair of blocks, Y among them. cₖₗ is the design matrix's entry: c between two omics blocks, 1 between each block and Y. With Y left out this is 99's PLS objective.",
+    note: "The sum runs over every pair of blocks, Y among them. cₖₗ is the design matrix's entry: c between two omics blocks, 1 between each block and Y. With Y left out, this is the PLS objective.",
   },
   update: {
-    math: `<math display="block"><mrow>${sub("w", 1)}${mo("∝")}${supT(sub("X", 1))}${mo("(")}${mi("c")}${mi("u")}${mo("+")}${mi("y")}${mo(")")}${mo(",")}${gap(1)}${sub("w", 2)}${mo("∝")}${supT(sub("X", 2))}${mo("(")}${mi("c")}${mi("t")}${mo("+")}${mi("y")}${mo(")")}</mrow></math>`,
-    plain: "w₁ ∝ X₁ᵀ(c u + y),   w₂ ∝ X₂ᵀ(c t + y)",
+    math: `<math display="block"><mrow>${sub("z", 1)}${mo("=")}${mi("c")}${mi("u")}${mo("+")}${mi("y")}${mo(",")}${gap(0.5)}${sub("w", 1)}${mo("∝")}${supT(sub("X", 1))}${sub("z", 1)}${mo(";")}${gap(1.2)}${sub("z", 2)}${mo("=")}${mi("c")}${mi("t")}${mo("+")}${mi("y")}${mo(",")}${gap(0.5)}${sub("w", 2)}${mo("∝")}${supT(sub("X", 2))}${sub("z", 2)}</mrow></math>`,
+    plain: "z₁ = c u + y,  w₁ ∝ X₁ᵀz₁;   z₂ = c t + y,  w₂ ∝ X₂ᵀz₂",
     note: "Each block's loading vector is its features' covariances with z, the other block's scores times c plus Y's scores y, scaled to length 1. At c = 0 a block follows Y alone; at c = 1 the other block pulls as hard as Y.",
   },
   sparse: {
@@ -479,7 +479,7 @@ function makeToy(rng) {
 /* A caption across the top; three squares (mRNA · Scores · methylation), as
    99's N-integration page; under them the design matrix, this press's
    arithmetic, and the two pulls added head to tail. */
-const DL = { cap: 72, padL: 30, padR: 12, gap: 24, sMax: 150, below: 46, low: 150 };
+const DL = { cap: 72, padL: 30, padR: 12, gap: 24, sMax: 150, below: 46, low: 172 };
 const H_DESIGN = DL.cap + 18 + DL.sMax + DL.below + DL.low;
 function dLayout(w) {
   const s = Math.floor(Math.min(DL.sMax, (w - DL.padL - DL.padR - 2 * DL.gap) / 3));
@@ -505,7 +505,7 @@ function drawDesign(ctx, colors, w, params, st, anim, pointer) {
   const turn = prev ? ease(seg(p, 0, 0.5)) : 1, slide = prev ? ease(seg(p, 0.5, 1)) : 1;
   const c = Number(params.weight);
 
-  const cap = k === 0 ? S.dCap.before : k === 1 ? S.dCap.start : k === end ? S.dCap.done(params.weight, f2(F.r), pct(F.etaA)) : k % 2 === 0 ? S.dCap.updA : S.dCap.updB;
+  const cap = k === 0 ? S.dCap.before : k === 1 ? S.dCap.start : k === end ? S.dCap.done(params.weight, f2(F.r), pct(F.etaA), f2(frames[1].r), pct(frames[1].etaA)) : k % 2 === 0 ? S.dCap.updA : S.dCap.updB;
   wrapText(ctx, colors, cap, 10, 14, w - 20, 16, { fill: colors.ink1 });
 
   [[Lm.A, S.blockA, S.featA], [Lm.S, S.scores, [S.scoreX, S.scoreY]], [Lm.B, S.blockB, S.featB]].forEach(([P, name, ax]) => panelFrame(ctx, colors, P, name, ax));
@@ -536,7 +536,7 @@ function drawDesign(ctx, colors, w, params, st, anim, pointer) {
 
   drawDesignMatrix(ctx, colors, Lm, c, F.upd);
   drawDesignMiddle(ctx, colors, Lm, st, params, frames, k, F);
-  if (F.upd) drawPulls(ctx, colors, Lm, pullMaxOf(frames), F.upd, F.upd.block === 0 ? S.featA : S.featB);
+  if (F.upd) drawPulls(ctx, colors, Lm, pullMaxOf(frames), F.upd, F.upd.block === 0 ? S.featA : S.featB, params.weight);
 
   if (pointer) {
     let best = -1, bd = 64, where = null;
@@ -593,7 +593,7 @@ function drawDesignMiddle(ctx, colors, Lm, st, params, frames, k, F) {
     put(S.startLine("mRNA", pair2(F.wA)));
     put(S.startLine("methylation", pair2(F.wB)));
     yy += 6;
-    put(S.yLine(f2(st.yVals[0]), sgn2(st.yVals[1])), { fill: colors.ink1 });
+    wrapText(ctx, colors, S.yLine(f2(st.yVals[0]), sgn2(st.yVals[1])), x, yy, mw, lh, { size: xs, fill: colors.ink1 });
     return;
   }
   const u = F.upd, mine = u.block === 0, feats = mine ? S.featA : S.featB, o = mine ? "u" : "t";
@@ -613,7 +613,7 @@ function drawDesignMiddle(ctx, colors, Lm, st, params, frames, k, F) {
 }
 
 /** this press's two pulls, head to tail, and their sum: the new loading vector's direction */
-function drawPulls(ctx, colors, Lm, pullMax, u, feats) {
+function drawPulls(ctx, colors, Lm, pullMax, u, feats, c) {
   /* the origin low in the box: with the signs held one way, every pull points upward */
   const { x, y, s } = Lm.vec, o = [x + s / 2, y + 0.8 * s], k = (0.7 * s) / pullMax;
   frame(ctx, colors, x, y, s, s, colors.grid);
@@ -625,35 +625,38 @@ function drawPulls(ctx, colors, Lm, pullMax, u, feats) {
   vecArrow(ctx, o, a, colors.ink2, 1.6);
   vecArrow(ctx, a, b, colors.ink2, 1.6, [4, 3]);
   vecArrow(ctx, o, b, colors.highlight, 2.2);
-  const other = u.block === 0 ? "methylation" : "mRNA";
-  txt(ctx, colors, `${S.pullOther(other)} (solid)`, x, y + s + 13, { size: colors.fsXs, fill: colors.ink2 });
-  txt(ctx, colors, `${S.pullY} (dashed)`, x, y + s + 26, { size: colors.fsXs, fill: colors.ink2 });
+  /* the key names each arrow by the table column it draws, right-aligned under the box */
+  const mine = u.block === 0;
+  S.pullKey(c, mine ? "u" : "t", mine ? "methylation" : "mRNA").forEach((kl, i) =>
+    txt(ctx, colors, kl, x + s, y + s + 14 + 13 * i, { size: colors.fsXs, fill: i === 2 ? colors.highlight : colors.ink2, align: "right" }));
 }
 
 /* ========================================================= WEIGHT page */
 
-const WL = { cap: 56, top: 96, x0: 40, sMax: 270 };
+const WL = { cap: 72, top: 112, x0: 40, sMax: 270 };
 const H_WEIGHT = WL.top + WL.sMax + 44;
 function wLayout(w) {
   const s = Math.min(WL.sMax, Math.floor(w - WL.x0 - 272));
   return { s, x: WL.x0, y: WL.top, side: WL.x0 + s + 26 };
 }
 const sweepOf = (c) => SWEEP.find((f) => String(f.w) === String(c)) ?? SWEEP[1];
-const W_SPAN = (() => {
-  const all = SWEEP.flatMap((f) => [...f.t.mRNA, ...f.t.meth]).map(Math.abs);
-  return 1.06 * Math.max(...all);
+/* each axis fitted to the data across all four weights, so a change of
+   weight moves the tumours within one frame */
+const W_RANGE = (() => {
+  const ext = (key) => { const v = SWEEP.flatMap((f) => f.t[key]); const lo = Math.min(...v), hi = Math.max(...v), pad = 0.04 * (hi - lo); return [lo - pad, hi + pad]; };
+  return { x: ext("mRNA"), y: ext("meth") };
 })();
 const W_ETA = Object.fromEntries(SWEEP.map((f) => [String(f.w), { mRNA: etaOf(f.t.mRNA, Y, 4), meth: etaOf(f.t.meth, Y, 4) }]));
 function wMarks(L, c) {
-  const f = sweepOf(c), px = toPxOf({ x: L.x, y: L.y, s: L.s }, W_SPAN);
-  return f.t.mRNA.map((t, i) => px(t, f.t.meth[i]));
+  const f = sweepOf(c), [x0, x1] = W_RANGE.x, [y0, y1] = W_RANGE.y;
+  return f.t.mRNA.map((t, i) => [L.x + ((t - x0) / (x1 - x0)) * L.s, L.y + L.s - ((f.t.meth[i] - y0) / (y1 - y0)) * L.s]);
 }
 
 function drawWeight(ctx, colors, w, params, anim, pointer) {
   const L = wLayout(w), found = shownStep(anim, "weight") >= 1 || inFlight(anim, "weight") != null;
   const t = inFlight(anim, "weight"), ez = ezOf(anim, "weight");
   const f = sweepOf(params.weight);
-  wrapText(ctx, colors, found && t == null ? S.wCap.after(params.weight, f2(f.r[0])) : S.wCap.before, 10, 14, w - 20, 16, { fill: colors.ink1 });
+  wrapText(ctx, colors, found && t == null ? S.wCap.after(params.weight, f3(f.r[0])) : S.wCap.before, 10, 14, w - 20, 16, { fill: colors.ink1 });
   txt(ctx, colors, S.wDims, 10, WL.cap + 18, { size: colors.fsXs, fill: colors.ink2 });
   panelFrame(ctx, colors, { x: L.x, y: L.y, s: L.s }, "", S.wAxes);
   if (!found) {
@@ -667,26 +670,25 @@ function drawWeight(ctx, colors, w, params, anim, pointer) {
   const pts = to.map((q, i) => (from ? lerpPt(from[i], q, e) : lerpPt(c0, q, grow)));
   pts.forEach((q, i) => dot(ctx, colors, q[0], q[1], 2.6, subColour(colors, Y[i])));
   const rNow = from ? lerp(sweepOf(ez.params.weight).r[0], f.r[0], e) : f.r[0];
-  if (t == null) txt(ctx, colors, `r = ${f2(rNow)}`, L.x + 8, L.y + 18, { fill: colors.ink1, weight: "600" });
+  if (t == null) txt(ctx, colors, `r = ${f3(rNow)}`, L.x + 8, L.y + 18, { fill: colors.ink1, weight: "600" });
 
   /* beside it: the four weights, the current one framed */
   if (t == null) {
     const x = L.side, cols = [0, 46, 112, 170];
     let y = L.y + 10;
     S.wTable.forEach((h, j) => txt(ctx, colors, h, x + cols[j], y, { size: colors.fsXs, fill: colors.ink1, weight: "600" }));
-    WEIGHTS.forEach((wv, i) => {
+    /* a row for each weight fitted so far (anim.visited, never the URL), in the control's order */
+    const seen = WEIGHTS.filter((wv) => (anim.visited ?? []).includes(String(wv)) || String(wv) === params.weight);
+    seen.forEach((wv, i) => {
       const ff = sweepOf(wv), cur = String(wv) === params.weight, yy = y + 22 + i * 19;
       [String(wv), f3(ff.r[0]), pct(W_ETA[String(wv)].mRNA), f3(ff.cvBER)].forEach((v, j) => txt(ctx, colors, v, x + cols[j], yy, { size: colors.fsSm, fill: cur ? colors.ink1 : colors.ink2, weight: cur ? "600" : "" }));
       if (cur) frame(ctx, colors, x - 5, yy - 14, Math.min(w - x - 4, cols[3] + 50), 19, colors.highlight, 1.5);
     });
-    y += 22 + 4 * 19 + 8;
+    /* the table keeps the room of four rows, so the notes under it stay put as rows arrive */
+    y += 22 + 4 * 19 + 2;
     const width = w - x - 8;
+    y += 13 * wrapText(ctx, colors, S.wRppa(f3(f.r[1]), f3(f.r[2])), x, y, width, 13, { size: colors.fsXs, fill: colors.ink2 }) + 8;
     for (const n of S.wNotes) y += 13 * wrapText(ctx, colors, n, x, y, width, 13, { size: colors.fsXs, fill: colors.ink3 }) + 4;
-    if (params.weight !== "0.1") {
-      const base = sweepOf(0.1).genes, diff = f.genes.filter((gname) => !base.includes(gname)).length;
-      y += 6;
-      wrapText(ctx, colors, S.wGenes(diff, "0.1"), x, y, width, 13, { size: colors.fsXs, fill: colors.ink2 });
-    }
   }
   if (pointer && t == null && !(ez && ez.t < 1)) {
     let hov = -1, best = 49;
@@ -711,6 +713,7 @@ function sLayout(w) {
 }
 const SEL_ETA = { all: etaOf(SELECT.tAll, Y, 4), cut: etaOf(SELECT.tCut, Y, 4) };
 const SEL_MAX = Math.abs(SELECT.raw[0]);
+const SEL_W1_DIFF = sweepOf(1).genes.filter((g) => !sweepOf(0.1).genes.includes(g)).length;
 const SEL_NORM = {
   all: Math.hypot(...SELECT.raw),
   kept: Math.hypot(...SELECT.raw.slice(0, KEEPX.mRNA).map((v) => Math.abs(v) - SELECT.cut)),
@@ -750,6 +753,8 @@ function drawSelect(ctx, colors, w, params, anim, pointer) {
     frame(ctx, colors, L.x0, sy, sw, SL.stripH, colors.grid);
     if (n >= 2) { ctx.fillStyle = colors.highlight; ctx.fillRect(L.x0, sy, Math.max(2, (K / P) * sw), SL.stripH); }
     txt(ctx, colors, S.sAll(FEATURES.mRNA.toLocaleString("en-US")), L.x0, sy + SL.stripH + 13, { size: colors.fsXs, fill: colors.ink3 });
+    /* moved here from Weight (walk-through 2026-10-10): the kept genes are the design weight's too */
+    if (n >= 2) txt(ctx, colors, S.sWeight1(SEL_W1_DIFF, K), L.x0 + sw, sy + SL.stripH + 13, { size: colors.fsXs, fill: colors.ink2, align: "right" });
   }
   if (n >= 3 && p == null) drawSelectScores(ctx, colors, L, w);
   else if (n >= 3) drawSelectScores(ctx, colors, L, w, ease(seg(p, 0, 1)));
@@ -953,6 +958,8 @@ defineWidget({
       const stage = params.page;
       const anim = { stage, n: {}, t: 1, dur: 1400, halt: false, ez: null, last: { ...params } };
       anim.n[stage] = fromScratch ? 0 : clamp(Number(params.shown) || 0, 0, stepsOf(stage, state, params));
+      /* the weights fitted on the Weight page, for its table's rows */
+      anim.visited = stage === "weight" && anim.n.weight >= 1 ? [params.weight] : [];
       anim.beat = anim.n[stage];
       anim.done = complete(anim, stage, state, params);
       return anim;
@@ -971,6 +978,7 @@ defineWidget({
       if (anim.t < 1) anim.t = Math.min(1, anim.t + dt / anim.dur);
       else if ((anim.n[stage] ?? 0) < stepsOf(stage, state, params)) {
         anim.n[stage] = (anim.n[stage] ?? 0) + 1;
+        if (stage === "weight" && !anim.visited.includes(params.weight)) anim.visited.push(params.weight);
         anim.dur = durOf(stage, anim.n[stage]);
         anim.t = 0;
       }
@@ -993,6 +1001,7 @@ defineWidget({
       if (stage === was && stage === "weight" && complete(anim, "weight", state, params) && params.weight !== anim.last.weight) {
         anim.ez = { page: "weight", params: { ...anim.last }, t: 0 };
         anim.easing = true;
+        if (!anim.visited.includes(params.weight)) anim.visited.push(params.weight);
       } else if (stage !== was) anim.ez = null;
       anim.last = { ...params };
       anim.stage = stage;
