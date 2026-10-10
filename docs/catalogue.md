@@ -24382,6 +24382,45 @@ are cell indices in those files.
 
 **Build order** is the lessons': 99 → 100 → 101.
 
+### MEASURED AND MOCKED 2026-10-10 — all ten calls the recommendation
+
+`_lab/multiomics-measure.R <lesson|shared|design|leak|export>` (mixOmics 6.34,
+installed on his yes) and `_lab/multiomics-leak-grid.R`; JSON outputs
+untracked. Mock `_lab/multiomics-arc-mock.html` (5aad653). **The lesson
+reproduces**: 05 cell 24's test BER 0.3308 to four places, 03 cell 13's PLS
+correlations 0.889 · 0.886 · 0.779; the saved model and a 6.34 refit agree to
+0.0002 in every loading.
+
+- **99 holds.** Each block's own PC1 correlates 0.37 (mRNA–meth) · 0.51
+  (mRNA–RPPA) · 0.47 (meth–RPPA) with the other's; PLS component 1 0.89 ·
+  0.89 · 0.78, keeping 1–2 points less of each block's variance (mRNA 11.2%
+  → 9.4% against meth).
+- **100 narrows.** Design weight 0 → 1 moves the blocks' component-1
+  agreement only 0.85 → 0.87 (every block is also fitted to Y) and the
+  10-fold CV BER 0.195 → 0.256; 8 of 25 component-1 mRNA genes change. The
+  102-sample test set leans the other way (0.287 → 0.252). Claim: the weight
+  is a choice the correlations do not settle.
+- **101 narrows.** The lesson's leak costs little: filtering on the 405
+  training labels keeps 7,440 · 6,648 · 71 features, test BER 0.304 → 0.312,
+  CV 0.230 → 0.246. On shuffled labels BH ≤ 0.001 passes no feature; a top-k
+  filter before CV scores 0.34–0.54 at n = 60, k = 10 (chance 0.75) and the
+  gap closes as n or k grows (n = 405, k = 500: none).
+- **Finding 2 confirmed**: `centroids.dist` columns are cumulative
+  components; `[,4]` gives BER 0.304 and 7 non-POLE samples called POLE
+  (against 0.331 and 18). Two more findings: 04 cell 11 calls DIABLO's
+  components "principal components"; 02 cell 37 equates differentially
+  expressed with high-variance genes.
+
+**His calls, 2026-10-10 — "all recommendations, build 99":** 99 Concept ·
+Data, Method PCA · PLS with one press *Find component 1*, Pair over the three
+block pairs; subtype colours `--c-cluster-a…d`, blocks never coloured; 100
+Design · Predict, Predict defaulting to 2 components; 101 Null · Lesson;
+before CV `--c-group-a`, inside each fold `--c-group-b`, held-out fold
+`--c-holdout`, chance `--c-reference`; derived numbers only, credited to TCGA
+via cBioPortal (terms checked before the draft); titles "Multi-omics: Shared
+Components" · "Multi-omics: DIABLO" · "Multi-omics: Selection Bias". Step on
+all three.
+
 ### Notebook findings, to tell him (from reading; told 2026-10-08 and 2026-10-10, not yet measured)
 
 1. **02 cells 40, 45, 50**: `filterANOVA` runs on `meta.data.all`, which
