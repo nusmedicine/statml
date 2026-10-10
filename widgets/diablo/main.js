@@ -78,8 +78,8 @@ const S = {
   weightDetail: "the design matrix's entry between two omics blocks; every block is linked to Y at 1",
   compLabel: "Components",
   compDetail: "a block's call uses its components 1 to this number",
-  sampleLabel: "Test sample",
-  sampleDetail: "the test sample whose calls are worked through; a click on a square picks one",
+  sampleLabel: "Test tumour",
+  sampleDetail: "the test tumour whose calls are worked through; a click on a square picks one",
 
   blockA: "mRNA",
   blockB: "Methylation",
@@ -148,7 +148,7 @@ const S = {
 
   /* Predict */
   pCap: [
-    "A test tumour has mRNA and methylation measured but no RPPA. Each panel is one block's training tumours on components 1 and 2, with each subtype's centre (×).",
+    "A test tumour has mRNA and methylation measured but no RPPA. Each panel is one block's training tumours on components 1 and 2, with each subtype's centre (×). Component 2 separates MSI from CN_LOW; POLE sits between them.",
     "Place: the test tumours (squares) are projected onto each block's components, using that block's loading vectors.",
     "Call: each block calls the subtype whose centre is nearest, over components 1 to the chosen number; the panels draw components 1 and 2.",
     "Vote: each block's call counts with its weight, the correlation of its scores with Y's on the training tumours. RPPA has no data and no vote.",
@@ -160,8 +160,9 @@ const S = {
   pCalls: (b, c) => `${b} calls ${c}`,
   pWeight: (w) => `weight ${w}`,
   pVote: (c) => `vote: ${c}`,
-  pTruth: (c) => `subtype: ${c}`,
-  pSum: (c, s) => `${c}: ${s}`,
+  pTruth: (c) => `true subtype: ${c}`,
+  pSum: (c, s) => `${c} ${s}`,
+  pSums: (parts) => `summed weights: ${parts}`,
   pTwo: (n) => `With two blocks every disagreement goes to the block with the larger weight: the vote is mRNA's call on ${n} of ${N_TEST} test tumours.`,
   pThree: (n, v, m) => `With all three blocks (10-fold cross-validation on the ${N_DATA} training tumours) the vote overrules mRNA on ${n}, and its error is ${v} against mRNA's ${m}.`,
   pHov: (n, c) => `test tumour ${n} · ${c}`,
@@ -183,7 +184,7 @@ const S = {
   tileEtaS: "Subtype share of the score",
   tileEtaSNote: "all genes → kept genes",
   tileBer: "Test error, vote",
-  tileBerNote: (k) => `balanced error rate, 102 tumours, ${k} component${k > 1 ? "s" : ""}`,
+  tileBerNote: (k) => `share called wrongly, averaged over the four subtypes; ${N_TEST} test tumours, ${k} component${k > 1 ? "s" : ""}`,
   tileBlock: "mRNA alone · methylation alone",
   tileSame: "Vote = mRNA's call",
   tileSameNote: "test tumours",
@@ -257,9 +258,9 @@ const MATH = {
     note: `keepX = ${KEEPX.mRNA}: the ${KEEPX.mRNA} largest loadings are kept, each reduced by the largest one dropped, and the rest are set to 0. The cut is made at every update, so the kept genes are the largest of the last update.`,
   },
   vote: {
-    math: `<math display="block"><mrow><mover><mi>k</mi><mo>^</mo></mover>${mo("=")}<munder><mtext>arg max</mtext>${mi("k")}</munder>${gap(0.2)}<munder><mo>∑</mo>${mi("b")}</munder>${subI("a", "b")}${gap(0.1)}${mo("[")}${subI("call", "b")}${mo("=")}${mi("k")}${mo("]")}${mo(",")}${gap(1)}${subI("a", "b")}${mo("=")}<mtext>cor</mtext>${mo("(")}${subI("t", "b")}${mo(",")}${subI("t", "Y")}${mo(")")}</mrow></math>`,
-    plain: "k̂ = arg maxₖ Σ_b a_b [call_b = k],   a_b = cor(t_b, t_Y)",
-    note: "Each measured block b calls the subtype whose centre is nearest; the calls are summed with weights a_b, each block's correlation with Y's scores on the training tumours, averaged over components.",
+    math: `<math display="block"><mrow><mover><mi>k</mi><mo>^</mo></mover>${mo("=")}<munder><mtext>arg max</mtext>${mi("k")}</munder>${gap(0.2)}<munder><mo>∑</mo>${mi("b")}</munder>${subI("a", "b")}${gap(0.1)}${mo("[")}${subI("call", "b")}${mo("=")}${mi("k")}${mo("]")}${mo(",")}${gap(1)}${subI("a", "b")}${mo("=")}<mtext>cor</mtext>${mo("(")}${subI("t", "b")}${mo(",")}${mi("y")}${mo(")")}</mrow></math>`,
+    plain: "k̂ = arg maxₖ Σ_b a_b [call_b = k],   a_b = cor(t_b, y)",
+    note: "Each measured block b calls the subtype whose centre is nearest; the calls are summed with weights a_b, each block's correlation with Y's scores y on the training tumours, averaged over components.",
   },
 };
 let mathHost = null, mathKey = null;
@@ -841,6 +842,7 @@ function drawPredict(ctx, colors, w, params, anim, pointer) {
       if (n >= 2 && !(p != null && n === 2)) {
         const c = PREDICT.centres[b][calls[b]], cq = px(c[0], c[1]);
         line(ctx, q[0], q[1], cq[0], cq[1], colors.ink1, 1.4, [3, 3]);
+        ring(ctx, cq[0], cq[1], 10, colors.ink1);
         txt(ctx, colors, S.pCalls(b === "mRNA" ? "mRNA" : "methylation", SUBTYPES[calls[b]]), P.x, P.y + P.s + 28, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
       }
       ring(ctx, q[0], q[1], 7, colors.ink1);
@@ -854,7 +856,7 @@ function drawPredict(ctx, colors, w, params, anim, pointer) {
 
   /* the vote and what it does on all 102 */
   const wts = PREDICT.weights;
-  if (n >= 2) {
+  if (n >= 3) {
     [[L.A, wts[0]], [L.B, wts[1]], [{ x: L.R.x }, wts[2]]].forEach(([P, wv], j) => txt(ctx, colors, S.pWeight(f2(wv)), P.x, L.A.y + L.s + 44, { size: colors.fsXs, fill: j === 2 ? colors.unknown : colors.ink2 }));
   }
   if (n >= 3 && !(p != null && n === 3)) {
@@ -864,14 +866,14 @@ function drawPredict(ctx, colors, w, params, anim, pointer) {
     sums[calls.mRNA] = (sums[calls.mRNA] ?? 0) + wts[0];
     sums[calls.meth] = (sums[calls.meth] ?? 0) + wts[1];
     const vote = PREDICT.vote[k - 1][i0];
-    const parts = Object.entries(sums).map(([c, s]) => S.pSum(SUBTYPES[c], f2(s))).join("   ");
+    const parts = S.pSums(Object.entries(sums).map(([c, s]) => S.pSum(SUBTYPES[c], f2(s))).join(" · "));
     txt(ctx, colors, parts, x, y, { size: colors.fsSm, fill: colors.ink2 });
     txt(ctx, colors, S.pVote(SUBTYPES[vote]), x + Math.min(width - 150, 300), y, { size: colors.fsMd, fill: colors.ink1, weight: "600" });
     txt(ctx, colors, S.pTruth(SUBTYPES[PREDICT.truth[i0]]), x + Math.min(width - 150, 300), y + 16, { size: colors.fsXs, fill: colors.ink2 });
     y += 30;
     y += 14 * wrapText(ctx, colors, S.pTwo(P_STATS[k - 1].same), x, y, width, 14, { size: colors.fsXs, fill: colors.ink1 });
     const cv = PREDICT.cv;
-    wrapText(ctx, colors, S.pThree(cv.overrule[k - 1], f2(cv.vote[k - 1]), f2(cv.mRNA[k - 1])), x, y + 2, width, 14, { size: colors.fsXs, fill: colors.ink3 });
+    wrapText(ctx, colors, S.pThree(cv.overrule[k - 1], f3(cv.vote[k - 1]), f3(cv.mRNA[k - 1])), x, y + 2, width, 14, { size: colors.fsXs, fill: colors.ink3 });
   }
   const hit = n >= 1 ? pickTest(L, pointer) : null;
   if (hit != null) hoverLabel(ctx, colors, S.pHov(hit + 1, SUBTYPES[PREDICT.truth[hit]]), pointer.x, pointer.y, w);
