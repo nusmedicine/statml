@@ -299,6 +299,34 @@ if (stage == "export") {
     weights = r3(unlist(p$weights)))
 }
 
+if (stage == "factor") {
+  # 99 round 1 (his "how PLS is done ... matrix factorization"): the mRNA-meth
+  # pair's component-1 weights w (PLS) and PC1 rotation (PCA), the scores, and
+  # the share of each block a rank-one t cᵀ leaves behind (mixOmics deflates
+  # by c = Xᵀt / tᵀt). Samples sorted by subtype for the mock's columns.
+  d <- loadLesson()
+  r4 <- function(x) round(as.numeric(x), 4)
+  o <- order(as.integer(d$Y))
+  Xs <- lapply(d$X[c("mRNA", "meth")], scale)
+  r <- pls(d$X$mRNA, d$X$meth, ncomp = 1)
+  pc <- lapply(Xs, function(X) prcomp(X, center = FALSE, scale. = FALSE, rank. = 1))
+  resid <- function(X, t) { c <- crossprod(X, t) / sum(t^2); 1 - sum((X - t %*% t(c))^2) / sum(X^2) }
+  out$subtype <- as.character(d$Y)[o]
+  out$pls <- list(wA = r4(r$loadings$X[, 1]), wB = r4(r$loadings$Y[, 1]),
+                  t = r4(r$variates$X[o, 1]), u = r4(r$variates$Y[o, 1]),
+                  keptA = resid(Xs$mRNA, r$variates$X[, 1]), keptB = resid(Xs$meth, r$variates$Y[, 1]))
+  out$pca <- list(wA = r4(pc$mRNA$rotation[, 1]), wB = r4(pc$meth$rotation[, 1]),
+                  t = r4(pc$mRNA$x[o, 1]), u = r4(pc$meth$x[o, 1]),
+                  keptA = resid(Xs$mRNA, pc$mRNA$x[, 1]), keptB = resid(Xs$meth, pc$meth$x[, 1]))
+  out$genes <- colnames(d$X$mRNA); out$sites <- colnames(d$X$meth)
+  # the iteration from a poor start on the real blocks: r after each alternation
+  set.seed(1); u <- d$X$meth %*% rnorm(ncol(d$X$meth)); A <- Xs$mRNA; B <- Xs$meth; rs <- c()
+  for (k in 1:8) { w1 <- crossprod(A, u); w1 <- w1 / sqrt(sum(w1^2)); t <- A %*% w1
+    w2 <- crossprod(B, t); w2 <- w2 / sqrt(sum(w2^2)); u <- B %*% w2; rs <- c(rs, cor(t, u)) }
+  out$iterR <- rs
+  cat("kept PLS", out$pls$keptA, out$pls$keptB, "PCA", out$pca$keptA, out$pca$keptB, "\niter r", round(rs, 3), "\n")
+}
+
 if (stage == "widget99") {
   # widgets/shared-components/data.js: per training sample its subtype, each
   # block's PC1 score, and per pair the PLS component-1 scores, with the share

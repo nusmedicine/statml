@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · shared-components — how PLS is done, and N vs P</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 190px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 99 <code>shared-components</code> &middot; round 1 &middot; how PLS is done, and N- vs P-integration</h1>
+  <p class="note">Your two questions on the draft: <i>show how PLS is done, i.e. the matrix factorization</i>, and <i>does it
+    help to illustrate N-integration and P-integration, or is that the next widget?</i> What mixOmics actually does for one
+    component (read from its source, <code>internal_mint.block</code>): it <b>starts</b> from the SVD of the cross-product
+    X&#8321;&#7488;X&#8322;, <b>iterates</b> w&#8321; &prop; X&#8321;&#7488;u, w&#8322; &prop; X&#8322;&#7488;t until the weights
+    stop changing, then <b>deflates</b> X &larr; X &minus; t c&#7488; (c = X&#7488;t / t&#7488;t) before the next component.
+    The deflation is 01 cell 2's X &asymp; T&middot;W&#7488;, built one component at a time. Each section below draws one of
+    these at the widget's 550px on the Concept blocks (simulated, the draft's), and &sect;2 also on the lesson's
+    mRNA&ndash;methylation pair. Blue-ruled: my recommendation; grey-ruled: the calls (&sect;4).</p>
+
+  <h2>1 &middot; Finding the directions: the iteration, or the cross-covariance</h2>
+  <p class="note"><b>A &middot; Iterate.</b> Start methylation's arrow anywhere (here straight up). Then, in turn: every
+    mRNA gene's weight becomes its covariance with the methylation scores (the bars), which turns mRNA's arrow; every
+    methylation site's weight becomes its covariance with the new mRNA scores, which turns methylation's arrow. Measured:
+    from a poor start the arrows settle in 2&ndash;4 rounds on the Concept blocks (r 0.17 &rarr; 0.85 &rarr; 0.88) and in 2
+    on the lesson's blocks (0.874 &rarr; 0.889); from mixOmics' SVD start they are settled before the first round.</p>
+  <div class="row" id="s1a"></div>
+  <p class="note"><b>B &middot; The cross-covariance.</b> One table instead of a loop: the covariance of every mRNA feature
+    with every methylation feature, X&#8321;&#7488;X&#8322; / n. Its first pair of singular vectors is (w&#8321;, w&#8322;), the
+    arrows A settles on. On the lesson's blocks this table is 8,383 &times; 8,103.</p>
+  <div class="row" id="s1b"></div>
+  <p class="rec">Recommend <b>A</b>, as the PLS press on the Concept page: <i>Start</i>, then <i>Update mRNA</i> and
+    <i>Update methylation</i> pressed in turn until r stops changing, with the covariance bars showing why each arrow
+    turns. It shows the one idea that separates PLS from PCA: each block's weights are computed from the <i>other</i>
+    block's scores. PCA keeps its single press. B is the same answer as a matrix and needs SVD, which the course has
+    not taught.</p>
+
+  <h2>2 &middot; The matrix factorization: X &asymp; t c&#7488; + E, then component 2 from E</h2>
+  <p class="note"><b>Concept blocks.</b> Each block as its matrix: 80 samples (rows, sorted by subtype, bracketed in ink)
+    &times; 2 features, coloured by value. Component 1 rebuilds it as a score column times a row of two numbers; what it
+    misses is E, where component 2 is found the same way. PCA's E is smaller (it keeps the most variance); PLS's two score
+    columns agree with each other, and line up with the subtypes.</p>
+  <div class="row" id="s2a"></div>
+  <p class="note"><b>The lesson's mRNA block.</b> 405 &times; 8,383, drawn as an outline (the page shows derived numbers
+    only). t: the 405 scores, sorted by subtype. w&#7488;: the 8,383 gene weights, a row too long to read, with the five
+    largest named. One component keeps 9.9% (PLS) or 11.2% (PCA) of the block; 03 cell 24 uses four.</p>
+  <div class="row" id="s2b"></div>
+  <p class="rec">Recommend a third page, <b>Concept &middot; Factorize &middot; Data</b>. Factorize: the Concept blocks as
+    matrices, Method PCA &middot; PLS, presses <i>Score</i> (t = Xw, the column), <i>Rebuild</i> (t c&#7488;),
+    <i>Subtract</i> (E = X &minus; t c&#7488;), and the formula card reads X &asymp; T&middot;W&#7488; in the lesson's
+    letters. Data then gains the strip on the right of &sect;2b for the chosen block: the score column and the weight
+    row with its largest genes named.</p>
+
+  <h2>3 &middot; N-integration and P-integration (01 cell 2)</h2>
+  <p class="note">The lesson defines both by how the matrices line up, which is the factorization drawn twice.
+    <b>N</b>: the same samples, different features, side by side; each block has its own weights, and the samples'
+    scores are made to agree. <b>P</b>: the same features, different samples (studies), stacked; one set of weights
+    serves every study. The lesson runs only N-integration (DIABLO); 40 <code>batch-effect</code> and 80
+    <code>integration</code> already handle samples from several batches with the same features.</p>
+  <div class="row" id="s3"></div>
+  <p class="rec">Recommend <b>A</b>: this figure, at the top of the Factorize page, N drawn from the Concept blocks and
+    P drawn as the contrast only, with nothing computed for it. It names what 99 does (N-integration) at the moment the
+    student sees the two matrices side by side. A computed P example would teach a method the lesson never runs; 100
+    <code>diablo</code> keeps to N, as the lesson does.</p>
+
+  <h2>4 &middot; The calls</h2>
+  <div class="q"><b class="h">4.1 &middot; How PLS finds its directions</b> A <b>Iterate, as the PLS press on Concept</b>
+    (rec) &middot; B the cross-covariance table and its SVD &middot; C both &middot; D neither (the draft's single press).</div>
+  <div class="q"><b class="h">4.2 &middot; The factorization</b> A <b>a third page, Concept &middot; Factorize &middot;
+    Data</b>, with Data gaining the score column and weight row (rec) &middot; B a second press on Concept (the matrices
+    under the panels) &middot; C on Data only, with real loadings.</div>
+  <div class="q"><b class="h">4.3 &middot; Factorize's presses</b> A <b>Score &middot; Rebuild &middot; Subtract</b>,
+    one component (rec) &middot; B the same and then <i>Component 2</i>, found from E, so T and W have two columns.</div>
+  <div class="q"><b class="h">4.4 &middot; N- and P-integration</b> A <b>the schematic on Factorize, N from the Concept
+    blocks, P drawn as the contrast only</b> (rec) &middot; B a Layout N &middot; P control with P computed on two
+    simulated studies &middot; C leave both to 100.</div>
+  <div class="q"><b class="h">4.5 &middot; Matrix colours</b> A <b><code>--c-value-low/high</code> (blue&ndash;red) for
+    values, subtypes as ink brackets beside the rows</b> (rec; a panel coloured by value must not also colour by
+    identity) &middot; B a grey ramp, subtypes keep their colours on a stripe.</div>
+
+  <h2>5 &middot; The rail, as proposed</h2>
+  <div class="rail"><span class="w">shared-components</span><span class="pg">Concept</span><span class="pg">Factorize</span><span class="pg">Data</span><span class="n">Method PCA &middot; PLS on all three; Pair on Data. Concept: PCA Find component 1; PLS Start &middot; Update mRNA &middot; Update methylation (repeat). Factorize: Score &middot; Rebuild &middot; Subtract</span></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box); return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "", mono = false } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function dot(ctx, x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
+function box(ctx, x, y, w, h, col = T.axis) { ctx.save(); ctx.strokeStyle = col; ctx.strokeRect(x + 0.5, y + 0.5, w, h); ctx.restore(); }
+function head(ctx, x0, y0, x1, y1, col) { const a = Math.atan2(y1 - y0, x1 - x0); ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 7 * Math.cos(a - 0.42), y1 - 7 * Math.sin(a - 0.42)); ctx.lineTo(x1 - 7 * Math.cos(a + 0.42), y1 - 7 * Math.sin(a + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function axisArrow(ctx, p0, p1, col) { line(ctx, p0[0], p0[1], p1[0], p1[1], col, 2.2); head(ctx, ...p0, ...p1, col); head(ctx, ...p1, ...p0, col); }
+const f2 = (x) => x.toFixed(2);
+const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
+const corr = (a, b) => { const ma = mean(a), mb = mean(b); let s = 0, x = 0, y = 0; for (let i = 0; i < a.length; i++) { s += (a[i] - ma) * (b[i] - mb); x += (a[i] - ma) ** 2; y += (b[i] - mb) ** 2; } return s / Math.sqrt(x * y); };
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+/* signed value ramp: --c-value-low through --surface-3 to --c-value-high */
+function vramp(v) { const t = Math.max(-1, Math.min(1, v)); const a = rgb(T.surface3), b = rgb(t < 0 ? T.valueLow : T.valueHigh), k = Math.abs(t);
+  return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(",")})`; }
+
+/* ---------------------------------------------------- the Concept blocks (the draft's) */
+const unitAt = (d) => [Math.cos(d * Math.PI / 180), Math.sin(d * Math.PI / 180)];
+const rng = makeRng(1);
+const ua = unitAt(62), va = unitAt(-28), ub = unitAt(18), vb = unitAt(108);
+const G = [], A0 = [], B0 = [];
+for (let i = 0; i < 80; i++) {
+  const g = i % 2, s = (g ? 0.85 : -0.85) + 0.35 * rng.normal(), a = 1.6 * rng.normal(), b = 1.6 * rng.normal();
+  G.push(g); A0.push([0, 1].map((j) => s * ua[j] + a * va[j] + 0.2 * rng.normal())); B0.push([0, 1].map((j) => s * ub[j] + b * vb[j] + 0.2 * rng.normal()));
+}
+const cen = (X) => { const m = [0, 1].map((j) => mean(X.map((p) => p[j]))); return X.map((p) => [p[0] - m[0], p[1] - m[1]]); };
+const A = cen(A0), B = cen(B0);
+const proj = (X, w) => X.map((p) => p[0] * w[0] + p[1] * w[1]);
+const XtV = (X, v) => { const w = [0, 0]; X.forEach((p, i) => { w[0] += p[0] * v[i] / X.length; w[1] += p[1] * v[i] / X.length; }); return w; };
+const unit = (w) => { const n = Math.hypot(w[0], w[1]); return [w[0] / n, w[1] / n]; };
+const SPAN = 1.08 * Math.max(...A.flat().map(Math.abs), ...B.flat().map(Math.abs));
+
+function blockPanel(ctx, x, y, s, X, w, title, axes) {
+  label(ctx, title, x, y - 6, { weight: "600", colour: T.ink1 });
+  box(ctx, x, y, s, s);
+  const P = (p) => [x + s / 2 + (p[0] / SPAN) * (s / 2), y + s / 2 - (p[1] / SPAN) * (s / 2)];
+  X.forEach((p, k) => { const q = P(p); dot(ctx, q[0], q[1], 2.6, T.clusters[G[k]]); });
+  if (w) { const R = 0.9 * SPAN; axisArrow(ctx, P([-R * w[0], -R * w[1]]), P([R * w[0], R * w[1]]), T.highlight); }
+  label(ctx, axes[0], x + s / 2, y + s + 12, { size: 9, colour: T.ink3, align: "center" });
+}
+function covBars(ctx, x, y, cov, names, title) {
+  label(ctx, title, x, y, { size: 10, colour: T.ink1, weight: "600" });
+  const m = 1.1 * Math.max(...cov.map(Math.abs)), bw = 70;
+  cov.forEach((c, i) => {
+    const yy = y + 14 + i * 20, cx = x + 60;
+    label(ctx, names[i], x, yy + 9, { size: 10 });
+    line(ctx, cx, yy, cx, yy + 13, T.axis);
+    ctx.save(); ctx.fillStyle = T.ink2; ctx.fillRect(c >= 0 ? cx : cx + (c / m) * bw, yy + 2, Math.abs(c / m) * bw, 10); ctx.restore();
+    label(ctx, f2(c), cx + bw + 8, yy + 10, { size: 10, mono: true });
+  });
+}
+
+/* ------------------------------------------------------------ §1 A: iterate */
+function iterate() {
+  let w2 = [0, 1], u = proj(B, w2), w1 = null, t = null;
+  const frames = [{ title: "Start: methylation's arrow anywhere", w1: null, w2, r: null, bars: null }];
+  for (let round = 1; round <= 3; round++) {
+    const c1 = XtV(A, u); w1 = unit(c1); t = proj(A, w1);
+    const c2 = XtV(B, t); w2 = unit(c2); u = proj(B, w2);
+    frames.push({ title: `Round ${round}`, w1, w2, r: corr(t, u), c1, c2 });
+  }
+  frames.forEach((F) => {
+    const bx = cand("s1a", F.title, F.r == null ? "u = methylation scores along the start arrow" : `w₁ ∝ X₁ᵀu: each gene's covariance with methylation's scores\nw₂ ∝ X₂ᵀt: each site's covariance with mRNA's new scores · r = ${f2(F.r)}`);
+    const ctx = canvasIn(bx, W, 210);
+    blockPanel(ctx, 20, 22, 150, A, F.w1, "mRNA", ["gene 1 · gene 2"]);
+    blockPanel(ctx, 200, 22, 150, B, F.w2, "Methylation", ["CpG 1 · CpG 2"]);
+    if (F.c1) {
+      covBars(ctx, 372, 30, F.c1, ["gene 1", "gene 2"], "cov with methylation");
+      covBars(ctx, 372, 110, F.c2, ["CpG 1", "CpG 2"], "cov with mRNA");
+    }
+    if (F.r != null) label(ctx, `r = ${f2(F.r)}`, 372, 196, { weight: "600", colour: T.ink1 });
+  });
+}
+
+/* --------------------------------------------------------- §1 B: cross-cov */
+function crossCov() {
+  const M = [[0, 0], [0, 0]]; A.forEach((p, i) => { for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) M[r][c] += p[r] * B[i][c] / A.length; });
+  /* top singular pair: by alternation on M itself */
+  let v = [0, 1], w1;
+  for (let k = 0; k < 50; k++) { w1 = unit([M[0][0] * v[0] + M[0][1] * v[1], M[1][0] * v[0] + M[1][1] * v[1]]); v = unit([M[0][0] * w1[0] + M[1][0] * w1[1], M[0][1] * w1[0] + M[1][1] * w1[1]]); }
+  const bx = cand("s1b", "X₁ᵀX₂ / n, and its first singular pair", "rows: mRNA features · columns: methylation features");
+  const ctx = canvasIn(bx, W, 210);
+  const x0 = 110, y0 = 50, cs = 56, m = Math.max(...M.flat().map(Math.abs));
+  ["CpG 1", "CpG 2"].forEach((n, j) => label(ctx, n, x0 + j * cs + cs / 2, y0 - 8, { size: 10, align: "center" }));
+  ["gene 1", "gene 2"].forEach((n, i) => label(ctx, n, x0 - 8, y0 + i * cs + cs / 2 + 4, { size: 10, align: "right" }));
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+    ctx.save(); ctx.fillStyle = vramp(M[i][j] / m); ctx.fillRect(x0 + j * cs, y0 + i * cs, cs - 2, cs - 2); ctx.restore();
+    label(ctx, f2(M[i][j]), x0 + j * cs + cs / 2, y0 + i * cs + cs / 2 + 4, { size: 11, align: "center", colour: T.ink1, mono: true });
+  }
+  label(ctx, `w₁ = (${f2(w1[0])}, ${f2(w1[1])})`, 300, 80, { mono: true, colour: T.ink1 });
+  label(ctx, `w₂ = (${f2(v[0])}, ${f2(v[1])})`, 300, 104, { mono: true, colour: T.ink1 });
+  label(ctx, "the arrows Iterate settles on", 300, 128, { size: 10 });
+}
+
+/* ------------------------------------------------------- §2 A: factorize concept */
+function pcaDir(X) { const C = [[0, 0], [0, 0]]; X.forEach((p) => { for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) C[r][c] += p[r] * p[c]; });
+  const a = C[0][0], b = C[0][1], d = C[1][1], tr = a + d, l = tr / 2 + Math.sqrt(tr * tr / 4 - (a * d - b * b)); return unit([l - d, b]); }
+function factorConcept() {
+  let u = proj(B, [0, 1]), w1, w2, t;
+  for (let k = 0; k < 30; k++) { w1 = unit(XtV(A, u)); t = proj(A, w1); w2 = unit(XtV(B, t)); u = proj(B, w2); }
+  const order = [...A.keys()].sort((i, j) => G[i] - G[j] || i - j);
+  const methods = { PCA: [pcaDir(A), pcaDir(B)], PLS: [w1, w2] };
+  for (const [name, [d1, d2]] of Object.entries(methods)) {
+    const bx = cand("s2a", `${name}: X ≈ t cᵀ + E, both blocks`, "");
+    const ctx = canvasIn(bx, W, 300);
+    const m = Math.max(...A.flat().map(Math.abs), ...B.flat().map(Math.abs));
+    const rh = 3, y0 = 34, cw = 16;
+    let sub = [];
+    [[A, d1, "mRNA", 16], [B, d2, "Methylation", 286]].forEach(([X, d, nm, x0]) => {
+      const tt = proj(X, d), c = [0, 1].map((j) => X.reduce((s, p, i) => s + p[j] * tt[i], 0) / tt.reduce((s, v) => s + v * v, 0));
+      const E = X.map((p, i) => [p[0] - tt[i] * c[0], p[1] - tt[i] * c[1]]);
+      const ss = (Z) => Z.reduce((s, p) => s + p[0] ** 2 + p[1] ** 2, 0);
+      sub.push(`${nm}: E keeps ${Math.round(100 * ss(E) / ss(X))}%`);
+      label(ctx, nm, x0, 14, { weight: "600", colour: T.ink1 });
+      const col = (xx, vals, k) => vals.forEach((v, r) => { ctx.save(); ctx.fillStyle = vramp(v / k); ctx.fillRect(xx, y0 + r * rh, cw, rh); ctx.restore(); });
+      const xs = { X: x0 + 22, t: x0 + 22 + 2 * cw + 22, E: x0 + 22 + 2 * cw + 22 + cw + 60 };
+      col(xs.X, order.map((i) => X[i][0]), m); col(xs.X + cw, order.map((i) => X[i][1]), m);
+      const tm = Math.max(...tt.map(Math.abs));
+      col(xs.t, order.map((i) => tt[i]), tm);
+      [0, 1].forEach((j) => { ctx.save(); ctx.fillStyle = vramp(c[j] / Math.max(...c.map(Math.abs))); ctx.fillRect(xs.t + cw + 10 + j * cw, y0, cw - 1, cw - 1); ctx.restore(); });
+      col(xs.E, order.map((i) => E[i][0]), m); col(xs.E + cw, order.map((i) => E[i][1]), m);
+      label(ctx, "X", xs.X + cw, y0 - 6, { align: "center", colour: T.ink1 });
+      label(ctx, "≈", xs.t - 11, y0 + 120, { align: "center", colour: T.ink1, size: 14 });
+      label(ctx, "t", xs.t + cw / 2, y0 - 6, { align: "center", colour: T.ink1 });
+      label(ctx, "cᵀ", xs.t + cw + 10 + cw, y0 - 6, { align: "center", colour: T.ink1 });
+      label(ctx, "+", xs.E - 12, y0 + 120, { align: "center", colour: T.ink1, size: 14 });
+      label(ctx, "E", xs.E + cw, y0 - 6, { align: "center", colour: T.ink1 });
+      box(ctx, xs.X, y0, 2 * cw, 80 * rh); box(ctx, xs.t, y0, cw, 80 * rh); box(ctx, xs.E, y0, 2 * cw, 80 * rh);
+      /* subtype brackets in ink, beside the rows */
+      [0, 1].forEach((g) => { const ya = y0 + order.findIndex((i) => G[i] === g) * rh, yb = ya + 40 * rh;
+        line(ctx, x0 + 14, ya + 2, x0 + 14, yb - 2, T.ink2, 1.5); label(ctx, String(g + 1), x0 + 4, (ya + yb) / 2 + 4, { size: 10 }); });
+      bx.querySelector(".sub").textContent = sub.join(" · ") + (sub.length === 2 ? `\nr(t, u) = ${f2(corr(proj(A, d1), proj(B, d2)))}` : "");
+    });
+  }
+}
+
+/* --------------------------------------------------------- §2 B: factorize data */
+async function factorData() {
+  const F = await (await fetch("multiomics-factor.json", { cache: "no-store" })).json();
+  for (const [name, R] of [["PLS", F.pls], ["PCA", F.pca]]) {
+    const bx = cand("s2b", `${name}: mRNA ≈ t wᵀ + E`, `one component keeps ${(100 * R.keptA).toFixed(1)}% of the mRNA block`);
+    const ctx = canvasIn(bx, W, 250);
+    const y0 = 30, H = 180, x0 = 40;
+    box(ctx, x0 - 24, y0, 160, H);
+    label(ctx, "X: 405 × 8,383", x0 + 56, y0 + H / 2, { align: "center", size: 10 });
+    label(ctx, "≈", x0 + 146, y0 + H / 2 + 4, { colour: T.ink1, size: 14 });
+    const tm = Math.max(...R.t.map(Math.abs)), tx = x0 + 236, rh = H / R.t.length;
+    R.t.forEach((v, i) => { ctx.save(); ctx.fillStyle = vramp(v / tm); ctx.fillRect(tx, y0 + i * rh, 14, rh + 0.3); ctx.restore(); });
+    box(ctx, tx, y0, 14, H); label(ctx, "t", tx + 7, y0 - 6, { align: "center", colour: T.ink1 });
+    let yy = y0; ["CN_HIGH", "CN_LOW", "MSI", "POLE"].forEach((s) => { const n = F.subtype.filter((x) => x === s).length; line(ctx, tx - 6, yy + 1, tx - 6, yy + n * rh - 1, T.ink2, 1.5); label(ctx, s, tx - 9, yy + n * rh / 2 + 3, { size: 8, align: "right" }); yy += n * rh; });
+    const wx = tx + 30, ww = W - wx - 14, wm = Math.max(...R.wA.map(Math.abs)), gw = ww / R.wA.length;
+    R.wA.forEach((v, j) => { ctx.save(); ctx.fillStyle = vramp(v / wm); ctx.fillRect(wx + j * gw, y0, gw + 0.2, 14); ctx.restore(); });
+    box(ctx, wx, y0, ww, 14); label(ctx, "wᵀ: 8,383 gene weights", wx, y0 - 6, { colour: T.ink1 });
+    const top = R.wA.map((v, j) => [Math.abs(v), j, v]).sort((a, b) => b[0] - a[0]).slice(0, 5);
+    top.forEach(([, j, v], k) => label(ctx, `${F.genes[j]} ${v > 0 ? "+" : ""}${v.toFixed(3)}`, wx, y0 + 34 + k * 14, { size: 10, mono: true }));
+    label(ctx, `+ E: the other ${(100 - 100 * R.keptA).toFixed(1)}%, where component 2 is found`, x0, y0 + H + 22, { size: 10 });
+  }
+}
+
+/* ------------------------------------------------------------ §3 N vs P */
+function nAndP() {
+  for (const kind of ["N", "P"]) {
+    const bx = cand("s3", kind === "N" ? "N-integration: the same samples, different features" : "P-integration: the same features, different samples",
+      kind === "N" ? "what 99 and the lesson do · each block its own w; the t's agree" : "drawn only · one w for every study; each study its own t");
+    const ctx = canvasIn(bx, W, 200);
+    const cell = (x, y, w, h, txt) => { box(ctx, x, y, w, h, T.ink2); label(ctx, txt, x + w / 2, y + h / 2 + 4, { align: "center", size: 10 }); };
+    if (kind === "N") {
+      cell(40, 30, 150, 120, "X₁ mRNA"); cell(196, 30, 110, 120, "X₂ methylation");
+      label(ctx, "samples", 32, 94, { size: 9, align: "right" });
+      ctx.save(); ctx.fillStyle = T.highlight; ctx.globalAlpha = 0.18; ctx.fillRect(40, 30, 266, 120); ctx.restore();
+      label(ctx, "shared: the rows", 40, 168, { size: 10, colour: T.ink1 });
+      cell(340, 30, 14, 120, ""); label(ctx, "t", 347, 22, { align: "center", colour: T.ink1 });
+      cell(370, 30, 14, 120, ""); label(ctx, "u", 377, 22, { align: "center", colour: T.ink1 });
+      label(ctx, "cov(t, u) made large", 400, 94, { size: 10 });
+    } else {
+      cell(40, 20, 200, 70, "X₁ study 1"); cell(40, 96, 200, 70, "X₂ study 2");
+      label(ctx, "genes", 140, 182, { size: 9, align: "center" });
+      ctx.save(); ctx.fillStyle = T.highlight; ctx.globalAlpha = 0.18; ctx.fillRect(40, 20, 200, 146); ctx.restore();
+      label(ctx, "shared: the columns", 252, 182, { size: 10, colour: T.ink1 });
+      cell(270, 50, 200, 14, ""); label(ctx, "wᵀ, one for both studies", 270, 44, { size: 10, colour: T.ink1 });
+    }
+  }
+}
+
+iterate(); crossCov(); factorConcept(); await factorData(); nAndP();
+</script>
+</body>
+</html>
