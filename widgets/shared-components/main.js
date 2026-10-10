@@ -111,11 +111,11 @@ const S = {
   /* Factorization */
   fCap: [
     "One block: mRNA, 2 genes measured on 80 samples. Each dot is one row of X.",
-    "Score: the loading vector w₁ (arrow) is the direction that explains the most variance in X. Each sample is projected onto it: its score on latent variable 1 is t₁ = row × w₁, a linear combination of its two genes.",
-    "Reconstruct: t₁w₁ᵀ puts every sample at its projection on the loading vector (hollow). This is the part of X that latent variable 1 explains.",
-    "Subtract: the residual E = X − t₁w₁ᵀ is what is left, the gap from each projection to its dot.",
-    "Latent variable 2: each sample moves to its row of E, its gap from loading vector 1. With 2 genes E lies on one line, so w₂ has no choice: the one direction left (with thousands of genes, w₂ is E's direction of most variance). T gains a column, the scores t₂; Wᵀ gains a row, the loadings w₂. Wᵀ has one row per latent variable and one column per gene.",
-    "Subtract again: E − t₂w₂ᵀ. Every row of E lies on w₂, so its projection is the whole row and nothing is left: every sample moves to 0. Two latent variables reconstruct two genes exactly; with thousands of genes E stays, and L is kept far below P.",
+    "Score: the loading vector w₁ (arrow) is the direction that explains the most variance in X, found as the first singular vector of X. Each sample is projected onto it: its score on latent variable 1 is t₁ = row × w₁, a linear combination of its two genes.",
+    "Reconstruct: T·Wᵀ is a table the size of X, every sample at its projection on the loading vector (hollow). This is the part of X that latent variable 1 explains.",
+    "Subtract: the residual E = X − T·Wᵀ is what is left, the gap from each projection to its dot.",
+    "Latent variable 2: each sample moves to its row of E. With 2 genes E lies on one line, so w₂ has no choice; with thousands of genes it is E's direction of most variance. T gains a column, the scores t₂, and Wᵀ a row, the loadings w₂: one per latent variable. Omics blocks keep L far below P.",
+    "Subtract again: every row of E lies on w₂, so nothing is left and every sample moves to 0. Latent variable 1 explained 71.5% of X but did not separate the subtypes; latent variable 2 did. On N-integration, PLS finds that direction first, because methylation shares it.",
   ],
   fRow: (n, a, b) => `sample ${n}: gene 1 = ${a}, gene 2 = ${b}`,
   fScore: (k, x, w, t) => `t${k} = ${x[0]} × ${w[0]} + ${x[1]} × ${w[1]} = ${t}`,
@@ -124,6 +124,11 @@ const S = {
   fBoth: (r) => `t₁w₁ + t₂w₂ = (${r}), the row of X exactly`,
   fE2: (e, t, w, r) => `E row − t₂ × w₂ = (${e}) − ${t} × (${w}) = (${r})`,
   sizeX: "80 × 2",
+  genes: ["g₁", "g₂"],
+  /* T·Wᵀ, except at Latent variable 2, where T and W have their second
+     column but the table still holds only latent variable 1's part */
+  prodHead: (l) => (l === 1 ? "t₁w₁ᵀ" : "T·Wᵀ"),
+  eHead: (l) => (l === 1 ? "X − t₁w₁ᵀ" : "X − T·Wᵀ"),
   sizeT: (l) => `80 × ${l}`,
   sizeW: (l) => `${l} × 2`,
   sizeL: (l) => `L = ${l}`,
@@ -197,6 +202,8 @@ const S = {
   tileKNote: "share of X's variance",
   tileShape: "Score matrix T, loading matrix W",
   tileShapeNote: "N × L and P × L",
+  tileEta: "Subtype difference in t₁ · t₂",
+  tileEtaNote: "share of each score's variance between the subtypes",
   tileW: "Shared loading vector w",
   tileWNote: "the same loadings for both studies",
   tileSub: "Scores and subtype",
@@ -527,6 +534,11 @@ function makeBlocks(rng) {
   const fw2 = [-ra[1], ra[0]];
   const fac = { w: [ra, fw2], t: [project(A, ra), project(A, fw2)] };
   fac.kept1 = keptBy(A, fac.t[0]);
+  /* the share of each score's variance that lies between the subtypes: latent
+     variable 1 explains 71.5% of X and 0.00 of this, latent variable 2 0.80
+     (measured, round 5's walk-through) */
+  const eta = (t) => { const mt = mean(t); let b = 0; for (const k of [0, 1]) { const v = t.filter((_, i) => g[i] === k); b += v.length * (mean(v) - mt) ** 2; } return b / t.reduce((acc, x) => acc + (x - mt) ** 2, 0); };
+  fac.eta = [eta(fac.t[0]), eta(fac.t[1])];
 
   /* Solve directly (round 5: "Shortcut" until his rename): X₁ᵀX₂ / n and its first singular pair, by the same
      alternation on the 2 × 2 table itself; it lands on the loop's end */
@@ -592,7 +604,9 @@ function factorLayout(w) {
   const s = Math.min(FL.s, Math.floor(w * 0.38));
   const P = { x: 30, y: FL.cap + 14, s };
   const mx = P.x + s + 34, my = P.y + 20, cw = FL.cw;
-  const m = { X: mx, T: mx + 2 * cw + 22, W: mx + 4 * cw + 34, E: mx + 6 * cw + 56 };
+  /* X ≈ T · Wᵀ = [T·Wᵀ], then E = X − T·Wᵀ (walk-through pick 4: the
+     reconstruction drawn as its own table, beside X) */
+  const m = { X: mx, T: mx + 2 * cw + 22, W: mx + 4 * cw + 34, P: mx + 6 * cw + 56, E: mx + 8 * cw + 74 };
   return { P, my, m, cw, rh: FL.rh, text: { x: 30, y: P.y + s + 34 } };
 }
 
@@ -645,26 +659,40 @@ function drawFactorization(ctx, colors, w, params, st, anim, pointer) {
     for (let l = 0; l < Lc; l++) for (let j = 0; j < 2; j++) { ctx.fillStyle = valueColour(colors, F.w[l][j]); ctx.fillRect(m.W + j * cw, my + l * cw, cw - 1, cw - 1); }
     frame(ctx, colors, m.W, my, 2 * cw, Lc * cw); head(m.W, 2 * cw, "Wᵀ", S.shapes[2]);
     /* the sizes, in numbers: one row of Wᵀ and one column of T per latent variable */
-    txt(ctx, colors, S.sizeT(Lc), m.T + Lc * cw / 2, my + H + 13, { align: "center", size: colors.fsXs, fill: colors.ink2 });
-    txt(ctx, colors, S.sizeW(Lc), m.W + cw, my + Lc * cw + 13, { align: "center", size: colors.fsXs, fill: colors.ink2 });
-    txt(ctx, colors, S.sizeL(Lc), m.W + cw, my + Lc * cw + 27, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
+    txt(ctx, colors, S.sizeT(Lc), m.T + Lc * cw / 2, my + H + 26, { align: "center", size: colors.fsXs, fill: colors.ink2 });
+    S.genes.forEach((gn, j) => txt(ctx, colors, gn, m.W + j * cw + cw / 2, my + Lc * cw + 13, { align: "center", size: colors.fsXs, fill: colors.ink3 }));
+    txt(ctx, colors, S.sizeW(Lc), m.W + cw, my + Lc * cw + 27, { align: "center", size: colors.fsXs, fill: colors.ink2 });
+    txt(ctx, colors, S.sizeL(Lc), m.W + cw, my + Lc * cw + 41, { align: "center", size: colors.fsXs, fill: colors.ink1, weight: "600" });
     /* the press that added latent variable 2 frames what it added */
     if (n === 4 && w2On) {
       frame(ctx, colors, m.T + cw - 2, my - 2, cw + 4, H + 4, colors.highlight, 2);
       frame(ctx, colors, m.W - 2, my + cw - 2, 2 * cw + 4, cw + 4, colors.highlight, 2);
     }
   }
-  txt(ctx, colors, S.sizeX, m.X + cw, my + H + 13, { align: "center", size: colors.fsXs, fill: colors.ink2 });
-  if (n >= 2) txt(ctx, colors, "≈", m.X + 2 * cw + 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
+  txt(ctx, colors, S.sizeX, m.X + cw, my + H + 26, { align: "center", size: colors.fsXs, fill: colors.ink2 });
+  /* the reconstruction as a table (from Reconstruct); it takes latent
+     variable 2's part only at Subtract again, so at Latent variable 2 it is
+     still t₁w₁ᵀ and E is still what latent variable 1 left */
+  const Lu = sub2 ? 2 : 1;
+  const prod = (i, j) => F.t[0][i] * F.w[0][j] + (Lu === 2 ? F.t[1][i] * F.w[1][j] : 0);
+  if (n >= 2) {
+    txt(ctx, colors, "≈", m.X + 2 * cw + 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
+    txt(ctx, colors, "=", m.P - 12, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
+    cols(ctx, colors, m.P, my, rh, cw, st.order, prod, 2, xm); head(m.P, 2 * cw, S.prodHead(n === 4 ? 1 : 2), S.shapes[0]);
+    txt(ctx, colors, S.sizeX, m.P + cw, my + H + 26, { align: "center", size: colors.fsXs, fill: colors.ink2 });
+  }
   if (n >= 3) {
-    txt(ctx, colors, "+", m.E - 11, my + H / 2 + 5, { align: "center", fill: colors.ink1, size: colors.fsMd });
     /* E is what latent variable 1 left until Subtract again takes latent variable 2's part out too */
-    const rest = (i, j) => X[i][j] - F.t[0][i] * F.w[0][j] - (sub2 ? F.t[1][i] * F.w[1][j] : 0);
-    cols(ctx, colors, m.E, my, rh, cw, st.order, rest, 2, xm); head(m.E, 2 * cw, "E", sub2 ? "= 0" : S.shapes[0]);
+    cols(ctx, colors, m.E, my, rh, cw, st.order, (i, j) => X[i][j] - prod(i, j), 2, xm);
+    txt(ctx, colors, "E", m.E + cw, my - 30, { align: "center", fill: colors.ink1, weight: "600", size: colors.fsXs });
+    txt(ctx, colors, sub2 ? "= 0" : `= ${S.eHead(n === 4 ? 1 : 2)}`, m.E + cw, my - 18, { align: "center", fill: colors.ink3, size: colors.fsXs });
+    txt(ctx, colors, S.sizeX, m.E + cw, my + H + 26, { align: "center", size: colors.fsXs, fill: colors.ink2 });
     if (n === 5) frame(ctx, colors, m.E - 2, my - 2, 2 * cw + 4, H + 4, colors.highlight, 2);
   }
+  /* which column is which gene (walk-through pick 1), under X, the reconstruction and E */
+  [m.X].concat(n >= 2 ? [m.P] : [], n >= 3 ? [m.E] : []).forEach((x0) => S.genes.forEach((gn, j) => txt(ctx, colors, gn, x0 + j * cw + cw / 2, my + H + 13, { align: "center", size: colors.fsXs, fill: colors.ink3 })));
   [0, 1].forEach((g) => { const ra = st.order.findIndex((i) => st.g[i] === g); bracket(ctx, colors, m.X - 5, my + ra * rh, my + (ra + N_CONCEPT / 2) * rh, S.sub[g]); });
-  const r = st.order.indexOf(pick), right = n >= 3 ? m.E + 2 * cw : scored ? m.T + Lc * cw : m.X + 2 * cw;
+  const r = st.order.indexOf(pick), right = n >= 3 ? m.E + 2 * cw : n >= 2 ? m.P + 2 * cw : scored ? m.T + Lc * cw : m.X + 2 * cw;
   frame(ctx, colors, m.X - 2, my + r * rh - 2, right - m.X + 4, rh + 4, colors.ink1, 1.5);
 
   /* the traced sample's arithmetic */
@@ -1256,9 +1284,10 @@ defineWidget({
     if (page === "factorization") {
       const F = state.blocks.fac;
       return [
-        { label: S.tileK1, value: n >= 1 ? pct(F.kept1) : S.tileWait, note: S.tileKNote },
+        { label: S.tileK1, value: n >= 2 ? pct(F.kept1) : S.tileWait, note: S.tileKNote },
         { label: S.tileK2, value: n >= 5 ? pct(1) : S.tileWait, note: S.tileKNote },
         { label: S.tileShape, value: n >= 1 ? `80 × ${n >= 4 ? 2 : 1} · 2 × ${n >= 4 ? 2 : 1}` : S.tileWait, note: S.tileShapeNote },
+        { label: S.tileEta, value: n >= 4 ? `${pct(F.eta[0])} · ${pct(F.eta[1])}` : S.tileWait, note: S.tileEtaNote },
       ];
     }
     if (page === "n-integration") {
