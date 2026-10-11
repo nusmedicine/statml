@@ -1,5 +1,64 @@
 # Handover
 
+**SESSION CLOSED 2026-10-12. NEXT: the DL Frontiers arc (PHM5005 week 10),
+his call** ("switch to PHM5005 on DL Frontiers"). The three notebooks were
+read in full and four widgets PROPOSED in chat; **NOT picked yet** — open the
+next session by asking which of the four he wants, then measure before any
+mock. Nothing is in the catalogue yet; record the arc there once picked.
+
+**Notebooks:** `~/Downloads/PHM5005 AY2025-26 - Notebooks/Master/` (dated
+2026-08-24, the copies the graph arc used; no outputs, so every number must
+be re-run). `10-1 - DL Frontiers - Representation Learning` (90 cells),
+`10-2 - DL Frontiers - Multimodal` (70), `10-3 - DL Frontiers - Generative
+Models` (130). Text dumps were made with a small json → text script (markdown
+and code per cell, embedded images stripped); remake them in the scratchpad.
+
+| notebook | sections | worked examples |
+|---|---|---|
+| 10-1 | reconstruction (AE c8–30, sparse AE c31–52) · masked prediction (c53–71) · contrastive, SimCLR InfoNCE (c72–89) | all MNIST, each ends in a UMAP of the embedding coloured by digit |
+| 10-2 | early fusion (concat · sum · cross-attention, templates c3–5) · late fusion (weighted · learned gating, c29–31) · joint embedding (CLIP, c45) | concat (c6–28) and gating (c32–44) on his synthetic expression + mutation CSVs (`github.com/kennethban/dataset/.../DL/synthetic_*.csv`); CLIP on MNIST image ↔ digit token with top-k retrieval (c46–69) |
+| 10-3 | VAE and CVAE (c1–40, the CVAE conditioned on 10-2's saved text encoder) · GAN (c41–43, theory only, links GAN Lab) · decoder transformer, unconditional and `<human>`/`<animal>` prefix (c44–94, HA proteins, GPT-2 config) · DDPM and class-conditional diffusion (c95–129, `diffusers` UNet2DModel) | MNIST for VAE and diffusion |
+
+**Already covered, not proposed again:** the decoder transformer and
+generation `[BOS]`→`[EOS]` (84), HA proteins and pretraining (85), UMAP (22),
+GANs (no code in the notebook).
+
+**The four proposed** (slots 104–107; 101–103 are spent), each one concept,
+in the lessons' order, all showing models trained offline (as 65 and 85), none
+training in the browser:
+
+| # | slug | notebook | the idea made visible | pages |
+|---|---|---|---|---|
+| 104 | `representation` | 10-1 | embeddings sort digits without a label: each objective is a training signal made from the data itself | Reconstruct · Mask · Contrast — on one image what the model sees, must output and the loss; then the embedding map |
+| 105 | `fusion` | 10-2 | WHEN modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (the gate's α per patient), joint aligns pairs for retrieval | Early · Late · Joint (his synthetic data; MNIST image ↔ text for Joint) |
+| 106 | `vae` | 10-3 §1 | decode a random latent point of an autoencoder and you mostly get garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked anywhere to decode |
+| 107 | `diffusion` | 10-3 §4 | the network predicts the noise, not the image; generation is many small denoising steps; forward fixed, reverse learned | Forward (t slider, x_t = √ᾱ·x₀ + √(1−ᾱ)·ε) · Reverse (trajectory) · Conditional |
+
+**Measure first, before any mock** (today's lesson from 101: if a claim
+narrows to "wrong in principle, no effect here", ask whether it is still worth
+a widget BEFORE building): 104 how well each embedding separates digits
+(kNN or linear probe; the notebook only shows UMAPs); 105 each modality alone
+vs concat vs gating on his synthetic data, and whether α varies per patient;
+106 share of N(0, I) draws decoding to a recognisable digit, AE vs VAE; 107
+signal left at each t under the linear schedule. Keep each widget to what the
+notebook does — he found 101's critique-of-the-notebook framing too much.
+
+**Notebook issues found, NOT yet told to him** (offer as a short list):
+(1) 10-2 c3 concat template `nn.Linear(dimA + dimA, …)` should be `dimA + dimB`;
+(2) 10-2 c31 gating template missing a comma after `hidden = 64` (syntax error);
+(3) 10-2 CLIP example: digit ID as "text" gives ~26 copies of each text per
+batch of 256, all treated as InfoNCE negatives — measure before telling;
+(4) 10-3 c29 loads `state["txt_enc"]`, 10-2 c61 saves `"txt_encoder"` — check
+the GitHub file (downloading it needs his yes);
+(5) 10-1 c40 divides the sparse AE's test loss by the dataset size, not the
+batch count — ~128× smaller than the AE's, not comparable;
+(6) 10-3's diffusion sampling pseudocode (c96) has the wrong noise
+coefficient; the conditional one (c116) is right. Already told 2026-09-27:
+10-2 c5's cross-attention template with one key gives weight 1.0, so
+modality A never reaches the prediction (catalogue § the language arc).
+
+---
+
 **2026-10-12: 101 `selection-bias` PARKED on his word** ("too much to
 explain"; not for the gallery). Re-measured, mocked (ten calls, all the
 recommendation), drafted and renamed on 2026-10-11, all on **branch
@@ -13,7 +72,7 @@ Lê Cao: variance, top 5,000), and the lesson run with MAD or variance top
 5,000 still picks 4 components with errors a few points either side. A
 suggested markdown note for 02 cell 37 was offered, not decided. The
 untracked `_lab/selection-bias-*.json` stay for the branch's mock. The
-multi-omics arc ends at 99 and 100. **NEXT: his call.**
+multi-omics arc ends at 99 and 100.
 
 ---
 
