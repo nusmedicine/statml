@@ -1,5 +1,22 @@
 # Handover
 
+**2026-10-12: 101 `selection-bias` PARKED on his word** ("too much to
+explain"; not for the gallery). Re-measured, mocked (ten calls, all the
+recommendation), drafted and renamed on 2026-10-11, all on **branch
+`selection-bias`** (f7e63f0 → 896e74f, never pushed); `main` holds none of
+it. The record is that branch's catalogue § *Slot 101*. What it established:
+02's ANOVA filter uses the subtypes (cell 38's `aov(Expression ~ Subtype)`)
+on every labelled tumour, test set included, and on this data costs nothing
+measurable (CV 0.220 · 0.221 over five fold splits, test 0.331 either way);
+mixOmics recommends a label-free prefilter (vignette: MAD, under 10K;
+Lê Cao: variance, top 5,000), and the lesson run with MAD or variance top
+5,000 still picks 4 components with errors a few points either side. A
+suggested markdown note for 02 cell 37 was offered, not decided. The
+untracked `_lab/selection-bias-*.json` stay for the branch's mock. The
+multi-omics arc ends at 99 and 100. **NEXT: his call.**
+
+---
+
 **SESSION CLOSED 2026-10-11. 100 `diablo` SHIPPED AND PUSHED** as
 "Multi-omics: DIABLO" (64fdb13, 35 states, three determinism runs and a
 35/35 MATCH pass at DPR 1.25, deploy 38068885429 green, the live manifest and page say shipped). Measured, mocked, built,
