@@ -25152,6 +25152,143 @@ done: copy audit, student walk-through, baselines.
 
 ---
 
+## The DL Frontiers arc — PROPOSED AND PICKED 2026-10-12, from `10-1` to `10-3`
+
+**Kenneth's ask, 2026-10-12:** *switch to PHM5005 on DL Frontiers.* The three
+Master notebooks were read in full (no outputs): `10-1 Representation
+Learning` (90 cells: reconstruction with an autoencoder and a sparse
+autoencoder, masked prediction, SimCLR-style contrastive learning; each on
+MNIST, each ending in a UMAP of the embedding coloured by digit), `10-2
+Multimodal` (70: early fusion by concatenation, sum and cross-attention as
+templates; late fusion by a weight and by learned gating; concatenation and
+gating run on his synthetic expression and mutation CSVs; CLIP on MNIST image
+↔ digit token with top-k retrieval) and `10-3 Generative Models` (130: VAE and
+CVAE on MNIST, the CVAE conditioned on 10-2's text encoder; GAN as theory and
+pseudocode only; a decoder transformer on HA proteins; DDPM and
+class-conditional diffusion with `diffusers`). Hosts below are cell indices in
+those files.
+
+### What is already covered
+
+| existing widget | what it already does for this week |
+|---|---|
+| 84 `transformer` | the decoder and generation from [BOS] to [EOS] (10-3 cells 44–94) |
+| 85 `clinical-text` | pretraining and adapting a pretrained model |
+| 22 `umap` | the UMAP every 10-1 section ends on |
+
+### The slots
+
+Four proposed and **all four picked** the same day; he then asked whether a
+simulation would help beside the GAN pseudocode, which the class had no time
+to show, and **picked it as 108** on the recommendation (a 1-D GAN trained in
+`compute`, c42's two halves as presses). Each widget shows models trained
+offline (as 65 and 85) except 108, which is small enough to train from the
+seeded rng.
+
+| # | slug (provisional) | host | the idea made visible | pages (proposed) | state |
+|---|---|---|---|---|---|
+| 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | picked; measure first |
+| 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | picked; measure first |
+| 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | picked; measure first |
+| 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | picked 2026-10-12; check a seed that converges without collapse |
+| 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | picked; measure first |
+
+**Build order** is the lessons': 104 → 105 → 106 → 108 → 107.
+
+**Measure first, before any mock:** 104 how well each embedding separates the
+digits (kNN, linear probe); 105 each modality alone against concatenation and
+gating, and whether α varies per patient; 106 the share of N(0, I) draws that
+decode to a recognisable digit, AE against VAE; 108 a 1-D GAN in JS that
+converges for the default seed; 107 the signal left at each t under the
+linear schedule. Keep each widget to what the notebook does (101 was parked as
+"too much to explain").
+
+**Downloads allowed 2026-10-12:** MNIST through torchvision, and his three
+synthetic CSVs (`github.com/kennethban/dataset/.../DL/synthetic_*.csv`), both
+kept outside the repo.
+
+### Notebook findings (told 2026-10-12/13), now the b notebooks
+
+Twelve items in `_lab/frontiers-notebook-corrections.md` (untracked), each
+fix run in torch 2.14: seven bugs or notes from reading (1 concat `dimA +
+dimA`, 2 gating comma, 3 CLIP loss floor ≈ ln 25.6, 4 `txt_enc` vs
+`txt_encoder`, 5 sparse AE test loss ÷ dataset size, 6 the DDPM sampler
+coefficient, 7 cross-attention over one key), one from measuring (8 the
+masked `z_vec` never trained), and four from his "harmonize to what the field
+does" (9 and 12 one encoder/decoder standard: `conv` → `to_embed`, `expand`
+→ `deconv`, two table rows per side, seeded weights unchanged; 10 the masked
+loss over the masked pixels, as MAE's code does; 11 a ReLU after the VAE's
+`to_embed`). Items 5 and 7 were cut to one-line fixes on his word. **He moved
+to `10-1b`, `10-2b`, `10-3b` on 2026-10-13** (written beside the Master
+copies by `_scratch/frontiers-build-b.py`) and replaced the GitHub
+`clip_mnist_align.pt` with one saved by 10-2b. The file's "b notebooks, cell
+by cell" section is the change list. **Widgets in this arc follow the b
+notebooks**, so 104's Mask page uses the fixed masked predictor.
+
+### 104 MEASURED 2026-10-12
+
+`_lab/representation-measure.py` trains 10-1's four models with the
+notebook's settings (seed 42, Adam 1e-3, 10 epochs, batch 128; SimCLR's
+augmentation reimplemented with `grid_sample`, torchvision not installed) on
+MNIST read from the gz files (`_scratch/frontiers-data`, outside Dropbox;
+checkpoints in `models-104`). Each test embedding is scored by 5-NN (cosine)
+and a logistic probe fitted on 10,000 training embeddings;
+`_lab/representation-umap.py` runs the notebook's UMAP and scores the 2-D map
+(5-NN within the map, silhouette by digit). Both JSONs untracked.
+
+| embedding | dim | 5-NN untrained → trained | linear untrained → trained | UMAP silhouette untrained → trained |
+|---|---|---|---|---|
+| raw pixels | 784 | 95.8% | 88.6% | 0.50 |
+| AE `z_vec` | 16 | 79.6 → **95.7** | 74.6 → 92.6 | 0.04 → **0.57** |
+| sparse AE `z_vec` (57% zeros) | 16 | 69.7 → 91.7 | 69.1 → 89.0 | 0.00 → 0.42 |
+| masked `z_vec`, as written | 64 | 93.7 → 93.2 | 88.1 → 89.6 | 0.44 → 0.37 |
+| masked `z_vec`, decoder reads it (fix #8) | 64 | 93.7 → 96.0 | 88.1 → 92.2 | 0.44 → 0.56 |
+| SimCLR `z` | 128 | 94.9 → 96.2 | 91.5 → **98.3** | 0.53 → 0.57 |
+| SimCLR projection `p` | 64 | — → 94.7 | — → 96.4 | — |
+
+What this means for the widget: (1) raw pixels already sort MNIST (kNN 95.8%,
+UMAP silhouette 0.50), so "the embedding sorts digits" says little alone;
+the comparison that carries the idea is **untrained against trained** on the
+same network. (2) The autoencoder shows it plainly: a 16-number code,
+scrambled before training (UMAP 0.04), sorted after (0.57). (3) An untrained
+conv net with a wide embedding is already sorted (SimCLR untrained 0.53,
+masked 0.44); contrastive training's gain is in **linear** separability
+(91.5 → 98.3), which the UMAP barely shows. (4) The masked embedding as
+written never trains (`to_embed` max change 0.0): finding #8, told the same
+day with the fix. (5) The sparse AE trades separation and reconstruction
+(test MSE 0.021 against the AE's 0.009) for 57% zero activations; the notebook
+shows the activation histogram, which is the sparse AE's own point. (6) The
+projection head's output is worse than the representation before it, as in
+SimCLR (Chen et al. 2020).
+
+### 104 MOCKED AND PICKED 2026-10-13/14, DRAFTED 2026-10-14
+
+`_lab/representation-mock.html` (data from `_lab/representation-mockdata.py`,
+untracked JSON). He took **every recommendation** ("go with all the
+recommendations"): the rail **Reconstruction [Autoencoder · Sparse] ·
+Prediction [Masked] · Contrastive [Contrastive]** (his headings, his four
+models); a **strip** for one digit of what the model sees and outputs, before
+and after training; the maps **in ink with the chosen digit in
+`--c-highlight`** (no ten-hue role); **untrained and trained side by side**;
+**5-NN only** under each map; Sparse's **16 code bars with the zeros counted**;
+the title in the series' form, **"Deep Learning - Frontiers: Representation
+Learning"**. Contrastive's before-and-after is its 10×10 view-similarity
+matrix (untrained every pair 0.999; trained matched 0.93, others 0.03 over the
+test digits), because its embedding is already sorted at random weights.
+
+**The draft** (`widgets/representation/`, status draft): one press a page,
+**Train** (Step alone, no Play), which switches the trained row, map and tiles
+on at once; Digit 0–9 (default 3), a click on a map point picks its digit
+through the region door; a formula card per page with the notebook's loss
+(L_AE, L_sparse, L_mask, InfoNCE). The masked model is retrained with 10-1b's
+own class (`MaskedPredictorB` in the measure script: 5-NN 93.7% → 96.0%,
+silhouette 0.44 → 0.59). `data.js` (199 KB) is GENERATED by
+`_lab/representation-export.py`; rerun measure → umap → export after any
+change to the models. Fingerprint: one placeholder state until the design is
+agreed.
+
+---
+
 ## Two arcs, not one — now three
 
 The evaluation arc below was written before any notebook had been read. Reading

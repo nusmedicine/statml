@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · representation — measured, and the pages proposed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .find { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--ink-3); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 1200px; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+  td.gap { color: var(--ink-3); }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 28px; font-weight: 600; }
+  .rail .grp { font-size: 10px; color: var(--ink-3); margin-left: 8px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+  /* proposed only: two hues a ten-digit role would need beyond the eight series slots */
+  :root { --mock-digit-9: #8a5a2b; --mock-digit-10: #8f9a1c; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 104 <code>representation</code> &middot; measured, and the pages proposed</h1>
+  <p class="note">10-1b's four models trained with the notebook's settings (seed 42, Adam 10<sup>&minus;3</sup>, 10 epochs,
+    batch 128) by <code>_lab/representation-measure.py</code>; the masked model is 10-1b's fixed one (the decoder reads
+    <code>z_vec</code>). Every map is the notebook's own UMAP (15 neighbours, min_dist 0.1, cosine, random_state 42) of the
+    10,000 test digits, 2,000 of them drawn. "Untrained" is the same network at its seed-42 starting weights. The mock
+    draws finished states so they can be judged; the widget opens empty. On-canvas strings are candidates, not copy.
+    Blue-ruled boxes are my recommendations, grey-ruled what the measurement found, and the plain ones (&sect;8) are the calls.</p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div class="find"><b>1 &middot; The digits are already sorted in the pixels.</b> A 5-nearest-neighbour vote on the raw
+    784 pixels scores 95.8%, and their UMAP is already clustered (silhouette 0.50). "The embedding sorts the digits" says
+    little on its own; what shows the idea is <b>the same network before and after training</b>.</div>
+  <div class="find"><b>2 &middot; The autoencoder shows it plainly.</b> Its 16-number code is scrambled before training
+    (UMAP silhouette 0.04) and sorted after (0.57); 5-NN 79.6% &rarr; 95.7%. The training signal is the image itself: the
+    untrained reconstruction is a grey blur (MSE 0.21), the trained one the digit (0.011).</div>
+  <div class="find"><b>3 &middot; The contrastive embedding is sorted before training; the similarity matrix is not.</b>
+    An untrained conv net with a 128-number embedding already clusters digits (silhouette 0.53 &rarr; 0.57 after), so its
+    two maps look alike. What training changes is the projection: untrained, every pair of views has cosine similarity
+    0.999 (all images map to one direction); trained, the two views of one image score 0.96 and different images 0.01. The
+    10&times;10 matrix goes from flat to a diagonal, which is what InfoNCE asks for. The gain in the embedding shows as a
+    straight-line classifier: 91.5% &rarr; 98.3%.</div>
+  <div class="find"><b>4 &middot; The sparse autoencoder trades separation for zeros.</b> 57% of its code entries are
+    zero after training (34% at random weights, from the ReLU alone); it separates the digits less well than the plain
+    autoencoder (5-NN 91.7% against 95.7%) and reconstructs worse (MSE 0.021 against 0.009). The notebook's own point for
+    it is the activation histogram, which shows the zeros.</div>
+  <div class="find"><b>5 &middot; The masked model, fixed, learns as the autoencoder does.</b> 5-NN 93.7% &rarr; 96.0%,
+    silhouette 0.44 &rarr; 0.56. The training signal is the hidden half of the pixels: untrained, the error on them is 0.24;
+    trained, 0.007.</div>
+  <div id="t0"></div>
+
+  <h2>1 &middot; Each section of 10-1b, and where it goes</h2>
+  <table>
+    <tr><th>10-1b (cells)</th><th>what the notebook does</th><th>proposed page</th></tr>
+    <tr><td>c1&ndash;7</td><td>what a representation is; MNIST loaded</td><td class="gap">the subtitle</td></tr>
+    <tr><td>c8&ndash;30</td><td><b>1) Reconstruction-Based</b>, Basic AutoEncoder: encoder &rarr; 16-number embedding &rarr; decoder, MSE; reconstruction; UMAP; activation histogram; clustermap</td><td><b>Autoencoder</b></td></tr>
+    <tr><td>c31&ndash;52</td><td>Sparse AutoEncoder: ReLU on the embedding and an L1 penalty; the same plots</td><td><b>Sparse</b></td></tr>
+    <tr><td>c53&ndash;71</td><td><b>2) Self-Supervised Prediction</b>: half the pixels hidden, the loss on the hidden ones; UMAP</td><td><b>Masked</b></td></tr>
+    <tr><td>c72&ndash;89</td><td><b>3) Contrastive Learning</b>: two augmented views, InfoNCE on the projections, UMAP of the embedding</td><td><b>Contrastive</b></td></tr>
+    <tr><td>c30, c52</td><td>clustermaps of the embedding</td><td class="gap">not drawn (the UMAP carries the same reading)</td></tr>
+  </table>
+
+  <h2>2 &middot; The rail</h2>
+  <div class="rail"><span class="w">A</span><span class="grp">Reconstruction</span><span class="pg">Autoencoder</span><span class="pg">Sparse</span><span class="grp">Prediction</span><span class="pg">Masked</span><span class="grp">Contrastive</span><span class="pg">Contrastive</span><span class="n">the notebook's three headings, its four models</span></div>
+  <div class="rail"><span class="w">B</span><span class="pg">Reconstruct</span><span class="pg">Mask</span><span class="pg">Contrast</span><span class="n">three pages; Sparse a Model choice on Reconstruct (Autoencoder &middot; Sparse)</span></div>
+  <div class="rail"><span class="w">C</span><span class="pg">Autoencoder</span><span class="pg">Masked</span><span class="pg">Contrastive</span><span class="n">A without Sparse</span></div>
+  <p class="note">The rails share two controls: <b>Digit</b> 0&ndash;9 (one test image each; a click on a map point picks
+    that point's image) and, if &sect;5 B is picked, <b>Weights</b> Untrained &middot; Trained.</p>
+
+  <h2>3 &middot; The four pages, at 550 px</h2>
+  <p class="note">Top: what the model sees, what it must output and the loss, for one digit (here a 3), before and after
+    training. Bottom: the embedding of 2,000 test digits, untrained and trained, in the notebook's UMAP. Digits in &sect;4 A
+    colours here so the maps can be read; &sect;4 is the colour call.</p>
+  <div class="row" id="s3a"></div>
+  <div class="row" id="s3b"></div>
+  <p class="rec">Recommend the strip as drawn, each page's own signal in the notebook's nouns (input, embedding,
+    reconstruction; masked input, prediction; view 1, view 2, similarity). Claims, as measured: <i>after training, digits of
+    one kind sit together in the embedding</i> (Autoencoder, Sparse, Masked); on Contrastive, <i>after training, the two views
+    of one image are similar and different images are not</i>, the map stated as already clustered before training.</p>
+
+  <h2>4 &middot; Colouring ten digits</h2>
+  <p class="note">The tokens have eight series hues and six cluster roles; MNIST has ten digits, and the notebook colours
+    them with tab10. The trained autoencoder's map, three ways.</p>
+  <div class="row" id="s4"></div>
+  <p class="rec">Recommend <b>C</b>: the map in ink, the chosen digit in <code>--c-highlight</code>. It needs no new role, reads in both themes, and turns "are the 3s together?" into one look; changing Digit
+    lights another class. A asks for a ten-hue role (two hues beyond the series slots, and several pairs close for colour-blind
+    readers); B is legible only where the points are sparse.</p>
+
+  <h2>5 &middot; Before and after training: side by side, or one map</h2>
+  <div class="q"><b class="h">A &middot; side by side (as &sect;3)</b> Untrained and Trained maps both on the page; the
+    comparison is one glance, each map 265 px wide.</div>
+  <div class="q"><b class="h">B &middot; one map and a Weights control</b> Untrained &middot; Trained switches the map and
+    the strip together, the map at 548 px. A switch between two UMAPs moves every point at once, so it would switch, not
+    animate.</div>
+  <p class="rec">Recommend <b>A</b>: the point of every page is the difference, and B hides one side of it.</p>
+
+  <h2>6 &middot; The number under each map</h2>
+  <div id="t6"></div>
+  <p class="note"><b>5-NN</b>: share of the 10,000 test digits whose 5 nearest training digits in the embedding are mostly
+    the same digit. <b>Linear</b>: a straight-line classifier (logistic regression) fitted on 10,000 training embeddings,
+    scored on the test digits. Neither is in the notebook; both are the standard checks of an embedding.</p>
+  <div class="q"><b class="h">A &middot; both under each map</b> (drawn in &sect;3). Contrastive needs Linear: its 5-NN
+    moves 94.9% &rarr; 96.2%, its Linear 91.5% &rarr; 98.3%.</div>
+  <div class="q"><b class="h">B &middot; 5-NN only</b> one number a page, read as "neighbours share the digit"; the
+    Contrastive page then rests on its similarity matrix.</div>
+  <div class="q"><b class="h">C &middot; none</b> the maps alone, as the notebook.</div>
+  <p class="rec">Recommend <b>B</b>: 5-NN is the map's own reading (neighbours) put as a number, and the Contrastive page
+    already has its before-and-after in the similarity matrix. A adds a classifier the notebook does not introduce.</p>
+
+  <h2>7 &middot; Colours</h2>
+  <p class="note">Pixels in an ink ramp on the surface. The hidden pixels of the masked input in <code>--c-unknown</code>
+    (the role's words: not measured yet). The code's 16 bars in ink. The similarity matrix in an ink ramp, the matched pairs
+    (its diagonal) outlined in <code>--c-reference</code>, the target the loss is judged against. Digits as &sect;4.</p>
+
+  <h2>8 &middot; The calls</h2>
+  <div class="q"><b class="h">8.1 &middot; The rail</b> A <b>Reconstruction [Autoencoder &middot; Sparse] &middot;
+    Prediction [Masked] &middot; Contrastive [Contrastive]</b>, the notebook's headings and models (rec) &middot; B three pages,
+    Sparse a Model choice &middot; C without Sparse.</div>
+  <div class="q"><b class="h">8.2 &middot; The strip</b> A <b>as &sect;3: input &rarr; what the model sees &rarr; output,
+    before and after training</b> (rec) &middot; B the maps alone.</div>
+  <div class="q"><b class="h">8.3 &middot; Digit colours</b> A ten hues (a new role) &middot; B digit glyphs &middot;
+    C <b>ink, the chosen digit highlighted</b> (rec).</div>
+  <div class="q"><b class="h">8.4 &middot; Before and after</b> A <b>side by side</b> (rec) &middot; B one map and a
+    Weights control.</div>
+  <div class="q"><b class="h">8.5 &middot; The number</b> A 5-NN and Linear &middot; B <b>5-NN only</b> (rec) &middot; C none.</div>
+  <div class="q"><b class="h">8.6 &middot; Sparse's own picture</b> A <b>its 16 code bars with the zeros counted</b>, as
+    the strip draws (rec) &middot; B the notebook's activation histogram over all test digits.</div>
+  <div class="q"><b class="h">8.7 &middot; Title</b> A <b>"Representation Learning"</b>, the notebook's (rec) &middot; B
+    "Learning an Embedding".</div>
+  <p class="note">Left to the draft as conventional: the maps and images computed ahead into <code>data.js</code> from
+    these checkpoints (retrained with 10-1b's own classes), as 65 and 85; a click on a map point through core's region
+    door; the models trained offline, nothing trained in the browser.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const D = await (await fetch("representation-mock-data.json")).json();
+const DIGIT = 3;                                  // the pick drawn in the strips
+const k = D.labels.indexOf(DIGIT);
+const HUE10 = [...T.series, getComputedStyle(document.documentElement).getPropertyValue("--mock-digit-9").trim(),
+  getComputedStyle(document.documentElement).getPropertyValue("--mock-digit-10").trim()];
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, alpha = 1) { ctx.save(); ctx.globalAlpha = alpha; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
+function ring(ctx, x, y, r, col, w = 1.6) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+function frame(ctx, x, y, w, h, col = T.axis, lw = 1) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+function arrow(ctx, x0, y, x1) { line(ctx, x0, y, x1 - 4, y, T.ink3, 1.2); ctx.save(); ctx.fillStyle = T.ink3; ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x1 - 6, y - 4); ctx.lineTo(x1 - 6, y + 4); ctx.closePath(); ctx.fill(); ctx.restore(); }
+const pct = (x) => `${(100 * x).toFixed(1)}%`;
+
+/* a 28x28 image in an ink ramp; `hidden` paints those pixels in --c-unknown */
+function image(ctx, px, x, y, s, { hidden = null } = {}) {
+  const c = s / 28;
+  ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, s, s);
+  for (let i = 0; i < 784; i++) {
+    const r = Math.floor(i / 28), q = i % 28;
+    if (hidden && hidden[i] > 0) { ctx.globalAlpha = 0.55; ctx.fillStyle = T.unknown; ctx.fillRect(x + q * c, y + r * c, c + 0.1, c + 0.1); continue; }
+    const v = px[i] / 255; if (v < 0.02) continue;
+    ctx.globalAlpha = v; ctx.fillStyle = T.ink1; ctx.fillRect(x + q * c, y + r * c, c + 0.1, c + 0.1);
+  }
+  ctx.restore(); frame(ctx, x, y, s, s, T.grid);
+}
+function codeBars(ctx, z, x, y, w, h) {
+  const n = z.length, bw = w / n, m = Math.max(1e-6, ...z.map(Math.abs)), mid = y + h / 2;
+  frame(ctx, x, y, w, h, T.grid); line(ctx, x, mid, x + w, mid, T.grid);
+  z.forEach((v, i) => { const bh = (v / m) * (h / 2 - 3); ctx.fillStyle = T.ink2; ctx.fillRect(x + i * bw + 1, bh >= 0 ? mid - bh : mid, bw - 2, Math.max(1, Math.abs(bh))); });
+}
+function simMatrix(ctx, S, x, y, s) {
+  const n = S.length, c = s / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, S[i][j])); ctx.fillStyle = T.ink1; ctx.fillRect(x + j * c, y + i * c, c, c); ctx.restore();
+  }
+  for (let i = 0; i < n; i++) frame(ctx, x + i * c, y + i * c, c, c, T.reference, 1.4);
+  frame(ctx, x, y, s, s, T.grid);
+}
+
+/* a map: points coloured by mode; returns nothing */
+function map(ctx, key, x, y, s, { mode = "hue", digit = DIGIT, title = "", num = "" } = {}) {
+  const M = D.maps[key], P = M.xy, L = D.map_labels;
+  const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const sp = Math.max(x1 - x0, y1 - y0) * 1.06, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const to = (p) => [x + s / 2 + ((p[0] - cx) / sp) * s, y + s / 2 - ((p[1] - cy) / sp) * s];
+  frame(ctx, x, y, s, s, T.grid);
+  const order = mode === "one" ? P.map((_, i) => i).sort((a, b) => (L[a] === digit) - (L[b] === digit)) : P.map((_, i) => i);
+  for (const i of order) {
+    const [px, py] = to(P[i]);
+    if (mode === "hue") dot(ctx, px, py, 1.5, HUE10[L[i]], 0.8);
+    else if (mode === "one") dot(ctx, px, py, L[i] === digit ? 1.9 : 1.4, L[i] === digit ? T.highlight : T.ink3, L[i] === digit ? 0.95 : 0.35);
+    else if (mode === "glyph" && i % 3 === 0) label(ctx, String(L[i]), px, py + 3, { size: 8, colour: T.ink1, align: "center" });
+  }
+  if (title) label(ctx, title, x + 4, y - 6, { weight: "600", colour: T.ink1 });
+  if (num) label(ctx, num, x + s - 4, y + s + 14, { size: 10, colour: T.ink2, align: "right" });
+}
+/* the measured row for a model's embedding, untrained or trained */
+const row = (model, emb, trained) => D.metrics.find((r) => r.model === model && r.embedding.startsWith(emb) && r.embedding.includes("untrained") !== trained);
+
+/* ------------------------------------------------ §0 table */
+{
+  const rows = [["raw pixels", "none", "raw"], ["Autoencoder", "ae", "z_vec"], ["Sparse", "sparse_ae", "z_vec"], ["Masked (10-1b)", "masked_bottleneck", "z_vec"], ["Contrastive", "simclr", "z (embed_fc)"]];
+  const umapKey = { ae: "ae", sparse_ae: "sparse_ae", masked_bottleneck: "masked_bottleneck", simclr: "simclr" };
+  let h = `<table><tr><th>embedding</th><th>size</th><th>5-NN untrained &rarr; trained</th><th>linear untrained &rarr; trained</th><th>UMAP silhouette untrained &rarr; trained</th></tr>`;
+  for (const [name, m, e] of rows) {
+    if (m === "none") { const r = D.metrics[0]; h += `<tr><td>${name}</td><td class="num">${r.dim}</td><td class="num">${pct(r.knn5)}</td><td class="num">${pct(r.linear)}</td><td class="num">${D.maps["raw pixels"].silhouette.toFixed(2)}</td></tr>`; continue; }
+    const u = row(m, e, false), t = row(m, e, true);
+    const su = D.maps[`${umapKey[m]} untrained`].silhouette, st = D.maps[`${umapKey[m]} trained`].silhouette;
+    h += `<tr><td>${name}</td><td class="num">${t.dim}</td><td class="num">${pct(u.knn5)} &rarr; ${pct(t.knn5)}</td><td class="num">${pct(u.linear)} &rarr; ${pct(t.linear)}</td><td class="num">${su.toFixed(2)} &rarr; ${st.toFixed(2)}</td></tr>`;
+  }
+  document.getElementById("t0").innerHTML = h + "</table>";
+  document.getElementById("t6").innerHTML = h + "</table>";
+}
+
+/* ------------------------------------------------ §3 the four pages */
+const S = 44;                                       // image size in the strip
+function knnLine(model, emb, which) { const r = row(model, emb, which === "trained"); return `5-NN ${pct(r.knn5)} · linear ${pct(r.linear)}`; }
+function maps(ctx, key, model, emb, y) {
+  const s = 262;
+  map(ctx, `${key} untrained`, 8, y, s, { title: "Untrained", num: knnLine(model, emb, "untrained") });
+  map(ctx, `${key} trained`, 8 + s + 10, y, s, { title: "Trained (10 epochs)", num: knnLine(model, emb, "trained") });
+}
+function rowLabel(ctx, s, y) { label(ctx, s, 8, y + S / 2 + 4, { size: 10, colour: T.ink3 }); }
+
+function aePage(rowId, name, key, extra) {
+  const box = cand(rowId, name, extra);
+  const ctx = canvasIn(box, W, 470);
+  const y1 = 26, y2 = y1 + S + 16;
+  label(ctx, "input", 76 + S / 2, 16, { size: 10, align: "center" });
+  label(ctx, "embedding (16 numbers)", 200 + 70, 16, { size: 10, align: "center" });
+  label(ctx, "reconstruction", 400 + S / 2, 16, { size: 10, align: "center" });
+  for (const [w, y] of [["untrained", y1], ["trained", y2]]) {
+    rowLabel(ctx, w, y);
+    image(ctx, D.x[k], 76, y, S); arrow(ctx, 76 + S + 6, y + S / 2, 196);
+    const z = D[key][w].z[k]; codeBars(ctx, z, 200, y + 4, 140, S - 8);
+    arrow(ctx, 346, y + S / 2, 394); image(ctx, D[key][w].xhat[k], 400, y, S);
+    const mse = D[key][w].xhat[k].reduce((a, v, i) => a + ((v - D.x[k][i]) / 255) ** 2, 0) / 784;
+    const zeros = z.filter((v) => Math.abs(v) < 1e-6).length;
+    label(ctx, `MSE ${mse.toFixed(3)}`, 452, y + S / 2 - 2, { size: 10, colour: T.ink1 });
+    if (key === "sparse_ae") label(ctx, `${zeros} of 16 at 0`, 452, y + S / 2 + 12, { size: 10, colour: T.ink2 });
+  }
+  maps(ctx, key, key, "z_vec", y2 + S + 34);
+}
+aePage("s3a", "Autoencoder", "ae", "Digit 3 (the first 3 in the test set) · encoder → 16 numbers → decoder; loss = MSE(reconstruction, input)\nmaps: the 16-number embedding of 2,000 test digits");
+aePage("s3a", "Sparse", "sparse_ae", "Digit 3 · the same, with a ReLU on the embedding and an L1 penalty\nthe bars show which of the 16 numbers are exactly 0");
+
+{ // Masked
+  const box = cand("s3b", "Masked", "Digit 3 · half the pixels hidden (grey-blue); loss = MSE on the hidden pixels only\nmaps: the 64-number embedding (10-1b's fixed model)");
+  const ctx = canvasIn(box, W, 470);
+  const y1 = 26, y2 = y1 + S + 16, M = D.masked;
+  [["input", 76], ["what the model sees", 200], ["prediction", 330]].forEach(([s, x]) => label(ctx, s, x + S / 2, 16, { size: 10, align: "center" }));
+  for (const [w, y] of [["untrained", y1], ["trained", y2]]) {
+    rowLabel(ctx, w, y);
+    image(ctx, D.x[k], 76, y, S); arrow(ctx, 76 + S + 6, y + S / 2, 194);
+    image(ctx, M.x_masked[k], 200, y, S, { hidden: M.mask[k] }); arrow(ctx, 200 + S + 6, y + S / 2, 324);
+    image(ctx, M[w].xhat[k], 330, y, S);
+    const hid = M.mask[k].map((v) => v > 0), n = hid.filter(Boolean).length;
+    const mse = M[w].xhat[k].reduce((a, v, i) => a + (hid[i] ? ((v - D.x[k][i]) / 255) ** 2 : 0), 0) / n;
+    label(ctx, `MSE on hidden ${mse.toFixed(3)}`, 386, y + S / 2 + 4, { size: 10, colour: T.ink1 });
+  }
+  maps(ctx, "masked_bottleneck", "masked_bottleneck", "z_vec", y2 + S + 34);
+}
+{ // Contrastive
+  const box = cand("s3b", "Contrastive", "Digit 3 · two augmented views → projections; similarity of every view 1 to every view 2\nthe matched pairs (diagonal) outlined; maps: the 128-number embedding");
+  const ctx = canvasIn(box, W, 470), C = D.simclr;
+  const y = 26;
+  label(ctx, "input", 30 + S / 2, 16, { size: 10, align: "center" });
+  label(ctx, "view 1", 110 + S / 2, 16, { size: 10, align: "center" }); label(ctx, "view 2", 110 + S / 2, 16 + S + 26, { size: 10, align: "center" });
+  image(ctx, D.x[k], 30, y, S); arrow(ctx, 30 + S + 4, y + S / 2, 104);
+  image(ctx, C.v1[k], 110, y, S); image(ctx, C.v2[k], 110, y + S + 30, S);
+  const ms = 96;
+  for (const [w, x0] of [["untrained", 200], ["trained", 200 + ms + 60]]) {
+    label(ctx, w, x0 + ms / 2, 16, { size: 10, align: "center" });
+    simMatrix(ctx, C.sim[w], x0, y, ms);
+    const Sm = C.sim[w], dg = Sm.map((r, i) => r[i]), off = Sm.flatMap((r, i) => r.filter((_, j) => j !== i));
+    const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+    label(ctx, `matched ${mean(dg).toFixed(2)} · others ${mean(off).toFixed(2)}`, x0 + ms / 2, y + ms + 14, { size: 10, colour: T.ink1, align: "center" });
+  }
+  label(ctx, "rows: view 1 of digits 0–9 · columns: view 2", 200, y + ms + 30, { size: 9, colour: T.ink3 });
+  maps(ctx, "simclr", "simclr", "z (embed_fc)", 180);
+}
+
+/* ------------------------------------------------ §4 colours */
+for (const [mode, t, sub] of [["hue", "A · ten hues", "eight series hues and two more (a new role)\ndigits 0–9 in order"],
+  ["glyph", "B · the digit as its mark", "every third point drawn as its digit, in ink"],
+  ["one", "C · ink, the chosen digit highlighted", "Digit 3 in --c-highlight, every other point ink at 35%"]]) {
+  const box = cand("s4", t, sub, 360);
+  const ctx = canvasIn(box, 360, 360);
+  map(ctx, "ae trained", 8, 8, 344, { mode });
+}
+</script>
+</body>
+</html>

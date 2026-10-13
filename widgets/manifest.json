@@ -1468,6 +1468,23 @@
       ],
       "arc": 100,
       "status": "shipped"
+    },
+    {
+      "slug": "representation",
+      "title": "Deep Learning - Frontiers: Representation Learning",
+      "blurb": "Embeddings learned without labels, by reconstruction, masked prediction or contrast, before and after training.",
+      "course": "PHM5005",
+      "topics": [
+        "representation learning",
+        "autoencoder",
+        "sparse autoencoder",
+        "masked prediction",
+        "contrastive learning",
+        "embedding",
+        "UMAP"
+      ],
+      "arc": 104,
+      "status": "draft"
     }
   ]
 }
