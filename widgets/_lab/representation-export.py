@@ -11,8 +11,11 @@ batches; epochs 1, 2, 5, 10), the last of which equals the saved model.
 
 Everything the widget draws is computed here, nothing in the browser:
   LABELS   the digits of the 2,000 test images drawn on every map
-  MAPS     per page, untrained and trained: the notebook's UMAP of those 2,000,
-           x and y scaled together into 0..65535 (Uint16, base64)
+  MAPS     per page, one map a checkpoint (representation-umap-steps.py: the
+           notebook's UMAP of those 2,000, laid out independently at each
+           checkpoint); the first is untrained, the last trained. x and y of
+           each frame scaled together into 0..255 (Uint8, base64, one string
+           a page: frame, then digit, then x, y)
   KNN      per page, untrained and trained: 5-NN accuracy of the full embedding
            (10,000 test digits against 10,000 training digits, cosine)
   PICKS    the first test image of each digit 0..9, and Masked's hidden pixels
@@ -47,7 +50,8 @@ u8 = lambda x: np.clip(np.round(x.squeeze().numpy() * 255), 0, 255).astype(np.ui
 
 meas = json.load(open(os.path.join(HERE, "representation-measure.json")))["rows"]
 umap_ = json.load(open(os.path.join(HERE, "representation-umap.json")))
-maps = {m["embedding"]: np.array(m["xy"]) for m in umap_["maps"]}
+steps_maps = json.load(open(os.path.join(HERE, "representation-umap-steps.json")))
+assert steps_maps["labels"] == umap_["keep_labels"]
 yte = Yte.numpy()
 picks = [int(np.where(yte == d)[0][0]) for d in range(10)]
 X = Xte[picks]
@@ -57,12 +61,11 @@ out = {"LABELS": "".join(str(d) for d in umap_["keep_labels"]), "MAPS": {}, "KNN
 
 for page, (name, make, emb) in PAGES.items():
     M = pair(make, name)
-    out["MAPS"][page] = {}
-    for w in ("untrained", "trained"):
-        P = maps[f"{name} {w}"]
-        c = (P.max(0) + P.min(0)) / 2; span = (P.max(0) - P.min(0)).max()
-        q = np.round(((P - c) / span + 0.5) * 65535).astype(np.uint16)
-        out["MAPS"][page][w] = b64(q.flatten())
+    frames = []
+    for P in steps_maps[name]["frames"]:
+        P = np.array(P); c = (P.max(0) + P.min(0)) / 2; span = (P.max(0) - P.min(0)).max()
+        frames.append(np.round(((P - c) / span + 0.5) * 255).astype(np.uint8))
+    out["MAPS"][page] = b64(np.stack(frames).flatten())
     out["KNN"][page] = {w: next(r["knn5"] for r in meas if r["model"] == name and r["embedding"].startswith(emb)
                                 and ("untrained" in r["embedding"]) == (w == "untrained")) for w in ("untrained", "trained")}
     pk, ts = {}, {}

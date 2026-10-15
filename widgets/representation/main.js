@@ -27,6 +27,13 @@
        for every digit (dead from the first 5 batches; the same with λ = 0),
        the other 7 active on 98% of digits, so its zeros are dead units, not
        a sparse code. No simple setting tried gave one.
+     - REVISED again 2026-10-15 (`_lab/representation-round3-mock.html`, all
+       three calls the recommendation): Masked's third box is the masked input
+       FILLED IN (the given pixels kept, the hidden ones from the prediction,
+       as the loss scores them); a hover over Contrastive's matrix shows the
+       pair's two views and their similarity, a click on a row picks its digit;
+       during Train the right-hand map switches through each checkpoint's own
+       UMAP (a PCA showed no grouping at any checkpoint: silhouette near 0).
      - Contrastive in three presses: Augment (the two views overlaid, with
        their shift, angle and scale), Compare (the view-similarity matrix,
        its axes the view images), Train (the checkpoints through the matrix
@@ -46,7 +53,6 @@ const PAGES = [
   { value: "masked", label: "Masked", group: "Prediction" },
   { value: "contrastive", label: "Contrastive", group: "Contrastive" },
 ];
-const WHO = ["untrained", "trained"];
 const STEPS = CHECK.steps, PER_EPOCH = CHECK.per_epoch, NCK = STEPS.length;
 /* the press that trains: Contrastive has Augment and Compare before it */
 const TRAIN_AT = { autoencoder: 1, masked: 1, contrastive: 3 };
@@ -56,13 +62,12 @@ const TRAIN_MS = 4500;
 
 const b64bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const LAB = Array.from(LABELS, Number);
-/* the maps: x and y were scaled together into 0..65535 (aspect kept) */
-const XY = Object.fromEntries(Object.entries(MAPS).map(([page, m]) => [page, Object.fromEntries(WHO.map((w) => {
-  const b = b64bytes(m[w]), u = new Uint16Array(b.buffer, b.byteOffset, b.byteLength / 2);
-  const out = new Float32Array(u.length);
-  for (let i = 0; i < u.length; i++) out[i] = u[i] / 65535;
-  return [w, out];
-}))]));
+/* the maps: one UMAP a checkpoint, each frame's x and y scaled together into 0..255 (aspect kept);
+   frame 0 is the untrained map, the last the trained one */
+const XY = Object.fromEntries(Object.entries(MAPS).map(([page, m]) => {
+  const b = b64bytes(m), per = 2 * N_MAP;
+  return [page, Array.from({ length: b.length / per }, (_, k) => Float32Array.from(b.subarray(k * per, (k + 1) * per), (v) => v / 255))];
+}));
 const tenImages = (s) => { const b = b64bytes(s); return Array.from({ length: 10 }, (_, d) => b.subarray(784 * d, 784 * (d + 1))); };
 const unpack = (s) => { const bits = b64bytes(s), out = new Uint8Array(784); for (let i = 0; i < 784; i++) out[i] = (bits[i >> 3] >> (7 - (i & 7))) & 1; return out; };
 const IMG = {
@@ -94,7 +99,7 @@ const S = {
   digitLabel: "Digit",
   digitDetail: "the test image drawn in the strip, and the digit highlighted on the maps; a click on a map point picks its digit",
 
-  heads: { autoencoder: ["input", "embedding (16 numbers)", "reconstruction"], masked: ["input", "masked input", "prediction"] },
+  heads: { autoencoder: ["input", "embedding (16 numbers)", "reconstruction"], masked: ["input", "masked input", "filled in"] },
   untrained: "untrained",
   mse: (v) => `MSE ${f3(v)}`,
   mseHidden: (v) => `MSE on hidden ${f3(v)}`,
@@ -113,25 +118,30 @@ const S = {
 
   mapTitle: { untrained: "Untrained", trained: "Trained (10 epochs)" },
   mapWait: "Train shows this map",
+  mapNow: (k) => `${ckName(k)[0].toUpperCase()}${ckName(k).slice(1)} (this checkpoint's own map)`,
   mapNum: (v) => `5-NN ${pct(v)}`,
   hover: (d) => `digit ${d}`,
+  rowPick: (i) => `digit ${i}'s row`,
+  pairSame: "matching views",
+  pairOther: "different images",
+  pairSim: (v) => `similarity ${f2(v)}`,
 
   cap: {
     autoencoder: {
       before: () => `At its random starting weights the network maps each image to 16 numbers and rebuilds the image from them. The reconstruction is a grey blur, and on the map digits of one kind are spread out. Train reduces the reconstruction error for 10 epochs, with no labels, and shows ten checkpoints along the way.`,
-      play: (k) => `Training, ${ckName(k)}: the reconstruction sharpens as the loss falls; most of the fall is in the first epoch.`,
+      play: (k) => `Training, ${ckName(k)}: the reconstruction sharpens as the loss falls; most of the fall is in the first epoch. The right-hand map is this checkpoint's own UMAP, so its clusters change place from frame to frame; what to read is how gathered each digit is.`,
       after: () => `After training the reconstruction keeps the digit's shape (test MSE ${f3(TEST.autoencoder.untrained.mse)} → ${f3(TEST.autoencoder.trained.mse)}), and digits of one kind sit together on the map. The digits are used only to highlight the map; training did not use them.`,
     },
     masked: {
-      before: () => `Half the pixels are hidden at random (grey) and the network predicts the image from the visible half; the loss counts only the hidden pixels. The decoder works from a 64-number embedding. At random weights the prediction is a grey blur.`,
-      play: (k) => `Training, ${ckName(k)}: the prediction fills in the hidden pixels as the loss falls.`,
-      after: () => `After training the prediction fills in the hidden pixels (MSE on hidden pixels ${f3(TEST.masked.untrained.mse)} → ${f3(TEST.masked.trained.mse)} over the test digits), and digits of one kind sit together on the map.`,
+      before: () => `Half the pixels are hidden at random (grey) and the network predicts them from the visible half. The third box is the masked input filled in: the given pixels in light ink, the hidden ones at the network's prediction, which is all the loss scores. The decoder works from a 64-number embedding. At random weights the filled-in pixels are noise.`,
+      play: (k) => `Training, ${ckName(k)}: the hidden pixels fill in as the loss falls. The right-hand map is this checkpoint's own UMAP, so its clusters change place from frame to frame; the untrained embedding is already partly sorted, and the first batches scramble it before training sorts it further.`,
+      after: () => `After training the hidden pixels are filled in close to the original (MSE on hidden pixels ${f3(TEST.masked.untrained.mse)} → ${f3(TEST.masked.trained.mse)} over the test digits), and digits of one kind sit together on the map.`,
     },
     contrastive: {
       0: () => `Contrastive learning trains on pairs: two random views of one image should have similar projections, views of different images dissimilar ones. Augment draws the two views of each of ten digits.`,
       1: () => `Each view is the image randomly shifted (a crop of the image padded by 4 pixels, then up to 2.8 pixels more), rotated up to 15° and scaled up to 10%: blue is view 1, amber view 2. Compare passes both through the encoder and projection head and scores every pair.`,
-      2: () => `The matrix holds the similarity of every view 1 (rows) with every view 2 (columns). At random weights every pair is near 1: every image lands in nearly the same direction, so the matching view's share of the row is about 1 in 10 and the loss is high. Train shows ten checkpoints.`,
-      play: (k) => `Training, ${ckName(k)}: the similarities of different images fall while the matching views stay similar, and the matching view's share of each row grows.`,
+      2: () => `The matrix holds the similarity of every view 1 (rows) with every view 2 (columns); a hover over a cell shows its two views. At random weights every pair is near 1: every image lands in nearly the same direction, so the matching view's share of the row is about 1 in 10 and the loss is high. Train shows ten checkpoints.`,
+      play: (k) => `Training, ${ckName(k)}: the similarities of different images fall while the matching views stay similar, and the matching view's share of each row grows. The right-hand map is this checkpoint's own UMAP: the untrained embedding is already sorted, the first batches scramble it, and training then sorts it further.`,
       3: () => `After training the two views of one image have similarity ${f2(TEST.contrastive.trained.matched)} and different images ${f2(TEST.contrastive.trained.others)} (test digits, batches of 128). The embedding before the projection head was already sorted at random weights, so the map changes less.`,
     },
   },
@@ -276,6 +286,22 @@ function imageCanvas(key, px, ink, hiddenCol = null, hidden = null) {
   imgCache.set(id, c);
   return c;
 }
+/* the masked input filled in: the given pixels light, the hidden ones at the prediction's value */
+function filledCanvas(key, given, out, hidden, inkGiven, inkFill) {
+  const id = `${key}|${inkGiven}|${inkFill}`;
+  if (imgCache.has(id)) return imgCache.get(id);
+  const c = document.createElement("canvas"); c.width = c.height = 28;
+  const g = c.getContext("2d"), im = g.createImageData(28, 28), a = rgbOf(inkGiven), f = rgbOf(inkFill);
+  for (let i = 0; i < 784; i++) { const o = 4 * i, col = hidden[i] ? f : a; im.data[o] = col[0]; im.data[o + 1] = col[1]; im.data[o + 2] = col[2]; im.data[o + 3] = hidden[i] ? out[i] : given[i]; }
+  g.putImageData(im, 0, 0);
+  imgCache.set(id, c);
+  return c;
+}
+function drawFilled(ctx, colors, key, given, out, hidden, x, y, s) {
+  ctx.save(); ctx.fillStyle = colors.surface; ctx.fillRect(x, y, s, s); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(filledCanvas(key, given, out, hidden, colors.ink3, colors.ink1), x, y, s, s); ctx.restore();
+  frame(ctx, x, y, s, s, colors.grid);
+}
 function drawImage(ctx, colors, key, px, x, y, s, { hidden = null, ink = null, ground = true, edge = true, alpha = 1 } = {}) {
   ctx.save();
   if (ground) { ctx.fillStyle = colors.surface; ctx.fillRect(x, y, s, s); }
@@ -321,8 +347,8 @@ function layoutOf(w, page) {
 }
 
 /* the map's points in canvas pixels */
-function mapPx(P, page, which) {
-  const xy = XY[page][which], m = 6, s = P.s - 2 * m, out = new Float32Array(xy.length);
+function mapPx(P, page, frame) {
+  const xy = XY[page][frame], m = 6, s = P.s - 2 * m, out = new Float32Array(xy.length);
   for (let i = 0; i < N_MAP; i++) { out[2 * i] = P.x + m + xy[2 * i] * s; out[2 * i + 1] = P.y + m + (1 - xy[2 * i + 1]) * s; }
   return out;
 }
@@ -360,7 +386,8 @@ function drawStrip(ctx, colors, w, L, page, d, k) {
       continue;
     }
     const out = IMG[page][ck][d];
-    drawImage(ctx, colors, `${page}${ck}-${d}`, out, xr, y, S0);
+    if (page === "masked") drawFilled(ctx, colors, `f${ck}-${d}`, IMG.x[d], out, IMG.hidden[d], xr, y, S0);
+    else drawImage(ctx, colors, `${page}${ck}-${d}`, out, xr, y, S0);
     const v = page === "masked" ? S.mseHidden(mseOf(out, IMG.x[d], IMG.hidden[d])) : S.mse(mseOf(out, IMG.x[d]));
     txt(ctx, colors, v, xr + S0 + 10, y + S0 / 2 + 4, { size: colors.fsXs, fill: colors.ink1 });
   }
@@ -400,7 +427,22 @@ function softBars(ctx, colors, Sm, C, d) {
   txt(ctx, colors, S.rowL(-Math.log(pr[d])), bx, y + h + 40, { size: colors.fsXs, fill: colors.ink1 });
 }
 
-function drawContrast(ctx, colors, w, L, d, n, k) {
+/** the cell under the pointer: view 1 of its row's digit and view 2 of its column's, and their similarity */
+function pairCard(ctx, colors, w, C, Sm, pointer) {
+  if (!pointer) return;
+  const j = Math.floor((pointer.x - C.mx) / C.c), i = Math.floor((pointer.y - C.my) / C.c);
+  if (i < 0 || i > 9 || j < 0 || j > 9) return;
+  frame(ctx, C.mx + j * C.c - 1, C.my + i * C.c - 1, C.c + 2, C.c + 2, colors.ink1, 2);
+  const cw = 124, ch = 96, s = 48;
+  const x = clamp(pointer.x + 14, 4, w - cw - 4), y = clamp(pointer.y + 14, 4, C.my + C.ms + 40 - ch);
+  ctx.save(); ctx.fillStyle = colors.surface; ctx.fillRect(x, y, cw, ch); ctx.strokeStyle = colors.ink3; ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, ch - 1); ctx.restore();
+  drawImage(ctx, colors, `c1-${i}`, IMG.v1[i], x + 8, y + 8, s, { ink: colors.groupA });
+  drawImage(ctx, colors, `c2-${j}`, IMG.v2[j], x + 16 + s, y + 8, s, { ink: colors.groupB });
+  txt(ctx, colors, i === j ? S.pairSame : S.pairOther, x + 8, y + s + 22, { size: colors.fsXs, fill: colors.ink2 });
+  txt(ctx, colors, S.pairSim(Sm[i][j]), x + 8, y + s + 37, { size: colors.fsXs, fill: colors.ink1, weight: "600" });
+}
+
+function drawContrast(ctx, colors, w, L, d, n, k, pointer) {
   const C = L.C, top = L.top;
   /* 1 Augment */
   txt(ctx, colors, S.cStep[0], C.colA, top + 2, { size: colors.fsXs, fill: n >= 1 ? colors.ink1 : colors.ink3, weight: "600" });
@@ -426,6 +468,7 @@ function drawContrast(ctx, colors, w, L, d, n, k) {
     txt(ctx, colors, S.rowHead(d), C.bx, C.my - 2, { size: colors.fsXs, fill: colors.ink2 });
     softBars(ctx, colors, Sm, C, d);
     txt(ctx, colors, k >= 0 ? ckName(k) : S.untrained, C.mx, C.my + C.ms + 14, { size: colors.fsXs, fill: colors.ink2 });
+    pairCard(ctx, colors, w, C, Sm, pointer);
   } else {
     emptyBox(ctx, colors, C.mx, C.my, C.ms, C.ms);
     txt(ctx, colors, S.cWait[1], C.mx + C.ms / 2, C.my + C.ms / 2, { size: colors.fsXs, fill: colors.ink3, align: "center" });
@@ -458,22 +501,24 @@ function drawCurve(ctx, colors, R, page, k) {
   }
 }
 
-function drawMap(ctx, colors, P, page, which, digit, on, pointer) {
-  txt(ctx, colors, S.mapTitle[which], P.x, P.y - 7, { size: colors.fsXs, fill: on ? colors.ink1 : colors.ink3, weight: "600" });
+/** a map: `frame_` the checkpoint drawn (null: not yet), `title` above it, `num` the 5-NN under it (null: none) */
+function drawMap(ctx, colors, P, page, frame_, title, num, digit, pointer) {
+  const on = frame_ != null;
+  txt(ctx, colors, title, P.x, P.y - 7, { size: colors.fsXs, fill: on ? colors.ink1 : colors.ink3, weight: "600" });
   if (!on) {
     emptyBox(ctx, colors, P.x, P.y, P.s, P.s);
     txt(ctx, colors, S.mapWait, P.x + P.s / 2, P.y + P.s / 2, { size: colors.fsXs, fill: colors.ink3, align: "center" });
     return null;
   }
   frame(ctx, P.x, P.y, P.s, P.s, colors.grid);
-  const px = mapPx(P, page, which);
+  const px = mapPx(P, page, frame_);
   ctx.save(); ctx.globalAlpha = 0.4; ctx.fillStyle = colors.ink3;
   for (let i = 0; i < N_MAP; i++) if (LAB[i] !== digit) { ctx.beginPath(); ctx.arc(px[2 * i], px[2 * i + 1], 1.4, 0, Math.PI * 2); ctx.fill(); }
   ctx.restore();
   ctx.save(); ctx.fillStyle = colors.highlight;
   for (let i = 0; i < N_MAP; i++) if (LAB[i] === digit) { ctx.beginPath(); ctx.arc(px[2 * i], px[2 * i + 1], 2, 0, Math.PI * 2); ctx.fill(); }
   ctx.restore();
-  txt(ctx, colors, S.mapNum(KNN[page][which]), P.x + P.s, P.y + P.s + 15, { size: colors.fsXs, fill: colors.ink1, align: "right" });
+  if (num != null) txt(ctx, colors, S.mapNum(num), P.x + P.s, P.y + P.s + 15, { size: colors.fsXs, fill: colors.ink1, align: "right" });
   return nearest(px, pointer, P);
 }
 function nearest(px, pointer, P) {
@@ -521,9 +566,13 @@ defineWidget({
   /* a click on a map point picks its digit */
   regions: ({ w, params, anim }) => {
     const L = layoutOf(w, params.page), out = [];
-    for (const [P, which] of [[L.A, "untrained"], [L.B, "trained"]]) {
-      if (which === "trained" && !trainedOn(anim, params.page)) continue;
-      const px = mapPx(P, params.page, which);
+    if (params.page === "contrastive" && pressesOf(anim, "contrastive") >= 2) {
+      const C = L.C;
+      for (let i = 0; i < 10; i++) out.push({ x: C.mx, y: C.my + i * C.c, w: C.ms, h: C.c, set: { digit: i }, label: S.rowPick(i) });
+    }
+    for (const [P, frame_] of [[L.A, 0], [L.B, NCK - 1]]) {
+      if (frame_ === NCK - 1 && !trainedOn(anim, params.page)) continue;
+      const px = mapPx(P, params.page, frame_);
       for (let i = 0; i < N_MAP; i++) out.push({ x: px[2 * i] - 3, y: px[2 * i + 1] - 3, w: 6, h: 6, set: { digit: LAB[i] }, label: S.hover(LAB[i]) });
     }
     return out;
@@ -569,12 +618,15 @@ defineWidget({
   draw({ ctx, colors, w, params, anim, pointer }) {
     const page = params.page, d = Number(params.digit), k = ckOf(anim, page), L = layoutOf(w, page);
     renderFormula(page);
-    if (page === "contrastive") drawContrast(ctx, colors, w, L, d, pressesOf(anim, page), k);
+    if (page === "contrastive") drawContrast(ctx, colors, w, L, d, pressesOf(anim, page), k, pointer);
     else drawStrip(ctx, colors, w, L, page, d, k);
     drawCurve(ctx, colors, L.curve, page, k);
     const done = trainedOn(anim, page);
-    const hitA = drawMap(ctx, colors, L.A, page, "untrained", d, true, pointer);
-    const hitB = drawMap(ctx, colors, L.B, page, "trained", d, done, pointer);
+    /* the right-hand map: during Train, each checkpoint's own UMAP; after it, the trained map */
+    const hitA = drawMap(ctx, colors, L.A, page, 0, S.mapTitle.untrained, KNN[page].untrained, d, pointer);
+    const hitB = done ? drawMap(ctx, colors, L.B, page, NCK - 1, S.mapTitle.trained, KNN[page].trained, d, pointer)
+      : k >= 1 ? drawMap(ctx, colors, L.B, page, k, S.mapNow(k), null, d, pointer)
+      : drawMap(ctx, colors, L.B, page, null, S.mapTitle.trained, null, d, pointer);
     wrapText(ctx, colors, captionOf(page, anim), PAD, L.capTop, w - 2 * PAD, 16, { size: colors.fsSm, fill: colors.ink1 });
     const hit = hitA ?? hitB;
     if (hit != null) hoverLabel(ctx, colors, S.hover(LAB[hit]), pointer.x, pointer.y, w);

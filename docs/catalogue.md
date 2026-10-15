@@ -25326,6 +25326,26 @@ and `_lab/representation-round2-mock.html` drew them. Picked:
 The rail: Reconstruction [Autoencoder] · Prediction [Masked] · Contrastive
 [Contrastive].
 
+### 104 ROUND 3, 2026-10-15: his three points, all three calls the recommendation
+
+`_lab/representation-round3-mock.html`. (1) **Masked filled in**: he read
+masked prediction right; the strip drew the network's whole output, so the
+given pixels looked rebuilt. The third box is now the masked input with its
+hidden pixels at the prediction's value (given pixels `--ink-3`, filled ones
+ink), which is what the loss scores. (2) **A hover card on Contrastive's
+matrix**: the cell's view 1 (row) and view 2 (column), "matching views" or
+"different images", and the similarity at the checkpoint on screen; a click on
+a row picks its digit (region door). (3) **The map during Train**: a PCA of the
+embedding, aligned between checkpoints by orthogonal Procrustes
+(`_lab/representation-pca.py`), showed no grouping at any checkpoint
+(silhouette −0.12 to +0.03 on all three models), so it was not taken. One UMAP
+per checkpoint laid out independently (`_lab/representation-umap-steps.py`, on
+the 2,000 drawn digits) does: autoencoder 0.02 → 0.45; Masked 0.33 → about 0
+at 50–100 batches → 0.45; Contrastive 0.38 → −0.09 at 20 batches → 0.47. The
+right-hand map switches through these during Train (titled by checkpoint), and
+both maps now use the 2,000-digit layouts, so the last frame is the trained
+map. `data.js` 468 KB (ten 8-bit frames a page).
+
 ---
 
 ## Two arcs, not one — now three

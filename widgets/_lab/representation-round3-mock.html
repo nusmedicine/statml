@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · representation — round 3: what masking fills in, dissimilar pairs, the map during training</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .find { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--ink-3); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 104 <code>representation</code> &middot; round 3: what masking fills in, dissimilar pairs, the map during training</h1>
+  <p class="note">Your three points on round 2. Digit 3 throughout; the masked model is 10-1b's, trained with the notebook's
+    settings; checkpoints as round 2. Blue-ruled boxes are my recommendations, grey-ruled what was measured, plain ones
+    (&sect;4) the calls.</p>
+
+  <h2>1 &middot; Masked: what the model fills in</h2>
+  <div class="find"><b>You read it right.</b> The model is given the masked input (half the pixels set to 0) and is scored
+    only on the hidden pixels. Its output is a whole image, though, and the strip drew all of it, so the visible pixels the
+    model was given appear again as if it had rebuilt them. Drawn as inpainting, the visible pixels stay as they were given and
+    only the hidden ones come from the model. (This is pixel masking, 50% of pixels at random, as cell 61 does; the hidden
+    pixels are scattered, so each one has visible neighbours, which is why the prediction is good after a few hundred batches.)</div>
+  <div class="row" id="s1"></div>
+  <p class="rec">Recommend <b>A</b>: the third box is the masked input with its hidden pixels filled in from the prediction, the
+    filled pixels in ink and the given ones in light ink, so the eye sees exactly what the model supplied. Its error is on the
+    filled pixels only, as the loss is.</p>
+
+  <h2>2 &middot; Contrastive: the dissimilar pairs, by hovering</h2>
+  <p class="note">A hover over any cell of the matrix shows its two views side by side with their similarity at the
+    checkpoint on screen; a cell off the diagonal is a dissimilar pair (views of two different images, here two different
+    digits). A click on a row picks that digit, as a click on a map point does.</p>
+  <div class="row" id="s2"></div>
+  <p class="rec">Recommend the hover card as drawn: view 1 of the row's digit, view 2 of the column's, "similarity" and the
+    value; on the diagonal it says "matching views", off it "different images".</p>
+
+  <h2>3 &middot; The embedding organising itself during Train</h2>
+  <div class="find" id="f3"></div>
+  <div class="row" id="s3p"></div>
+  <div class="row" id="s3u"></div>
+  <p class="rec">Recommend <b>B</b>: during Train the right-hand map shows the current checkpoint's UMAP (titled "after 50
+    batches" and so on), switching at each checkpoint and ending on the trained map; the left stays untrained. Each frame is
+    the notebook's own UMAP, so it can be read on its own, and nothing moves across the frame. The layouts are independent, so
+    the clusters change place from one checkpoint to the next; the reading is how gathered the digits are, not where. Two things the frames show that the page would say: on Masked and
+    Contrastive the untrained embedding is already sorted, the first batches scramble it (silhouette near 0 at 20&ndash;100 batches) and
+    training then sorts it further; and these maps are laid out from the 2,000 drawn digits, so the last frame is close to, not
+    identical to, the round-2 trained map (laid out from all 10,000): the widget would use the 2,000-digit layout for both.</p>
+
+  <h2>4 &middot; The calls</h2>
+  <div class="q"><b class="h">4.1 &middot; Masked strip</b> A <b>filled in: the given pixels kept, the hidden ones from the
+    model</b> (rec) &middot; B both, the filled-in image and the model's whole output &middot; C as round 2, the whole output.</div>
+  <div class="q"><b class="h">4.2 &middot; Contrastive hover</b> A <b>a card with the two views and their similarity; a row
+    click picks its digit</b> (rec) &middot; B the card only.</div>
+  <div class="q"><b class="h">4.3 &middot; The map during Train</b> A PCA, aligned between checkpoints &middot; B <b>the
+    right-hand map switches through each checkpoint's UMAP</b> (rec) &middot; C as round 2, the map switching at the end.</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const R2 = await (await fetch("representation-round2-data.json")).json();
+const PCA = await (await fetch("representation-pca.json")).json();
+let US = null; try { US = await (await fetch("representation-umap-steps.json")).json(); } catch (e) { US = null; }
+const DIG = 3, LAB = R2.labels;
+const CKL = ["untrained", "5 batches", "20", "50", "100", "200", "epoch 1", "epoch 2", "epoch 5", "epoch 10"];
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 10, colour = T.ink2, align = "left", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function frame(ctx, x, y, w, h, col = T.grid, lw = 1) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+const rgb = (col) => { const c = document.createElement("canvas").getContext("2d"); c.fillStyle = col; c.fillRect(0, 0, 1, 1); return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+/* per-pixel painter: f(i) returns [rgb, alpha 0..255] */
+function paint(ctx, f, x, y, s) {
+  const c = document.createElement("canvas"); c.width = c.height = 28; const g = c.getContext("2d"), im = g.createImageData(28, 28);
+  for (let i = 0; i < 784; i++) { const [col, a] = f(i); im.data.set([...col, a], 4 * i); }
+  g.putImageData(im, 0, 0); ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, s, s); ctx.imageSmoothingEnabled = false; ctx.drawImage(c, x, y, s, s); ctx.restore(); frame(ctx, x, y, s, s);
+}
+const INK = rgb(T.ink1), INK3 = rgb(T.ink3), UNK = rgb(T.unknown), GA = rgb(T.groupA), GB = rgb(T.groupB);
+function arrow(ctx, x0, y, x1) { ctx.save(); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1 - 5, y); ctx.stroke(); ctx.fillStyle = T.ink3; ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x1 - 7, y - 4); ctx.lineTo(x1 - 7, y + 4); ctx.fill(); ctx.restore(); }
+
+/* §1 masked */
+const M = R2.masked_b, X = R2.ae ? null : null;
+// the input is not in round2 data: rebuild it as visible pixels / mask; the original x is in the mock data of round 1
+const R1 = await (await fetch("representation-mock-data.json")).json();
+const x = R1.x[R1.labels.indexOf(DIG)], hid = M.mask[DIG].map((v) => v > 127);
+const mseHid = (out) => { let s = 0, n = 0; for (let i = 0; i < 784; i++) if (hid[i]) { s += ((out[i] - x[i]) / 255) ** 2; n++; } return s / n; };
+for (const [tag, title, mode] of [["A", "A · filled in (rec)", "fill"], ["B", "B · filled in, and the whole output", "both"], ["C", "C · round 2: the whole output", "whole"]]) {
+  const W = 470, box = cand("s1", title, "untrained · after 200 batches · after epoch 10", W);
+  const ctx = canvasIn(box, W, 3 * 70 + 20);
+  [0, 5, 9].forEach((k, r) => {
+    const y = 14 + r * 70, s = 56, out = M.xhat[k][DIG];
+    label(ctx, CKL[k], 8, y + 32, { colour: T.ink2 });
+    paint(ctx, (i) => (hid[i] ? [UNK, 150] : [INK, x[i]]), 90, y, s);
+    arrow(ctx, 90 + s + 6, y + s / 2, 90 + s + 40);
+    const xs = 90 + s + 46;
+    if (mode !== "whole") paint(ctx, (i) => (hid[i] ? [INK, out[i]] : [INK3, x[i]]), xs, y, s);
+    if (mode !== "fill") paint(ctx, (i) => [INK, out[i]], mode === "both" ? xs + s + 12 : xs, y, s);
+    label(ctx, `MSE on hidden ${mseHid(out).toFixed(3)}`, xs + (mode === "both" ? 2 * s + 22 : s + 10), y + 32, { colour: T.ink1 });
+    if (r === 0) { label(ctx, "masked input", 90 + s / 2, 10, { align: "center", colour: T.ink3 }); label(ctx, mode === "whole" ? "prediction" : "filled in", xs + s / 2, 10, { align: "center", colour: T.ink3 }); if (mode === "both") label(ctx, "whole output", xs + s + 12 + s / 2, 10, { align: "center", colour: T.ink3 }); }
+  });
+}
+
+/* §2 hover card */
+{
+  const V = R2.simclr.views, W = 560, box = cand("s2", "the matrix with a hover on row 3, column 8 (after epoch 10; untrained beside)", "the card follows the pointer; the hovered cell is outlined", W);
+  const ctx = canvasIn(box, W, 260);
+  for (const [k, x0, tl] of [[9, 20, "after epoch 10"], [0, 300, "untrained"]]) {
+    const S = R2.simclr.sim[k], c = 16, ms = 160, mx = x0 + c + 3, my = 30 + c + 3;
+    label(ctx, tl, x0, 14, { weight: "600", colour: T.ink1, size: 11 });
+    for (let i = 0; i < 10; i++) for (let j = 0; j < 10; j++) { ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, S[i][j])); ctx.fillStyle = T.ink1; ctx.fillRect(mx + j * c, my + i * c, c, c); ctx.restore(); }
+    for (let i = 0; i < 10; i++) { frame(ctx, mx + i * c, my + i * c, c, c, T.reference, 1.4); paint(ctx, (q) => [INK, V.v1[i][q]], mx - c - 3, my + i * c, c); paint(ctx, (q) => [INK, V.v2[i][q]], mx + i * c, my - c - 3, c); }
+    frame(ctx, mx + 8 * c, my + 3 * c, c, c, T.highlight, 2);
+    // the card
+    const cx = mx + 8 * c + 14, cy = my + 3 * c + 10, cw = 118, ch = 92;
+    ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(cx, cy, cw, ch); ctx.strokeStyle = T.ink3; ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1); ctx.restore();
+    paint(ctx, (q) => [GA, V.v1[3][q]], cx + 8, cy + 8, 46); paint(ctx, (q) => [GB, V.v2[8][q]], cx + 64, cy + 8, 46);
+    label(ctx, "different images", cx + 8, cy + 68, { colour: T.ink2 }); label(ctx, `similarity ${S[3][8].toFixed(2)}`, cx + 8, cy + 82, { colour: T.ink1, weight: "600" });
+  }
+}
+
+/* §3 the map during training */
+function scatter(ctx, P, x, y, s, digit) {
+  const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]);
+  const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2, sp = 1.08 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  frame(ctx, x, y, s, s);
+  const to = (p) => [x + s / 2 + ((p[0] - cx) / sp) * s, y + s / 2 - ((p[1] - cy) / sp) * s];
+  ctx.save(); ctx.globalAlpha = 0.4; ctx.fillStyle = T.ink3; P.forEach((p, i) => { if (LAB[i] === digit) return; const q = to(p); ctx.fillRect(q[0] - 0.7, q[1] - 0.7, 1.4, 1.4); }); ctx.restore();
+  ctx.save(); ctx.fillStyle = T.highlight; P.forEach((p, i) => { if (LAB[i] !== digit) return; const q = to(p); ctx.fillRect(q[0] - 1, q[1] - 1, 2, 2); }); ctx.restore();
+}
+const PG = [["ae", "Autoencoder"], ["masked_b", "Masked"], ["simclr", "Contrastive"]];
+document.getElementById("f3").innerHTML = `<b>PCA does not show the digits organising.</b> Silhouette by digit in the first two principal components, at each checkpoint (aligned to the previous one):
+  ${PG.map(([k, n]) => `${n.toLowerCase()} ${PCA[k].silhouette.map((v) => v.toFixed(2)).join(" &middot; ")}`).join("; ")}. Near 0 throughout: the digits overlap in any two linear directions, and the separation the notebook's UMAP shows lives in more dimensions than two components hold.
+  ${US ? `One UMAP per checkpoint, laid out independently, does show it: ${PG.map(([k, n]) => `${n.toLowerCase()} ${US[k].silhouette.map((v) => v.toFixed(2)).join(" &middot; ")}`).join("; ")}.` : "(the per-checkpoint UMAPs are still running)"}`;
+const idx = [0, 3, 5, 6, 9];
+for (const [k, n] of PG) {
+  const W = 700, s = 128, box = cand("s3p", `A · ${n}: PCA, aligned`, "checkpoints untrained · 50 · 200 · epoch 1 · epoch 10", W);
+  const ctx = canvasIn(box, W, s + 34);
+  idx.forEach((i, j) => { const x = 8 + j * (s + 8); label(ctx, CKL[i], x + s / 2, 12, { align: "center", colour: T.ink3 }); scatter(ctx, PCA[k].frames[i], x, 18, s, DIG); label(ctx, `silhouette ${PCA[k].silhouette[i].toFixed(2)}`, x + s / 2, 18 + s + 12, { align: "center" }); });
+}
+if (US) for (const [k, n] of PG) {
+  const W = 700, s = 128, box = cand("s3u", `B · ${n}: each checkpoint's own UMAP`, "checkpoints untrained · 50 · 200 · epoch 1 · epoch 10", W);
+  const ctx = canvasIn(box, W, s + 34);
+  idx.forEach((i, j) => { const x = 8 + j * (s + 8); label(ctx, CKL[i], x + s / 2, 12, { align: "center", colour: T.ink3 }); scatter(ctx, US[k].frames[i], x, 18, s, DIG); label(ctx, `silhouette ${US[k].silhouette[i].toFixed(2)}`, x + s / 2, 18 + s + 12, { align: "center" }); });
+}
+</script>
+</body>
+</html>
