@@ -25407,6 +25407,13 @@ is dropped." His question answered with it: the three are not all
 autoencoders; they share an encoder and differ in the head and the target, and
 any encoder (CNN, transformer, GNN, MLP) can be trained this way.
 
+**Moved 2026-10-16** on his ask ("put the loss function below the network
+schematic"): the formula card is HTML above the canvas, so the schematic left
+the canvas and is now an inline SVG at the top of the card (its colours the
+tokens through `style`), then the encoder line, then the loss and its note.
+Its labels are SVG text, so the card's `tx` hash covers them; the canvas is
+back to the strip, curve and maps.
+
 ---
 
 ## Two arcs, not one — now three

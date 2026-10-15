@@ -49,8 +49,11 @@
        and the chosen digit's softmax row, L = −log p).
 
    SCHEMATIC AND SUBTITLE, 2026-10-15 (`_lab/representation-schematic-mock.html`,
-   all three calls the recommendation): a schematic row above the strip on
-   each page, the encoder drawn the same on all three (the part kept after
+   all three calls the recommendation): a schematic of the network on each
+   page, MOVED 2026-10-16 into the formula card above its loss function (his
+   ask: the loss below the schematic; the card is HTML above the canvas, so
+   the schematic is an inline SVG in it, and its labels count in the card's
+   text hash), the encoder drawn the same on all three (the part kept after
    training) and the page's head dashed (dropped), with one line saying any
    encoder can be trained this way; the subtitle generalized (no images, no
    UMAP), the blurb in its words.
@@ -119,6 +122,11 @@ const S = {
     autoencoder: [["x"], ["Encoder", "CNN", "enc"], ["z", "16"], ["Decoder", null, "head"], ["x̂"], ["loss ‖x − x̂‖²"]],
     masked: [["masked x"], ["Encoder", "CNN", "enc"], ["z", "64"], ["Decoder", null, "head"], ["hidden x̂"], ["loss on hidden"]],
     contrastive: { x: "x", views: ["view 1", "view 2"], enc: "Encoder", z: "z", head: "Projection", p: "p", shared: "same weights", loss: "similarity, InfoNCE" },
+  },
+  schemaLabel: {
+    autoencoder: "The network: the input, the encoder, the embedding z, the decoder, the reconstruction and the loss",
+    masked: "The network: the masked input, the encoder, the embedding z, the decoder, the hidden part predicted and the loss",
+    contrastive: "The network: two views of the input, one encoder with the same weights on both, a projection head on each, and their similarity in the loss",
   },
   encLine: "Encoder: any network that maps an input to a vector (here a CNN). After training the encoder is kept; the head is dropped.",
   digitLabel: "Digit",
@@ -227,6 +235,61 @@ const MATH = {
     note: "z̃ᵢ and z̃ⱼ are the projections of two views of one image, scaled to length 1, so z̃ᵢ·z̃ⱼ is their similarity; the sum runs over the views of every image in the batch (here the ten digits; 128 images in training). τ = 0.2. The fraction is the matching view's share of the row.",
   },
 };
+/* ------------------------------------------------------------- the schematic, in the card */
+
+/* drawn in a 534-unit-wide viewBox that scales with the card; colours are the tokens, set through
+   `style` because SVG presentation attributes do not resolve var() */
+const SV_W = 534;
+const svEsc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+/** a box: the encoder solid on a raised surface (kept after training), a head dashed (dropped), the rest plain */
+function svBox(x, y, w, h, text, sub, kind) {
+  const st = kind === "enc" ? "fill:var(--surface-2);stroke:var(--ink-1);stroke-width:1.6"
+    : `fill:var(--surface-1);stroke:var(--ink-3);stroke-width:1${kind === "head" ? ";stroke-dasharray:4 3" : ""}`;
+  const tw = kind === "enc" ? "font-weight:600;" : "";
+  return `<rect x="${x + 0.5}" y="${y + 0.5}" width="${w - 1}" height="${h - 1}" style="${st}"/>` +
+    `<text x="${x + w / 2}" y="${y + h / 2 + (sub ? -2 : 4)}" text-anchor="middle" style="${tw}fill:var(--ink-1)">${svEsc(text)}</text>` +
+    (sub ? `<text x="${x + w / 2}" y="${y + h / 2 + 11}" text-anchor="middle" style="fill:var(--ink-3)">${svEsc(sub)}</text>` : "");
+}
+function svArrow(x0, y0, x1, y1) {
+  const a = Math.atan2(y1 - y0, x1 - x0), h = 7;
+  const p = [[x1, y1], [x1 - h * Math.cos(a - 0.4), y1 - h * Math.sin(a - 0.4)], [x1 - h * Math.cos(a + 0.4), y1 - h * Math.sin(a + 0.4)]];
+  return `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" style="stroke:var(--ink-3);stroke-width:1.2"/>` +
+    `<polygon points="${p.map((q) => q.map((v) => v.toFixed(1)).join(",")).join(" ")}" style="fill:var(--ink-3)"/>`;
+}
+/* box widths as shares of the row, by the length of what each holds */
+const SHARE = { "x": 0.6, "z": 0.6, "x̂": 0.6, "Encoder": 1.4, "Decoder": 1.4, "masked x": 1, "hidden x̂": 1, "loss ‖x − x̂‖²": 1.9, "loss on hidden": 1.6 };
+function schemaSVG(page) {
+  let body = "", H;
+  if (page !== "contrastive") {
+    const items = S.schema[page], shares = items.map((it) => SHARE[it[0]] ?? 1), tot = shares.reduce((a, b) => a + b, 0);
+    const gap = 18, h = 34, y = 2, avail = SV_W - gap * (items.length - 1);
+    let x = 0;
+    items.forEach(([t, sub, kind], i) => {
+      const bw = (shares[i] / tot) * avail;
+      if (i) body += svArrow(x - gap + 3, y + h / 2, x - 2, y + h / 2);
+      body += svBox(x, y, bw, h, t, sub, kind);
+      x += bw + gap;
+    });
+    H = y + h + 2;
+  } else {
+    /* one encoder on two views, a projection head, the similarity of the two projections */
+    const Q = S.schema.contrastive, h = 30, y = 2, rows = [y, y + 44], mid = y + 37;
+    body += svBox(0, y + 22, 30, h, Q.x, null, null);
+    rows.forEach((ry, i) => {
+      body += svArrow(30, mid, 46, ry + h / 2) + svBox(48, ry, 54, h, Q.views[i], null, null);
+      body += svArrow(102, ry + h / 2, 116, ry + h / 2) + svBox(118, ry, 90, h, Q.enc, null, "enc");
+      body += svArrow(208, ry + h / 2, 222, ry + h / 2) + svBox(224, ry, 30, h, Q.z, null, null);
+      body += svArrow(254, ry + h / 2, 268, ry + h / 2) + svBox(270, ry, 90, h, Q.head, null, "head");
+      body += svArrow(360, ry + h / 2, 374, ry + h / 2) + svBox(376, ry, 30, h, Q.p, null, null);
+      body += svArrow(406, ry + h / 2, 420, mid);
+    });
+    body += svBox(422, y + 22, 112, h, Q.loss, null, null);
+    body += `<text x="163" y="${y + 41}" text-anchor="middle" style="fill:var(--ink-3)">${svEsc(Q.shared)}</text>`;
+    H = y + 44 + h + 2;
+  }
+  return `<svg viewBox="-1 0 ${SV_W + 2} ${H}" role="img" aria-label="${svEsc(S.schemaLabel[page])}" style="display:block;width:100%;height:auto;font:11px var(--font)">${body}</svg>`;
+}
+
 let mathHost = null, mathKey = null;
 function renderFormula(key) {
   if (!mathHost) {
@@ -239,7 +302,9 @@ function renderFormula(key) {
   if (mathKey === key) return;
   mathKey = key;
   const F = MATH[key];
-  mathHost.innerHTML = `<div class="w-math-eq"><span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span></div><div class="w-math-note">${F.note}</div>`;
+  /* the network, the encoder line, then the loss and its note */
+  mathHost.innerHTML = `<div class="w-math-schema">${schemaSVG(key)}</div><div class="w-math-note">${S.encLine}</div>` +
+    `<div class="w-math-eq"><span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span></div><div class="w-math-note">${F.note}</div>`;
 }
 
 /* ------------------------------------------------------------- helpers */
@@ -350,11 +415,9 @@ function codeBars(ctx, colors, z, x, y, w, h) {
 /* ------------------------------------------------------------- layout */
 
 const PAD = 10;
-const SCH_ONE = 84, SCH_TWO = 120;   // the schematic's height: one chain, or contrastive's two branches
 function layoutOf(w, page) {
   const S0 = Math.round(clamp(w * 0.085, 40, 58));
-  const sch = page === "contrastive" ? SCH_TWO : SCH_ONE;   // the schematic row and its encoder line
-  const top = sch + 18;
+  const top = 18;
   let stripEnd, C = null;
   if (page === "contrastive") {
     const c = clamp(Math.floor((w - 2 * PAD) * 0.03), 12, 18), ms = 10 * c;
@@ -370,7 +433,7 @@ function layoutOf(w, page) {
   const mapsTop = curveEnd + 30;
   const A = { x: PAD, y: mapsTop, s: ms }, B = { x: PAD + ms + gap, y: mapsTop, s: ms };
   const capTop = mapsTop + ms + 36;
-  return { S: S0, sch, top, r1: top, r2: top + S0 + 10, stripEnd, C, curve: { x: PAD + 30, y: curveTop, w: w - 2 * PAD - 30, h: curveH }, A, B, capTop, height: capTop + 4 * 16 + 4 };
+  return { S: S0, top, r1: top, r2: top + S0 + 10, stripEnd, C, curve: { x: PAD + 30, y: curveTop, w: w - 2 * PAD - 30, h: curveH }, A, B, capTop, height: capTop + 4 * 16 + 4 };
 }
 
 /* the map's points in canvas pixels */
@@ -393,57 +456,6 @@ const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
 const moveOf = (anim, page) => { const q = posOf(anim, page); return q < 0 || q >= NCK - 1 ? 0 : ease(q - Math.floor(q)); };
 const lerp = (a, b, e) => a + (b - a) * e;
 const trainedOn = (anim, page) => ckOf(anim, page) === NCK - 1 && !playingOn(anim, page);
-
-/* ------------------------------------------------------------- the schematic */
-
-/** a box: the encoder solid on a raised surface (kept after training), a head dashed (dropped), the rest plain */
-function sBox(ctx, colors, x, y, w, h, text, sub, kind) {
-  ctx.save(); ctx.fillStyle = kind === "enc" ? colors.surface2 : colors.surface; ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = kind === "enc" ? colors.ink1 : colors.ink3; ctx.lineWidth = kind === "enc" ? 1.6 : 1;
-  if (kind === "head") ctx.setLineDash([4, 3]);
-  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
-  txt(ctx, colors, text, x + w / 2, y + h / 2 + (sub ? -2 : 4), { size: colors.fsXs, fill: colors.ink1, align: "center", weight: kind === "enc" ? "600" : "" });
-  if (sub) txt(ctx, colors, sub, x + w / 2, y + h / 2 + 11, { size: colors.fsXs, fill: colors.ink3, align: "center" });
-}
-function sArrow(ctx, colors, x0, y0, x1, y1) {
-  line(ctx, x0, y0, x1, y1, colors.ink3, 1.2);
-  const a = Math.atan2(y1 - y0, x1 - x0);
-  ctx.save(); ctx.fillStyle = colors.ink3; ctx.beginPath(); ctx.moveTo(x1, y1);
-  ctx.lineTo(x1 - 7 * Math.cos(a - 0.4), y1 - 7 * Math.sin(a - 0.4)); ctx.lineTo(x1 - 7 * Math.cos(a + 0.4), y1 - 7 * Math.sin(a + 0.4)); ctx.fill(); ctx.restore();
-}
-/* box widths as shares of the row, by the length of what each holds */
-const SHARE = { "x": 0.6, "z": 0.6, "x̂": 0.6, "Encoder": 1.4, "Decoder": 1.4, "masked x": 1, "hidden x̂": 1, "loss ‖x − x̂‖²": 1.9, "loss on hidden": 1.6 };
-function drawSchema(ctx, colors, w, page) {
-  const gap = 18, y = 6;
-  if (page !== "contrastive") {
-    const items = S.schema[page], shares = items.map((it) => SHARE[it[0]] ?? 1), tot = shares.reduce((a, b) => a + b, 0);
-    const avail = w - 2 * PAD - gap * (items.length - 1), h = 34;
-    let x = PAD;
-    items.forEach(([t, sub, kind], i) => {
-      const bw = (shares[i] / tot) * avail;
-      if (i) sArrow(ctx, colors, x - gap + 3, y + h / 2, x - 2, y + h / 2);
-      sBox(ctx, colors, x, y, bw, h, t, sub, kind);
-      x += bw + gap;
-    });
-    wrapText(ctx, colors, S.encLine, PAD, y + h + 20, w - 2 * PAD, 14, { size: colors.fsXs, fill: colors.ink2 });
-    return;
-  }
-  /* contrastive: one encoder on two views, a projection head, the similarity of the two projections */
-  const Q = S.schema.contrastive, k = (w - 2 * PAD) / 534, X = (v) => PAD + v * k, h = 30, rows = [y, y + 44];
-  sBox(ctx, colors, X(0), y + 22, 30 * k, h, Q.x, null, null);
-  rows.forEach((ry, i) => {
-    sArrow(ctx, colors, X(30), y + 37, X(46), ry + h / 2);
-    sBox(ctx, colors, X(48), ry, 54 * k, h, Q.views[i], null, null);
-    sArrow(ctx, colors, X(102), ry + h / 2, X(116), ry + h / 2); sBox(ctx, colors, X(118), ry, 90 * k, h, Q.enc, null, "enc");
-    sArrow(ctx, colors, X(208), ry + h / 2, X(222), ry + h / 2); sBox(ctx, colors, X(224), ry, 30 * k, h, Q.z, null, null);
-    sArrow(ctx, colors, X(254), ry + h / 2, X(268), ry + h / 2); sBox(ctx, colors, X(270), ry, 90 * k, h, Q.head, null, "head");
-    sArrow(ctx, colors, X(360), ry + h / 2, X(374), ry + h / 2); sBox(ctx, colors, X(376), ry, 30 * k, h, Q.p, null, null);
-    sArrow(ctx, colors, X(406), ry + h / 2, X(420), y + 37);
-  });
-  sBox(ctx, colors, X(422), y + 22, 112 * k, h, Q.loss, null, null);
-  txt(ctx, colors, Q.shared, X(163), y + 41, { size: colors.fsXs, fill: colors.ink3, align: "center" });
-  wrapText(ctx, colors, S.encLine, PAD, y + 44 + h + 20, w - 2 * PAD, 14, { size: colors.fsXs, fill: colors.ink2 });
-}
 
 /* ------------------------------------------------------------- drawing */
 
@@ -736,7 +748,6 @@ defineWidget({
   draw({ ctx, colors, w, params, anim, pointer }) {
     const page = params.page, d = Number(params.digit), k = ckOf(anim, page), L = layoutOf(w, page);
     renderFormula(page);
-    drawSchema(ctx, colors, w, page);
     if (page === "contrastive") drawContrast(ctx, colors, w, L, d, pressesOf(anim, page), k, pointer, moveOf(anim, page), anim?.aug ?? 1);
     else drawStrip(ctx, colors, w, L, page, d, k, moveOf(anim, page));
     drawCurve(ctx, colors, L.curve, page, k, moveOf(anim, page));
