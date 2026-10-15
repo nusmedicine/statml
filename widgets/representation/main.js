@@ -58,9 +58,9 @@ import { defineWidget, mathmlRenders } from "../core/index.js";
 import { N_MAP, LABELS, KNN, TEST, MAPS, PICKS, CHECK } from "./data.js";
 
 const PAGES = [
-  { value: "autoencoder", label: "Autoencoder", group: "Reconstruction" },
-  { value: "masked", label: "Masked", group: "Prediction" },
-  { value: "contrastive", label: "Contrastive", group: "Contrastive" },
+  { value: "autoencoder", label: "Autoencoder", group: "Reconstruction-based" },
+  { value: "masked", label: "Masked", group: "Self-supervised prediction" },
+  { value: "contrastive", label: "Contrastive", group: "Contrastive learning" },
 ];
 const STEPS = CHECK.steps, PER_EPOCH = CHECK.per_epoch, NCK = STEPS.length;
 /* the press that trains: Contrastive has Augment and Compare before it */
@@ -97,24 +97,27 @@ const f3 = (v) => v.toFixed(3);
 const f2 = (v) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2).replace("-", "−");
 const sgn = (v) => String(v).replace("-", "−");
 const mseOf = (a, b, keep = null) => { let s = 0, n = 0; for (let i = 0; i < 784; i++) if (!keep || keep[i]) { s += ((a[i] - b[i]) / 255) ** 2; n++; } return s / n; };
+/* during Train the first frame is the start, not "untrained" */
+const ckPlay = (k) => (k === 0 ? "at the start" : ckName(k));
 const ckName = (k) => (STEPS[k] === 0 ? "untrained" : STEPS[k] < PER_EPOCH ? `after ${STEPS[k]} batches` : `after epoch ${Math.round(STEPS[k] / PER_EPOCH)}`);
 const TAU = 0.2;
 const softRow = (S, d) => { const e = S[d].map((v) => Math.exp(v / TAU)), Z = e.reduce((a, b) => a + b, 0); return e.map((v) => v / Z); };
 
 const S = {
   subtitle:
-    "Representation learning trains a network to map each image to an embedding, a short vector, with a training signal made from the images themselves: rebuild the input, predict hidden pixels, or match two augmented views of one image. " +
-    "Each page shows that signal for one digit, the training loss, and the embeddings of 2,000 test digits laid out by UMAP, before and after training.",
+    "An encoder maps each image to an embedding, a short vector. Representation learning trains it without labels, with a target made from the input: reconstruct it, predict hidden pixels, or match two augmented views of it. " +
+    "On each page, the same network untrained and after 10 epochs: its output for one digit, the training loss, and a UMAP of 2,000 test digits' embeddings.",
   pageLabel: "Approach",
   digitLabel: "Digit",
-  digitDetail: "the test image drawn in the strip, and the digit highlighted on the maps; a click on a map point picks its digit",
+  digitDetail: "the test image drawn at the top, and the digit highlighted on the maps; a click on a map point picks its digit",
 
   heads: { autoencoder: ["input", "embedding (16 numbers)", "reconstruction"], masked: ["input", "masked input", "filled in"] },
   untrained: "untrained",
+  barScale: "each row to its own scale",
   mse: (v) => `MSE ${f3(v)}`,
   mseHidden: (v) => `MSE on hidden ${f3(v)}`,
 
-  cStep: ["1 Augment", "2 Compare", "3 Loss"],
+  cStep: ["Augment", "Compare", "Loss"],
   cWait: ["Augment draws two views", "Compare draws the similarity matrix", "the matching view's share"],
   view: (i, p) => `view ${i}: shift ${sgn(p.crop[0] + p.translate[0])}, ${sgn(p.crop[1] + p.translate[1])} px · ${sgn(p.angle)}° · ×${p.scale.toFixed(2)}`,
   mAxes: ["view 1", "view 2"],
@@ -137,21 +140,21 @@ const S = {
 
   cap: {
     autoencoder: {
-      before: () => `At its random starting weights the network maps each image to 16 numbers and rebuilds the image from them. The reconstruction is a grey blur, and on the map digits of one kind are spread out. Train reduces the reconstruction error for 10 epochs, with no labels, and shows ten checkpoints along the way.`,
-      play: (k) => `Training, ${ckName(k)}: the reconstruction sharpens as the loss falls; most of the fall is in the first epoch.`,
-      after: () => `After training the reconstruction keeps the digit's shape (test MSE ${f3(TEST.autoencoder.untrained.mse)} → ${f3(TEST.autoencoder.trained.mse)}), and digits of one kind sit together on the map. The digits are used only to highlight the map; training did not use them.`,
+      before: () => `At its random starting weights the network maps each image to 16 numbers and rebuilds the image from them. The reconstruction is a grey blur, and on the map digits of one kind are spread out. Train minimizes the reconstruction error for 10 epochs without labels; the second row and the loss curve show ten checkpoints.`,
+      play: (k) => `Training, ${ckPlay(k)}: the reconstruction sharpens as the loss decreases; most of the decrease is in the first epoch.`,
+      after: () => `After training the reconstruction matches the input closely (test MSE ${f3(TEST.autoencoder.untrained.mse)} → ${f3(TEST.autoencoder.trained.mse)}), and digits of one kind are close together on the map. The digit labels are used only to highlight the map; training did not use them.`,
     },
     masked: {
-      before: () => `Half the pixels are hidden at random (grey) and the network predicts them from the visible half. The third box is the masked input filled in: the given pixels in light ink, the hidden ones at the network's prediction, which is all the loss scores. The decoder works from a 64-number embedding. At random weights the filled-in pixels are noise.`,
-      play: (k) => `Training, ${ckName(k)}: the hidden pixels fill in as the loss falls.`,
-      after: () => `After training the hidden pixels are filled in close to the original (MSE on hidden pixels ${f3(TEST.masked.untrained.mse)} → ${f3(TEST.masked.trained.mse)} over the test digits), and digits of one kind sit together on the map.`,
+      before: () => `Half the pixels are hidden at random (grey) and the network predicts them from the visible half. The third box is the masked input filled in: the given pixels in light ink, the hidden ones at the network's prediction, which is all the loss scores. The decoder's input is a 64-number embedding. At random weights the filled-in pixels are noise.`,
+      play: (k) => `Training, ${ckPlay(k)}: the predicted hidden pixels approach the original as the loss decreases.`,
+      after: () => `After training the predicted hidden pixels are close to the original (MSE on hidden pixels ${f3(TEST.masked.untrained.mse)} → ${f3(TEST.masked.trained.mse)} over the test digits). On the map, the share of test digits whose 5 nearest neighbours are mostly the same digit rises from ${pct(KNN.masked.untrained)} to ${pct(KNN.masked.trained)}: the untrained network already groups many digits of one kind together.`,
     },
     contrastive: {
       0: () => `Contrastive learning trains on pairs: two random views of one image should have similar projections, views of different images dissimilar ones. Augment draws the two views of each of ten digits.`,
       1: () => `Each view is the image randomly shifted (a crop of the image padded by 4 pixels, then up to 2.8 pixels more), rotated up to 15° and scaled up to 10%: blue is view 1, amber view 2. Compare passes both through the encoder and projection head and scores every pair.`,
-      2: () => `The matrix holds the similarity of every view 1 (rows) with every view 2 (columns); a hover over a cell shows its two views. At random weights every pair is near 1: every image lands in nearly the same direction, so the matching view's share of the row is about 1 in 10 and the loss is high. Train shows ten checkpoints.`,
-      play: (k) => `Training, ${ckName(k)}: the similarities of different images fall while the matching views stay similar, and the matching view's share of each row grows.`,
-      3: () => `After training the two views of one image have similarity ${f2(TEST.contrastive.trained.matched)} and different images ${f2(TEST.contrastive.trained.others)} (test digits, batches of 128). The embedding before the projection head was already sorted at random weights, so the map changes less.`,
+      2: () => `Each cell of the matrix is the similarity of a view 1 (row) and a view 2 (column); a hover over a cell shows its two views. At random weights every pair is near 1: the network maps every image to nearly the same direction, so the matching view's share of the row is about 1 in 10 and the loss is high. Train shows ten checkpoints.`,
+      play: (k) => `Training, ${ckPlay(k)}: the similarities of different images decrease while the matching views stay similar, and the matching view's share of each row increases.`,
+      3: () => `After training the two views of one image have similarity ${f2(TEST.contrastive.trained.matched)} and different images ${f2(TEST.contrastive.trained.others)} (test digits, batches of 128). The embedding before the projection head already groups digits of one kind together at random weights, so the map changes less.`,
     },
   },
 
@@ -172,7 +175,7 @@ const S = {
   legendMatched: "matching view",
 };
 
-const TRAIN_TITLE = "Train for 10 epochs, showing ten checkpoints along the way";
+const TRAIN_TITLE = "Train for 10 epochs, showing ten checkpoints";
 S.stepLabel = {
   param: "page",
   labels: { autoencoder: "Train", masked: "Train", contrastive: { anim: "beat", labels: { 0: "Augment", 1: "Compare", 2: "Train" }, default: "Train" } },
@@ -198,12 +201,12 @@ const MATH = {
   autoencoder: {
     math: `<math display="block"><mrow>${Lsub("AE")}${mo("=")}${mo("‖")}${mi("x")}${mo("−")}${hat}${mo("‖")}<msup><mrow></mrow><mn>2</mn></msup></mrow></math>`,
     plain: "L_AE = ‖x − x̂‖²",
-    note: "x is the input, x̂ the reconstruction built from the embedding z = f(x). The target is the input itself, so no label is needed; the code averages the squared error over the 784 pixels.",
+    note: "x is the input, x̂ the reconstruction built from the embedding z = f(x). The target is the input itself, so no label is needed; mse_loss averages the squared error over the 784 pixels.",
   },
   masked: {
     math: `<math display="block"><mrow>${Lsub("mask")}${mo("=")}<mfrac>${mn(1)}<mrow>${mo("|")}${mi("M")}${mo("|")}</mrow></mfrac><munder><mo>∑</mo><mrow>${mi("i")}${mo("∈")}${mi("M")}</mrow></munder>${mo("‖")}<msub><mi>x</mi><mi>i</mi></msub>${mo("−")}<msub>${hat}<mi>i</mi></msub>${mo("‖")}<msup><mrow></mrow><mn>2</mn></msup></mrow></math>`,
     plain: "L_mask = (1/|M|) Σ_{i∈M} ‖xᵢ − x̂ᵢ‖²",
-    note: "M is the set of hidden pixels, half of them, drawn anew for every batch. Only the hidden pixels count: the visible ones are the input.",
+    note: "M is the set of hidden pixels, half of them, drawn anew for every batch. Only the hidden pixels enter the loss: the visible ones are the input.",
   },
   contrastive: {
     math: `<math display="block"><mrow><msub><mi mathvariant="bold">L</mi><mi>i</mi></msub>${mo("=")}${mo("−")}<mo>log</mo><mfrac><mrow><mo>exp</mo>${mo("(")}${zt("i")}${mo("·")}${zt("j")}${mo("/")}${mi("τ")}${mo(")")}</mrow><mrow><munder><mo>∑</mo>${mi("k")}</munder><mo>exp</mo>${mo("(")}${zt("i")}${mo("·")}${zt("k")}${mo("/")}${mi("τ")}${mo(")")}</mrow></mfrac></mrow></math>`,
@@ -347,7 +350,7 @@ function layoutOf(w, page) {
     C = { c, ms, so, colA, colB, mx, my, bx, bw };
     stripEnd = my + ms + 4;
   } else stripEnd = top + 2 * S0 + 10;
-  const curveTop = stripEnd + 28, curveH = 58, curveEnd = curveTop + curveH + 14;
+  const curveTop = stripEnd + 36, curveH = 58, curveEnd = curveTop + curveH + 14;
   const gap = 14, ms = Math.floor((w - 2 * PAD - gap) / 2);
   const mapsTop = curveEnd + 30;
   const A = { x: PAD, y: mapsTop, s: ms }, B = { x: PAD + ms + gap, y: mapsTop, s: ms };
@@ -399,6 +402,7 @@ function drawStrip(ctx, colors, w, L, page, d, k, e) {
     }
     else emptyBox(ctx, colors, mid, y + 4, cw, S0 - 8);
     arrow(ctx, colors, mid + cw + 6, y + S0 / 2, xr - 6);
+    if (page === "autoencoder" && row === 1) txt(ctx, colors, S.barScale, mid + cw / 2, y + S0 + 12, { size: colors.fsXs, fill: colors.ink3, align: "center" });
     if (!show) {
       emptyBox(ctx, colors, xr, y, S0, S0);
       continue;

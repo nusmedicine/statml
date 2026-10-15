@@ -25365,6 +25365,28 @@ checkpoint's values, and the images, the matrix and the labels switch as each
 checkpoint arrives. Not tweened: the map (2,000 points crossing) and Compare
 (view 2's path to the column axis would cross thumbnails already in place).
 
+### 104 STUDENT WALK-THROUGH AND COPY AUDIT, 2026-10-15
+
+`_lab/representation-copy-scan.mjs <claudisms.md>` evaluates the widget's own
+strings (90): the banlist's 292 terms found 1 ("shape"), the project's rules
+about two dozen candidates. Walk-through (W) and audit (C) rows, **all applied
+on his word**: W1 the code bars carry "each row to its own scale" (untrained
+values ~0.3, trained ~13); W2 Masked's after-caption gives 5-NN 93.7% → 96.0%
+and says the untrained network already groups many digits; W3 Contrastive's
+headings lose their numbers ("3 Loss" read as a third press); W4 the first
+frame of Train reads "at the start"; W5 the rail in the notebook's headings,
+**Reconstruction-based · Self-supervised prediction · Contrastive learning**;
+C1–C14 sit/fall/keeps/lands/holds/works from/along the way/"the code"/"strip"/
+"sorted" rewritten literally. **Subtitle C** (his "no preference": the
+recommendation): "An encoder maps each image to an embedding, a short vector.
+Representation learning trains it without labels, with a target made from the
+input: reconstruct it, predict hidden pixels, or match two augmented views of
+it. On each page, the same network untrained and after 10 epochs: its output
+for one digit, the training loss, and a UMAP of 2,000 test digits'
+embeddings." **Blurb** in its words, on his ask: "An encoder trained without
+labels to reconstruct its input, predict hidden pixels or match two augmented
+views." (111). Rescan after: 0 banlist hits; the remaining rule flags literal.
+
 ---
 
 ## Two arcs, not one — now three
