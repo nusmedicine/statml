@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · representation — round 2: training as an animation, sparsity, the contrastive steps</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .find { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--ink-3); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 104 <code>representation</code> &middot; round 2: training as an animation, sparsity, the contrastive steps</h1>
+  <p class="note">Your three points on the draft: Train switches abruptly; Sparse does not show that fewer units are
+    active; on Contrastive the two views look alike and the matrix's axes are unlabelled. The four models were retrained
+    with checkpoints (<code>_lab/representation-checkpoints.py</code>; the last checkpoint equals the draft's model
+    exactly) after 0, 5, 20, 50, 100, 200 batches and 1, 2, 5, 10 epochs (469 batches of 128 an epoch). Everything
+    below is computed from them; digit 3 throughout. Blue-ruled boxes are my recommendations, grey-ruled what the
+    checkpoints show, plain ones (&sect;4) the calls.</p>
+  <div id="find"></div>
+
+  <h2>1 &middot; Train as an animation</h2>
+  <p class="note">Press Train and the page plays through the ten checkpoints (about four seconds), each switching at once:
+    the strip's output, the loss curve drawing up to that checkpoint with a marker, and the map. Below, each page's
+    checkpoints side by side, then its loss curve.</p>
+  <div class="row" id="s1"></div>
+  <p class="note"><b>The map across training.</b> One UMAP per checkpoint places the clusters anywhere each time, so a
+    point could not be followed. An <i>aligned</i> UMAP (umap-learn's <code>AlignedUMAP</code>) lays out all ten
+    together, each pulled toward the same point's place at the neighbouring checkpoints, so the digits can be watched
+    gathering. Its final layout is not the notebook's UMAP (the silhouette per checkpoint is under each map).</p>
+  <div class="row" id="s1m"></div>
+  <p class="rec">Recommend <b>B</b>: Train plays the ten checkpoints through the strip, the loss curve and (Sparse,
+    Contrastive) the grid and the matrix, each a switch; the map stays as it is and switches to the trained map, the
+    notebook's own UMAP, at the last checkpoint. <b>A</b> would move the map's points through the aligned layouts, but those
+    end less sorted than the notebook's map (0.38 against 0.57 for the autoencoder), Masked and Contrastive pass through a
+    scrambled stage that needs its own explanation, and 2,000 points moving at once break the rule that a mover keeps its
+    own lane.</p>
+
+  <h2>2 &middot; Sparse: fewer active units</h2>
+  <p class="note">The embedding of 50 test digits (5 of each, rows grouped by digit) across the 16 units (columns), ink at
+    the value, a 0 left blank. The notebook draws this as a clustermap (cell 52) and a histogram of the values (cell 50).</p>
+  <div class="row" id="s2"></div>
+  <div class="find"><b>The notebook's sparse autoencoder has 9 dead units, not a sparse code.</b> Over all 10,000 test
+    digits, 9 of its 16 units are 0 for <i>every</i> digit (they stop responding within the first 5 batches; 2 are already
+    0 at random weights), and the other 7 are active on 98% of digits. The 57% of zeros are those 9 columns. The L1
+    penalty is not the cause and changes nothing measurable: the same network with &lambda; = 0 has the same 9 dead units,
+    MSE 0.022 against 0.021, 5-NN 91.0% against 91.5%. A ReLU placed on a small bottleneck switches units off for good (the
+    "dying ReLU"). Every ReLU setting tried did the same (16 or 64 units, &lambda; 0 to 0.01, learning rate 10<sup>&minus;4</sup>:
+    6 to 18 live units, each active on nearly every digit).</div>
+  <div class="find"><b>No simple setting gave a sparse code.</b> The textbook alternatives were tried too: a KL penalty on
+    a sigmoid code (64 units, &rho; = 0.05) meets its target by keeping every unit near 0.05 for every digit (largest value
+    0.18), so nothing switches off; keeping each image's top 8 of 64 units leaves 54 units unused, all digits sharing the
+    same few. A code where each digit uses its own few units needs more tuning than a setting change.</div>
+  <p class="rec">Recommend <b>D</b>, drop the Sparse page: as 10-1b stands its sparsity is the 9 dead units, which the page
+    would have to say, and that is a finding about the notebook rather than a lesson. <b>A</b> keeps it and says so, with the
+    grid beside the autoencoder's (the blank columns are the dead units). I can look further for a setting that gives a real
+    sparse code if you want the section kept as a lesson; that is a measurement, not a page.</p>
+
+  <h2>3 &middot; Contrastive: the views, and the steps</h2>
+  <p class="note">The views come from the notebook's augmentation (cell 74): <code>RandomCrop(28, padding=4)</code> shifts
+    the digit up to 4 pixels, then <code>RandomAffine(15, translate=(0.1, 0.1), scale=(0.9, 1.1))</code> rotates it up to
+    15&deg;, shifts it up to 2.8 more pixels and scales it by up to 10%. On a centred MNIST digit that is a small change,
+    which is why the two views look alike. Below: the views overlaid, the matrix with its axes drawn as the images, and the
+    chosen digit's row as the softmax InfoNCE scores.</p>
+  <div class="row" id="s3"></div>
+  <p class="rec">Recommend all three on the page, in the order of the steps: <b>1 Augment</b> (the two views overlaid,
+    with each view's shift, angle and scale), <b>2 Compare</b> (the matrix, rows view 1 and columns view 2, each labelled
+    by its image), <b>3 Loss</b> (the chosen row's softmax: the bar on its matching view is the probability the loss
+    rewards; L = &minus;log of it). Train then plays the checkpoints through the matrix and the row.</p>
+
+  <h2>4 &middot; The calls</h2>
+  <div class="q"><b class="h">4.1 &middot; Train</b> A plays the ten checkpoints: strip, loss curve and an aligned map
+    whose points move &middot; B <b>the same, the map still until the last checkpoint</b> (rec) &middot; C as the draft, one switch.</div>
+  <div class="q"><b class="h">4.2 &middot; The loss curve</b> A <b>on every page, under the strip, the training loss per
+    10 batches with the checkpoints marked</b> (rec) &middot; B not drawn.</div>
+  <div class="q"><b class="h">4.3 &middot; Sparse</b> D <b>drop the page</b> (rec) &middot; A keep the notebook's model, the
+    grid beside the autoencoder's and the dead units stated &middot; E look further for a setting that gives a sparse code
+    first.</div>
+  <div class="q"><b class="h">4.4 &middot; Contrastive views</b> A <b>overlaid in two colours with their shift, angle and
+    scale</b> (rec) &middot; B side by side, as the draft.</div>
+  <div class="q"><b class="h">4.5 &middot; Contrastive matrix</b> A <b>axes drawn as the view images, rows view 1,
+    columns view 2</b> (rec) &middot; B digit numbers on the axes.</div>
+  <div class="q"><b class="h">4.6 &middot; Contrastive loss</b> A <b>the chosen row's softmax bars, the matching bar
+    marked, L = &minus;log p</b> (rec) &middot; B the formula card only.</div>
+  <div class="q"><b class="h">4.7 &middot; Contrastive presses</b> A <b>Augment &middot; Compare &middot; Train</b>, the
+    steps one at a time before training (rec) &middot; B everything shown, Train alone.</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const D = await (await fetch("representation-round2-data.json")).json();
+const DIG = 3;
+const PG = [["ae", "Autoencoder"], ["sparse_ae", "Sparse"], ["masked_b", "Masked"], ["simclr", "Contrastive"]];
+const CKL = ["0", "5", "20", "50", "100", "200", "ep 1", "ep 2", "ep 5", "ep 10"];
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 10, colour = T.ink2, align = "left", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function frame(ctx, x, y, w, h, col = T.grid, lw = 1) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, col, w = 1) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+const rgb = (col) => { const c = document.createElement("canvas").getContext("2d"); c.fillStyle = col; c.fillRect(0, 0, 1, 1); return [...c.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+function image(ctx, px, x, y, s, { col = T.ink1, hidden = null, alpha = 1 } = {}) {
+  const c = document.createElement("canvas"); c.width = c.height = 28; const g = c.getContext("2d"), im = g.createImageData(28, 28);
+  const [r, gg, b] = rgb(col), hc = rgb(T.unknown);
+  for (let i = 0; i < 784; i++) { const o = 4 * i; if (hidden && hidden[i] > 127) { im.data.set([...hc, 150], o); } else im.data.set([r, gg, b, px[i] * alpha], o); }
+  g.putImageData(im, 0, 0); ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(c, x, y, s, s); ctx.restore(); frame(ctx, x, y, s, s);
+}
+function bars(ctx, z, x, y, w, h) {
+  const n = z.length, bw = w / n, m = Math.max(1e-9, ...z.map(Math.abs)), mid = y + h / 2;
+  frame(ctx, x, y, w, h); line(ctx, x, mid, x + w, mid, T.grid);
+  z.forEach((v, i) => { const cx = x + i * bw + bw / 2; if (Math.abs(v) < 1e-6) { ctx.fillStyle = T.ink3; ctx.beginPath(); ctx.arc(cx, mid, 1.3, 0, 7); ctx.fill(); return; } const bh = (v / m) * (h / 2 - 2); ctx.fillStyle = T.ink2; ctx.fillRect(cx - bw / 2 + 1, bh >= 0 ? mid - bh : mid, bw - 2, Math.max(1, Math.abs(bh))); });
+}
+function sim(ctx, S, x, y, s, digit) {
+  const n = S.length, c = s / n; ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, s, s); ctx.restore();
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, S[i][j])); ctx.fillStyle = T.ink1; ctx.fillRect(x + j * c, y + i * c, c, c); ctx.restore(); }
+  for (let i = 0; i < n; i++) frame(ctx, x + i * c, y + i * c, c, c, T.reference, 1.4);
+  if (digit != null) frame(ctx, x, y + digit * c, s, c, T.highlight, 1.6);
+  frame(ctx, x, y, s, s);
+}
+function curve(ctx, L, x, y, w, h, steps, upto = null) {
+  frame(ctx, x, y, w, h);
+  const lo = Math.min(...L), hi = Math.max(...L), lg = (v) => Math.log(v), n = L.length;
+  const X = (i) => x + 4 + (i / (n - 1)) * (w - 8), Y = (v) => y + h - 4 - ((lg(v) - lg(lo)) / (lg(hi) - lg(lo) || 1)) * (h - 8);
+  ctx.save(); ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.2; ctx.beginPath(); L.forEach((v, i) => (i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)))); ctx.stroke(); ctx.restore();
+  steps.forEach((s, k) => { if (!s) return; const i = Math.min(n - 1, Math.round(s / 10) - 1); ctx.save(); ctx.fillStyle = T.highlight; ctx.beginPath(); ctx.arc(X(i), Y(L[i]), 2.4, 0, 7); ctx.fill(); ctx.restore(); });
+  label(ctx, "training loss (log scale) per 10 batches; dots: the checkpoints", x + 4, y + 11, { colour: T.ink3, size: 9 });
+}
+function map(ctx, P, x, y, s, digit) {
+  const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]);
+  const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2, sp = 1.08 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  frame(ctx, x, y, s, s);
+  const to = (p) => [x + s / 2 + ((p[0] - cx) / sp) * s, y + s / 2 - ((p[1] - cy) / sp) * s];
+  ctx.save(); ctx.globalAlpha = 0.4; ctx.fillStyle = T.ink3; P.forEach((p, i) => { if (D.labels[i] === digit) return; const q = to(p); ctx.fillRect(q[0] - 0.8, q[1] - 0.8, 1.6, 1.6); }); ctx.restore();
+  ctx.save(); ctx.fillStyle = T.highlight; P.forEach((p, i) => { if (D.labels[i] !== digit) return; const q = to(p); ctx.fillRect(q[0] - 1.1, q[1] - 1.1, 2.2, 2.2); }); ctx.restore();
+}
+const f2 = (v) => v.toFixed(2), f3 = (v) => v.toFixed(3), pct = (v) => `${Math.round(100 * v)}%`;
+
+/* findings */
+{
+  const a = D.ae, s = D.sparse_ae, m = D.masked_b, c = D.simclr;
+  const same = PG.every(([k]) => D[k].same_as_saved);
+  const diag = (S) => S.map((r, i) => r[i]).reduce((p, q) => p + q, 0) / S.length;
+  const off = (S) => S.flatMap((r, i) => r.filter((_, j) => j !== i)).reduce((p, q) => p + q, 0) / (S.length * (S.length - 1));
+  const firstAt = (arr, f) => arr.findIndex(f);
+  document.getElementById("find").innerHTML = [
+    `<div class="find"><b>1 &middot; Most of the learning is in the first epoch.</b> Test loss after 0 &middot; 50 &middot; 200 batches &middot; 1 &middot; 10 epochs:
+      autoencoder ${[0, 3, 5, 6, 9].map((k) => f3(a.loss[k])).join(" &middot; ")}; masked ${[0, 3, 5, 6, 9].map((k) => f3(m.loss[k])).join(" &middot; ")};
+      contrastive ${[0, 3, 5, 6, 9].map((k) => f2(c.loss[k])).join(" &middot; ")}. The ten checkpoints are spaced to follow it. ${same ? "The last checkpoint of each equals the draft's model." : "<b>The last checkpoints do NOT equal the draft's models.</b>"}</div>`,
+    `<div class="find"><b>2 &middot; Sparse's zeros arrive within the first 5 batches and stay.</b> Share of the grid's entries at 0, checkpoint by checkpoint:
+      Sparse ${s.zero.map(pct).join(" &middot; ")}; autoencoder ${a.zero.map(pct).join(" &middot; ")}.</div>`,
+    `<div class="find"><b>3 &middot; The contrastive matrix forms by its off-diagonal falling.</b> Mean similarity, matched views / different images, across the ten checkpoints:
+      ${c.sim.map((S) => `${f2(diag(S))}/${f2(off(S))}`).join(" &middot; ")}. The matched pairs stay high; the other pairs fall from 1.00 toward 0.</div>`,
+    `<div class="find"><b>4 &middot; The aligned maps.</b> Silhouette by digit at each checkpoint: autoencoder ${a.silhouette.map(f2).join(" &middot; ")};
+      masked ${m.silhouette.map(f2).join(" &middot; ")}; contrastive ${c.silhouette.map(f2).join(" &middot; ")}. Two costs: aligning the layouts ends them less sorted than the notebook's UMAP (0.57 for both trained models), and Masked and Contrastive, sorted at random weights, are scrambled by the first 50 batches before they sort again.</div>`,
+  ].join("");
+}
+
+/* §1 filmstrips and curves */
+for (const [k, name] of PG) {
+  const P = D[k], W = 700, box = cand("s1", name, k === "simclr" ? "the view-similarity matrix at each checkpoint, digit 3's row outlined" : `digit 3's ${k === "masked_b" ? "prediction" : "reconstruction"} at each checkpoint; the number under each is the test loss`, W);
+  const ctx = canvasIn(box, W, 150), cw = (W - 20) / 10, s = Math.min(54, cw - 8);
+  for (let i = 0; i < 10; i++) {
+    const x = 10 + i * cw + (cw - s) / 2;
+    label(ctx, CKL[i], x + s / 2, 12, { align: "center", colour: T.ink3 });
+    if (k === "simclr") sim(ctx, P.sim[i], x, 18, s, DIG);
+    else image(ctx, P.xhat[i][DIG], x, 18, s);
+    label(ctx, k === "simclr" ? f2(P.loss[i]) : f3(P.loss[i]), x + s / 2, 18 + s + 12, { align: "center", colour: T.ink1 });
+  }
+  curve(ctx, P.batch_loss, 10, 18 + s + 18, W - 20, 150 - (18 + s + 22), P.steps);
+}
+for (const [k, name] of [["ae", "Autoencoder"], ["simclr", "Contrastive"]]) {
+  const P = D[k], idx = [0, 3, 5, 6, 9], W = 700, s = 130;
+  const box = cand("s1m", `${name} · the aligned map`, `checkpoints 0 · 50 · 200 · epoch 1 · epoch 10; digit 3 highlighted`, W);
+  const ctx = canvasIn(box, W, s + 34);
+  idx.forEach((i, j) => { const x = 8 + j * (s + 6); label(ctx, CKL[i], x + s / 2, 12, { align: "center", colour: T.ink3 }); map(ctx, P.map[i], x, 18, s, DIG); label(ctx, `silhouette ${f2(P.silhouette[i])}`, x + s / 2, 18 + s + 12, { align: "center", colour: T.ink2 }); });
+}
+
+/* §2 grids */
+function grid(ctx, G, labs, x, y, w, h, title, lin = false) {
+  const R = G.length, C = G[0].length, cw = w / C, rh = h / R, m = Math.max(1e-9, ...G.flat().map(Math.abs));
+  label(ctx, title, x, y - 6, { weight: "600", colour: T.ink1, size: 11 });
+  ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h); ctx.restore();
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { const v = Math.abs(G[r][c]); if (v < 1e-6) continue; ctx.save(); ctx.globalAlpha = lin ? Math.min(1, v) : Math.min(1, 0.15 + 0.85 * v / m); ctx.fillStyle = T.ink1; ctx.fillRect(x + c * cw + 0.5, y + r * rh + 0.5, cw - 1, rh - 1); ctx.restore(); }
+  for (let d = 0; d < 10; d++) { label(ctx, String(d), x - 6, y + (d * 5 + 2.5) * rh + 3, { align: "right", colour: T.ink3, size: 9 }); if (d) line(ctx, x, y + d * 5 * rh, x + w, y + d * 5 * rh, T.grid); }
+  const z = G.flat().filter((v) => Math.abs(v) < 1e-6).length / G.flat().length;
+  label(ctx, `${pct(z)} at 0`, x + w, y + h + 12, { align: "right", colour: T.ink1 });
+  frame(ctx, x, y, w, h);
+}
+{
+  const box = cand("s2", "A · the grid, autoencoder beside the notebook's Sparse (trained)", "rows: 50 test digits, 5 of each, grouped; columns: the 16 units\nink at the size of the value; blank: exactly 0", 560);
+  const ctx = canvasIn(box, 560, 330);
+  grid(ctx, D.ae.grid[9], D.ae.grid_labels, 30, 22, 230, 280, "Autoencoder");
+  grid(ctx, D.sparse_ae.grid[9], D.sparse_ae.grid_labels, 310, 22, 230, 280, "Sparse");
+}
+{
+  const box = cand("s2", "A · the notebook's Sparse during Train", "the grid at checkpoints 0 · 50 · 200 · epoch 1 · epoch 10", 560);
+  const ctx = canvasIn(box, 560, 220);
+  [0, 3, 5, 6, 9].forEach((i, j) => grid(ctx, D.sparse_ae.grid[i], D.sparse_ae.grid_labels, 22 + j * 108, 22, 90, 170, CKL[i]));
+}
+{
+  const box = cand("s2", "B · the notebook's histogram (cell 50)", "values of the 16 units over the 50 digits, trained", 360);
+  const ctx = canvasIn(box, 360, 220);
+  for (const [k, x, name] of [["ae", 20, "Autoencoder"], ["sparse_ae", 190, "Sparse"]]) {
+    const v = D[k].grid[9].flat(), lo = Math.min(0, ...v), hi = Math.max(...v), nb = 20, cnt = Array(nb).fill(0);
+    v.forEach((q) => cnt[Math.min(nb - 1, Math.floor(((q - lo) / (hi - lo || 1)) * nb))]++);
+    const mx = Math.max(...cnt), w = 150, h = 150, y = 30; label(ctx, name, x, y - 8, { weight: "600", colour: T.ink1, size: 11 }); frame(ctx, x, y, w, h);
+    cnt.forEach((c, i) => { const bh = (c / mx) * (h - 6); ctx.fillStyle = T.ink2; ctx.fillRect(x + 3 + i * (w - 6) / nb, y + h - 3 - bh, (w - 6) / nb - 1, bh); });
+    label(ctx, `${lo.toFixed(0)} … ${hi.toFixed(0)}`, x + w / 2, y + h + 12, { align: "center", colour: T.ink3 });
+  }
+}
+
+/* §3 contrastive */
+{
+  const V = D.simclr.views, k = DIG, W = 700, box = cand("s3", "1 Augment · 2 Compare · 3 Loss (trained; untrained in the row below)", "view 1 in blue, view 2 in amber, overlap in both; the matrix's rows are view 1 of digits 0–9, its columns view 2", W);
+  for (const ci of [9, 0]) {
+    const ctx = canvasIn(box, W, 250), S = D.simclr.sim[ci];
+    label(ctx, ci === 9 ? "after 10 epochs" : "untrained", 8, 14, { weight: "600", colour: T.ink1, size: 11 });
+    // 1 augment: overlay
+    const s = 96, x0 = 10, y0 = 30;
+    image(ctx, V.v1[k], x0, y0, s, { col: T.groupA, alpha: 0.85 }); ctx.save(); ctx.globalCompositeOperation = "source-over"; ctx.restore();
+    image(ctx, V.v2[k], x0, y0, s, { col: T.groupB, alpha: 0.65 });
+    const p = (q) => `shift ${q.crop[0] + q.translate[0]}, ${q.crop[1] + q.translate[1]} px · ${q.angle}° · ×${q.scale}`;
+    label(ctx, "view 1: " + p(V.p1[k]), x0, y0 + s + 14, { colour: T.groupA }); label(ctx, "view 2: " + p(V.p2[k]), x0, y0 + s + 27, { colour: T.groupB });
+    // 2 compare: matrix with image axes
+    const mx = 220, my = 44, ms = 170, c = ms / 10;
+    for (let i = 0; i < 10; i++) { image(ctx, V.v1[i], mx - c - 2, my + i * c, c, { col: T.ink1 }); image(ctx, V.v2[i], mx + i * c, my - c - 2, c, { col: T.ink1 }); }
+    label(ctx, "view 1 →", mx - c - 4, my - c - 6, { colour: T.ink3, align: "right", size: 9 }); label(ctx, "view 2", mx + ms, my - c - 6, { colour: T.ink3, align: "right", size: 9 });
+    sim(ctx, S, mx, my, ms, k);
+    // 3 loss: the chosen row's softmax
+    const lx = 430, ly = 44, lw = 250, lh = 150, tau = 0.2, e = S[k].map((v) => Math.exp(v / tau)), Z = e.reduce((a, b) => a + b, 0), pr = e.map((v) => v / Z);
+    label(ctx, `row of digit ${k}: softmax of similarity / τ`, lx, ly - 8, { colour: T.ink2 }); frame(ctx, lx, ly, lw, lh);
+    pr.forEach((q, j) => { const bw = (lw - 10) / 10, bh = q * (lh - 20); ctx.fillStyle = j === k ? T.reference : T.ink3; ctx.fillRect(lx + 5 + j * bw + 2, ly + lh - 14 - bh, bw - 4, bh); label(ctx, String(j), lx + 5 + j * bw + bw / 2, ly + lh - 3, { align: "center", colour: T.ink3, size: 9 }); });
+    label(ctx, `p(matching view) = ${pr[k].toFixed(2)} · L = −log p = ${(-Math.log(pr[k])).toFixed(2)}`, lx, ly + lh + 16, { colour: T.ink1 });
+  }
+}
+</script>
+</body>
+</html>

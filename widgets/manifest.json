@@ -1477,7 +1477,6 @@
       "topics": [
         "representation learning",
         "autoencoder",
-        "sparse autoencoder",
         "masked prediction",
         "contrastive learning",
         "embedding",
