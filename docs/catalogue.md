@@ -25346,6 +25346,25 @@ right-hand map switches through these during Train (titled by checkpoint), and
 both maps now use the 2,000-digit layouts, so the last frame is the trained
 map. `data.js` 468 KB (ten 8-bit frames a page).
 
+### 104 ROUND 4, 2026-10-15: the map reverted; tweens
+
+**The map a checkpoint REVERTED** on his word ("looks jarring"; round 2's map
+"seems to cluster better"): the maps are again the notebook's UMAP of all
+10,000 test digits (2,000 drawn), the trained one switching in at the last
+checkpoint. `data.js` stores the two maps a page at 8 bits (340 KB).
+
+**Tweens, his ask, only movement eased** (tween-only-movement-no-fades,
+tweens-move-in-lanes): **Augment** carries the digit into each view by that
+view's own crop shift, then shift, rotation and scale about the centre (1.1 s;
+the canvas transform reproduces the stored views except ~1% of inked pixels at
+stroke edges, where the two nearest-neighbour samplings round differently; the
+opposite rotation sign would miss 40%); during **Train** the nine moves between
+checkpoints are 500 ms each: the loss curve's end travels evenly on the log
+axis, the autoencoder's 16 code bars and the softmax bars move toward the next
+checkpoint's values, and the images, the matrix and the labels switch as each
+checkpoint arrives. Not tweened: the map (2,000 points crossing) and Compare
+(view 2's path to the column axis would cross thumbnails already in place).
+
 ---
 
 ## Two arcs, not one — now three
