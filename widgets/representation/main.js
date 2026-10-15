@@ -303,7 +303,7 @@ function renderFormula(key) {
   mathKey = key;
   const F = MATH[key];
   /* the network, the encoder line, then the loss and its note */
-  mathHost.innerHTML = `<div class="w-math-schema">${schemaSVG(key)}</div><div class="w-math-note">${S.encLine}</div>` +
+  mathHost.innerHTML = `<div class="w-math-schema">${schemaSVG(key)}</div><div class="w-math-note" style="margin-bottom:var(--sp-4)">${S.encLine}</div>` +
     `<div class="w-math-eq"><span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span></div><div class="w-math-note">${F.note}</div>`;
 }
 

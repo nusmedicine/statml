@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · representation — animating the network diagram</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 560px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); white-space: pre-line; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-3) var(--sp-2); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  button { font: inherit; font-size: var(--fs-xs); margin-top: var(--sp-2); padding: 3px 10px; background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--grid); border-radius: 3px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 104 <code>representation</code> &middot; animating the network diagram</h1>
+  <p class="note">Three motions for the schematic in the formula card, each movement only (nothing fades), each mark in its own
+    lane. They loop here so they can be judged; in the widget each would run once, tied to a press. The forward pass is in ink;
+    the gradient in <code>--c-slope</code> (the role for a slope or gradient arrow); the encoder is the solid box throughout.</p>
+
+  <h2>1 &middot; The options</h2>
+  <div class="row">
+    <div class="cand"><h3>A &middot; a forward pass, then the gradient back (Autoencoder)</h3><p class="sub">during Train: one pass per move between checkpoints (nine), 500 ms each</p><div class="card" id="a"></div><button data-k="a">Replay</button></div>
+    <div class="cand"><h3>B &middot; keep the encoder, drop the head (Autoencoder)</h3><p class="sub">when Train ends: the head slides out to the right; z points at the maps below</p><div class="card" id="b"></div><button data-k="b">Replay</button></div>
+  </div>
+  <div class="row">
+    <div class="cand"><h3>A on Masked</h3><p class="sub">the same pass; the loss is on the hidden part only</p><div class="card" id="am"></div><button data-k="am">Replay</button></div>
+    <div class="cand"><h3>C &middot; two views through one encoder (Contrastive)</h3><p class="sub">Augment: x splits into the two views; Train: both branches forward, the gradient back along both to the same encoder</p><div class="card" id="c"></div><button data-k="c">Replay</button></div>
+  </div>
+  <p class="rec">Recommend <b>A</b> (and C on Contrastive) with <b>B</b> at the end. A says what Train does in one picture: data
+    goes forward, the loss sends a gradient back, and only the network's weights change (the boxes do not move). C shows the
+    contrastive point the matrix cannot: the gradient from both branches reaches the same encoder. B ties the diagram to the
+    maps: the map on the right is drawn from z, the encoder's output, with the head gone. Each moving mark has its own lane: the
+    forward dot on the arrows, the gradient on a return line under them, the head along its own row.</p>
+
+  <h2>2 &middot; The calls</h2>
+  <div class="q"><b class="h">2.1 &middot; During Train</b> <b>A, a forward pass and the gradient back for each move between
+    checkpoints</b> (rec) &middot; one pass at the start of Train only &middot; none.</div>
+  <div class="q"><b class="h">2.2 &middot; Contrastive</b> <b>C: Augment splits x into the two views; Train runs both branches and
+    the gradient back to the one encoder</b> (rec) &middot; as A, one branch drawn.</div>
+  <div class="q"><b class="h">2.3 &middot; When Train ends</b> <b>B, the head slides away and z points at the maps</b> (rec)
+    &middot; nothing.</div>
+</main>
+
+<script type="module">
+const NS = "http://www.w3.org/2000/svg", W = 534;
+const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function box(x, y, w, h, text, sub, kind) {
+  const st = kind === "enc" ? "fill:var(--surface-2);stroke:var(--ink-1);stroke-width:1.6" : `fill:var(--surface-1);stroke:var(--ink-3);stroke-width:1${kind === "head" ? ";stroke-dasharray:4 3" : ""}`;
+  return `<rect x="${x + 0.5}" y="${y + 0.5}" width="${w - 1}" height="${h - 1}" style="${st}"/><text x="${x + w / 2}" y="${y + h / 2 + (sub ? -2 : 4)}" text-anchor="middle" style="${kind === "enc" ? "font-weight:600;" : ""}fill:var(--ink-1)">${esc(text)}</text>` + (sub ? `<text x="${x + w / 2}" y="${y + h / 2 + 11}" text-anchor="middle" style="fill:var(--ink-3)">${esc(sub)}</text>` : "");
+}
+function arrow(x0, y0, x1, y1, col = "var(--ink-3)", dash = "") {
+  const a = Math.atan2(y1 - y0, x1 - x0), h = 7, p = [[x1, y1], [x1 - h * Math.cos(a - 0.4), y1 - h * Math.sin(a - 0.4)], [x1 - h * Math.cos(a + 0.4), y1 - h * Math.sin(a + 0.4)]];
+  return `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" style="stroke:${col};stroke-width:1.2${dash ? `;stroke-dasharray:${dash}` : ""}"/><polygon points="${p.map((q) => q.join(",")).join(" ")}" style="fill:${col}"/>`;
+}
+const svg = (H, body) => `<svg viewBox="-1 0 ${W + 2} ${H}" style="display:block;width:100%;height:auto;font:11px var(--font)">${body}</svg>`;
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+const along = (P, t) => { // a point along a polyline, t in 0..1 by length
+  const seg = P.slice(1).map((q, i) => Math.hypot(q[0] - P[i][0], q[1] - P[i][1])), L = seg.reduce((a, b) => a + b, 0);
+  let d = t * L; for (let i = 0; i < seg.length; i++) { if (d <= seg[i]) { const f = seg[i] ? d / seg[i] : 0; return [P[i][0] + (P[i + 1][0] - P[i][0]) * f, P[i][1] + (P[i + 1][1] - P[i][1]) * f]; } d -= seg[i]; }
+  return P[P.length - 1];
+};
+
+/* the one-chain diagram, with a return lane under it */
+function chain(items) {
+  const share = { "x": 0.6, "z": 0.6, "x̂": 0.6, "Encoder": 1.4, "Decoder": 1.4, "masked x": 1, "hidden x̂": 1, "loss ‖x − x̂‖²": 1.9, "loss on hidden": 1.6 };
+  const sh = items.map((it) => share[it[0]] ?? 1), tot = sh.reduce((a, b) => a + b, 0), gap = 18, h = 34, y = 2, avail = W - gap * (items.length - 1);
+  let x = 0; const boxes = [];
+  items.forEach(([t, sub, kind], i) => { const bw = (sh[i] / tot) * avail; boxes.push({ x, w: bw, t, sub, kind }); x += bw + gap; });
+  return { boxes, y, h };
+}
+function chainSVG(C, extra = "", shift = 0, dropFrom = 99) {
+  let b = "";
+  C.boxes.forEach((q, i) => {
+    const dx = i >= dropFrom ? shift : 0;
+    if (i && !(i >= dropFrom && shift > 0)) b += arrow(C.boxes[i - 1].x + C.boxes[i - 1].w + 3 + (i - 1 >= dropFrom ? shift : 0), C.y + C.h / 2, q.x - 2 + dx, C.y + C.h / 2);
+    if (i >= dropFrom && shift > 0 && i > dropFrom) b += arrow(C.boxes[i - 1].x + C.boxes[i - 1].w + 3 + dx, C.y + C.h / 2, q.x - 2 + dx, C.y + C.h / 2);
+    b += box(q.x + dx, C.y, q.w, C.h, q.t, q.sub, q.kind);
+  });
+  return b + extra;
+}
+function runA(el, items, lossLabel) {
+  const C = chain(items), B = C.boxes, cy = C.y + C.h / 2, ly = C.y + C.h + 14, H = ly + 10;
+  const fwd = [[B[0].x + B[0].w / 2, cy], ...B.slice(1).map((q) => [q.x + q.w / 2, cy])];
+  const encX = B[1].x + B[1].w / 2, lossX = B[B.length - 1].x + B[B.length - 1].w / 2;
+  const back = [[lossX, C.y + C.h], [lossX, ly], [encX, ly], [encX, C.y + C.h]];
+  const lane = `<polyline points="${back.map((p) => p.join(",")).join(" ")}" style="fill:none;stroke:var(--grid);stroke-width:1;stroke-dasharray:3 3"/>`;
+  let t0 = null;
+  const frame = (now) => {
+    t0 ??= now; const T = ((now - t0) % 1600) / 1600;
+    let marks = "";
+    if (T < 0.55) { const p = along(fwd, ease(T / 0.55)); marks += `<circle cx="${p[0]}" cy="${p[1]}" r="5" style="fill:var(--ink-1)"/>`; }
+    else if (T < 0.95) { const p = along(back, ease((T - 0.55) / 0.4)); marks += `<circle cx="${p[0]}" cy="${p[1]}" r="5" style="fill:var(--c-slope)"/>`; }
+    el.innerHTML = svg(H, chainSVG(C, lane + marks) + `<text x="${(encX + lossX) / 2}" y="${ly + 9}" text-anchor="middle" style="fill:var(--c-slope)">gradient of the loss</text>`);
+    el._raf = requestAnimationFrame(frame);
+  };
+  cancelAnimationFrame(el._raf); el._raf = requestAnimationFrame(frame);
+}
+function runB(el) {
+  const C = chain([["x"], ["Encoder", "CNN", "enc"], ["z", "16"], ["Decoder", null, "head"], ["x̂"], ["loss ‖x − x̂‖²"]]), cy = C.y + C.h / 2, H = C.y + C.h + 4;
+  let t0 = null;
+  const frame = (now) => {
+    t0 ??= now; const T = Math.min(1, ((now - t0) % 2600) / 1400), e = ease(T), shift = e * 340;
+    const z = C.boxes[2], zx = z.x + z.w;
+    let extra = "";
+    if (T >= 1) extra = arrow(zx + 3, cy, zx + 60, cy) + `<text x="${zx + 66}" y="${cy + 4}" style="fill:var(--ink-2)">the map below is drawn from z</text>`;
+    el.innerHTML = svg(H, `<defs><clipPath id="cl"><rect x="-1" y="0" width="${W + 2}" height="${H}"/></clipPath></defs><g clip-path="url(#cl)">${chainSVG(C, extra, shift, 3)}</g>`);
+    el._raf = requestAnimationFrame(frame);
+  };
+  cancelAnimationFrame(el._raf); el._raf = requestAnimationFrame(frame);
+}
+function runC(el) {
+  const h = 30, y = 14, rows = [y, y + 44], mid = y + 37, ly = y + 44 + h + 12, H = ly + 12;
+  let base = box(0, y + 22, 30, h, "x");
+  rows.forEach((ry, i) => {
+    base += arrow(30, mid, 46, ry + h / 2) + box(48, ry, 54, h, ["view 1", "view 2"][i]) + arrow(102, ry + h / 2, 116, ry + h / 2) + box(118, ry, 90, h, "Encoder", null, "enc");
+    base += arrow(208, ry + h / 2, 222, ry + h / 2) + box(224, ry, 30, h, "z") + arrow(254, ry + h / 2, 268, ry + h / 2) + box(270, ry, 90, h, "Projection", null, "head");
+    base += arrow(360, ry + h / 2, 374, ry + h / 2) + box(376, ry, 30, h, "p") + arrow(406, ry + h / 2, 420, mid);
+  });
+  base += box(422, y + 22, 112, h, "similarity, InfoNCE") + `<text x="163" y="${y + 41}" text-anchor="middle" style="fill:var(--ink-3)">same weights</text>`;
+  const fw = rows.map((ry) => [[15, mid], [75, ry + h / 2], [163, ry + h / 2], [239, ry + h / 2], [315, ry + h / 2], [391, ry + h / 2], [478, mid]]);
+  /* the gradient: from the loss, back along each branch on a lane above row 1 and below row 2, to the one encoder */
+  const bk = [[[478, y + 22], [478, y - 9], [163, y - 9], [163, y]], [[478, y + 22 + h], [478, ly], [163, ly], [163, rows[1] + h]]];
+  let t0 = null;
+  const frame = (now) => {
+    t0 ??= now; const T = ((now - t0) % 1800) / 1800;
+    let marks = bk.map((P) => `<polyline points="${P.map((p) => p.join(",")).join(" ")}" style="fill:none;stroke:var(--grid);stroke-dasharray:3 3"/>`).join("");
+    if (T < 0.55) fw.forEach((P, i) => { const p = along(P, ease(T / 0.55)); marks += `<circle cx="${p[0]}" cy="${p[1]}" r="5" style="fill:${i ? "var(--c-group-b)" : "var(--c-group-a)"}"/>`; });
+    else if (T < 0.95) bk.forEach((P) => { const p = along(P, ease((T - 0.55) / 0.4)); marks += `<circle cx="${p[0]}" cy="${p[1]}" r="5" style="fill:var(--c-slope)"/>`; });
+    el.innerHTML = svg(H, base + marks + `<text x="320" y="${ly + 10}" text-anchor="middle" style="fill:var(--c-slope)">gradient of the loss, to the one encoder</text>`);
+    el._raf = requestAnimationFrame(frame);
+  };
+  cancelAnimationFrame(el._raf); el._raf = requestAnimationFrame(frame);
+}
+const RUN = {
+  a: () => runA(document.getElementById("a"), [["x"], ["Encoder", "CNN", "enc"], ["z", "16"], ["Decoder", null, "head"], ["x̂"], ["loss ‖x − x̂‖²"]]),
+  am: () => runA(document.getElementById("am"), [["masked x"], ["Encoder", "CNN", "enc"], ["z", "64"], ["Decoder", null, "head"], ["hidden x̂"], ["loss on hidden"]]),
+  b: () => runB(document.getElementById("b")),
+  c: () => runC(document.getElementById("c")),
+};
+Object.values(RUN).forEach((f) => f());
+document.querySelectorAll("button[data-k]").forEach((b) => b.addEventListener("click", () => RUN[b.dataset.k]()));
+</script>
+</body>
+</html>
