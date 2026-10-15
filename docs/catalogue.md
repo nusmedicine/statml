@@ -25414,6 +25414,17 @@ tokens through `style`), then the encoder line, then the loss and its note.
 Its labels are SVG text, so the card's `tx` hash covers them; the canvas is
 back to the strip, curve and maps.
 
+**Animated 2026-10-16** (`_lab/representation-motion-mock.html`, all three calls
+the recommendation), on the widget's frame clock so the harness can drive it:
+during Train each of the nine moves sends a dot forward through the network and
+the gradient back to the encoder along a dashed lane under the boxes
+(`--c-slope`, "gradient of the loss"); on Contrastive, Augment splits x into
+the two views (blue, amber) and Train runs both branches forward and two
+gradient markers back to the one encoder; when Train ends the head slides out
+to the right (900 ms) and z points at "the maps below are drawn from z". The
+SVG is built once per page (a still part, the head group, empty lane/after/
+motion layers) and `updateSchema` fills the layers each frame.
+
 ---
 
 ## Two arcs, not one — now three

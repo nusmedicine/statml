@@ -53,7 +53,13 @@
    page, MOVED 2026-10-16 into the formula card above its loss function (his
    ask: the loss below the schematic; the card is HTML above the canvas, so
    the schematic is an inline SVG in it, and its labels count in the card's
-   text hash), the encoder drawn the same on all three (the part kept after
+   text hash), and ANIMATED 2026-10-16 (`_lab/representation-motion-mock.html`,
+   all three calls the recommendation): during Train each move between
+   checkpoints sends a dot forward through the network and the gradient back to
+   the encoder along a lane under the boxes (in --c-slope); on Contrastive,
+   Augment splits x into the two views and Train runs both branches and the
+   gradient back along both to the one encoder; when Train ends the head slides
+   out to the right and z points at the maps, which are drawn from it, the encoder drawn the same on all three (the part kept after
    training) and the page's head dashed (dropped), with one line saying any
    encoder can be trained this way; the subtitle generalized (no images, no
    UMAP), the blurb in its words.
@@ -77,6 +83,7 @@ const STEPS = CHECK.steps, PER_EPOCH = CHECK.per_epoch, NCK = STEPS.length;
 const TRAIN_AT = { autoencoder: 1, masked: 1, contrastive: 3 };
 const TRAIN_MS = 4500;     // nine moves between ten checkpoints, 500 ms each
 const AUG_MS = 1100;
+const DROP_MS = 900;      // the head sliding away when Train ends
 const UNTRAINED = 0, TRAINED = 1;   // the two maps a page
 
 /* ------------------------------------------------------------- the data */
@@ -128,6 +135,8 @@ const S = {
     masked: "The network: the masked input, the encoder, the embedding z, the decoder, the hidden part predicted and the loss",
     contrastive: "The network: two views of the input, one encoder with the same weights on both, a projection head on each, and their similarity in the loss",
   },
+  gradLane: { chain: "gradient of the loss", two: "gradient of the loss, to the one encoder" },
+  fromZ: "the maps below are drawn from z",
   encLine: "Encoder: any network that maps an input to a vector (here a CNN). After training the encoder is kept; the head is dropped.",
   digitLabel: "Digit",
   digitDetail: "the test image whose input and output are drawn, and the digit highlighted on the maps; a click on a map point picks its digit",
@@ -258,36 +267,95 @@ function svArrow(x0, y0, x1, y1) {
 }
 /* box widths as shares of the row, by the length of what each holds */
 const SHARE = { "x": 0.6, "z": 0.6, "x̂": 0.6, "Encoder": 1.4, "Decoder": 1.4, "masked x": 1, "hidden x̂": 1, "loss ‖x − x̂‖²": 1.9, "loss on hidden": 1.6 };
-function schemaSVG(page) {
-  let body = "", H;
+/** each page's diagram: the boxes, the paths a forward dot and a gradient follow, and which boxes are the head */
+const GEOM = {};
+function geomOf(page) {
+  if (GEOM[page]) return GEOM[page];
+  let g;
   if (page !== "contrastive") {
     const items = S.schema[page], shares = items.map((it) => SHARE[it[0]] ?? 1), tot = shares.reduce((a, b) => a + b, 0);
-    const gap = 18, h = 34, y = 2, avail = SV_W - gap * (items.length - 1);
+    const gap = 18, h = 34, y = 2, avail = SV_W - gap * (items.length - 1), boxes = [];
     let x = 0;
-    items.forEach(([t, sub, kind], i) => {
-      const bw = (shares[i] / tot) * avail;
-      if (i) body += svArrow(x - gap + 3, y + h / 2, x - 2, y + h / 2);
-      body += svBox(x, y, bw, h, t, sub, kind);
-      x += bw + gap;
-    });
-    H = y + h + 2;
+    items.forEach(([t, sub, kind]) => { const bw = (shares[boxes.length] / tot) * avail; boxes.push({ x, w: bw, t, sub, kind }); x += bw + gap; });
+    const cy = y + h / 2, lane = y + h + 12, enc = boxes[1], loss = boxes[boxes.length - 1];
+    g = {
+      kind: "chain", y, h, boxes, H: lane + 16, headFrom: 3,
+      fwd: [boxes.map((q) => [q.x + q.w / 2, cy])],
+      back: [[[loss.x + loss.w / 2, y + h], [loss.x + loss.w / 2, lane], [enc.x + enc.w / 2, lane], [enc.x + enc.w / 2, y + h]]],
+      gradText: [(enc.x + enc.w / 2 + loss.x + loss.w / 2) / 2, lane + 12],
+      zEnd: [boxes[2].x + boxes[2].w, cy],
+    };
   } else {
-    /* one encoder on two views, a projection head, the similarity of the two projections */
-    const Q = S.schema.contrastive, h = 30, y = 2, rows = [y, y + 44], mid = y + 37;
-    body += svBox(0, y + 22, 30, h, Q.x, null, null);
-    rows.forEach((ry, i) => {
-      body += svArrow(30, mid, 46, ry + h / 2) + svBox(48, ry, 54, h, Q.views[i], null, null);
-      body += svArrow(102, ry + h / 2, 116, ry + h / 2) + svBox(118, ry, 90, h, Q.enc, null, "enc");
-      body += svArrow(208, ry + h / 2, 222, ry + h / 2) + svBox(224, ry, 30, h, Q.z, null, null);
-      body += svArrow(254, ry + h / 2, 268, ry + h / 2) + svBox(270, ry, 90, h, Q.head, null, "head");
-      body += svArrow(360, ry + h / 2, 374, ry + h / 2) + svBox(376, ry, 30, h, Q.p, null, null);
-      body += svArrow(406, ry + h / 2, 420, mid);
-    });
-    body += svBox(422, y + 22, 112, h, Q.loss, null, null);
-    body += `<text x="163" y="${y + 41}" text-anchor="middle" style="fill:var(--ink-3)">${svEsc(Q.shared)}</text>`;
-    H = y + 44 + h + 2;
+    const h = 30, y = 14, rows = [y, y + 44], mid = y + 37, lane = y + 44 + h + 10;
+    g = {
+      kind: "two", y, h, rows, mid, H: lane + 20,
+      fwd: rows.map((ry) => [[15, mid], [75, ry + h / 2], [163, ry + h / 2], [239, ry + h / 2], [315, ry + h / 2], [391, ry + h / 2], [478, mid]]),
+      split: rows.map((ry) => [[15, mid], [75, ry + h / 2]]),
+      back: [[[478, y + 22], [478, y - 9], [163, y - 9], [163, y]], [[478, y + 22 + h], [478, lane], [163, lane], [163, rows[1] + h]]],
+      gradText: [320, lane + 16],
+      zEnd: [254, rows[0] + h / 2],
+    };
   }
-  return `<svg viewBox="-1 0 ${SV_W + 2} ${H}" role="img" aria-label="${svEsc(S.schemaLabel[page])}" style="display:block;width:100%;height:auto;font:11px var(--font)">${body}</svg>`;
+  GEOM[page] = g;
+  return g;
+}
+/** the diagram: a still part (input, encoder, z), the head in a group that can slide, and empty layers the frames fill */
+function schemaSVG(page) {
+  const g = geomOf(page);
+  let still = "", head = "";
+  if (g.kind === "chain") {
+    g.boxes.forEach((q, i) => {
+      const arrow = i ? svArrow(g.boxes[i - 1].x + g.boxes[i - 1].w + 3, g.y + g.h / 2, q.x - 2, g.y + g.h / 2) : "";
+      if (i < g.headFrom) still += arrow + svBox(q.x, g.y, q.w, g.h, q.t, q.sub, q.kind);
+      else head += arrow + svBox(q.x, g.y, q.w, g.h, q.t, q.sub, q.kind);
+    });
+  } else {
+    const Q = S.schema.contrastive, { h, y, rows, mid } = g;
+    still += svBox(0, y + 22, 30, h, Q.x, null, null);
+    rows.forEach((ry, i) => {
+      still += svArrow(30, mid, 46, ry + h / 2) + svBox(48, ry, 54, h, Q.views[i], null, null);
+      still += svArrow(102, ry + h / 2, 116, ry + h / 2) + svBox(118, ry, 90, h, Q.enc, null, "enc");
+      still += svArrow(208, ry + h / 2, 222, ry + h / 2) + svBox(224, ry, 30, h, Q.z, null, null);
+      head += svArrow(254, ry + h / 2, 268, ry + h / 2) + svBox(270, ry, 90, h, Q.head, null, "head");
+      head += svArrow(360, ry + h / 2, 374, ry + h / 2) + svBox(376, ry, 30, h, Q.p, null, null);
+      head += svArrow(406, ry + h / 2, 420, mid);
+    });
+    head += svBox(422, y + 22, 112, h, Q.loss, null, null);
+    still += `<text x="163" y="${y + 41}" text-anchor="middle" style="fill:var(--ink-3)">${svEsc(Q.shared)}</text>`;
+  }
+  return `<svg viewBox="-1 0 ${SV_W + 2} ${g.H}" role="img" aria-label="${svEsc(S.schemaLabel[page])}" style="display:block;width:100%;height:auto;font:11px var(--font)">` +
+    `<g data-sv="lane"></g>${still}<g data-sv="head">${head}</g><g data-sv="after"></g><g data-sv="motion"></g></svg>`;
+}
+/** a point along a polyline, `t` from 0 to 1 by length */
+function along(P, t) {
+  const seg = P.slice(1).map((q, i) => Math.hypot(q[0] - P[i][0], q[1] - P[i][1])), L = seg.reduce((a, b) => a + b, 0);
+  let d = t * L;
+  for (let i = 0; i < seg.length; i++) { if (d <= seg[i]) { const f = seg[i] ? d / seg[i] : 0; return [P[i][0] + (P[i + 1][0] - P[i][0]) * f, P[i][1] + (P[i + 1][1] - P[i][1]) * f]; } d -= seg[i]; }
+  return P[P.length - 1];
+}
+const svDot = (p, col) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5" style="fill:${col}"/>`;
+const HEAD_OUT = 340;   // how far the head slides, past the right edge
+/** the frame's marks: Augment's split, Train's passes, the head sliding away and z pointing at the maps */
+function updateSchema(page, anim) {
+  const svg = mathHost?.querySelector("svg"); if (!svg) return;
+  const g = geomOf(page), layer = (k) => svg.querySelector(`[data-sv="${k}"]`);
+  let motion = "", lane = "";
+  if (page === "contrastive" && anim.aug < 1) g.split.forEach((P, i) => { motion += svDot(along(P, ease(anim.aug)), i ? "var(--c-group-b)" : "var(--c-group-a)"); });
+  if (playingOn(anim, page)) {
+    /* one pass a move: forward over the first 55%, the gradient back over the next 40% */
+    lane = g.back.map((P) => `<polyline points="${P.map((q) => q.join(",")).join(" ")}" style="fill:none;stroke:var(--grid);stroke-dasharray:3 3"/>`).join("") +
+      `<text x="${g.gradText[0]}" y="${g.gradText[1]}" text-anchor="middle" style="fill:var(--c-slope)">${svEsc(S.gradLane[g.kind])}</text>`;
+    const q = anim.t * (NCK - 1), f = q - Math.floor(q);
+    if (f < 0.55) g.fwd.forEach((P, i) => { motion += svDot(along(P, ease(f / 0.55)), g.kind === "two" ? (i ? "var(--c-group-b)" : "var(--c-group-a)") : "var(--ink-1)"); });
+    else if (f < 0.95) g.back.forEach((P) => { motion += svDot(along(P, ease((f - 0.55) / 0.4)), "var(--c-slope)"); });
+  }
+  const sliding = anim.drop < 1 && anim.dropPage === page;
+  const shift = sliding ? ease(anim.drop) * HEAD_OUT : trainedOn(anim, page) ? HEAD_OUT : 0;
+  layer("head").setAttribute("transform", `translate(${shift.toFixed(1)},0)`);
+  layer("after").innerHTML = shift >= HEAD_OUT ? svArrow(g.zEnd[0] + 3, g.zEnd[1], g.zEnd[0] + 60, g.zEnd[1]) +
+    `<text x="${g.zEnd[0] + 66}" y="${g.zEnd[1] + 4}" style="fill:var(--ink-2)">${svEsc(S.fromZ)}</text>` : "";
+  layer("lane").innerHTML = lane;
+  layer("motion").innerHTML = motion;
 }
 
 let mathHost = null, mathKey = null;
@@ -713,7 +781,7 @@ defineWidget({
 
     init: ({ params, fromScratch }) => {
       const page = params.page;
-      const anim = { stage: page, n: {}, t: 1, playPage: null, halt: false, aug: 1 };
+      const anim = { stage: page, n: {}, t: 1, playPage: null, halt: false, aug: 1, drop: 1, dropPage: null };
       anim.n[page] = fromScratch ? 0 : clamp(Number(params.shown) || 0, 0, TRAIN_AT[page]);
       anim.beat = anim.n[page];
       anim.done = anim.n[page] >= TRAIN_AT[page];
@@ -727,27 +795,32 @@ defineWidget({
         anim.aug = Math.min(1, anim.aug + dt / AUG_MS);
       } else if (anim.t < 1) {
         anim.t = Math.min(1, anim.t + dt / TRAIN_MS);
+        /* Train done: the head slides away next */
+        if (anim.t >= 1) { anim.drop = 0; anim.dropPage = page; }
+      } else if (anim.drop < 1) {
+        anim.drop = Math.min(1, anim.drop + dt / DROP_MS);
       } else if (pressesOf(anim, page) < TRAIN_AT[page]) {
         anim.n[page] = pressesOf(anim, page) + 1;
         if (anim.n[page] === TRAIN_AT[page]) { anim.t = 0; anim.playPage = page; }
         else if (page === "contrastive" && anim.n[page] === 1) anim.aug = 0;
       }
       anim.beat = pressesOf(anim, page);
-      anim.done = anim.beat >= TRAIN_AT[page] && anim.t >= 1;
-      return anim.t < 1 || anim.aug < 1;
+      anim.done = anim.beat >= TRAIN_AT[page] && anim.t >= 1 && anim.drop >= 1;
+      return anim.t < 1 || anim.aug < 1 || anim.drop < 1;
     },
     rebuild: (anim, { params }) => {
       /* only a page change ends a Train in flight (mid-press-page-switch); the Digit control keeps it playing */
-      if (params.page !== anim.stage && (anim.t < 1 || anim.aug < 1)) { anim.t = 1; anim.aug = 1; anim.halt = true; }
+      if (params.page !== anim.stage && (anim.t < 1 || anim.aug < 1 || anim.drop < 1)) { anim.t = 1; anim.aug = 1; anim.drop = 1; anim.halt = true; }
       anim.stage = params.page;
       anim.beat = pressesOf(anim, params.page);
-      anim.done = anim.beat >= TRAIN_AT[params.page] && anim.t >= 1 && anim.aug >= 1;
+      anim.done = anim.beat >= TRAIN_AT[params.page] && anim.t >= 1 && anim.aug >= 1 && anim.drop >= 1;
     },
   },
 
   draw({ ctx, colors, w, params, anim, pointer }) {
     const page = params.page, d = Number(params.digit), k = ckOf(anim, page), L = layoutOf(w, page);
     renderFormula(page);
+    updateSchema(page, anim);
     if (page === "contrastive") drawContrast(ctx, colors, w, L, d, pressesOf(anim, page), k, pointer, moveOf(anim, page), anim?.aug ?? 1);
     else drawStrip(ctx, colors, w, L, page, d, k, moveOf(anim, page));
     drawCurve(ctx, colors, L.curve, page, k, moveOf(anim, page));
