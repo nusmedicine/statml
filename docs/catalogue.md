@@ -25387,6 +25387,26 @@ embeddings." **Blurb** in its words, on his ask: "An encoder trained without
 labels to reconstruct its input, predict hidden pixels or match two augmented
 views." (111). Rescan after: 0 banlist hits; the remaining rule flags literal.
 
+### 104 SUBTITLE GENERALIZED AND A SCHEMATIC, 2026-10-15
+
+He had asked for the subtitle to be general (not about images, no UMAP
+detail); the audit's subtitle C was not. `_lab/representation-schematic-mock.html`,
+all three calls the recommendation. **Subtitle S2**: "Self-supervised learning
+trains an encoder without labels, on a target made from the data: reconstruct
+the input (autoencoder), predict a masked part of it (masked prediction), or
+make two augmented views of one sample similar and views of different samples
+dissimilar (contrastive learning). The embeddings it learns can then be used for
+clustering, visualization or other models." **Blurb** in its words: "An encoder
+trained without labels by reconstruction, masked prediction or contrastive
+learning." (95). **A schematic row** above each page's strip: the encoder solid
+on `--surface-2` (kept after training), the head dashed (dropped), the loss at
+the end; Contrastive drawn as one encoder on two views ("same weights"), a
+projection head and the similarity; under each, "Encoder: any network that maps
+an input to a vector (here a CNN). After training the encoder is kept; the head
+is dropped." His question answered with it: the three are not all
+autoencoders; they share an encoder and differ in the head and the target, and
+any encoder (CNN, transformer, GNN, MLP) can be trained this way.
+
 ---
 
 ## Two arcs, not one — now three

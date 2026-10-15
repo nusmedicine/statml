@@ -1472,7 +1472,7 @@
     {
       "slug": "representation",
       "title": "Deep Learning - Frontiers: Representation Learning",
-      "blurb": "An encoder trained without labels to reconstruct its input, predict hidden pixels or match two augmented views.",
+      "blurb": "An encoder trained without labels by reconstruction, masked prediction or contrastive learning.",
       "course": "PHM5005",
       "topics": [
         "representation learning",

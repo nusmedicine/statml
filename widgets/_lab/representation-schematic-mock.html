@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · representation — a general subtitle, and a schematic of the network</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 14px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .opt { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0; padding: var(--sp-2) var(--sp-3); background: var(--surface-2); max-width: 110ch; }
+  .opt b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 104 <code>representation</code> &middot; a general subtitle, and a schematic of the network</h1>
+
+  <h2>1 &middot; The subtitle, general: no images, no UMAP</h2>
+  <div class="opt"><b>S1 &middot; 310 characters</b>Representation learning trains an encoder to map each input to an embedding, a short vector, without
+    labels: the training target is made from the input itself, by reconstructing it, predicting a hidden part of it, or matching
+    two augmented views of it. On each page, the same network before and after training.</div>
+  <div class="opt"><b>S2 &middot; 381 characters</b>Self-supervised learning trains an encoder without labels, on a target made from the data: reconstruct
+    the input (autoencoder), predict a masked part of it (masked prediction), or make two augmented views of one sample similar and
+    views of different samples dissimilar (contrastive learning). The embeddings it learns can then be used for clustering,
+    visualization or other models.</div>
+  <div class="opt"><b>S3 &middot; 213 characters</b>An encoder maps an input to an embedding, a short vector. Self-supervised learning trains it without
+    labels, on a target made from the input: the input itself, a hidden part of it, or another augmented view of it.</div>
+  <p class="rec">Recommend <b>S2</b>: it names the three methods in the field's terms, says what is shared (an encoder) and what
+    differs (the target), and ends on what the embeddings are for, as 10-1b opens. S3 is the shortest; S1 keeps the page's
+    before-and-after. All three pass the register checks (no "images", "pixels", "digits", "UMAP"; no personification).</p>
+
+  <h2>2 &middot; A schematic of the network</h2>
+  <p class="note">Not all three are autoencoders. They share an <b>encoder</b> (input &rarr; embedding z); what differs is the part
+    attached to it during training and the target the loss compares against. The autoencoder adds a decoder that rebuilds the
+    input; masked prediction adds one that predicts only the hidden part (with images, a masked autoencoder; with text, BERT's
+    token prediction); contrastive learning has <b>no decoder</b>: the same encoder runs on two views, a projection head maps
+    each embedding, and the loss compares the two. <b>Any encoder</b> can be trained this way: a CNN here; for sequences a
+    transformer, for graphs a GNN, for tables an MLP (10-1b's own tables). After training the encoder is kept and the head is
+    dropped.</p>
+  <div class="row" id="a"></div>
+  <div class="row" id="b"></div>
+  <p class="rec">Recommend <b>A</b>: a schematic row above the strip on each page, the encoder drawn the same on all three (the
+    part that is kept) and the page's head and target beside it, with one line under it: "Encoder: any network that maps an
+    input to a vector (here a CNN). After training the encoder is kept; the head is dropped." It adds about 92 px to each page.
+    <b>B</b> costs no height: the strip's arrows are labelled with the network's parts, but the contrastive page's shared
+    weights and the dropped head are harder to say there.</p>
+
+  <h2>3 &middot; The calls</h2>
+  <div class="q"><b class="h">3.1 &middot; Subtitle</b> S1 &middot; <b>S2</b> (rec) &middot; S3.</div>
+  <div class="q"><b class="h">3.2 &middot; Schematic</b> <b>A, a schematic row on each page</b> (rec) &middot; B the strip's
+    arrows labelled &middot; C none.</div>
+  <div class="q"><b class="h">3.3 &middot; The encoder line</b> <b>"Encoder: any network that maps an input to a vector (here
+    a CNN). After training the encoder is kept; the head is dropped."</b> (rec) &middot; your words.</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens(), DPR = window.devicePixelRatio || 1, W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub) { const box = el("div", "cand"); box.style.width = `${W}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink1, align = "center", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function boxAt(ctx, x, y, w, h, text, { strong = false, dash = null, sub = null } = {}) {
+  ctx.save(); ctx.fillStyle = strong ? T.surface2 : T.surface; ctx.fillRect(x, y, w, h); ctx.strokeStyle = strong ? T.ink1 : T.ink3; ctx.lineWidth = strong ? 1.6 : 1; if (dash) ctx.setLineDash(dash); ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
+  label(ctx, text, x + w / 2, y + h / 2 + (sub ? -1 : 4), { weight: strong ? "600" : "", size: 11 });
+  if (sub) label(ctx, sub, x + w / 2, y + h / 2 + 12, { size: 9, colour: T.ink3 });
+}
+function arrow(ctx, x0, y0, x1, y1) { ctx.save(); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); const a = Math.atan2(y1 - y0, x1 - x0); ctx.fillStyle = T.ink3; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 7 * Math.cos(a - 0.4), y1 - 7 * Math.sin(a - 0.4)); ctx.lineTo(x1 - 7 * Math.cos(a + 0.4), y1 - 7 * Math.sin(a + 0.4)); ctx.fill(); ctx.restore(); }
+const ENC_LINE = "Encoder: any network that maps an input to a vector (here a CNN). After training the encoder is kept; the head is dropped.";
+
+/* A: a schematic row per page */
+function chain(ctx, y, items) {   // items: [text, w, opts]
+  let x = 8; const h = 34, out = [];
+  items.forEach(([t, w, o], i) => { if (i) arrow(ctx, x - 14, y + h / 2, x - 2, y + h / 2); boxAt(ctx, x, y, w, h, t, o); out.push([x, w]); x += w + 18; });
+  return out;
+}
+{
+  const ctx = canvasIn(cand("a", "A · Autoencoder", "the encoder bold (kept), the decoder plain (dropped); the loss compares x̂ with x"), W, 96);
+  const b = chain(ctx, 10, [["x", 36], ["Encoder", 96, { strong: true, sub: "CNN" }], ["z", 44, { sub: "16" }], ["Decoder", 96, { dash: [4, 3] }], ["x̂", 36], ["loss ‖x − x̂‖²", 128]]);
+  label(ctx, ENC_LINE, 8, 70, { align: "left", size: 9.5, colour: T.ink2 });
+}
+{
+  const ctx = canvasIn(cand("a", "A · Masked", "the same encoder; the head predicts the hidden part; the loss on the hidden part only"), W, 96);
+  chain(ctx, 10, [["masked x", 60], ["Encoder", 86, { strong: true, sub: "CNN" }], ["z", 36, { sub: "64" }], ["Decoder", 86, { dash: [4, 3] }], ["hidden x̂", 60], ["loss on hidden", 96]]);
+  label(ctx, ENC_LINE, 8, 70, { align: "left", size: 9.5, colour: T.ink2 });
+}
+{
+  const ctx = canvasIn(cand("a", "A · Contrastive", "one encoder on two views (shared weights); a projection head; no decoder"), W, 128);
+  const h = 30, y1 = 8, y2 = 52;
+  boxAt(ctx, 8, 30, 30, h, "x");
+  for (const [y, v] of [[y1, "view 1"], [y2, "view 2"]]) {
+    arrow(ctx, 38, 45, 54, y + h / 2);
+    boxAt(ctx, 56, y, 54, h, v);
+    arrow(ctx, 110, y + h / 2, 124, y + h / 2); boxAt(ctx, 126, y, 90, h, "Encoder", { strong: true });
+    arrow(ctx, 216, y + h / 2, 230, y + h / 2); boxAt(ctx, 232, y, 30, h, "z");
+    arrow(ctx, 262, y + h / 2, 276, y + h / 2); boxAt(ctx, 278, y, 90, h, "Projection", { dash: [4, 3] });
+    arrow(ctx, 368, y + h / 2, 382, y + h / 2); boxAt(ctx, 384, y, 30, h, "p");
+    arrow(ctx, 414, y + h / 2, 428, 45);
+  }
+  boxAt(ctx, 430, 30, 112, h, "similarity, InfoNCE");
+  label(ctx, "same weights", 171, 47, { size: 9, colour: T.ink3 });
+  label(ctx, ENC_LINE, 8, 108, { align: "left", size: 9.5, colour: T.ink2 });
+}
+
+/* B: the strip's arrows labelled (autoencoder shown) */
+{
+  const ctx = canvasIn(cand("b", "B · the strip's arrows labelled (Autoencoder)", "no extra height; contrastive's shared weights and the dropped head go unsaid"), W, 76);
+  const S = 46, y = 18;
+  label(ctx, "input", 100 + S / 2, 12, { size: 10, colour: T.ink3 }); label(ctx, "embedding (16 numbers)", 235 + 70, 12, { size: 10, colour: T.ink3 }); label(ctx, "reconstruction", 420 + S / 2, 12, { size: 10, colour: T.ink3 });
+  boxAt(ctx, 100, y, S, S, "3"); boxAt(ctx, 235, y + 4, 140, S - 8, ""); boxAt(ctx, 420, y, S, S, "3");
+  arrow(ctx, 152, y + S / 2, 229, y + S / 2); arrow(ctx, 381, y + S / 2, 414, y + S / 2);
+  label(ctx, "encoder", 190, y + S / 2 - 5, { size: 9.5, colour: T.ink2 }); label(ctx, "decoder", 398, y + S / 2 - 5, { size: 9.5, colour: T.ink2 });
+}
+</script>
+</body>
+</html>
