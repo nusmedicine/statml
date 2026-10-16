@@ -14411,11 +14411,225 @@
       "tx": "0634785f"
     },
     {
-      "$note": "representation · placeholder until the design is agreed",
+      "$note": "representation · Autoencoder, opening: untrained strip, curve empty, untrained map",
       "slug": "representation",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "4f450317",
+      "tx": "285b6dc0"
+    },
+    {
+      "$note": "representation · Autoencoder, trained: epoch 10 row, full curve, both maps, head dropped and z → maps",
+      "slug": "representation",
+      "state": "?theme=light&shown=1",
+      "px": "7eabb634",
+      "tx": "df85d3b6"
+    },
+    {
+      "$note": "representation · Autoencoder, trained, digit 7",
+      "slug": "representation",
+      "state": "?theme=light&digit=7&shown=1",
+      "px": "94784008",
+      "tx": "8d48cc82"
+    },
+    {
+      "$note": "representation · Masked, opening: the masked input and the untrained filled-in noise",
+      "slug": "representation",
+      "state": "?theme=light&page=masked&shown=0",
+      "px": "2b1350d6",
+      "tx": "f2346af6"
+    },
+    {
+      "$note": "representation · Masked, trained: filled in, 5-NN 93.7% → 96.0% caption",
+      "slug": "representation",
+      "state": "?theme=light&page=masked&shown=1",
+      "px": "34870ec2",
+      "tx": "83c52ba5"
+    },
+    {
+      "$note": "representation · Contrastive, opening: input, empty matrix and loss",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive&shown=0",
+      "px": "777e9dec",
+      "tx": "038df3ff"
+    },
+    {
+      "$note": "representation · Contrastive, Augment: the two views overlaid with their parameters",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive&shown=1",
+      "px": "a875b6bd",
+      "tx": "038df3ff"
+    },
+    {
+      "$note": "representation · Contrastive, Compare: the untrained matrix (all near 1), the softmax row at 0.10",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive&shown=2",
+      "px": "75607c30",
+      "tx": "038df3ff"
+    },
+    {
+      "$note": "representation · Contrastive, trained: the diagonal, p 0.92, the head dropped",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive&shown=3",
+      "px": "94593e66",
+      "tx": "1ae9f6fe"
+    },
+    {
+      "$note": "representation · Contrastive, trained, digit 8",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive&digit=8&shown=3",
+      "px": "73635476",
+      "tx": "abf76b39"
+    },
+    {
+      "$note": "representation · dark: Autoencoder trained",
+      "slug": "representation",
+      "state": "?theme=dark&shown=1",
+      "px": "99b02719",
+      "tx": "df85d3b6"
+    },
+    {
+      "$note": "representation · dark: Masked trained",
+      "slug": "representation",
+      "state": "?theme=dark&page=masked&shown=1",
+      "px": "3d037401",
+      "tx": "83c52ba5"
+    },
+    {
+      "$note": "representation · dark: Contrastive trained",
+      "slug": "representation",
+      "state": "?theme=dark&page=contrastive&shown=3",
+      "px": "a3fc0cad",
+      "tx": "1ae9f6fe"
+    },
+    {
+      "$note": "representation · DRIVEN: Autoencoder, Train mid-move (40 frames): the gradient on its lane, bars and curve between checkpoints",
+      "slug": "representation",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "1f87b360",
+      "tx": "ddfb1965"
+    },
+    {
+      "$note": "representation · DRIVEN: Autoencoder, Train done and the head mid-slide (160 frames)",
+      "slug": "representation",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 160,
+        "dt": 32
+      },
+      "px": "7eabb634",
+      "tx": "3ec3dfa9"
+    },
+    {
+      "$note": "representation · DRIVEN: Masked, Train mid-move (70 frames)",
+      "slug": "representation",
+      "state": "?theme=light&page=masked",
+      "drive": {
+        "click": "step",
+        "frames": 70,
+        "dt": 32
+      },
+      "px": "8cde2706",
+      "tx": "aff308af"
+    },
+    {
+      "$note": "representation · DRIVEN: Contrastive, Augment mid-move (15 frames): the digit carried toward each view, the dots splitting",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive",
+      "drive": {
+        "click": "step",
+        "frames": 15,
+        "dt": 32
+      },
+      "px": "0764d5a1",
+      "tx": "038df3ff"
+    },
+    {
+      "$note": "representation · DRIVEN: Contrastive, Train mid-move (20 frames): both branches forward",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "2e15c37e",
+      "tx": "91616868"
+    },
+    {
+      "$note": "representation · INTERRUPTED: Autoencoder Train in flight, then the page switched to Masked: Masked's opening",
+      "slug": "representation",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "set": {
+          "page": "masked"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "2b1350d6",
+      "tx": "f2346af6"
+    },
+    {
+      "$note": "representation · HIT: a click on a digit-7 point of the untrained Autoencoder map picks digit 7",
+      "slug": "representation",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          60.8,
+          425.3
+        ],
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "5b2ada09",
+      "tx": "388b74dc"
+    },
+    {
+      "$note": "representation · HIT: Contrastive after Compare, a click on the matrix's row 7 picks digit 7",
+      "slug": "representation",
+      "state": "?theme=light&page=contrastive",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "hit": [
+          293,
+          162.5
+        ],
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "a4a610ed",
+      "tx": "8f767333"
     }
   ]
 }

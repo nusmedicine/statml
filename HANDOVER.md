@@ -1,5 +1,50 @@
 # Handover
 
+**SESSION 2026-10-12 → 16. 104 `representation` SHIPPED AND PUSHED** as
+"Deep Learning - Frontiers: Representation Learning" (21 states, 21/21 MATCH
+at DPR 1.25). The DL Frontiers arc (PHM5005 10) was PICKED as **104 · 105
+fusion · 106 vae · 108 gan · 107 diffusion** (108 a 1-D GAN beside 10-3's
+pseudocode); the record is the catalogue's § *The DL Frontiers arc* and its
+104 rounds. **NEXT: 105 `fusion`** on 10-2b: measure first (each modality
+alone vs concatenation vs gating on his synthetic CSVs, whether the gate's α
+varies per patient; the CLIP joint embedding with the ~25 copies of each digit
+token per batch), then one mock.
+
+**He moved to the b notebooks.** `10-1b`, `10-2b`, `10-3b` sit beside the
+Master copies (written by `Downloads/PHM5005 AY2025-26 - Notebooks/_scratch/frontiers-build-b.py`
+from the originals; he may delete the originals). Thirteen findings in
+`widgets/_lab/frontiers-notebook-corrections.md` (untracked), with a cell-by-
+cell list of what changed; one encoder/decoder standard (`conv` → `to_embed`,
+`expand` → `deconv`); #13 (the sparse autoencoder's zeros are 9 dead units,
+the same with λ = 0) is documented, not applied. He replaced the GitHub
+`clip_mnist_align.pt` with one saved by 10-2b (keys `img_encoder`,
+`txt_encoder`); 10-3b loads `txt_encoder`.
+
+**104 now.** Approach: Reconstruction-based [Autoencoder] · Self-supervised
+prediction [Masked] · Contrastive learning [Contrastive]; Digit 0–9 (a map or
+matrix-row click picks it). The formula card holds the network schematic
+(inline SVG: encoder solid = kept, head dashed = dropped) above the loss. Train
+plays ten checkpoints (0, 5, 20, 50, 100, 200 batches; epochs 1, 2, 5, 10): the
+strip's second row, the loss curve (log-log), bars and the diagram's forward
+dot and gradient move between checkpoints; the trained map switches in at the
+end and the head slides away (z → "the maps below are drawn from z").
+Contrastive: Augment (views overlaid, the digit carried into each) · Compare
+(matrix with image axes, softmax row, hover card) · Train. `data.js` (340 KB)
+is GENERATED: `_lab/representation-measure.py` → `-umap.py` →
+`-checkpoints.py` → `-export.py` (data and checkpoints in
+`_scratch/frontiers-data`, outside Dropbox). Rejected and why: an aligned UMAP
+or a UMAP a checkpoint during Train (jarring; less sorted), PCA (no grouping
+at any checkpoint), the Sparse page (dead units).
+
+**Learned.** (1) The harness canvas is 535.2 CSS px (669 device), not 550:
+compute hit points at that width. (2) SVG text inside `.w-math` is covered by
+the `tx` hash, so a diagram can live in the card. (3) Check a code's value
+distribution before calling it sparse (a KL code met ρ by holding every unit at
+0.05). (4) Before applying a "no preference" default, re-read his earlier
+wording (the subtitle had to be general).
+
+---
+
 **SESSION CLOSED 2026-10-12. NEXT: the DL Frontiers arc (PHM5005 week 10),
 his call** ("switch to PHM5005 on DL Frontiers"). The three notebooks were
 read in full and four widgets PROPOSED in chat; **NOT picked yet** — open the

@@ -734,7 +734,7 @@ function captionOf(page, anim) {
 
 defineWidget({
   slug: "representation",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Frontiers: Representation Learning",
   subtitle: S.subtitle,
   credit: "Data: MNIST (LeCun, Cortes and Burges)",

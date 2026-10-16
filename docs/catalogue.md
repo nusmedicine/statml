@@ -25187,7 +25187,7 @@ seeded rng.
 
 | # | slug (provisional) | host | the idea made visible | pages (proposed) | state |
 |---|---|---|---|---|---|
-| 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | picked; measure first |
+| 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | **SHIPPED 2026-10-16** (21 states) |
 | 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | picked; measure first |
 | 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | picked; measure first |
 | 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | picked 2026-10-12; check a seed that converges without collapse |
@@ -25424,6 +25424,19 @@ gradient markers back to the one encoder; when Train ends the head slides out
 to the right (900 ms) and z points at "the maps below are drawn from z". The
 SVG is built once per page (a still part, the head group, empty lane/after/
 motion layers) and `updateSchema` fills the layers each frame.
+
+### 104 SHIPPED 2026-10-16 on his "tested ok, push it"
+
+Status flipped first, then **21 fingerprint states**: thirteen settled (every
+page and press in light, three in dark), five driven (Autoencoder mid-Train and
+the head mid-slide, Masked mid-Train, Contrastive's Augment and Train
+mid-move), one interrupted (a Train in flight, then the page switched), two hit
+(a digit-7 point on the untrained map; Contrastive's matrix row 7). Hashed in
+the harness alone (`?only=representation`), identical across three runs at DPR
+1.25, then a 21/21 MATCH pass. The harness canvas is 535 CSS px wide (669
+device px), not 550: hit coordinates were computed from the widget's own layout
+at 535.2. In the slot table above, 104 is **SHIPPED**; NEXT in the arc is
+**105 `fusion`** (10-2b), measured first.
 
 ---
 
