@@ -1484,6 +1484,22 @@
       ],
       "arc": 104,
       "status": "shipped"
+    },
+    {
+      "slug": "fusion",
+      "title": "Deep Learning - Frontiers: Multimodal Fusion",
+      "blurb": "Early fusion, late fusion with one weight or a gate, and a joint embedding.",
+      "course": "PHM5005",
+      "topics": [
+        "multimodal",
+        "early fusion",
+        "late fusion",
+        "gating",
+        "joint embedding",
+        "CLIP"
+      ],
+      "arc": 105,
+      "status": "shipped"
     }
   ]
 }

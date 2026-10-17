@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 10-2b cross-attention as a run example</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); color: var(--ink-1); }
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  pre.cell { font-family: var(--font-mono); font-size: 12px; line-height: 1.45; background: var(--surface-1); border: 1px solid var(--grid);
+             border-left: 3px solid var(--ink-3); padding: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-2); overflow-x: auto; max-width: 110ch; color: var(--ink-1); }
+  pre.cell.md { border-left-color: var(--c-reference); font-family: var(--font); white-space: pre-wrap; }
+  .tag { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: var(--sp-2) 0 2px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-1); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-1); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+  tr.ours td { background: var(--surface-1); }
+  tr.ours td:first-child { border-left: 3px solid var(--c-highlight); }
+  .wrap { overflow-x: auto; max-width: 100%; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>10-2b &middot; cross-attention as a worked, run example?</h1>
+  <p class="note">His question 2026-10-17: should cell 5's <code>CrossAttentionFusionModel</code> template become a run example beside concatenation (cells 19&ndash;28) and the gate (29&ndash;44)?
+    Measured on <b>bg-2030</b> (2,000 patients, 100 genes, 50 mutations; 400 test patients, 113 of them with a failed assay) with 10-2b's settings: 80/20 stratified split, random_state 42, expression standardized on the training rows, Adam 1e-3, batch 256, <b>10 epochs</b>, the lesson's <code>GeneEncoder</code> (dropout 0.1), five seeds (42, 1, 2, 3, 4).
+    Everything below is drawn from <code>_lab/cross-attention-measure.json</code> (<code>_lab/cross-attention-measure.py</code>) and, for weighted averaging and the gate, <code>_lab/fusion-gate-measure.json</code>.
+    The truth file says drivers are mutations <span id="drv"></span> and the flip pair is gene <span id="fg"></span> &times; mutation <span id="fm"></span>; the students' CSV names every mutation column <code>GeneN</code>, so mutation 39 is the column <code>Gene39</code>.</p>
+
+  <!-- ================================================================== CELLS -->
+  <h2>(a) The proposed cells, after cell 44 or after cell 28</h2>
+  <p class="note">The model is the template's shape unchanged: one query per patient from <code>GeneEncoder</code>, <code>(B, 1, D)</code>; keys = values = 50 mutation tokens, <code>(B, 50, D)</code>; <code>nn.MultiheadAttention(batch_first=True)</code>; the head on the attended vector. The two additions are the token encoder and one line that keeps the weights for the plot.
+    <b>Token construction: a learned vector per mutation, multiplied by the patient's 0/1 status.</b> A mutation the patient does not carry becomes the zero token. It is one line, it uses only what cells 15&ndash;17 already built, and its weights read one way on every seed (section d). The alternative, the transformer's <i>id embedding + status embedding</i>, gave the same AUC but weights whose meaning changes between seeds.</p>
+
+  <div class="tag">markdown</div>
+  <pre class="cell md">**Example: cross-attention**
+
+The expression embedding asks one question per patient (the query); each of the 50 mutations becomes one token (a key and a value).
+- Each mutation has a learned vector. A patient's token for that mutation is the vector if they carry it, and zeros if they do not.
+- The attention weights over the 50 tokens sum to 1. The attended vector is the weighted average of the tokens, and the head predicts from it.</pre>
+
+  <div class="tag">code &middot; the mutation tokens</div>
+  <pre class="cell">class MutTokenEncoder(nn.Module):
+    def __init__(self, num_muts, embed_dim=64):
+        super().__init__()
+        self.mut_embed = nn.Embedding(num_muts, embed_dim)   # one learned vector per mutation
+
+    def forward(self, x):                                     # x: (B, num_muts), 0 or 1
+        vectors = self.mut_embed.weight                       # (num_muts, D)
+        return x.unsqueeze(-1) * vectors                      # (B, num_muts, D); not carried = zeros</pre>
+
+  <div class="tag">code &middot; cell 5's template, with the weights kept</div>
+  <pre class="cell">class CrossAttentionFusion(nn.Module):
+    def __init__(self, encoderA, encoderB, embed_dim, head_hidden=128, num_heads=1, num_classes=2):
+        super().__init__()
+        self.encoderA = encoderA   # query: expression
+        self.encoderB = encoderB   # keys and values: mutation tokens
+        self.cross_attn = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
+        self.fusion_head = nn.Sequential(
+            nn.Linear(embed_dim, head_hidden),
+            nn.ReLU(),
+            nn.Linear(head_hidden, num_classes)
+        )
+
+    def forward(self, xA, xB):
+        Q = self.encoderA(xA).unsqueeze(1)    # (B, 1, D)
+        K = self.encoderB(xB)                 # (B, 50, D)
+        V = K
+        attn_output, attn_weights = self.cross_attn(Q, K, V)   # (B, 1, D), (B, 1, 50)
+        self.attn_weights = attn_weights.squeeze(1)            # (B, 50), kept for the plot
+        h = attn_output.squeeze(1)
+        return self.fusion_head(h)            # (B, 2)</pre>
+
+  <div class="tag">code &middot; set-up (cell 22's seed and hyperparameters reused)</div>
+  <pre class="cell">EMBED_DIM = 64   # the query and the tokens must have the same size
+
+encoderA = GeneEncoder(in_dim=GENE_DIM, embed_dim=EMBED_DIM).to(DEVICE)
+encoderB = MutTokenEncoder(num_muts=MUT_DIM, embed_dim=EMBED_DIM).to(DEVICE)
+model = CrossAttentionFusion(encoderA, encoderB, embed_dim=EMBED_DIM, num_heads=1).to(DEVICE)
+
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)</pre>
+
+  <div class="tag">code &middot; training: cell 26 unchanged</div>
+  <div class="tag">code &middot; evaluate: cell 28, collecting the weights too</div>
+  <pre class="cell">model.eval()
+all_output, all_y, all_attn = [], [], []
+with torch.no_grad():
+    for xb_gene, xb_mut, yb in test_loader:
+        xb_gene, xb_mut = xb_gene.to(DEVICE), xb_mut.to(DEVICE)
+        output = model(xb_gene, xb_mut)
+        all_output.append(output.cpu())
+        all_y.append(yb)
+        all_attn.append(model.attn_weights.cpu())
+
+all_output = torch.cat(all_output)
+all_y = torch.cat(all_y).numpy()
+probs = all_output.softmax(dim=1)[:, 1].numpy()
+print(f"Test Accuracy: {accuracy_score(all_y, all_output.argmax(dim=1).numpy()):.3f}")
+print(f"Test ROC-AUC: {roc_auc_score(all_y, probs):.3f}")</pre>
+
+  <div class="tag">code &middot; the attention weights</div>
+  <pre class="cell">import matplotlib.pyplot as plt
+
+attn = torch.cat(all_attn).numpy()        # (n_test, 50)
+carried = X_mut_test.astype(bool)         # (n_test, 50)
+
+# Mean weight on each mutation, among the patients who carry it
+attn_carried = (attn * carried).sum(axis=0) / carried.sum(axis=0)
+# Mean weight on a mutation the patient does not carry
+attn_absent = attn[~carried].mean()
+
+plt.figure(figsize=(12, 3.5))
+plt.bar(range(MUT_DIM), attn_carried)
+plt.axhline(attn_absent, linestyle="--", color="grey", label="mutation not carried")
+plt.xticks(range(MUT_DIM), mut_df.columns, rotation=90)
+plt.ylabel("attention weight")
+plt.legend()
+plt.show()</pre>
+
+  <!-- ================================================================== RESULTS -->
+  <h2>(b) Test AUC, 10 epochs, five seeds</h2>
+  <p class="note">Mean over the five seeds, with the lowest and highest seed. The proposed example is the highlighted row. &ldquo;Query shuffled&rdquo; gives each test patient another patient's query: the drop is how much the model uses the expression. Weighted averaging and the gate come from <code>fusion-gate-measure.json</code> (same split and settings).</p>
+  <div class="wrap"><table id="aucTable"></table></div>
+  <p class="note"><b>Ten epochs is not undertrained here.</b> At 30 epochs no model improves, and the baselines get worse (overfitting on 1,600 training patients): <span id="ep30"></span>. The notebook's 10 is the number to report.</p>
+
+  <!-- ================================================================== CHART -->
+  <h2>(c) Where the attention goes: the weight on each mutation among the patients who carry it</h2>
+  <p class="note">The proposed model, 10 epochs. A bar is the mean over five seeds; the five dots are the seeds. The dashed line is the mean weight on a mutation the patient does not carry, about 1/50 because the absent tokens are all zeros. Drivers in the highlight colour; mutation 27, the one whose effect depends on gene 8, outlined.</p>
+  <div class="wrap"><canvas id="bars"></canvas></div>
+  <p class="note" id="barsNote" style="margin-top:var(--sp-2)"></p>
+
+  <h3>The plot a student would draw first: the mean over all patients</h3>
+  <p class="note">Averaged over every test patient, a mutation's weight also counts how often it is carried, and the generator carries drivers at 30% and the rest at 5&ndash;15%. Drivers still stand out, but part of that is frequency, which is why the proposed plot divides by the carriers.</p>
+  <canvas id="scatter"></canvas>
+
+  <!-- ================================================================== GROUPS -->
+  <h2>(d) Comparisons that hold on all five seeds, and those that do not</h2>
+  <div class="wrap"><table id="groupTable"></table></div>
+  <p class="note" id="groupNote"></p>
+  <canvas id="entropy"></canvas>
+
+  <h3>Why not id + status tokens</h3>
+  <p class="note">Share of each test patient's attention on the mutations they carry (they carry 12.8% of the 50 on average), per seed. With id + status embeddings the model attends to carried tokens on two seeds, to absent ones on another, and in between on two; with the multiplied tokens the share is the same on every seed. Its carrier-conditional driver ranks move just as much (on seed 3 mutation 39 ranks 21st).</p>
+  <div class="wrap"><table id="tokTable"></table></div>
+
+  <!-- ================================================================== CALLS -->
+  <h2>(e) Calls</h2>
+  <div class="q"><b class="h">What a student would conclude, and whether it is true</b>
+    <i>&ldquo;Cross-attention found the driver mutations.&rdquo;</i> Mostly true when read among carriers: mutation 39 ranks 1st to 4th and 14 ranks 1st to 8th on every seed, and at least four of the five drivers are in the top ten on every seed; the fifth driver drops out on two seeds (31 on seed 42, 8 on seed 4). Carried non-drivers get about the same weight as an absent mutation.
+    <i>&ldquo;Mutation 27 does not matter.&rdquo;</i> <b>False.</b> It is half of the gene-8 interaction and is never among the attended mutations (rank 12 to 49). A low weight is not a low importance; that is the lesson the plot can teach.
+    <i>&ldquo;Cross-attention is the better fusion.&rdquo;</i> <b>False here</b>: 0.71 against concatenation's 0.77. In the template the expression reaches the head only through the weights (the attended vector is built from mutation tokens alone).
+    No leak: the tokens carry nothing but the 0/1 status, and the weights are not just the status (carried non-drivers sit on the floor).</div>
+  <div class="q"><b class="h">1 &middot; Run it as a worked example (recommended)</b>
+    Seven cells after cell 44: the markdown above, the token encoder, the model, set-up, training (cell 26 copied), evaluate, the attention plot; plus one markdown cell reading the plot (drivers attended, 27 not, and why the AUC is lower). Colab time: one 10-epoch run took 0.4&ndash;0.7 s here on CPU; seconds on Colab's CPU. Honest about the result: below concatenation, readable weights, and a plain case of attention &ne; importance.</div>
+  <div class="q"><b class="h">2 &middot; Keep the template only</b>
+    No cells, no Colab time. The template's notes already say the K/V side must be a sequence; what is lost is the token construction (the step students cannot see from the template) and the attention plot.</div>
+  <div class="q"><b class="h">3 &middot; Run it with the query added back (a residual)</b>
+    One changed line, <code>h = attn_output.squeeze(1) + Q.squeeze(1)</code>, as a transformer block does: 0.755 AUC (0.74&ndash;0.77), level with concatenation, and the same drivers on top (carrier-conditional, 4 or 5 of 5 in the top ten every seed, 27 never). Same cell count as option 1. It departs from cell 5's template, so cell 5 would change too; better as a one-paragraph note after option 1 than as the example itself.</div>
+  <div class="rec"><b>Recommendation</b>: option 1, the template unchanged with the multiplied tokens, and option 3's line and number as a note in the markdown that reads the plot. Not recommended: the id + status tokens (their weights change meaning between seeds) and a plot of the mean over all patients (it mixes in carrier frequency).</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const R = await (await fetch("cross-attention-measure.json")).json();
+const G = (await (await fetch("fusion-gate-measure.json")).json())["bg-2030"].models;
+
+const f2 = (x) => x.toFixed(2), f3 = (x) => x.toFixed(3);
+const DRV = R.drivers, FM = R.flip_mut;
+document.getElementById("drv").textContent = [...DRV].sort((a, b) => a - b).join(", ");
+document.getElementById("fg").textContent = R.flip_gene;
+document.getElementById("fm").textContent = FM;
+
+function canvas(id, w, h) { const c = document.getElementById(id); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, hollow = false) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (hollow) { ctx.strokeStyle = fill; ctx.lineWidth = 1.4; ctx.stroke(); } else { ctx.fillStyle = fill; ctx.fill(); } ctx.restore(); }
+function frame(ctx, x, y, w, h, col) { ctx.save(); ctx.strokeStyle = col; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const range = (a, d = 2) => `${Math.min(...a).toFixed(d)}–${Math.max(...a).toFixed(d)}`;
+
+/* ------------------------------------------------------------------ (b) AUC table */
+{
+  const A = R.auc, rows = [
+    ["Expression alone", A["expression@10"]], ["Mutations alone", A["mutations@10"]], ["Concatenation (cells 19–28)", A["concat@10"]],
+    ["Weighted averaging", { auc: G.weighted.auc, auc_degraded: G.weighted.auc_degraded, auc_intact: G.weighted.auc_intact, auc_sd: G.weighted.auc_sd }],
+    ["Learned gate (cells 29–44)", { auc: G.gated.auc, auc_degraded: G.gated.auc_degraded, auc_intact: G.gated.auc_intact, auc_sd: G.gated.auc_sd }],
+    ["Cross-attention, multiplied tokens (proposed)", A["xattn scaled@10"], true],
+    ["Cross-attention, id + status tokens", A["xattn idstatus@10"]],
+    ["Cross-attention, id + status, 4 heads", A["xattn idstatus 4 heads@10"]],
+    ["Cross-attention, multiplied tokens + query added back", A["xattn scaled residual@10"]],
+    ["Cross-attention, id + status + query added back", A["xattn idstatus residual@10"]],
+  ];
+  const t = document.getElementById("aucTable");
+  t.innerHTML = "<tr><th>model</th><th>test AUC</th><th>seed range</th><th>failed assay</th><th>assay worked</th><th>query shuffled</th></tr>" +
+    rows.map(([n, r, ours]) => `<tr${ours ? ' class="ours"' : ""}><td>${n}</td><td class="num">${f3(r.auc)}</td><td class="num">${r.auc_min != null ? `${f3(r.auc_min)}–${f3(r.auc_max)}` : `sd ${f3(r.auc_sd)}`}</td>` +
+      `<td class="num">${f3(r.auc_degraded)}</td><td class="num">${f3(r.auc_intact)}</td><td class="num">${r.auc_query_shuffled != null ? f3(r.auc_query_shuffled) : ""}</td></tr>`).join("");
+  document.getElementById("ep30").textContent = `concatenation ${f3(A["concat@10"].auc)} → ${f3(A["concat@30"].auc)}, the proposed model ${f3(A["xattn scaled@10"].auc)} → ${f3(A["xattn scaled@30"].auc)}, mutations alone ${f3(A["mutations@10"].auc)} → ${f3(A["mutations@30"].auc)}`;
+}
+
+/* ------------------------------------------------------------------ (c) the bars */
+const S = R.attention["scaled@10"].per_seed.filter((s) => s.seed !== "init");
+const NM = S[0].carrier.length;
+{
+  const W = 1180, H = 300, x0 = 56, y0 = 16, w = W - x0 - 16, h = 220, ctx = canvas("bars", W, H);
+  const ymax = 0.3, X = (j) => x0 + (j + 0.5) * (w / NM), Y = (v) => y0 + h - (Math.min(v, ymax) / ymax) * h, bw = (w / NM) * 0.62;
+  frame(ctx, x0, y0, w, h, T.axis);
+  [0, 0.1, 0.2, 0.3].forEach((v) => { line(ctx, x0 - 4, Y(v), x0, Y(v), T.axis); label(ctx, v.toFixed(1), x0 - 7, Y(v) + 3, { size: 10, align: "right" }); });
+  ctx.save(); ctx.translate(16, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, "attention weight, carriers", 0, 0, { size: 11, align: "center" }); ctx.restore();
+  for (let j = 0; j < NM; j++) {
+    const m = j + 1, vals = S.map((s) => s.carrier[j]), v = mean(vals), isD = DRV.includes(m), isF = m === FM;
+    ctx.save();
+    if (isF) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.4; ctx.strokeRect(X(j) - bw / 2, Y(v), bw, Y(0) - Y(v)); }
+    else { ctx.fillStyle = isD ? T.highlight : T.empirical; ctx.fillRect(X(j) - bw / 2, Y(v), bw, Y(0) - Y(v)); }
+    ctx.restore();
+    vals.forEach((u) => dot(ctx, X(j), Y(u), 1.6, T.ink3));
+    label(ctx, String(m), X(j), y0 + h + 13, { size: 9, align: "center", colour: isD || isF ? T.ink1 : T.ink3, weight: isD || isF ? "600" : "" });
+  }
+  const floor = mean(S.map((s) => s.noncarrier_median));
+  line(ctx, x0, Y(floor), x0 + w, Y(floor), T.reference, 1.4, [5, 4]);
+  label(ctx, `not carried, ${f3(floor)}`, x0 + w - 4, Y(floor) - 5, { size: 10, align: "right", colour: T.reference });
+  label(ctx, "mutation", x0 + w / 2, y0 + h + 30, { size: 11, align: "center" });
+  ctx.fillStyle = T.highlight; ctx.fillRect(x0, H - 22, 12, 10); label(ctx, "driver", x0 + 16, H - 13, { size: 10 });
+  ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.4; ctx.strokeRect(x0 + 70, H - 22, 12, 10); ctx.restore(); label(ctx, `mutation ${FM}, the interaction partner of gene ${R.flip_gene}`, x0 + 86, H - 13, { size: 10 });
+  ctx.fillStyle = T.empirical; ctx.fillRect(x0 + 340, H - 22, 12, 10); label(ctx, "other mutations", x0 + 356, H - 13, { size: 10 });
+  dot(ctx, x0 + 466, H - 17, 2, T.ink3); label(ctx, "one seed", x0 + 472, H - 13, { size: 10 });
+
+  const ranks = (m) => S.map((s) => s.carrier_rank_of[String(m)]);
+  const top10 = S.map((s) => s.drivers_in_carrier_top10);
+  document.getElementById("barsNote").innerHTML =
+    `Carrier-conditional rank, per seed (42, 1, 2, 3, 4): ${DRV.map((m) => `<b>${m}</b> ${ranks(m).join(", ")}`).join(" · ")} · <b>${FM}</b> (flip) ${ranks(FM).join(", ")}. ` +
+    `Drivers in the top ten: ${top10.join(", ")} of 5. Median weight on a carried non-driver: ${range(S.map((s) => s.carrier_other_median), 3)}, about the same as on an absent mutation (${range(S.map((s) => s.noncarrier_median), 3)}). ` +
+    `Untrained (seed 42 before training): every weight about 0.020, drivers ranked ${DRV.map((m) => R.attention["scaled@10"].per_seed.find((s) => s.seed === "init").carrier_rank_of[String(m)]).join(", ")}.`;
+}
+
+/* ------------------------------------------------------------------ mean over all patients against carrier rate */
+{
+  const W = 420, H = 300, x0 = 56, y0 = 14, w = 340, h = 230, ctx = canvas("scatter", W, H);
+  const rate = R.carrier_rate_test, X = (v) => x0 + (v / 0.55) * w, Y = (v) => y0 + h - (v / 0.1) * h;
+  frame(ctx, x0, y0, w, h, T.axis);
+  [0, 0.1, 0.2, 0.3, 0.4, 0.5].forEach((v) => { line(ctx, X(v), y0 + h, X(v), y0 + h + 4, T.axis); label(ctx, v.toFixed(1), X(v), y0 + h + 15, { size: 10, align: "center" }); });
+  [0, 0.05, 0.1].forEach((v) => { line(ctx, x0 - 4, Y(v), x0, Y(v), T.axis); label(ctx, v.toFixed(2), x0 - 7, Y(v) + 3, { size: 10, align: "right" }); });
+  label(ctx, "share of test patients who carry it", x0 + w / 2, y0 + h + 32, { size: 11, align: "center" });
+  ctx.save(); ctx.translate(16, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, "mean weight, all patients", 0, 0, { size: 11, align: "center" }); ctx.restore();
+  for (let j = 0; j < NM; j++) {
+    const m = j + 1, v = mean(S.map((s) => s.mean[j])), isD = DRV.includes(m), isF = m === FM;
+    if (isF) { dot(ctx, X(rate[j]), Y(v), 4, T.ink1, true); label(ctx, String(m), X(rate[j]) + 7, Y(v) + 4, { size: 10, colour: T.ink1 }); }
+    else { dot(ctx, X(rate[j]), Y(v), isD ? 4 : 3, isD ? T.highlight : T.empirical); if (isD) label(ctx, String(m), X(rate[j]) + 6, Y(v) - 4, { size: 10, colour: T.ink1 }); }
+  }
+  label(ctx, `r = ${range(S.map((s) => s.corr_mean_vs_carrier_rate))} across seeds`, x0 + w - 6, y0 + 16, { size: 10, align: "right" });
+}
+
+/* ------------------------------------------------------------------ (d) groups */
+{
+  const rows = [
+    ["Attention entropy (uniform over 50 = 3.91)", S.map((s) => s.entropy_degraded), S.map((s) => s.entropy_intact), "higher for failed on 5 of 5 seeds"],
+    ["Total weight on the five drivers", S.map((s) => mean(DRV.map((m) => s.degraded[m - 1])) * 5), S.map((s) => mean(DRV.map((m) => s.intact[m - 1])) * 5), "lower for failed on 5 of 5"],
+    ["Spread of weights between patients (SD, mean over mutations)", S.map((s) => s.between_patient_sd_degraded), S.map((s) => s.between_patient_sd_intact), "lower for failed on 5 of 5"],
+    [`Correlation of the weight on ${FM} with gene ${R.flip_gene}, carriers of ${FM}, assay worked`, null, S.map((s) => s.corr_a27_gene8_intact_carrier), "does not hold: sign changes between seeds"],
+  ];
+  const fmt = (a) => (a ? a.map((v) => f3(v)).join(", ") : "");
+  document.getElementById("groupTable").innerHTML = "<tr><th>per seed (42, 1, 2, 3, 4)</th><th>assay failed</th><th>assay worked</th><th>holds?</th></tr>" +
+    rows.map(([n, a, b, v]) => `<tr><td>${n}</td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td><td>${v}</td></tr>`).join("");
+  document.getElementById("groupNote").innerHTML = `<b>What holds</b>: for the ${R.n_test_degraded} test patients whose assay failed, the attention is close to even over the 50 tokens and nearly the same for every one of them: their queries all come from the same background profile, so only the tokens they carry differ. ` +
+    `The model then predicts them from the mutations alone (AUC ${f3(R.auc["xattn scaled@10"].auc_degraded)} against ${f3(R.auc["mutations@10"].auc_degraded)} for mutations alone on the same patients). ` +
+    `<b>What does not hold</b>: any sign that the weight on mutation ${FM} follows gene ${R.flip_gene}, the interaction the dataset builds in.`;
+
+  const W = 420, H = 210, x0 = 56, y0 = 14, w = 340, h = 150, ctx = canvas("entropy", W, H);
+  const X = (i) => x0 + (i + 0.5) * (w / 5), Y = (v) => y0 + h - ((v - 3.0) / 1.0) * h;
+  frame(ctx, x0, y0, w, h, T.axis);
+  [3.0, 3.5, 4.0].forEach((v) => { line(ctx, x0 - 4, Y(v), x0, Y(v), T.axis); label(ctx, v.toFixed(1), x0 - 7, Y(v) + 3, { size: 10, align: "right" }); });
+  line(ctx, x0, Y(Math.log(50)), x0 + w, Y(Math.log(50)), T.reference, 1.4, [5, 4]);
+  label(ctx, "even over 50", x0 + w - 4, Y(Math.log(50)) - 5, { size: 10, align: "right", colour: T.reference });
+  S.forEach((s, i) => { dot(ctx, X(i), Y(s.entropy_degraded), 4, T.ink1, true); dot(ctx, X(i), Y(s.entropy_intact), 4, T.ink1); label(ctx, `seed ${s.seed}`, X(i), y0 + h + 14, { size: 10, align: "center" }); });
+  ctx.save(); ctx.translate(16, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, "entropy", 0, 0, { size: 11, align: "center" }); ctx.restore();
+  dot(ctx, x0 + 6, H - 14, 4, T.ink1, true); label(ctx, "assay failed", x0 + 14, H - 10, { size: 10 });
+  dot(ctx, x0 + 100, H - 14, 4, T.ink1); label(ctx, "assay worked", x0 + 108, H - 10, { size: 10 });
+}
+
+/* ------------------------------------------------------------------ id + status against multiplied */
+{
+  const I = R.attention["idstatus@10"].per_seed.filter((s) => s.seed !== "init");
+  document.getElementById("tokTable").innerHTML = `<tr><th>tokens</th>${S.map((s) => `<th>seed ${s.seed}</th>`).join("")}<th>test AUC</th></tr>` +
+    `<tr><td>id + status</td>${I.map((s) => `<td class="num">${f2(s.share_on_carried)}</td>`).join("")}<td class="num">${f3(R.auc["xattn idstatus@10"].auc)}</td></tr>` +
+    `<tr class="ours"><td>multiplied (proposed)</td>${S.map((s) => `<td class="num">${f2(s.share_on_carried)}</td>`).join("")}<td class="num">${f3(R.auc["xattn scaled@10"].auc)}</td></tr>`;
+}
+</script>
+</body>
+</html>

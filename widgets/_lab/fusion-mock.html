@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · fusion — the three pages proposed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--ink-3); background: var(--surface-2); max-width: 110ch; }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; font-size: 11px; }
+  .rail .lab2 { color: var(--ink-2); font-weight: 600; margin-right: 4px; }
+  .rail .pg { padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.on { border-color: var(--c-highlight); }
+  .rail .btn { padding: 3px 9px; border: 1px solid var(--ink-3); border-radius: 3px; color: var(--ink-1); }
+  .slider { display: flex; gap: 10px; align-items: center; font-size: var(--fs-sm); margin: 6px 0; }
+  .slider input { width: 260px; }
+  .slider output { font-family: var(--font-mono); min-width: 40px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 105 <code>fusion</code> &middot; the three pages on his picks, Late with the gate as step 2</h1>
+  <p class="note">His calls so far (2026-10-17): the widget teaches on <b>small constructed examples</b> where each contrast is clear, and 10-2b moves to the v6 dataset (corrections file, item 14).
+    <b>Early</b>: concatenation against weighted averaging, gating not drawn. <b>Late</b>: α as the control. <b>Joint</b>: 10-2b's own CLIP model, retrained here (seed 42, 10 epochs).
+    Everything below is drawn from <code>_lab/fusion-mock-data.json</code> (<code>_lab/fusion-toy.py</code>). Captions in grey boxes are draft reader copy; everything else is a note to him.</p>
+  <div class="rail"><span class="lab2">Level of fusion</span><span class="pg on">Early</span><span class="pg">Late</span><span class="pg">Joint</span></div>
+
+  <!-- ================================================================== EARLY -->
+  <h2>Early &middot; one vector before the model, or one verdict per modality</h2>
+  <p class="note">1,000 patients, one gene <code>g</code> and one mutation <code>m</code>; risk = 2.5&thinsp;g&thinsp;(2m &minus; 1), so the gene raises the risk in mutated patients and lowers it in the rest. 750 train, 250 test.
+    Both models are 10-2b's shapes at a small size (an encoder per modality, 4-dimensional embeddings), Adam 1e-2, weight decay 1e-2, 300 full-batch epochs. The first build (400 patients, no weight decay) overfit: a bump and a plateau on concatenation's curves and a wiggle on weighted averaging's that read as signal.
+    <b>Weighted averaging's flat line is the right answer, not a failure to train</b>: with the flip symmetric, P(outcome | g) = 0.5 for every g and P(outcome | m) = 0.5 for both statuses, so the best each single-modality verdict can do is the base rate.</p>
+  <div class="row" id="early"></div>
+  <div class="cap"><i>draft caption, before Train</i><span id="earlyBefore"></span></div>
+  <div class="cap"><i>draft caption, after Train</i><span id="earlyAfter"></span></div>
+  <p class="note" style="margin-top:var(--sp-2)">Measured and not drawn: the gated model reaches <span id="gatedAuc"></span> with these settings and 0.75 in the first build: the gate multiplies the two verdicts, so it <i>can</i> learn the flip, and whether it does depends on the training settings. On his call the page compares the two that differ in <i>where</i> the modalities meet.</p>
+
+  <!-- ================================================================== LATE -->
+  <h2>Late &middot; step 1, one α for all patients; step 2, the gate</h2>
+  <p class="note">1,000 patients (750 train). Expression is five genes (their mean is the risk signature) and five driver mutations; both modalities informative. <b>In 30% of patients the expression assay failed</b>: every gene reads near background (&minus;2 in standardized units). Each modality's verdict is the log-odds from a logistic regression on that modality alone. The expression model is fitted on the training patients whose assay worked, a model built on good samples and then applied to every patient, so it calls the failed patients low risk <i>with confidence</i> (log-odds about &minus;4.6, whatever their outcome). Fitted on every training patient instead, its slope flattened (measured verdicts &minus;0.3 to +1, failed &minus;0.6) and the gate only matched one α (0.76 against 0.75).
+    <b>Step 1</b>: fused = α&thinsp;×&thinsp;expression + (1 &minus; α)&thinsp;×&thinsp;mutations, α the student's slider; the learned α minimizes the training log-loss with both verdicts held fixed.
+    <b>Step 2</b>: the gate, a small network on both modalities' measurements (5 genes + 5 mutations &rarr; 16 &rarr; 1, sigmoid), trained with the two verdicts held fixed, so the only thing that changes between the steps is α. Weight decay 1e-2: without it the gate's α for measured patients spread from 0 to 1.</p>
+  <p class="note"><b>Why a failed assay that reads low, not a blank row</b>: blank rows were tried first and the gate hardly moved (α 0.44 against 0.49). A blank row already gets an expression verdict near 0, so its weight barely changes the loss. A gate earns its place where one modality is <i>confidently wrong</i> for patients the gate can recognise, here a whole profile at background. (10-2b's own network, trained jointly on blank rows, does separate them, 0.84 against 0.46: the two set-ups differ, and the catalogue has both.)</p>
+  <div class="rail"><span class="lab2">Step</span><span class="pg on" id="st1" style="cursor:pointer">1 · one α</span><span class="pg" id="st2" style="cursor:pointer">2 · gate</span><span style="color:var(--ink-3);font-size:11px;margin-left:8px">live in this mock</span></div>
+  <div class="slider" id="alphaRow"><label for="alpha">α</label><input id="alpha" type="range" min="0" max="1" step="0.05" value="0.5"><output id="alphaOut"></output>
+    <span style="color:var(--ink-3);font-size:11px">0 = mutations only, 1 = expression only</span></div>
+  <div class="row" id="late"></div>
+  <div class="cap"><i>draft caption</i><span id="lateCap"></span></div>
+
+  <!-- ================================================================== JOINT -->
+  <h2>Joint &middot; one embedding space for two modalities</h2>
+  <p class="note">10-2b cells 48&ndash;70: an image encoder and a token encoder (the ten digit tokens), 64-dimensional, InfoNCE on matched pairs, 10 epochs. 2,000 test images. A click on a row picks the token (live in this mock).</p>
+  <div class="row" id="joint"></div>
+  <div class="cap"><i>draft caption, after Train</i><span id="jointCap"></span></div>
+
+  <!-- ================================================================== CALLS -->
+  <h2>The calls before building</h2>
+  <div class="q"><b class="h">1 &middot; Rail and page names</b>Recommend <b>Level of fusion: Early · Late · Joint</b> (10-2b's own three headings). The page control is named for what the pages are, per the page-control rule; &ldquo;Strategy&rdquo; is the alternative.</div>
+  <div class="q"><b class="h">2 &middot; Presses</b>Recommend one <b>Train</b> press on Early and Joint (each opens untrained: Early's curves flat at 0.5, Joint's matrix nearly one shade per row and its retrieval at chance, 11.5% top-1), and on Late <b>no press in step 1</b> (its verdicts are fixed and α is a display control, so moving it resets nothing) and <b>Train gate</b> in step 2 (call 6). Train on Early plays both models' curves forming over the epochs, side by side; on Joint, the diagonal blocks forming over the checkpoints.</div>
+  <div class="q"><b class="h">3 &middot; Colours</b>Outcome as <code>--c-event</code> / <code>--c-nonevent</code> on every page; mutated / not mutated as solid / dashed ink, because <code>--c-group-a</code> is the same blue as <code>--c-nonevent</code> and the two would share the Early page (one colour, two groupings); the fused verdict and α's position as <code>--c-highlight</code> (the thing the slider moves; <code>--c-empirical</code> is blue too); the learned α as <code>--c-reference</code>. Joint keeps 104's map: the chosen digit in <code>--c-highlight</code>, the rest in ink, so there are no ten digit hues.</div>
+  <div class="q"><b class="h">4 &middot; Quote v6's numbers?</b>Recommend <b>no</b>. The widget teaches on the constructed examples and says so in one line of the subtitle; v6's modest effects (fusion +0.02 to +0.04 AUC over the better single modality) belong in the notebook, where the students run it.</div>
+  <div class="q"><b class="h">5 &middot; Title</b>Recommend <b>&ldquo;Deep Learning - Frontiers: Multimodal Fusion&rdquo;</b>, in 104's series form.</div>
+  <div class="q"><b class="h">6 &middot; The gate (now step 2 on Late, his call)</b>Recommend the two steps as a <b>Step</b> control on the Late page, &ldquo;1 &middot; one α&rdquo; and &ldquo;2 &middot; gate&rdquo;, with the α slider dimmed on step 2 (the gate sets α there). Step 2 has a <b>Train gate</b> press: the α dots start at 0.5 and move to each patient's value over the epochs, the failed patients' strip sliding left. Two things to decide on the copy: (a) the failed assay as &ldquo;every gene reads near background&rdquo;; (b) the expression model fitted on the patients whose assay worked, which is what makes its verdict on a failed assay confidently wrong and lets the gate help (AUC 0.82 against 0.76 for the one learned α).</div>
+  <div class="q"><b class="h">7 &middot; Joint's second figure</b>Recommend the <b>token &times; image similarity matrix</b> (before and after, one colour scale), with the retrieval rows beside it, and <b>no UMAP</b>. The trained embedding separates the digits so completely that UMAP makes each one an island a few pixels across, hidden under its token's mark (last panel above); the matrix shows the same fact with nothing hidden, and its before state (each row nearly one shade) shows what training changed. A click on a row picks the token in both figures.</div>
+  <div class="rec"><b>Recommendation</b>: all seven as above. Then build, with a schematic of each page's model in the formula card as on 104.</div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const D = await (await fetch("fusion-mock-data.json")).json();
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); ctx.canvas._w = w; ctx.canvas._h = h; return ctx; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "", base = "alphabetic" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function poly(ctx, P, colour, width = 2, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); P.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, alpha = 1) { ctx.save(); ctx.globalAlpha = alpha; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
+function frame(ctx, x, y, w, h, col = T.grid, lw = 1) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+function clear(ctx) { ctx.clearRect(0, 0, ctx.canvas._w, ctx.canvas._h); }
+const f2 = (x) => x.toFixed(2);
+/* a seeded jitter so the mock draws the same picture every load */
+const jit = (i) => { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s) - 0.5; };
+
+/* an axes box: maps data to pixels and draws the frame, ticks and titles */
+function axes(ctx, { x, y, w, h, xr, yr, xt, yt, xticks = [], yticks = [], ylab = (v) => String(v), xlab = (v) => String(v) }) {
+  const X = (v) => x + ((v - xr[0]) / (xr[1] - xr[0])) * w, Y = (v) => y + h - ((v - yr[0]) / (yr[1] - yr[0])) * h;
+  frame(ctx, x, y, w, h, T.axis);
+  xticks.forEach((v) => { line(ctx, X(v), y + h, X(v), y + h + 4, T.axis); label(ctx, xlab(v), X(v), y + h + 15, { size: 10, align: "center" }); });
+  yticks.forEach((v) => { line(ctx, x - 4, Y(v), x, Y(v), T.axis); label(ctx, ylab(v), x - 7, Y(v) + 3, { size: 10, align: "right" }); });
+  if (xt) label(ctx, xt, x + w / 2, y + h + 30, { size: 11, align: "center", colour: T.ink2 });
+  if (yt) { ctx.save(); ctx.translate(x - 36, y + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, yt, 0, 0, { size: 11, align: "center" }); ctx.restore(); }
+  return { X, Y };
+}
+
+/* ======================================================================== EARLY */
+{
+  const E = D.early, test = E.train.map((t) => !t);
+  /* the data: one strip per mutation status, each patient a dot at its g, coloured by outcome */
+  {
+    const box = cand("early", "The patients", "x = g; one strip per mutation status;\ncolour = outcome (all 1,000)", 360), ctx = canvasIn(box, 360, 300);
+    const { X } = axes(ctx, { x: 50, y: 14, w: 290, h: 236, xr: [-2.5, 2.5], yr: [0, 1], xt: "expression of the gene, g", xticks: [-2, 0, 2] });
+    [[1, "mutated", 72], [0, "not mutated", 190]].forEach(([mm, name, cy]) => {
+      label(ctx, name, 56, cy - 42, { size: 11, colour: T.ink1, weight: "600" });
+      E.g.forEach((g, i) => { if (E.m[i] !== mm || Math.abs(g) > 2.5) return; dot(ctx, X(g), cy + jit(i) * 52, 2.6, E.y[i] ? T.event : T.nonevent, 0.8); });
+    });
+    line(ctx, 50, 132, 340, 132, T.grid);
+    dot(ctx, 60, 288, 3, T.event); label(ctx, "outcome", 67, 292, { size: 10 }); dot(ctx, 125, 288, 3, T.nonevent); label(ctx, "no outcome", 132, 292, { size: 10 });
+  }
+  /* each model's P(outcome) against g, one curve per mutation status */
+  const curves = (name, title, sub, trained) => {
+    const M = E.models[name], box = cand("early", title, sub, 330), ctx = canvasIn(box, 330, 314);
+    const { X, Y } = axes(ctx, { x: 50, y: 14, w: 262, h: 236, xr: [-2.5, 2.5], yr: [0, 1], xt: "g", yt: "P(outcome)", xticks: [-2, 0, 2], yticks: [0, 0.5, 1] });
+    line(ctx, 50, Y(0.5), 312, Y(0.5), T.grid, 1, [3, 3]);
+    /* mutation status as solid / dashed ink: blue already means "no outcome" on the strip beside it */
+    [["1", null, "mutated"], ["0", [6, 4], "not mutated"]].forEach(([k, dash, nm], j) => {
+      const P = E.grid.map((g, i) => [g, i]).filter(([g]) => Math.abs(g) <= 2.5 + 1e-9).map(([g, i]) => [X(g), Y(trained ? M.curves[k][i] : 0.5)]);
+      poly(ctx, P, T.ink1, 2.2, dash);
+      line(ctx, 52 + j * 100, 300, 72 + j * 100, 300, T.ink1, 2, dash);
+      label(ctx, nm, 76 + j * 100, 304, { size: 10, colour: T.ink1 });
+    });
+    if (name === "weighted" && trained) label(ctx, "mutated and not mutated: one line", 306, Y(0.5) - 8, { size: 10, align: "right" });
+    label(ctx, trained ? `test AUC ${f2(M.auc)}` : "untrained", 312, 304, { size: 11, align: "right", colour: T.ink1, weight: "600" });
+  };
+  curves("concat", "Early fusion: concatenation", "[embed(g), embed(m)] → head → P(outcome)\nafter Train", true);
+  curves("weighted", "Late fusion: weighted averaging", "α·head(embed(g)) + (1−α)·head(embed(m))\nafter Train", true);
+  document.getElementById("gatedAuc").textContent = `test AUC ${f2(E.models.gated.auc)}`;
+  document.getElementById("earlyBefore").textContent = "Each of 1,000 patients has the expression of one gene, g, and the status of one mutation. The gene raises the risk of the outcome in mutated patients and lowers it in the others. Early fusion joins the two embeddings into one vector before the head predicts; late fusion predicts from each embedding separately and averages the two predictions. Train fits both on 750 of them.";
+  document.getElementById("earlyAfter").textContent = `Concatenation predicts the outcome of the 250 test patients with AUC ${f2(E.models.concat.auc)}: its curve rises with g for mutated patients and falls for the others. Weighted averaging adds a prediction made from g without the mutation status to one made from the mutation status. Across all patients neither carries information about the outcome on its own, so both predictions are the base rate, the two curves lie on one flat line, and the test AUC is ${f2(E.models.weighted.auc)}.`;
+}
+
+/* ======================================================================== LATE */
+{
+  const L = D.late, n = L.y.length, test = L.train.map((t) => !t), F = L.failed.map(Boolean);
+  const A = L.logodds_expr, B = L.logodds_mut, G = L.alpha_gate;
+  const ids = [...Array(n).keys()].filter((i) => test[i]);
+  /* AUC by ranks (ties half), so every number on the page comes from the drawn verdicts */
+  const aucOf = (sc, idx) => { let s = 0, np = 0, nn = 0; idx.forEach((i) => { if (L.y[i]) np++; else nn++; });
+    idx.forEach((i) => { if (!L.y[i]) return; idx.forEach((j) => { if (L.y[j]) return; s += sc(i) > sc(j) ? 1 : sc(i) === sc(j) ? 0.5 : 0; }); }); return s / (np * nn); };
+  /* six test patients: three whose assay failed and who had the outcome, three measured patients whose verdicts disagree */
+  const ex = [...ids.filter((i) => F[i] && L.y[i] && B[i] > 0.3).slice(0, 3), ...ids.filter((i) => !F[i] && Math.sign(A[i]) !== Math.sign(B[i]) && Math.abs(A[i]) > 0.8).slice(0, 3)];
+  const mean = (arr) => arr.reduce((s, i) => s + G[i], 0) / arr.length;
+  const gMeas = mean(ids.filter((i) => !F[i])), gFail = mean(ids.filter((i) => F[i]));
+  const aucGate = aucOf((i) => G[i] * A[i] + (1 - G[i]) * B[i], ids);
+  const aucFix = (a) => aucOf((i) => a * A[i] + (1 - a) * B[i], ids);
+  const ringAt = (ctx, x, y, r) => { ctx.save(); ctx.strokeStyle = T.ink2; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); };
+
+  const bScat = cand("late", "Each test patient's two verdicts", "x = expression's log-odds, y = mutations' log-odds;\nringed = assay failed; the line is fused = 0", 330), cS = canvasIn(bScat, 330, 336);
+  const bBars = cand("late", "Six patients", "log-odds of each verdict, and the fused one;\nthe first three: assay failed", 330), cB = canvasIn(bBars, 330, 320);
+  const bAl = cand("late", "Each test patient's α", "one strip per assay outcome", 330), cG = canvasIn(bAl, 330, 320);
+  const bAuc = cand("late", "Test AUC of the fused verdict", "α from 0 (mutations only) to 1 (expression only)", 330), cA = canvasIn(bAuc, 330, 320);
+  let step = 1;
+
+  function draw(al) {
+    document.getElementById("alphaOut").textContent = f2(al);
+    const aOf = (i) => (step === 2 ? G[i] : al), fused = (i) => aOf(i) * A[i] + (1 - aOf(i)) * B[i];
+    /* scatter, equal scales so a line's angle is honest */
+    clear(cS);
+    const { X, Y } = axes(cS, { x: 50, y: 14, w: 262, h: 262, xr: [-6, 3], yr: [-4.5, 4.5], xt: "expression verdict (log-odds)", yt: "mutations verdict (log-odds)", xticks: [-6, -3, 0, 3], yticks: [-3, 0, 3] });
+    line(cS, X(0), Y(-4.5), X(0), Y(4.5), T.grid); line(cS, X(-6), Y(0), X(3), Y(0), T.grid);
+    cS.save(); cS.beginPath(); cS.rect(50, 14, 262, 262); cS.clip();
+    ids.forEach((i) => {
+      const px = X(A[i]), py = Y(B[i] + jit(i + 7) * 0.25);
+      dot(cS, px, py, 2.6, L.y[i] ? T.event : T.nonevent, 0.75);
+      if (F[i]) ringAt(cS, px, py, 4.6);
+    });
+    /* fused = 0 for a weight a: a x + (1 - a) y = 0, drawn over x in [x0, x1] */
+    const bound = (a, x0, x1, dash) => { if (a >= 0.999) { line(cS, X(0), Y(-4.5), X(0), Y(4.5), T.highlight, 2.2, dash); return; } const k = -a / (1 - a); line(cS, X(x0), Y(k * x0), X(x1), Y(k * x1), T.highlight, 2.2, dash); };
+    if (step === 1) bound(al, -6, 3);
+    else { bound(gMeas, -3, 3); bound(gFail, -5.6, -3.6, [5, 3]); }   /* the failed patients' line only where they sit */
+    cS.restore();
+    if (step === 1) label(cS, "fused > 0 predicts the outcome", 306, 30, { size: 10, align: "right", colour: T.highlight });
+    else { label(cS, `measured: mean α ${f2(gMeas)}`, 306, 30, { size: 10, align: "right", colour: T.highlight }); label(cS, `failed (dashed): mean α ${f2(gFail)}`, 306, 44, { size: 10, align: "right", colour: T.highlight }); }
+    const ac = ids.filter((i) => (fused(i) > 0) === !!L.y[i]).length / ids.length;
+    label(cS, `${(100 * ac).toFixed(0)}% of test patients on the side of their outcome`, 50, 328, { size: 10, colour: T.ink2 });
+
+    /* bars */
+    clear(cB);
+    const x0 = 120, half = 90, s = half / 5, rowH = 44;
+    line(cB, x0 + half, 26, x0 + half, 26 + rowH * 6, T.axis);
+    label(cB, "−5", x0, 18, { size: 9, align: "center", colour: T.ink3 }); label(cB, "0", x0 + half, 18, { size: 9, align: "center", colour: T.ink3 }); label(cB, "+5", x0 + 2 * half, 18, { size: 9, align: "center", colour: T.ink3 });
+    ex.forEach((i, r) => {
+      const y = 28 + r * rowH;
+      dot(cB, 14, y + 18, 4, L.y[i] ? T.event : T.nonevent);
+      if (F[i]) ringAt(cB, 14, y + 18, 6.5);
+      label(cB, L.y[i] ? "outcome" : "no outcome", 24, y + 15, { size: 10 });
+      label(cB, `α ${f2(aOf(i))}`, 24, y + 28, { size: 10, colour: T.highlight });
+      [[A[i], T.ink2, "expr"], [B[i], T.ink2, "mut"], [fused(i), T.highlight, "fused"]].forEach(([v, col, nm], k) => {
+        const yy = y + 4 + k * 12, w = Math.max(-half, Math.min(half, v * s));
+        cB.fillStyle = col; cB.fillRect(w >= 0 ? x0 + half : x0 + half + w, yy, Math.abs(w), 9);
+        label(cB, nm, x0 - 8, yy + 8, { size: 9, align: "right", colour: k === 2 ? T.highlight : T.ink3 });
+      });
+    });
+    label(cB, "a fused bar to the right predicts the outcome", 14, 312, { size: 10 });
+
+    /* alpha per patient: two strips, measured and failed */
+    clear(cG);
+    const ga = axes(cG, { x: 50, y: 14, w: 262, h: 262, xr: [0, 1], yr: [0, 2], xt: "α, the weight on the expression verdict", xticks: [0, 0.5, 1] });
+    [["assay measured", false, 1.5], ["assay failed", true, 0.5]].forEach(([nm, f, yc]) => {
+      label(cG, nm, 56, ga.Y(yc) - 50, { size: 11, colour: T.ink1, weight: "600" });
+      ids.filter((i) => F[i] === f).forEach((i) => {
+        const px = ga.X(aOf(i)), py = ga.Y(yc) + jit(i) * 70;
+        dot(cG, px, py, 2.4, L.y[i] ? T.event : T.nonevent, 0.7);
+        if (f) ringAt(cG, px, py, 4.4);
+      });
+    });
+    line(cG, 50, ga.Y(1), 312, ga.Y(1), T.grid);
+    line(cG, ga.X(L.alpha_learned), 14, ga.X(L.alpha_learned), 276, T.reference, 1.4, [4, 3]);
+    label(cG, `one learned α ${f2(L.alpha_learned)}`, ga.X(L.alpha_learned) + 4, 268, { size: 10, colour: T.reference });
+
+    /* AUC by alpha, and the gate's */
+    clear(cA);
+    const ax = axes(cA, { x: 50, y: 14, w: 262, h: 262, xr: [0, 1], yr: [0.6, 0.85], xt: "α", yt: "test AUC", xticks: [0, 0.5, 1], yticks: [0.6, 0.7, 0.8], ylab: (v) => v.toFixed(1) });
+    poly(cA, L.alphas.map((a, i) => [ax.X(a), ax.Y(L.auc_by_alpha[i])]), T.ink2, 2);
+    line(cA, ax.X(L.alpha_learned), 14, ax.X(L.alpha_learned), 276, T.reference, 1.4, [4, 3]);
+    label(cA, `learned α ${f2(L.alpha_learned)}`, ax.X(L.alpha_learned) + 4, 268, { size: 10, colour: T.reference });
+    const au = aucFix(al);
+    if (step === 1) {
+      dot(cA, ax.X(al), ax.Y(au), 5, T.highlight);
+      label(cA, `α ${f2(al)}: AUC ${f2(au)}`, ax.X(al) + (al > 0.6 ? -8 : 8), ax.Y(au) - 14, { size: 11, colour: T.highlight, weight: "600", align: al > 0.6 ? "right" : "left" });
+    } else {
+      line(cA, 50, ax.Y(aucGate), 312, ax.Y(aucGate), T.highlight, 2, [6, 4]);
+      label(cA, `gate, an α per patient: AUC ${f2(aucGate)}`, 306, ax.Y(aucGate) - 8, { size: 11, colour: T.highlight, weight: "600", align: "right" });
+    }
+    label(cA, "mutations only", 52, 312, { size: 10, colour: T.ink3 }); label(cA, "expression only", 312, 312, { size: 10, align: "right", colour: T.ink3 });
+
+    const aL = L.alpha_learned;
+    document.getElementById("lateCap").textContent = step === 1
+      ? `Late fusion combines one verdict per modality, each as log-odds: fused = α × expression + (1 − α) × mutations. For 30% of patients the expression assay failed and every gene reads near background, and the expression model, built on patients whose assay worked, calls them low risk with confidence whatever their outcome (ringed). The expression verdict alone has test AUC ${f2(aucFix(1))} and the mutations verdict alone ${f2(aucFix(0))}; at α = ${f2(al)} the fused verdict has ${f2(au)}. Training chooses α = ${f2(aL)} (AUC ${f2(aucFix(aL))}), one value for every patient.`
+      : `A gating network computes α for each patient from both modalities' measurements. Trained with the two verdicts held fixed, it gives the patients whose assay failed a mean α of ${f2(gFail)} and the others ${f2(gMeas)}, so for the failed patients the fused verdict rests mostly on the mutations. Test AUC ${f2(aucGate)}, against ${f2(aucFix(aL))} with the one learned α.`;
+  }
+  const s = document.getElementById("alpha");
+  s.addEventListener("input", () => draw(+s.value));
+  const setStep = (k) => { step = k; document.getElementById("st1").classList.toggle("on", k === 1); document.getElementById("st2").classList.toggle("on", k === 2);
+    document.getElementById("alphaRow").style.opacity = k === 1 ? "1" : "0.35"; s.disabled = k === 2; draw(+s.value); };
+  document.getElementById("st1").addEventListener("click", () => setStep(1));
+  document.getElementById("st2").addEventListener("click", () => setStep(2));
+  draw(+s.value);
+}
+
+/* ======================================================================== JOINT */
+{
+  const J = D.joint;
+  let pick = 3;
+  const bR = cand("joint", "Retrieval: each token's five most similar test images", "rows = tokens; cosine similarity under each image;\nclick a row to pick", 470), cR = canvasIn(bR, 470, 450);
+  /* the token x image similarity, 20 test images of each digit, before and after training */
+  const heat = (title, sub, M) => {
+    const b = cand("joint", title, sub, 470), ctx = canvasIn(b, 470, 240);
+    const flat = J.sim.flat().concat(J.sim_untrained.flat()), lo = Math.min(...flat), hi = Math.max(...flat), cw = 400 / 200, ch = 18;   /* one scale for both */
+    for (let d = 0; d < 10; d++) {
+      label(ctx, `"${d}"`, 40, 22 + d * ch + 12, { size: 10, align: "right", colour: T.ink2 });
+      M.forEach((row, c) => { ctx.save(); ctx.globalAlpha = (row[d] - lo) / (hi - lo); ctx.fillStyle = T.ink1; ctx.fillRect(50 + c * cw, 22 + d * ch, cw + 0.05, ch); ctx.restore(); });
+    }
+    frame(ctx, 50, 22, 400, 10 * ch, T.grid);
+    for (let d = 0; d < 10; d++) label(ctx, String(d), 50 + (d + 0.5) * 40, 22 + 10 * ch + 14, { size: 10, align: "center", colour: T.ink2 });
+    label(ctx, "test images, 20 of each digit, sorted by digit", 250, 22 + 10 * ch + 30, { size: 10, align: "center", colour: T.ink3 });
+    label(ctx, `cosine similarity ${lo.toFixed(2)} (dark) to ${hi.toFixed(2)} (light)`, 50, 14, { size: 10, colour: T.ink3 });
+  };
+  heat("Similarity of each token to each image, before training", "rows = tokens; columns = images", J.sim_untrained);
+  heat("…and after training", "the diagonal blocks: each token closest to its own digit's images", J.sim);
+  const bU = cand("joint", "UMAP of the image embeddings, with the ten tokens", "the picked digit's images highlighted;\nsquares = token embeddings, same projection", 450), cU = canvasIn(bU, 450, 450);
+  function img(ctx, px, x, y, s) {
+    const c = s / 28; ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, s, s);
+    for (let i = 0; i < 784; i++) { const v = px[i] / 255; if (v < 0.02) continue; ctx.globalAlpha = v; ctx.fillStyle = T.ink1; ctx.fillRect(x + (i % 28) * c, y + Math.floor(i / 28) * c, c + 0.1, c + 0.1); }
+    ctx.restore(); frame(ctx, x, y, s, s, T.grid);
+  }
+  const RH = 43;
+  function draw() {
+    clear(cR);
+    for (let d = 0; d < 10; d++) {
+      const y = 8 + d * RH, on = d === pick;
+      if (on) { cR.save(); cR.fillStyle = T.surface2; cR.fillRect(2, y - 3, 466, RH); cR.restore(); frame(cR, 2, y - 3, 466, RH, T.highlight, 1.5); }
+      label(cR, `"${d}"`, 30, y + 19, { size: 13, align: "center", colour: on ? T.highlight : T.ink1, weight: "600" });
+      J.top5_img[d].forEach((px, k) => {
+        img(cR, px, 60 + k * 80, y, 28);
+        const lab = J.labels[J.top5[d][k]];
+        label(cR, J.top5_sim[d][k].toFixed(2), 60 + k * 80 + 34, y + 12, { size: 10, colour: T.ink2 });
+        if (lab !== d) label(cR, `a ${lab}`, 60 + k * 80 + 34, y + 25, { size: 10, colour: T.extreme });
+      });
+    }
+    clear(cU);
+    const P = J.umap_img, Q = J.umap_txt, all = P.concat(Q);
+    const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const sp = Math.max(x1 - x0, y1 - y0) * 1.08, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, S = 430;
+    const to = (p) => [10 + S / 2 + ((p[0] - cx) / sp) * S, 10 + S / 2 - ((p[1] - cy) / sp) * S];
+    const order = P.map((_, i) => i).sort((a, b) => (J.labels[a] === pick) - (J.labels[b] === pick));
+    order.forEach((i) => { const [px, py] = to(P[i]), on = J.labels[i] === pick; dot(cU, px, py, on ? 2 : 1.5, on ? T.highlight : T.ink3, on ? 0.9 : 0.35); });
+    Q.forEach((p, d) => {
+      const [px, py] = to(p), on = d === pick;
+      cU.save(); cU.fillStyle = T.surface; cU.strokeStyle = on ? T.highlight : T.ink1; cU.lineWidth = on ? 2 : 1.2;
+      cU.fillRect(px - 9, py - 9, 18, 18); cU.strokeRect(px - 9, py - 9, 18, 18); cU.restore();
+      label(cU, String(d), px, py + 4, { size: 11, align: "center", colour: on ? T.highlight : T.ink1, weight: "600" });
+    });
+    document.getElementById("jointCap").textContent = `Joint embedding trains an image encoder and a token encoder together, so that an image and the token of its digit have similar embeddings and other pairs do not (a contrastive loss, as in CLIP). After training, the token "${pick}" retrieves images of a ${pick}, and each test image is closest to its own digit's token for ${(100 * J.top1_acc).toFixed(1)}% of the ${J.labels.length.toLocaleString()} test images (${(100 * J.top1_acc_untrained).toFixed(1)}% before training). In the similarity matrix each token is most similar to its own digit's images, the blocks on the diagonal; before training each token's row is nearly one shade, about the same similarity to every image.`;
+  }
+  cR.canvas.addEventListener("click", (e) => { const r = cR.canvas.getBoundingClientRect(), d = Math.floor((e.clientY - r.top - 5) / RH); if (d >= 0 && d < 10) { pick = d; draw(); } });
+  cR.canvas.style.cursor = "pointer";
+  draw();
+}
+</script>
+</body>
+</html>

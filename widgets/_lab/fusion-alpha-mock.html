@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · fusion — the learned α and the slider</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 11px; color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 30px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rail { font-size: 12px; color: var(--ink-2); border: 1px solid var(--grid); background: var(--surface-2); padding: 8px 10px; margin-bottom: 8px; width: 330px; box-sizing: border-box; }
+  .rail .pill { display: inline-block; padding: 2px 8px; border: 1px solid var(--grid); border-radius: 3px; margin-right: 4px; color: var(--ink-1); }
+  .rail .pill.on { border-color: var(--c-highlight); }
+  .rail .btn { display: inline-block; padding: 2px 10px; border: 1px solid var(--ink-3); border-radius: 3px; color: var(--ink-1); margin-top: 6px; }
+  .rail .muted { color: var(--ink-3); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 105 · Late, Learned α: what the slider should do</h1>
+  <p class="note">His point: after Train the learned α is 0.14, but "Try α" stays at 0.5 and the scatter, the six patients and the α strips follow the slider, so the figure does not show what training learned.
+    A press cannot move the slider: the controls are the widget's state of record, and an animation that wrote them would make the link and the figure disagree. Two ways out, drawn here from the widget's own data at three moments of Train.</p>
+
+  <h2>A · No slider: the figure follows α as training learns it (recommended)</h2>
+  <p class="note">Learned α has no slider. The whole figure draws the α of the checkpoint shown: it opens at 0.5 (untrained), Train moves it to 0.14, and the fused = 0 line, the six patients' fused bars and the α strips move with it.
+    The AUC curve already shows what every other α would give, so nothing is lost by removing the slider. Same pattern as Early, Gate and Joint: open untrained, press Train, watch it learn.</p>
+  <div class="row" id="optA"></div>
+
+  <h2>B · Keep the slider as a comparison, the figure follows the learned α</h2>
+  <p class="note">The figure draws the learned α as in A; the slider becomes <b>Compare α</b> and moves only a second, hollow marker on the AUC curve. Two α values on one page: the one training learned (everywhere) and one the reader picks (on the curve only).</p>
+  <div class="row" id="optB"></div>
+
+  <div class="rec"><b>Recommendation: A.</b> One α per page state, no control that the press cannot move, and the AUC curve still answers "what would another α give?" (it is drawn for every α). B keeps an extra control whose only job the curve already does.</div>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { LATE } from "../fusion/data.js";
+const T = readTokens(), DPR = window.devicePixelRatio || 1;
+const A = LATE.expr, B = LATE.mut, Y = LATE.y, F = LATE.failed.map(Boolean), N = Y.length, ids = [...Array(N).keys()];
+const traj = LATE.alpha_traj, CK = LATE.checkpoints;
+function aucOf(score) { const s = ids.map(score), pos = [], neg = []; ids.forEach((i) => (Y[i] ? pos : neg).push(s[i])); let a = 0; for (const p of pos) for (const q of neg) a += p > q ? 1 : p === q ? 0.5 : 0; return a / (pos.length * neg.length); }
+const aucAt = (a) => aucOf((i) => a * A[i] + (1 - a) * B[i]);
+const GRID = Array.from({ length: 21 }, (_, k) => aucAt(k / 20));
+const jit = (i) => { const s = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s) - 0.5; };
+const f2 = (v) => v.toFixed(2);
+
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = w * DPR; c.height = h * DPR; c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const x = c.getContext("2d"); x.scale(DPR, DPR); return x; }
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, c, w = 1, d = null) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; if (d) ctx.setLineDash(d); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, c, a = 1) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.restore(); }
+function ring(ctx, x, y, r, c, w = 1) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.restore(); }
+function frame(ctx, x, y, w, h) { ctx.save(); ctx.strokeStyle = T.axis; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+
+/* one moment: the rail as it would read, the scatter at α, and the AUC curve */
+function moment(rowId, title, al, { compare = null, rail }) {
+  const box = document.createElement("div"); box.className = "cand"; box.style.width = "330px";
+  box.innerHTML = `<h3>${title}</h3><div class="rail">${rail}</div>`;
+  document.getElementById(rowId).appendChild(box);
+  const ctx = canvasIn(box, 330, 520);
+  /* scatter */
+  const R = { x: 46, y: 18, w: 270, h: 270 }, X = (v) => R.x + ((v + 6) / 9) * R.w, Yp = (v) => R.y + R.h - ((v + 4.5) / 9) * R.h;
+  label(ctx, "Each test patient's two verdicts", 4, 12, { weight: "600", colour: T.ink1 });
+  frame(ctx, R.x, R.y, R.w, R.h); line(ctx, X(0), R.y, X(0), R.y + R.h, T.grid); line(ctx, R.x, Yp(0), R.x + R.w, Yp(0), T.grid);
+  ctx.save(); ctx.beginPath(); ctx.rect(R.x, R.y, R.w, R.h); ctx.clip();
+  ids.forEach((i) => { const px = X(A[i]), py = Yp(B[i] + jit(i + 7) * 0.25); dot(ctx, px, py, 2.4, Y[i] ? T.event : T.nonevent, 0.75); if (F[i]) ring(ctx, px, py, 4.4, T.ink2); });
+  const k = -al / (1 - al); line(ctx, X(-6), Yp(k * -6), X(3), Yp(k * 3), T.highlight, 2.2);
+  ctx.restore();
+  label(ctx, `fused = 0 at α ${f2(al)}`, R.x + R.w - 6, R.y + 16, { align: "right", colour: T.highlight, size: 10 });
+  label(ctx, "expression verdict (log-odds)", R.x + R.w / 2, R.y + R.h + 16, { align: "center", size: 10 });
+  /* AUC curve */
+  const U = { x: 46, y: 330, w: 270, h: 150 }, Ux = (a) => U.x + a * U.w, Uy = (v) => U.y + U.h - ((v - 0.6) / 0.25) * U.h;
+  label(ctx, "Test AUC of the fused verdict, every α", 4, U.y - 8, { weight: "600", colour: T.ink1 });
+  frame(ctx, U.x, U.y, U.w, U.h);
+  ctx.save(); ctx.strokeStyle = T.ink2; ctx.lineWidth = 2; ctx.beginPath(); GRID.forEach((v, j) => (j ? ctx.lineTo(Ux(j / 20), Uy(v)) : ctx.moveTo(Ux(0), Uy(v)))); ctx.stroke(); ctx.restore();
+  [0, 0.5, 1].forEach((a) => label(ctx, String(a), Ux(a), U.y + U.h + 14, { align: "center", size: 10, colour: T.ink3 }));
+  label(ctx, "α", U.x + U.w / 2, U.y + U.h + 28, { align: "center", size: 10 });
+  dot(ctx, Ux(al), Uy(aucAt(al)), 5, T.highlight);
+  label(ctx, `α ${f2(al)}: AUC ${f2(aucAt(al))}`, Ux(al) + 8, Uy(aucAt(al)) - 10, { colour: T.highlight, weight: "600", size: 11 });
+  if (compare != null) {
+    ring(ctx, Ux(compare), Uy(aucAt(compare)), 5.5, T.ink1, 1.8);
+    label(ctx, `compare α ${f2(compare)}: AUC ${f2(aucAt(compare))}`, Ux(compare) + 8, Uy(aucAt(compare)) + 18, { colour: T.ink1, size: 10 });
+  }
+  label(ctx, "mutations only", U.x, U.y + U.h + 44, { size: 10, colour: T.ink3 }); label(ctx, "expression only", U.x + U.w, U.y + U.h + 44, { size: 10, colour: T.ink3, align: "right" });
+}
+
+const weight = `<div>Weight <span class="pill on">Learned α</span><span class="pill">Gate</span></div>`;
+const ckLabel = (k) => (CK[k] === 0 ? "untrained" : `after ${CK[k]} epochs`);
+[[0, "Untrained (opens here)"], [2, `Training, ${ckLabel(2)}`], [CK.length - 1, `Trained, ${ckLabel(CK.length - 1)}`]].forEach(([k, t]) => {
+  moment("optA", t, traj[k], { rail: `${weight}<span class="btn">Train</span> <span class="muted">· α = ${f2(traj[k])}</span>` });
+});
+[[0, "Untrained (opens here)", 0.5], [CK.length - 1, "Trained, slider at 0.50", 0.5], [CK.length - 1, "Trained, slider moved to 0.80", 0.8]].forEach(([k, t, c]) => {
+  moment("optB", t, traj[k], { compare: c, rail: `${weight}<div style="margin-top:6px">Compare α <b style="color:var(--ink-1)">${f2(c)}</b> <span class="muted">(moves the hollow marker only)</span></div><span class="btn">Train</span>` });
+});
+</script>
+</body>
+</html>

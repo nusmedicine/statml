@@ -25188,7 +25188,7 @@ seeded rng.
 | # | slug (provisional) | host | the idea made visible | pages (proposed) | state |
 |---|---|---|---|---|---|
 | 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | **SHIPPED 2026-10-16** (21 states) |
-| 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | picked; measure first |
+| 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | **SHIPPED 2026-10-17** |
 | 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | picked; measure first |
 | 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | picked 2026-10-12; check a seed that converges without collapse |
 | 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | picked; measure first |
@@ -25437,6 +25437,205 @@ the harness alone (`?only=representation`), identical across three runs at DPR
 device px), not 550: hit coordinates were computed from the widget's own layout
 at 535.2. In the slot table above, 104 is **SHIPPED**; NEXT in the arc is
 **105 `fusion`** (10-2b), measured first.
+
+### 105 MEASURED 2026-10-16, before any mock
+
+`_lab/fusion-measure.py` on 10-2b's own data and settings (his synthetic CSVs:
+2,000 patients, 1,000 genes, 50 binary mutations at 10%; split 80/20
+stratified, random_state 42; Adam 1e-3, batch 256, 10 epochs; the lesson's
+encoders). Test AUC, seed 42 (mean of 5 seeds): expression alone 0.79 (0.80),
+mutations alone 0.57 (0.58), **concatenation 0.78 (0.79)**, weighted averaging
+0.80 (0.80), **learned gating 0.80 (0.80)**. Fusion adds nothing over
+expression alone; at 30 and 100 epochs the same. **The gate's α is 1.000 for
+every test patient** (0.9996–1.0000; the same at 100 epochs): gating learned
+"use expression only", so there is no per-patient weighting to show. The
+weighted α stays 0.545 (from 0.5). A logistic regression on expression alone
+reaches AUC 0.89 (the MLPs overfit 1,000 genes on 1,600 patients); adding the
+products of the top 20 genes with all mutations, 0.92; no single mutation's
+products add more than 0.003. **CLIP (cells 48–70) works as the lesson says**:
+image → text top-1 99.2%, text → image precision at 5 98%, the loss 3.29
+against its floor of 3.26. Taken to him before mocking: on this data the
+early/late contrast and the per-patient gate are not visible.
+
+### 105 DATASET REDESIGN, 2026-10-17 (his pick "revise the dataset")
+
+`_lab/fusion-generator.py` (parameters on the command line; outputs in
+`_scratch/frontiers-data/synthetic-v*`), each version scored with the
+lesson's five models at its settings over five seeds. What it took, and why:
+
+- **The gate saturates by construction on 1,000 genes.** Traced: the
+  expression embedding's norm grows 2 → 11.5 over training, the gate's
+  pre-sigmoid 0 → 10.7, α → 1; with α near 1 the mutation head gets no
+  gradient (its logits stay ~0.06). And the expression network overfits
+  1,600 patients, so the gate (trained on the training loss) trusts the
+  modality that fits the TRAINING set best: with mutations far better on
+  test (AUC 0.72 against 0.56), α was still 1.00 for everyone. **100 genes**
+  removes it.
+- **Degradation as extra noise makes those rows louder,** and the gate reads
+  loudness: degraded patients got the HIGHER α (0.93 against 0.66).
+  Degradation as a quality signature (10–20% of the profile kept, ordinary
+  scale, every gene shifted down) turns it the right way.
+- **Best version, v6** (100 genes, 8 informative at 0.9, 5 drivers at 2.0 in
+  30% of patients, gene 8's effect flipped by mutation 27 in half the
+  patients at 3.0, 35% degraded): expression 0.63, mutations 0.66,
+  concatenation 0.69, weighted 0.70, gated 0.68 (5 seeds, sd ≤ 0.01); **gate
+  α 0.75 on clean patients, 0.58 on degraded**; on clean patients
+  concatenation 0.73 against gated 0.69. Effects of a few AUC points, all
+  models near 0.7; 4,000 patients or a stronger signal did not sharpen them,
+  and more epochs overfit (30 and 60 epochs: every model lower).
+
+### 105 CONSTRUCTED EXAMPLES MEASURED, 2026-10-17 (his pick: v6 for 10-2b, a clean example in the widget)
+
+v6's three CSVs staged for GitHub (`_scratch/frontiers-data/synthetic-v6-for-github/`)
+and written up as item 14 of the corrections file. `_lab/fusion-toy.py`
+builds the examples with the lesson's model shapes at a small size (an encoder
+per modality, heads, a gate; 300 training patients, 100 test):
+
+- **EARLY (robust):** one gene whose effect flips with one mutation
+  (risk = 2.5 g (2m − 1)). Concatenation 0.77 AUC, **weighted averaging 0.43**
+  (it adds a verdict from g to one from m, and each alone carries nothing),
+  **but learned gating 0.75**: the gate multiplies the expression verdict by a
+  weight computed from both modalities, and that product is itself an
+  interaction. So the contrast is concatenation against weighted averaging,
+  not early against late.
+- **LATE, the gate per patient (not robust):** with a quality score (RIN) in
+  the expression modality and degraded expression below RIN 5, the gate gave
+  low-RIN patients a lower α in one setting (0.29 against 0.37) and a HIGHER
+  one in most (up to 0.77 against 0.44). The gate sees only the embeddings,
+  and an encoder trained to predict the label drops RIN; and when degradation
+  shrinks the expression value, its logit is already small, so α need not
+  move (0.70 against 0.61, the wrong way). α weights logits whose own size
+  carries each modality's confidence; it is not a clean "trust" dial.
+- **JOINT (robust):** 10-2b's CLIP retrained: image → token top-1 98.9%
+  (11.5% untrained).
+
+### 105 MOCKED, 2026-10-17 (`_lab/fusion-mock.html`; his picks: Late "α as a control", Early "Concat vs weighted")
+
+Three corrections to the examples above, each found by drawing them:
+
+- **EARLY is now 1,000 patients with weight decay 1e-2** (300 epochs). At 400
+  patients and no decay both models overfit: a bump and a plateau on
+  concatenation's curves and a wiggle on weighted averaging's that read as
+  signal. Now concatenation 0.89, weighted averaging **0.50 and exactly flat**,
+  which is the right answer rather than a failure to train: with the flip
+  symmetric, P(outcome | g) = 0.5 for every g and P(outcome | m) = 0.5, so the
+  best single-modality verdict is the base rate. The gate falls to 0.50 too
+  with these settings (0.75 before): whether a gate learns the flip depends on
+  the training settings, one more reason it is not drawn.
+- **LATE's verdicts come from a model per modality, not 10-2b's joint
+  training.** Trained jointly, a head rescales its logits for any α in (0, 1):
+  the first build had expression log-odds from −18 to +11 and an AUC flat from
+  α = 0.05 to 0.45, a slider dead over half its range. With one logistic
+  regression per modality (one scale) and a single binary mutation the AUC was
+  still flat (0.862 from 0.05 to 0.30: a two-valued verdict leaves the ranking
+  unchanged until α overturns it). **Five driver mutations** (risk = 1.2 g +
+  effects ±1, 1,000 patients) give a smooth curve: 0.71 mutations only, 0.81
+  at α 0.45–0.5, 0.70 expression only; learned α (training log-loss, verdicts
+  fixed) 0.60.
+- **JOINT drops the UMAP for the token × image similarity matrix.** The
+  trained embedding separates the digits so completely that UMAP draws each as
+  an island a few pixels wide, under its token's mark. The matrix (20 test
+  images a digit, before and after, one colour scale) shows the diagonal blocks
+  after and rows of nearly one shade before.
+
+Colour: `--c-group-a` is the blue of `--c-nonevent`, so mutation status is
+solid / dashed ink and the fused verdict is `--c-highlight`. Seven calls
+written at the foot of the mock, every one with a recommendation.
+
+### 105 THE GATE RE-CHECKED, 2026-10-17 (his question: is the code right, why does it not work, would other data show it)
+
+`_lab/fusion-gate-measure.py` runs 10-2b cell 36 unchanged, with the
+notebook's reading and settings, on seven datasets from
+`_lab/fusion-generator.py` (new modes `missing`, a blank expression row, and
+`contaminated`, the risk genes pushed toward high risk with ten quality-marker
+genes raised; new option `context`, carriers of one mutation follow the drivers
+and the rest the expression). Five seeds; results in
+`_lab/fusion-gate-measure.json`.
+
+**The code is correct.** Two slips in cell 35's markdown: the fused formula has
+`,` for `\,` and a missing bracket, and σ(W₂(W₁[z_A‖z_B])) drops the ReLU.
+
+| data (10 epochs) | weighted | gated | gate α, degraded vs intact |
+|---|---|---|---|
+| his CSVs | 0.796 | 0.799 | 1.000 for all (pre-sigmoid median 10.6) |
+| v6 (quality) | 0.697 | 0.678 | 0.58 vs 0.75 |
+| v6, noise | 0.693 | 0.666 | 0.90 vs 0.70 (wrong way) |
+| v6, blank expression rows (30%) | 0.704 | 0.670 | **0.43 vs 0.87** |
+| v6, contaminated | 0.700 | 0.664 | 0.92 vs 0.91 |
+| strong signal, blank rows | 0.815 | 0.783 | 0.42 vs 0.83 |
+| context (reliability set by a mutation) | 0.673 | 0.646 | 0.90 on average |
+
+At 100 epochs the gate on blank rows becomes a clean switch (α 0.009 against
+0.997) and still loses (0.731 against 0.754); every network overfits more.
+
+**Why it never wins:** (1) whatever the gate can see in the expression
+embedding, the expression head sees too: a blank row already gets a constant
+logit, and the contaminated rows are discounted by the expression model itself
+(its AUC on them 0.68), so down-weighting adds nothing to the ranking; (2) where
+the cue sits in the other modality (context), the gate has to learn an
+interaction from 1,600 patients and overfits like every network here:
+concatenation 0.67 against a logistic regression given the true form, 0.80.
+So the gate learns a readable per-patient α only on blank rows, and on none of
+the seven does it beat one fixed α.
+
+### 105 LATE STEP 2, THE GATE, MOCKED 2026-10-17 (his call: "mock the gate as step 2 on Late")
+
+He: the gate need not beat anything on synthetic data, as long as it works.
+The Late page becomes Step 1 (one α, the slider) and Step 2 (the gate, an α per
+patient). The toy: five genes (their mean the signature) and five driver
+mutations, 1,000 patients; in 30% the **expression assay failed and every gene
+reads near background** (−2 standardized, noise 0.3). The verdicts are
+logistic regressions per modality; the gate (10 inputs → 16 → 1, sigmoid,
+weight decay 1e-2) trains with both verdicts fixed, so only α changes between
+the steps. Three versions, the third taken:
+
+| version | gate α failed vs measured | gate AUC vs one learned α |
+|---|---|---|
+| blank rows (filled 0) | 0.44 vs 0.49 | 0.83 vs 0.83 |
+| background, expression model fitted on all patients | 0.15 vs 0.38 | 0.76 vs 0.75 |
+| **background, expression model fitted on patients whose assay worked** | **0.09 vs 0.49** | **0.82 vs 0.76** |
+
+The third is a model built on good samples and applied to every patient: its
+verdict on a failed assay is confidently wrong (log-odds −4.6 whatever the
+outcome), which is the case a gate is for. On the scatter the failed patients
+form a column at −4.6 and their boundary (mean α 0.09) is nearly horizontal: the
+mutations decide. One learned α for all patients is pulled down to 0.14 by them.
+
+**All seven calls the recommendation (his word, 2026-10-17), and 10-2b's CSVs
+replaced by v6b** (corrections item 14): v6 with the degradation changed to the
+widget's story, a failed assay reading near background in 30% of patients
+(`degraded_mode=background degraded_shift=-2.0 degraded_noise=0.3 seed=2030`).
+Plain numbers, so **10-2b's code is unchanged**; a blank row (NaN) would have
+needed a fill line. 10-2b's cells verbatim: expression 0.67, mutations 0.69,
+concatenation 0.77, weighted 0.77, gated 0.76 (5 seeds); at the notebook's
+SEED 42 all 113 failed test patients get α ≤ 0.04 and the rest α ≥ 0.33 (seed
+2026 of the generator ran the two together, so 2030 of five was taken).
+
+### 105 SHIPPED 2026-10-17 as "Deep Learning - Frontiers: Multimodal Fusion" (15 states, 15/15 MATCH at DPR 1.25)
+
+Built on the mock, then one review round of his confusions, each applied the
+same day: (1) Early was concatenation against weighted averaging, a late-fusion
+model on the Early page; now **expression alone · mutations alone ·
+concatenation** (0.50 · 0.50 · 0.89), early fusion only. (2) Late's Weight is
+**Learned α · Gate**, each with its own Train press (the presses are keyed by
+what trains, not by page). Learned α opens untrained at 0.5 and Train moves it
+to 0.14 (Adam on the fixed predictions, `alpha_traj` in data.js); a "Try α"
+slider was cut (`_lab/fusion-alpha-mock.html`, option A: it stayed at 0.5
+after Train and a press cannot move a control, so the figure draws the α of
+the checkpoint shown; the AUC curve already shows every other α). (3) The
+walk-through and copy audit, all twelve applied: "verdict" (ours) became
+"prediction" (the lesson's); the five genes named on Late's first caption; the
+scatter's accuracy line in plain words; Early's curves over −2 … 2; seven
+personification fixes. Subtitle without "each page uses a small constructed
+example"; blurb "Early fusion, late fusion with one weight or a gate, and a
+joint embedding."
+
+`data.js` is GENERATED by `_lab/fusion-export.py`, which retrains
+`_lab/fusion-toy.py`'s examples with the same seeds and asserts its numbers
+(concat 0.887, gate 0.818, joint top-1 0.9885); rerun it after any change to
+the toy. Alongside, his notebook work: 10-2b on the v6b CSVs (no code change,
+corrections item 14), and 10-2c, 10-2b plus a run cross-attention example
+(item 15; `_lab/cross-attention-mock.html`).
 
 ---
 

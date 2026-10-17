@@ -14630,6 +14630,152 @@
       },
       "px": "a4a610ed",
       "tx": "8f767333"
+    },
+    {
+      "$note": "fusion · Early, opening: the patients, three untrained models",
+      "slug": "fusion",
+      "state": "?theme=light&shown=0",
+      "px": "658a9fb8",
+      "tx": "a793bbbc"
+    },
+    {
+      "$note": "fusion · Early, trained: each modality alone flat at the base rate, concatenation crossing",
+      "slug": "fusion",
+      "state": "?theme=light&shown=1",
+      "px": "4186d58d",
+      "tx": "f0bc81ff"
+    },
+    {
+      "$note": "fusion · Late, Learned α, opening: α 0.5 for every patient",
+      "slug": "fusion",
+      "state": "?theme=light&page=late&shown=0",
+      "px": "37ee36a1",
+      "tx": "d9aa0c69"
+    },
+    {
+      "$note": "fusion · Late, Learned α, trained: α 0.14",
+      "slug": "fusion",
+      "state": "?theme=light&page=late&shown=1",
+      "px": "ddfb0e3b",
+      "tx": "c0ea50e5"
+    },
+    {
+      "$note": "fusion · Late, Gate, opening: untrained gate, every α near 0.5",
+      "slug": "fusion",
+      "state": "?theme=light&page=late&weighting=gate&shown=0",
+      "px": "b44f68e3",
+      "tx": "477ce00a"
+    },
+    {
+      "$note": "fusion · Late, Gate, trained: failed assays α 0.09, the rest 0.50",
+      "slug": "fusion",
+      "state": "?theme=light&page=late&weighting=gate&shown=1",
+      "px": "33239ae1",
+      "tx": "dccd0b9e"
+    },
+    {
+      "$note": "fusion · Joint, opening: untrained matrix, retrieval empty",
+      "slug": "fusion",
+      "state": "?theme=light&page=joint&shown=0",
+      "px": "78b56770",
+      "tx": "ae44a006"
+    },
+    {
+      "$note": "fusion · Joint, trained: diagonal blocks, retrieval shown",
+      "slug": "fusion",
+      "state": "?theme=light&page=joint&shown=1",
+      "px": "e2b0257f",
+      "tx": "52987f47"
+    },
+    {
+      "$note": "fusion · Joint, trained, token 7",
+      "slug": "fusion",
+      "state": "?theme=light&page=joint&token=7&shown=1",
+      "px": "4a56271f",
+      "tx": "b0816e8b"
+    },
+    {
+      "$note": "fusion · DRIVEN: Early, Train mid-move (60 frames): curves between checkpoints",
+      "slug": "fusion",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "3300ca8f",
+      "tx": "a793bbbc"
+    },
+    {
+      "$note": "fusion · DRIVEN: Late, Learned α, Train mid-move (50 frames): α between checkpoints",
+      "slug": "fusion",
+      "state": "?theme=light&page=late",
+      "drive": {
+        "click": "step",
+        "frames": 50,
+        "dt": 32
+      },
+      "px": "523f0bb4",
+      "tx": "9f00b2f7"
+    },
+    {
+      "$note": "fusion · DRIVEN: Late, Gate, Train mid-move (70 frames): each patient's α moving",
+      "slug": "fusion",
+      "state": "?theme=light&page=late&weighting=gate",
+      "drive": {
+        "click": "step",
+        "frames": 70,
+        "dt": 32
+      },
+      "px": "cd395bd6",
+      "tx": "477ce00a"
+    },
+    {
+      "$note": "fusion · DRIVEN: Joint, Train mid-run (40 frames): the matrix at a checkpoint",
+      "slug": "fusion",
+      "state": "?theme=light&page=joint",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "b8684308",
+      "tx": "918120ed"
+    },
+    {
+      "$note": "fusion · INTERRUPTED: Gate's Train in flight, then Weight set to Learned α: Learned α's opening",
+      "slug": "fusion",
+      "state": "?theme=light&page=late&weighting=gate",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "set": {
+          "weighting": "learned"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "37ee36a1",
+      "tx": "d9aa0c69"
+    },
+    {
+      "$note": "fusion · HIT: a click on the matrix's row 7 picks token 7 (untrained)",
+      "slug": "fusion",
+      "state": "?theme=light&page=joint",
+      "drive": {
+        "hit": [
+          200,
+          152.5
+        ],
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "0aa5ac55",
+      "tx": "eab40cf2"
     }
   ]
 }
