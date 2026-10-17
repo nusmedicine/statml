@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 10-2c — wording for query and keys</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); }
+  .lab { max-width: 980px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); color: var(--ink-1); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); max-width: 100ch; }
+  .cell { border: 1px solid var(--grid); border-left: 4px solid var(--c-highlight); background: var(--surface-2); padding: 14px 18px; margin: 0 0 var(--sp-2); font-size: 15px; line-height: 1.55; }
+  ul { margin: 4px 0 8px; padding-left: 22px; } li { margin: 3px 0; }
+  ul ul { margin: 2px 0; }
+  table { border-collapse: collapse; margin: 6px 0 10px; font-size: 14px; }
+  th, td { border: 1px solid var(--grid); padding: 5px 10px; text-align: left; vertical-align: top; }
+  code { font-family: var(--font-mono); font-size: 0.9em; background: var(--surface-3); padding: 0 3px; border-radius: 2px; }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); margin: 0 0 var(--sp-3); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-4) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 100ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>10-2c · Cross-Attention: wording for "which modality attends to which"</h1>
+  <p class="note">The confusion is real: expression is 100 genes, so it is "many parts" too. What differs is not the data but <b>how the model uses each modality</b>: the query side is <b>summarized into one vector</b> per sample (one question), and the key/value side is <b>kept as a list of items</b>, one embedding each, so each item can get its own weight. Any modality can play either role. Four ways to say it, each a drop-in for your Typical Usage + Considerations block.</p>
+
+  <h2>A · Summarized versus kept as a list</h2>
+  <p class="why">States the mechanism plainly; no analogy.</p>
+  <div class="cell">
+    <p><b>Typical Usage</b></p>
+    <ul>
+      <li>When one modality provides <b>context</b> for interpreting another (e.g., text attending to image features).</li>
+      <li>When you want to <b>weigh the individual items</b> of one modality (each mutation, pathway, image patch or word), and which items matter differs from sample to sample.</li>
+    </ul>
+    <p><b>Considerations</b></p>
+    <ul>
+      <li>Both modalities may have many features. What differs is how the model uses them. When A attends to B:
+        <ul>
+          <li>A is <b>summarized into one vector</b> per sample, the <b>query</b>. It decides the weights.</li>
+          <li>B is <b>kept as a list of items</b>, one embedding per item: the <b>keys and values</b>. Each item gets a weight.</li>
+        </ul></li>
+      <li>So put on the B side the modality whose items you want to weigh one by one, and on the A side the modality that should decide those weights.</li>
+    </ul>
+  </div>
+
+  <h2>B · Fill in the blank</h2>
+  <p class="why">Turns the choice into the biological question; the direction falls out of the sentence.</p>
+  <div class="cell">
+    <p><b>Typical Usage</b></p>
+    <ul>
+      <li>When one modality provides <b>context</b> for interpreting another (e.g., text attending to image features).</li>
+      <li>When the question has the form <b>"Given this sample's ___, which ___ matter?"</b></li>
+    </ul>
+    <p><b>Considerations</b></p>
+    <ul>
+      <li>Fill in the question to choose the direction:
+        <ul>
+          <li>the <b>first blank</b> is the <b>query</b>: summarized into one vector per sample;</li>
+          <li>the <b>second blank</b> is the <b>keys and values</b>: kept as a list of items, one embedding each, and each item gets a weight.</li>
+        </ul></li>
+      <li>"Given this tumour's <b>expression</b>, which <b>mutations</b> matter?" → expression attends to mutations.<br>
+          "Given what is <b>mutated</b>, which <b>pathways</b> matter?" → mutations attend to pathways.</li>
+    </ul>
+  </div>
+
+  <h2>C · A search, as an analogy</h2>
+  <p class="why">Matches the names query / key / value; some students know it from search engines or databases.</p>
+  <div class="cell">
+    <p><b>Typical Usage</b></p>
+    <ul>
+      <li>When one modality provides <b>context</b> for interpreting another (e.g., text attending to image features).</li>
+      <li>When one modality is used to <b>search</b> the items of the other, and the relevant items differ from sample to sample.</li>
+    </ul>
+    <p><b>Considerations</b></p>
+    <ul>
+      <li>Attention works like a search. When A attends to B:
+        <ul>
+          <li>A is the <b>query</b>: what is being searched for, one vector per sample;</li>
+          <li>B's items are what is searched: each has a <b>key</b> (compared with the query) and a <b>value</b> (what is returned);</li>
+          <li>the result is the values, weighted by how well each key matches the query.</li>
+        </ul></li>
+      <li>So B should be the modality whose individual items (mutations, pathways, image patches) are worth searching.</li>
+    </ul>
+  </div>
+
+  <h2>D · A and B side by side, as a table</h2>
+  <p class="why">One glance; the "many features" confusion is answered in its first row.</p>
+  <div class="cell">
+    <p><b>Typical Usage</b></p>
+    <ul>
+      <li>When one modality provides <b>context</b> for interpreting another (e.g., text attending to image features).</li>
+      <li>When the items of one modality should be weighed one by one, differently for each sample.</li>
+    </ul>
+    <p><b>Considerations</b> · when A attends to B</p>
+    <table>
+      <tr><th></th><th>A (attends)</th><th>B (attended to)</th></tr>
+      <tr><td>its features</td><td>summarized into one vector per sample</td><td>kept as a list: one embedding per item</td></tr>
+      <tr><td>role</td><td><b>query</b>: decides the weights</td><td><b>keys and values</b>: each item gets a weight</td></tr>
+      <tr><td>choose it as</td><td>the context</td><td>the modality whose items should be weighed</td></tr>
+      <tr><td>example</td><td>expression (100 genes → one vector)</td><td>mutations (50 items)</td></tr>
+    </table>
+  </div>
+
+  <div class="rec"><b>Recommendation: B with A's first sentence.</b> The fill-in question makes the direction a biological choice, and the one sentence "both modalities may have many features; what differs is how the model uses them" answers the exact confusion. Kept short, it reads:
+    <ul style="margin-top:6px">
+      <li>Both modalities may have many features; what differs is how the model uses them. Fill in <b>"Given this sample's ___, which ___ matter?"</b>:
+        <ul>
+          <li>the <b>first blank</b> is the <b>query</b>, summarized into one vector per sample;</li>
+          <li>the <b>second blank</b> is the <b>keys and values</b>, kept as a list of items (one embedding each), and each item gets a weight.</li>
+        </ul></li>
+      <li>"Given this tumour's expression, which mutations matter?" → expression attends to mutations.</li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>

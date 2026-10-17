@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 10-2c — Cross- and Co-Attention, trimmed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); }
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); color: var(--ink-1); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); font-size: var(--fs-sm); margin: 0 0 var(--sp-3); max-width: 100ch; }
+  .where { font-size: 11px; color: var(--ink-3); margin: var(--sp-5) 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .cell { border: 1px solid var(--grid); border-left: 4px solid var(--c-highlight); background: var(--surface-2); padding: 14px 18px; margin: 0 0 var(--sp-2); font-size: 15px; line-height: 1.55; }
+  .cell h3 { font-size: 18px; margin: 0 0 6px; }
+  .skip { color: var(--ink-3); font-style: italic; font-size: 13px; }
+  .math { text-align: center; color: var(--ink-2); font-size: 14px; margin: 8px 0; }
+  ul { margin: 4px 0 8px; padding-left: 22px; } li { margin: 3px 0; } ul ul { margin: 2px 0; }
+  pre { background: var(--surface-1); border: 1px solid var(--grid); padding: 10px 12px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; overflow-x: auto; margin: 6px 0 8px; }
+  code { font-family: var(--font-mono); font-size: 0.9em; background: var(--surface-3); padding: 0 3px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>10-2c · Cross-Attention and Co-Attention, trimmed</h1>
+  <p class="note">Typical Usage says only when to use it. Considerations says only how A and B are encoded and which way the attention runs. Nothing repeats the attention mechanism, which the intro and formula already give. The Co-Attention cell is shown whole, because its intro bullet about tokens moved into Considerations so it is said once.</p>
+
+  <!-- ======================================= cross-attention -->
+  <div class="where">Cell 5 · ### Cross-Attention · from Typical Usage to the sketch</div>
+  <div class="cell">
+    <p class="skip">… intro, figure, formula above, unchanged …</p>
+    <p><b>Typical Usage</b></p>
+    <ul>
+      <li>When one modality provides <b>context</b> for interpreting another (e.g., text attending to image features).</li>
+      <li>When one modality is best kept as <b>separate features</b> (e.g., each mutation, each image patch, each word of a text), and the relevance of each feature depends on the other modality.</li>
+    </ul>
+    <p><b>Considerations</b></p>
+    <ul>
+      <li>In cross-attention, <b>A attends to B</b>: the query comes from A, and the keys and values come from B.
+        <ul>
+          <li>A's features are combined into <b>one embedding per sample</b>, used as the <b>query</b>.</li>
+          <li>B is encoded as a <b>sequence of tokens</b>, one embedding per feature, used as the <b>keys and values</b>.</li>
+        </ul></li>
+    </ul>
+<pre># Shapes only, not runnable code
+# B: batch size   D: embedding size   F_A, F_B: features of A and B   L_B: tokens from B
+xA                                          # (B, F_A)      modality A, e.g., expression of F_A = 100 genes
+xB                                          # (B, F_B)      modality B, e.g., status of F_B = 50 mutations
+
+zA = encoderA(xA)                           # (B, D)        A's features combined into one embedding per sample
+Q  = zA.unsqueeze(1)                        # (B, 1, D)     a sequence of length 1: one query per sample
+K = V = encoderB(xB)                        # (B, L_B, D)   one token per feature of B (here L_B = F_B = 50)
+
+attn_output, attn_weights = cross_attn(Q, K, V)
+# attn_weights                              # (B, 1, L_B)   one weight per token of B
+# attn_output                               # (B, 1, D)
+h = attn_output.squeeze(1) + Q.squeeze(1)   # (B, D)        plus the query (residual connection)</pre>
+    <p class="skip">… template, notes, loss function below, unchanged …</p>
+  </div>
+
+  <!-- ======================================= co-attention -->
+  <div class="where">Cell 6 · ### Co-Attention · the whole cell up to the template</div>
+  <div class="cell">
+    <h3>Co-Attention</h3>
+    <p>This is the symmetric form of cross-attention.</p>
+    <ul><li>Each modality <b>attends to the other</b>: A's tokens are queries over B's tokens, and B's tokens are queries over A's tokens.</li></ul>
+    <p>Mathematically,</p>
+    <p class="math">H<sub>A</sub> = softmax(Q<sub>A</sub>K<sub>B</sub><sup>⊤</sup>/√d) V<sub>B</sub> + Z<sub>A</sub>, &nbsp; H<sub>B</sub> = softmax(Q<sub>B</sub>K<sub>A</sub><sup>⊤</sup>/√d) V<sub>A</sub> + Z<sub>B</sub>, &nbsp; h = [mean(H<sub>A</sub>) ‖ mean(H<sub>B</sub>)], &nbsp; ŷ = g(h)</p>
+    <p>where:</p>
+    <ul>
+      <li>Z<sub>A</sub>, Z<sub>B</sub> are the two token sequences, and adding them back is the residual connection,</li>
+      <li>each side's attended tokens are averaged into one vector, and the two vectors are concatenated.</li>
+    </ul>
+    <p><b>Typical Usage</b></p>
+    <ul>
+      <li>When both modalities are best kept as <b>separate features</b> and each provides context for the other (e.g., the image patches and the words of a radiology report, or genes and mutations).</li>
+    </ul>
+    <p><b>Considerations</b></p>
+    <ul>
+      <li>In co-attention, <b>A attends to B and B attends to A</b>, so both modalities are encoded as <b>sequences of tokens</b>, one embedding per feature.</li>
+    </ul>
+<pre># Shapes only, not runnable code
+# B: batch size   D: embedding size   F_A, F_B: features of A and B   L_A, L_B: tokens from A and B
+xA                                          # (B, F_A)        modality A, e.g., expression of F_A = 100 genes
+xB                                          # (B, F_B)        modality B, e.g., status of F_B = 50 mutations
+
+zA = encoderA(xA)                           # (B, L_A, D)     one token per feature of A (here L_A = F_A = 100)
+zB = encoderB(xB)                           # (B, L_B, D)     one token per feature of B (here L_B = F_B = 50)
+
+hA, attn_AB = attn_AB(zA, zB, zB)           # attn_AB (B, L_A, L_B): for each token of A, one weight per token of B
+hB, attn_BA = attn_BA(zB, zA, zA)           # attn_BA (B, L_B, L_A): for each token of B, one weight per token of A
+hA, hB = hA + zA, hB + zB                   # (B, L_A, D), (B, L_B, D)   residual connections
+h = torch.cat([hA.mean(1), hB.mean(1)], 1)  # (B, 2D)         each side averaged over its tokens, then concatenated</pre>
+    <p class="skip">… template, loss function below, unchanged …</p>
+  </div>
+</main>
+</body>
+</html>
