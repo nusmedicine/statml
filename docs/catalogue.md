@@ -25944,8 +25944,17 @@ a zoomed view, Digit and Label; 5 driven: Train mid-move on each page, Decode
 region mid-press on Autoencoder and VAE; 1 interrupted: VAE Train in flight,
 then the page switched; 2 set: Digit 7 and Label 2 from the rail). The canvas
 gestures write parameters, so the `set` and settled states reach every state a
-gesture can (no `regions` declared, so no hit state is required). Three
-determinism runs at DPR 1.25 identical on all 22 (px and tx).
+gesture can (no `regions` declared, so no hit state is required).
+
+**Baselined twice.** The first three determinism runs were made while the
+session was open in no window: the pane reported DPR 1.25 and the runs agreed,
+yet the 14 settled states hashed differently from a fronted pane (the 8
+driven states matched in both). Proof the off-screen settled hashes were
+wrong: state 9 (Conditional's opening, settled) and state 19 (the interrupted
+state, which lands on that same opening) must hash alike, and only the fronted
+run gives them one hash (e814637d). The cursor was ruled out (parked outside
+the frames, same result). Rebaselined from three fronted runs identical on all
+22, then a MATCH pass, 22/22 at DPR 1.25.
 
 ---
 
