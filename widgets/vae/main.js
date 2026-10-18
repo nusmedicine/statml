@@ -242,7 +242,7 @@ const S = {
   buttons: { zoomIn: "+", zoomOut: "−", fit: "Fit", prior: "N(0, I)", label: (d) => `on the ${d}s` },
   regionTitle: "The sampler's region, decoded",
   regionSub: (S, c) => `centre ± 2s, 6 × 6 points${c != null ? `, c = ${c}` : ""}`,
-  regionWait: (trained) => (trained ? ["Generate decodes", "the sampler's region"] : ["Train first,", "then Generate"]),
+  regionWait: (trained) => (trained ? ["Decode region", "fills this grid"] : ["Train first, then", "Decode region"]),
   lossTitle: { recon: "Reconstruction term", kl: "KL term" },
   lossWait: "Train draws it",
   lossTicks: [[1, "0"], [10, "10 batches"], [2350, "epoch 10"]],
@@ -263,7 +263,7 @@ const S = {
     klNote: (L) => `per image: mean part ${f2(L.klMu)} + spread part ${f2(L.klSd)}`,
     norm16: "Median code length, latent size 16",
     norm16Note: `a draw from N(0, I): ${f2(STATS.prior16)}`,
-    wait16: "after Generate",
+    wait16: "after Decode region",
     pairNote: "without KL · with KL",
     shareV: (d) => `VAE: codes in its circle that are ${d}s`,
     shareC: (d) => `Conditional VAE: codes in its circle that are ${d}s`,
@@ -277,19 +277,19 @@ const CAP = {
   ae: {
     0: () => `Untrained, the encoder maps every image to a code near (0, 0) and the decoder gives the same grey blur for each. The dashed circle holds 95% of draws from the sampler, N(0, I) to start. Train shows ten checkpoints of 10 epochs.`,
     play: (k) => `Training, ${lossAt("ae", k).label}: median code length ${f2(NORM.ae[k])}. The reconstruction term spreads the codes apart, so that the decoder can tell the images apart.`,
-    1: () => `The codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])} against ${f2(STATS.prior2)} for a draw). Generate decodes the sampler's region; on the map, a drag inside the circle moves it, a drag on its rim widens it.`,
+    1: () => `The codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])} against ${f2(STATS.prior2)} for a draw). Decode region decodes the sampler's region; on the map, a drag inside the circle moves it, a drag on its rim widens it.`,
     2: () => `Around (0, 0) the decoder gives blends of a few digits. Moved onto a cluster, the sampler finds that digit: the autoencoder decodes its own codes well, but nothing in its training says where to sample.`,
   },
   vae: {
     0: () => `The same network trained twice: without the KL term (the autoencoder, left) and with it (the VAE, right). Each map has its own sampler and view. Train trains both.`,
     play: (k) => `Training, ${lossAt("vae", k).label}: median code length ${f2(NORM.ae[k])} without the KL term, ${f2(NORM.vae[k])} with it, KL term ${f1(lossAt("vae", k).kl)}. The reconstruction term spreads both sets of codes; only the KL term draws them back toward N(0, I).`,
-    1: () => `Without the KL term the codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])}); with it they fill the circle (${f2(NORM.vae[LAST])}), each digit in its own region. Generate decodes each map's sampler.`,
+    1: () => `Without the KL term the codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])}); with it they fill the circle (${f2(NORM.vae[LAST])}), each digit in its own region. Decode region decodes each map's sampler.`,
     2: () => `With the KL term, N(0, I) decodes to every kind of digit, each shading into its neighbour; without it, the same circle decodes to blends of the few digits whose codes reach the centre.`,
   },
   conditional: {
     0: () => `Left, the VAE without a label; right, the conditional VAE, which is given the label as c. A Label button highlights that digit's codes on both maps. Train trains both.`,
     play: (k) => `Training, ${lossAt("cvae", k).label}: KL term ${f2(lossAt("vae", k).kl)} for the VAE and ${f2(lossAt("cvae", k).kl)} for the conditional VAE.`,
-    1: (params, Sv) => { const d = Number(params.label); return `On the VAE the ${d}s occupy one region and the Label sent the sampler there: of the codes inside its circle, ${pct(shareOf("vae", Sv, d))} are ${d}s. On the conditional VAE the ${d}s spread over the whole circle of N(0, I): z does not hold the digit, c does. Generate decodes both samplers.`; },
+    1: (params, Sv) => { const d = Number(params.label); return `On the VAE the ${d}s occupy one region and the Label sent the sampler there: of the codes inside its circle, ${pct(shareOf("vae", Sv, d))} are ${d}s. On the conditional VAE the ${d}s spread over the whole circle of N(0, I): z does not hold the digit, c does. Decode region decodes both samplers.`; },
     2: (params) => { const d = Number(params.label); return `The VAE's region decodes to ${d}s and the digits whose codes share it; the conditional VAE, at N(0, I) with c = ${d}, decodes a ${d} at every point, z setting the slant and the stroke.`; },
   },
 };
@@ -358,7 +358,7 @@ const mid = (c) => COL[c][0] + COL[c][1] / 2;
 function geomOf(page) {
   const h = 30, y1 = 26, y2 = page === "ae" ? 104 : 150, c1 = y1 + h / 2, c2 = y2 + h / 2;
   return {
-    h, y1, y2, H: page === "conditional" ? 256 : page === "ae" ? 150 : 200,
+    h, y1, y2, H: page === "conditional" ? 266 : page === "ae" ? 156 : 214,
     fwd: [[mid("x"), c1], [mid("enc"), c1], ...(page === "ae" ? [] : [[mid("ms"), c1]]), [mid("z"), c1], [mid("dec"), c1], [mid("xh"), c1], [mid("loss"), c1]],
     back: [[mid("loss"), y1 + h], [mid("loss"), y1 + h + 12], [mid("enc"), y1 + h + 12], [mid("enc"), y1 + h]],
     gen: [[mid("z"), c2], [mid("dec"), c2], [COL.xh[0] + 23, c2]],
@@ -379,21 +379,27 @@ function schemaSVG(page, label) {
   if (vae) {
     s += svLine([[mid("ms"), y1 + 34], [mid("ms"), 100], [COL.loss[0] + COL.loss[1] - 14, 100], [COL.loss[0] + COL.loss[1] - 14, y1 + h]], "var(--c-prior)");
     s += svText(310, 113, "KL( N(μ, σ²) ‖ N(0, I) ): how far q(z|x) is from N(0, I)", "middle", "var(--c-prior)");
-    if (page === "vae") s += svText(310, 126, "without the KL term (left map): the encoder gives one code z, no μ, σ or ε, and the loss is ‖x − x̂‖²", "middle");
+    if (page === "vae") s += svText(310, 126, "without the KL term (left): one code z, no μ, σ or ε; the loss is ‖x − x̂‖²", "middle");
   }
-  s += svText(0, y2 - 10, "Generating", "start", "var(--ink-1)", "font-weight:600");
-  s += svBox(...COL.z, y2, h, "z ~ N(m, s²I)", { stroke: "var(--c-prior)", fill: "var(--c-prior)" }) + right("z", "dec", c2) + svBox(...COL.dec, y2, h, "Decoder", { enc: true });
-  s += svArrow(COL.dec[0] + COL.dec[1] + 1, c2, COL.xh[0] - 2, c2) + svBox(COL.xh[0], 46, y2, h, "new x̂");
-  s += svText(0, y2 + 13, "no encoder:", "start") + svText(0, y2 + 26, "z is drawn", "start");
-  s += svText(mid("z"), y2 + h + 13, "the sampler; m = 0, s = 1 is N(0, I)", "middle", "var(--c-prior)");
+  /* an autoencoder defines no distribution for z, so on its page the row is a probe, not generation (his catch 2026-10-18) */
+  s += svText(0, y2 - 10, vae ? "Generating" : "Decoding a chosen z", "start", "var(--ink-1)", "font-weight:600");
+  s += svBox(...COL.z, y2, h, vae ? "z ~ N(0, I)" : "z from the sampler", { stroke: "var(--c-prior)", fill: "var(--c-prior)" }) + right("z", "dec", c2) + svBox(...COL.dec, y2, h, "Decoder", { enc: true });
+  s += svArrow(COL.dec[0] + COL.dec[1] + 1, c2, COL.xh[0] - 2, c2) + svBox(COL.xh[0], 46, y2, h, vae ? "new x̂" : "x̂");
+  if (vae) s += svText(0, y2 + 13, "no encoder:", "start") + svText(0, y2 + 26, "z is drawn", "start");
   s += svText(COL.xh[0] + 56, y2 + 13, "the same decoder,", "start") + svText(COL.xh[0] + 56, y2 + 26, "trained above", "start");
+  if (vae) {
+    s += svText(267, y2 + h + 14, "Decode region, below, decodes a 6 × 6 grid of points across each sampler's region,", "middle", "var(--c-prior)");
+    s += svText(267, y2 + h + 27, "to show what draws from it decode to.", "middle", "var(--c-prior)");
+  } else {
+    s += svText(267, y2 + h + 14, "An autoencoder defines no distribution for z: the sampler is ours, to test what its decoder gives.", "middle", "var(--c-prior)");
+  }
   if (page === "conditional") {
-    const cy = 214, hl = "var(--c-highlight)";
+    const cy = 226, hl = "var(--c-highlight)";
     s += svBox(70, 120, cy, 26, `c = embed("${label}")`, { stroke: hl, fill: hl, sw: 1.8 });
     s += svLine([[100, cy], [100, 124], [mid("enc"), 124], [mid("enc"), y1 + h]], hl);
     s += svLine([[160, cy], [160, 132], [262, 132], [262, y1 + h + 20], [mid("dec") - 10, y1 + h + 20], [mid("dec") - 10, y1 + h]], hl);
     s += svLine([[190, cy + 13], [mid("dec"), cy + 13], [mid("dec"), y2 + h]], hl);
-    s += svText(mid("dec") + 10, cy + 17, "conditional VAE: c into the encoder and both decoders", "start", hl);
+    s += svText(mid("dec") + 10, cy + 17, "c goes into the encoder and both decoders", "start", hl);
   }
   return `<svg viewBox="-1 0 ${SV_W + 2} ${g.H}" role="img" aria-label="${svEsc(S.schemaLabel)}" style="display:block;width:100%;height:auto;font:11px var(--font)">` +
     `${s}<g data-sv="lane"></g><g data-sv="motion"></g></svg>`;
@@ -815,7 +821,7 @@ api = defineWidget({
   compute: () => ({}),
 
   animation: {
-    stepLabel: { anim: "beat", labels: { 0: "Train", 1: "Generate" }, default: "Generate" },
+    stepLabel: { anim: "beat", labels: { 0: "Train", 1: "Decode region" }, default: "Decode region" },
     stepTitle: { param: "page", labels: STEP_TITLES, default: STEP_TITLES.ae.labels[0] },
     /* each press is read once: Step alone, no Play (play-only-for-motion-or-repetition) */
     runLabel: null,
