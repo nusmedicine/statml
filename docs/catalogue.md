@@ -25189,7 +25189,7 @@ seeded rng.
 |---|---|---|---|---|---|
 | 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | **SHIPPED 2026-10-16** (21 states) |
 | 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | **SHIPPED 2026-10-17** |
-| 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | **DRAFTED 2026-10-18** (§ *106 MOCKED … DRAFTED*) |
+| 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | **SHIPPED 2026-10-19** (22 states) |
 | 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | picked 2026-10-12; check a seed that converges without collapse |
 | 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | picked; measure first |
 
@@ -25935,6 +25935,17 @@ class."** (119 characters; manifest and meta description). Found while
 applying W6: the hover card's circle line ran past the card; the card is wider
 (196 px) and the line has its own row. Re-scan: no banned use left (the
 remaining hits are literal "points" and "moves").
+
+### 106 SHIPPED 2026-10-19 as "Deep Learning - Frontiers: Variational Autoencoders" (22 states)
+
+On his "tested ok": status flipped in `main.js` and the manifest; 22
+fingerprint states (14 settled across the three pages, with moved samplers,
+a zoomed view, Digit and Label; 5 driven: Train mid-move on each page, Decode
+region mid-press on Autoencoder and VAE; 1 interrupted: VAE Train in flight,
+then the page switched; 2 set: Digit 7 and Label 2 from the rail). The canvas
+gestures write parameters, so the `set` and settled states reach every state a
+gesture can (no `regions` declared, so no hit state is required). Three
+determinism runs at DPR 1.25 identical on all 22 (px and tx).
 
 ---
 

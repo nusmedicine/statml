@@ -818,7 +818,7 @@ const viewParam = () => ({ type: "text", maxLength: 32, default: "", display: tr
 
 api = defineWidget({
   slug: "vae",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Frontiers: Variational Autoencoders",
   subtitle: S.subtitle,
   credit: "Data: MNIST (LeCun, Cortes and Burges)",

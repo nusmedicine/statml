@@ -14778,11 +14778,238 @@
       "tx": "eab40cf2"
     },
     {
-      "$note": "vae · placeholder until the design is agreed",
+      "$note": "vae · Autoencoder, opening: untrained codes at (0, 0), the circle of N(0, I)",
       "slug": "vae",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "f262aa81",
+      "tx": "a81ae7c9"
+    },
+    {
+      "$note": "vae · Autoencoder, trained: the codes spread far beyond the circle",
+      "slug": "vae",
+      "state": "?theme=light&shown=1",
+      "px": "0196c65b",
+      "tx": "b57b976d"
+    },
+    {
+      "$note": "vae · Autoencoder, region decoded around (0, 0), the 16-D row",
+      "slug": "vae",
+      "state": "?theme=light&shown=2",
+      "px": "5bca6beb",
+      "tx": "71a715d8"
+    },
+    {
+      "$note": "vae · Autoencoder, decoded, Digit 5, the sampler moved onto the 6s/5s",
+      "slug": "vae",
+      "state": "?theme=light&shown=2&digit=5&s_ae=-5.20,-1.60,1.0",
+      "px": "0f774d19",
+      "tx": "01c65cd1"
+    },
+    {
+      "$note": "vae · VAE, opening: both maps untrained",
+      "slug": "vae",
+      "state": "?theme=light&page=vae&shown=0",
+      "px": "b0c88ed5",
+      "tx": "181c8b82"
+    },
+    {
+      "$note": "vae · VAE, trained: without KL spread, with KL inside the circle",
+      "slug": "vae",
+      "state": "?theme=light&page=vae&shown=1",
+      "px": "a665a63a",
+      "tx": "d91af45d"
+    },
+    {
+      "$note": "vae · VAE, both regions decoded at N(0, I), the 16-D rows",
+      "slug": "vae",
+      "state": "?theme=light&page=vae&shown=2",
+      "px": "0ba0814f",
+      "tx": "0c3a46b4"
+    },
+    {
+      "$note": "vae · VAE, decoded, the with-KL view zoomed and panned, the without-KL sampler moved and narrowed",
+      "slug": "vae",
+      "state": "?theme=light&page=vae&shown=2&s_without=4.00,4.40,0.6&v_with=-1.00,-0.08,2.84",
+      "px": "63168fcc",
+      "tx": "bb71758e"
+    },
+    {
+      "$note": "vae · VAE, trained, Digit 3 highlighted on both maps",
+      "slug": "vae",
+      "state": "?theme=light&page=vae&shown=1&digit=3",
+      "px": "aa8d98ac",
+      "tx": "960aeb8d"
+    },
+    {
+      "$note": "vae · Conditional, opening",
+      "slug": "vae",
+      "state": "?theme=light&page=conditional&shown=0",
+      "px": "0ec8add3",
+      "tx": "493ff965"
+    },
+    {
+      "$note": "vae · Conditional, trained, Label 5: the VAE's sampler on the 5s, the conditional VAE's at N(0, I)",
+      "slug": "vae",
+      "state": "?theme=light&page=conditional&shown=1",
+      "px": "f6f8ebe2",
+      "tx": "371fb013"
+    },
+    {
+      "$note": "vae · Conditional, decoded, Label 5: mixed digits beside 5s at every point",
+      "slug": "vae",
+      "state": "?theme=light&page=conditional&shown=2",
+      "px": "a437611b",
+      "tx": "53c44936"
+    },
+    {
+      "$note": "vae · Conditional, decoded, Label 1",
+      "slug": "vae",
+      "state": "?theme=light&page=conditional&label=1&shown=2",
+      "px": "a357ed00",
+      "tx": "9694c19e"
+    },
+    {
+      "$note": "vae · Conditional, decoded, Label 8, the conditional VAE's sampler moved and widened",
+      "slug": "vae",
+      "state": "?theme=light&page=conditional&label=8&shown=2&s_cvae=1.20,-0.80,2.0",
+      "px": "8eccf0aa",
+      "tx": "48590c88"
+    },
+    {
+      "$note": "vae · DRIVEN: Autoencoder, Train mid-move (60 frames): codes between checkpoints, the dot on the schematic",
+      "slug": "vae",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "77c65f8e",
+      "tx": "2596733e"
+    },
+    {
+      "$note": "vae · DRIVEN: VAE, Train mid-move (90 frames): both maps autoscaling, the KL panel",
+      "slug": "vae",
+      "state": "?theme=light&page=vae",
+      "drive": {
+        "click": "step",
+        "frames": 90,
+        "dt": 32
+      },
+      "px": "c299fc73",
+      "tx": "731596de"
+    },
+    {
+      "$note": "vae · DRIVEN: Conditional, Train mid-move (40 frames)",
+      "slug": "vae",
+      "state": "?theme=light&page=conditional",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "5786681e",
+      "tx": "02d39f58"
+    },
+    {
+      "$note": "vae · DRIVEN: Autoencoder, Decode region mid-press (25 frames): part of the grid decoded",
+      "slug": "vae",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "c51f46f2",
+      "tx": "b57b976d"
+    },
+    {
+      "$note": "vae · DRIVEN: VAE, Decode region mid-press (25 frames)",
+      "slug": "vae",
+      "state": "?theme=light&page=vae",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "8560efbe",
+      "tx": "d91af45d"
+    },
+    {
+      "$note": "vae · INTERRUPTED: VAE Train in flight, then the page switched to Conditional: its opening",
+      "slug": "vae",
+      "state": "?theme=light&page=vae",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "set": {
+          "page": "conditional"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "e814637d",
+      "tx": "493ff965"
+    },
+    {
+      "$note": "vae · SET: VAE trained, then Digit 7 from the rail",
+      "slug": "vae",
+      "state": "?theme=light&page=vae",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "set": {
+          "digit": "7"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "1f00af7a",
+      "tx": "71d85b81"
+    },
+    {
+      "$note": "vae · SET: Conditional decoded, then Label 2 from the rail: both regions re-decoded",
+      "slug": "vae",
+      "state": "?theme=light&page=conditional",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          },
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "set": {
+          "label": "2"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "8e0e66e6",
+      "tx": "0f1ad122"
     }
   ]
 }
