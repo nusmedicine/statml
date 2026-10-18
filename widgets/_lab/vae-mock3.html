@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · vae round 3 — with and without KL, a sampler you move</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note, ol.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b, ol.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .proto { display: grid; grid-template-columns: 230px 560px; gap: var(--sp-4); align-items: start; }
+  .rail { display: flex; flex-direction: column; gap: 12px; font-size: var(--fs-sm); }
+  .rail .lab2 { color: var(--ink-2); font-weight: 600; margin-bottom: 4px; }
+  .seg { display: flex; flex-wrap: wrap; }
+  .seg button { flex: 1 1 auto; padding: 5px 6px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; font: inherit; font-size: 12px; }
+  .seg button.on { border-color: var(--c-highlight); font-weight: 600; }
+  .seg.digits button { flex: 0 0 20%; }
+  .act { padding: 7px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); border-radius: 3px; cursor: pointer; font: inherit; font-weight: 600; }
+  .act:disabled { color: var(--ink-3); border-color: var(--grid); cursor: default; }
+  .detail { color: var(--ink-3); font-size: 11px; margin-top: 3px; }
+  .mockonly { border-top: 1px dashed var(--grid); padding-top: 10px; }
+  .mockonly .lab2 { color: var(--c-reference); }
+  canvas { display: block; background: var(--surface-1); touch-action: none; }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--ink-3); background: var(--surface-2); }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 120ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 106 <code>vae</code> &middot; round 3: with and without the KL term, side by side, and a sampler you move</h1>
+  <p class="note">His five points on the rebuild (2026-10-18), and the answer to each. The canvas below is drawn at the widget's own width (540 px), so what is small here is small there. <span id="status">loading&hellip;</span></p>
+  <ol class="note">
+    <li><b>The circle's size changed between pages, it could not move, and on the VAE it covered everything.</b> It was the same circle (95% of N(0, I), radius 2.45) on maps of different scales. Now both models sit side by side on <b>one shared scale</b> (&plusmn;8), so the circle is the same size on both; codes beyond the view are marked on the edge and counted. The circle is now a <b>sampler</b>: a click or drag on either map moves its centre, and Spread sets its width. At the centre (0, 0) with spread 1 it is N(0, I), the distribution a VAE is trained to match.</li>
+    <li><b>Pinning an image had no purpose a student could see.</b> Removed. A click now moves the sampler; the per-image q(z|x) moves into the hover card.</li>
+    <li><b>Show it with and without the KL term.</b> The first page is the two models side by side, the same network trained with and without the term, by one Train press. The autoencoder page and the VAE page become one page.</li>
+    <li><b>Draw was just digits in a grid.</b> Now <b>Generate</b> decodes the sampler's region as a 6 &times; 6 grid of points under each map (the circle, decoded), so the grid is visibly the circle's area: without KL the region around (0, 0) decodes to blends of a few digits, with KL to every kind of digit, changing smoothly. Moving the sampler re-decodes it on release. A second mode (a mock-only switch) shows 16 random draws instead, each a dot on the map and a thumbnail.</li>
+    <li><b>Hover shows the image dynamically.</b> A card follows the pointer on either map with the decode of the point under it (and, over a dot on the VAE, that image's q(z|x) ellipse and its KL).</li>
+  </ol>
+
+  <div class="proto">
+    <div class="rail">
+      <div><div class="lab2">Model</div><div class="seg" id="pages"></div></div>
+      <div id="labelBox"><div class="lab2">Label c</div><div class="seg digits" id="labels"></div><div class="detail">the digit whose embedding c is given to the encoder and the decoder</div></div>
+      <div><div class="lab2">Spread</div><div class="seg" id="spreads"></div><div class="detail">the sampler's standard deviation; 1 with the centre at (0, 0) is N(0, I). A click or drag on a map moves the centre.</div></div>
+      <button class="act" id="train">Train</button>
+      <button class="act" id="gen">Generate</button>
+      <button class="act" id="reset">Reset</button>
+      <div class="mockonly"><div class="lab2">Mock only: the frame</div><div class="seg" id="frames"></div></div>
+      <div class="mockonly"><div class="lab2">Mock only: Generate shows</div><div class="seg" id="modes"></div></div>
+    </div>
+    <div>
+      <canvas id="cv"></canvas>
+      <div class="cap"><i>draft caption</i><span id="cap"></span></div>
+    </div>
+  </div>
+
+  <h2>The calls before building</h2>
+  <div class="q"><b class="h">1. Pages</b>Model: <b>Without and with KL</b> (the two side by side) · <b>Conditional</b>; or keep three pages (Autoencoder · VAE · Conditional) with the shared scale only.</div>
+  <div class="rec">Recommend <b>two pages</b>, his point 3: one Train press trains both, so every checkpoint compares the two at once.</div>
+  <div class="q"><b class="h">2. The shared scale</b>&plusmn;8 on every map (shown; all of the VAE's codes, 75% of the autoencoder's at the end and 35% at 200 batches, the rest marked on the edge and counted); &plusmn;25 (every code, but the VAE's cloud and the circle become small); or each map its own scale (round 2, his point 1).</div>
+  <div class="rec">Recommend <b>&plusmn;8</b>: the circle is the same size on both maps and the VAE's map keeps room for its digits; the autoencoder running off the edge during Train is itself the point.</div>
+  <div class="q"><b class="h">3. Generate</b>the sampler's region decoded on a 6 &times; 6 grid under each map (shown); or 16 random draws, dots on the map and thumbnails.</div>
+  <div class="rec">Recommend <b>the 6 &times; 6 grid</b>: its layout is the circle's, so a student reads where in z each image comes from, and moving the sampler shows what each region holds. Random draws stay as Generate's second press if wanted ("Draw 16").</div>
+  <div class="q"><b class="h">4. The sampler</b>a click or drag moves the centre, and Spread 0.5 · 1 · 2 (shown); or the centre fixed at (0, 0) with Spread only.</div>
+  <div class="rec">Recommend <b>movable</b>, his point 1: on the autoencoder a student can find the digits by moving it, and learns that without the KL term nothing says where to sample. The centre is a parameter (in the link); "Reset sampler" returns it to N(0, I).</div>
+  <div class="q"><b class="h">5. The hover card</b>the decode of the point under the pointer, near the pointer (shown); over a dot on a VAE map, also its q(z|x) and KL in one line. The bell-curve panel of round 2 goes.</div>
+  <div class="rec">Recommend <b>as shown</b>. The KL term is now taught by the comparison (point 3) and the KL loss panel; the bells were a second picture of it.</div>
+  <div class="q"><b class="h">6. Conditional</b>one map with the sampler, its 6 &times; 6 grid decoded with the chosen label, and the sampler's centre decoded with each of the ten labels (shown).</div>
+  <div class="rec">Recommend <b>as shown</b>: the grid shows the label fixing the digit across the whole region, the row shows z fixing the style across labels.</div>
+</main>
+<script>
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const R95 = Math.sqrt(-2 * Math.log(0.05)), NCK = 10, MOVE_MS = 650, STEPS = [1, 5, 20, 50, 100, 200, 235, 470, 1175, 2350];
+const st = { page: "kl", label: 5, spread: 1, centre: [0, 0], frame: "8", mode: "tiles", trained: false, playing: false, t: 0, gen: 0, hover: null, drag: false, resample: 0 };
+let CK, G16;
+
+/* ---------------- decoding (the trained decoder, last checkpoint) ---------------- */
+const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+function halves(s) { const b = bytes(s), n = b.length / 2, o = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const h = b[2 * i] | (b[2 * i + 1] << 8), e = (h >> 10) & 31, m = h & 1023, sg = h & 32768 ? -1 : 1; o[i] = e === 0 ? sg * 2 ** -14 * (m / 1024) : sg * 2 ** (e - 15) * (1 + m / 1024); } return o; }
+function convT(inp, Ci, H, w, b, Co) { const Ho = 2 * H, out = new Float32Array(Co * Ho * Ho);
+  for (let i = 0; i < Ci; i++) for (let y = 0; y < H; y++) for (let x = 0; x < H; x++) { const v = inp[(i * H + y) * H + x]; if (v === 0) continue;
+    for (let o = 0; o < Co; o++) { const wb = (i * Co + o) * 16; for (let ky = 0; ky < 4; ky++) { const yy = 2 * y - 1 + ky; if (yy < 0 || yy >= Ho) continue;
+      for (let kx = 0; kx < 4; kx++) { const xx = 2 * x - 1 + kx; if (xx >= 0 && xx < Ho) out[(o * Ho + yy) * Ho + xx] += v * w[wb + ky * 4 + kx]; } } } }
+  for (let o = 0; o < Co; o++) for (let k = 0; k < Ho * Ho; k++) out[o * Ho * Ho + k] += b[o]; return out; }
+const DW = {};
+function dw(m) { if (!DW[m]) { const D = CK[m][NCK - 1].dec; DW[m] = { wz: halves(D.wz), b: halves(D.b), d1w: halves(D.d1w), d1b: halves(D.d1b), d2w: halves(D.d2w), d2b: halves(D.d2b) }; } return DW[m]; }
+const cache = new Map();
+function decode(m, z, label = 0) {
+  const key = `${m}|${z[0].toFixed(3)}|${z[1].toFixed(3)}|${m === "cvae" ? label : ""}`; if (cache.has(key)) return cache.get(key); if (cache.size > 3000) cache.clear();
+  const D = dw(m), h = new Float32Array(3136), b0 = m === "cvae" ? label * 3136 : 0;
+  for (let j = 0; j < 3136; j++) { const s = D.b[b0 + j] + D.wz[2 * j] * z[0] + D.wz[2 * j + 1] * z[1]; h[j] = m === "cvae" ? Math.max(0, s) : s; }
+  const a = convT(h, 64, 7, D.d1w, D.d1b, 32); for (let q = 0; q < a.length; q++) a[q] = Math.max(0, a[q]);
+  const o = convT(a, 32, 14, D.d2w, D.d2b, 1), px = new Uint8Array(784); for (let q = 0; q < 784; q++) px[q] = Math.round(255 / (1 + Math.exp(-o[q])));
+  cache.set(key, px); return px;
+}
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function eps(seed) { const r = mulberry(seed), out = []; while (out.length < 16) { const u = r() || 1e-9, v = r(), R = Math.sqrt(-2 * Math.log(u)); out.push([R * Math.cos(2 * Math.PI * v), R * Math.sin(2 * Math.PI * v)]); } return out; }
+
+/* ---------------- training position ---------------- */
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+const pos = () => (st.playing ? st.t * (NCK - 1) : st.trained ? NCK - 1 : 0);
+const ck = () => Math.floor(pos() + 1e-9), mv = () => { const q = pos(); return q >= NCK - 1 ? 0 : ease(q - Math.floor(q)); };
+function code(m, i) { const k = ck(), e = mv(), A = CK[m][k].mu, B = CK[m][Math.min(NCK - 1, k + 1)].mu; return e > 0 ? [A[2 * i] + (B[2 * i] - A[2 * i]) * e, A[2 * i + 1] + (B[2 * i + 1] - A[2 * i + 1]) * e] : [A[2 * i], A[2 * i + 1]]; }
+
+/* ---------------- canvas at the widget's width ---------------- */
+const cv = document.getElementById("cv"), W = 540;
+let H = 1000, ctx, col = {};
+function size() { H = st.page === "kl" ? 870 : 990; const d = devicePixelRatio || 1; cv.width = W * d; cv.height = H * d; cv.style.width = W + "px"; cv.style.height = H + "px"; ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0); }
+function cols() { col = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), surf: css("--surface-1"), axis: css("--ink-3"), emp: css("--c-empirical"), prior: css("--c-prior"), post: css("--c-posterior"), hl: css("--c-highlight"), font: css("--font") || "sans-serif" }; }
+function T(s, x, y, o = {}) { ctx.save(); ctx.font = `${o.w || ""} ${o.size || 11}px ${col.font}`; ctx.textAlign = o.align || "left"; if (o.halo) { ctx.lineWidth = 3; ctx.strokeStyle = col.surf; ctx.strokeText(s, x, y); } ctx.fillStyle = o.fill || col.ink2; ctx.fillText(s, x, y); ctx.restore(); }
+function ln(x1, y1, x2, y2, c, w = 1, dash) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function box(x, y, w, h, c, lw = 1, dash) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = lw; if (dash) ctx.setLineDash(dash); ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore(); }
+const rgbc = {}; const rgb = (c) => rgbc[c] ??= (() => { const g = document.createElement("canvas").getContext("2d"); g.fillStyle = c; g.fillRect(0, 0, 1, 1); return g.getImageData(0, 0, 1, 1).data; })();
+const ic = new WeakMap();
+function img(px, x, y, s, edge) { let c = ic.get(px); if (!c) { c = document.createElement("canvas"); c.width = c.height = 28; const g = c.getContext("2d"), im = g.createImageData(28, 28), [r, gg, b] = rgb(col.ink1);
+  for (let i = 0; i < 784; i++) { im.data[4 * i] = r; im.data[4 * i + 1] = gg; im.data[4 * i + 2] = b; im.data[4 * i + 3] = px[i]; } g.putImageData(im, 0, 0); ic.set(px, c); }
+  ctx.save(); ctx.fillStyle = col.surf; ctx.fillRect(x, y, s, s); ctx.imageSmoothingEnabled = false; ctx.drawImage(c, x, y, s, s); ctx.restore(); if (edge !== false) box(x, y, s, s, edge || col.grid, edge ? 2 : 1); }
+const f2 = (v) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2).replace("-", "−");
+
+/* frames: shared ±8, shared ±25, or each model's own */
+function frameOf(m) {
+  if (st.frame === "8") return { x0: -8, x1: 8, y0: -8, y1: 8 };
+  if (st.frame === "25") return { x0: -25, x1: 25, y0: -25, y1: 25 };
+  const lo = [-R95, -R95], hi = [R95, R95]; for (const C of CK[m]) for (let i = 0; i < C.mu.length; i += 2) for (let q = 0; q < 2; q++) { lo[q] = Math.min(lo[q], C.mu[i + q]); hi[q] = Math.max(hi[q], C.mu[i + q]); }
+  const cx = (lo[0] + hi[0]) / 2, cy = (lo[1] + hi[1]) / 2, h = Math.max(hi[0] - lo[0], hi[1] - lo[1]) / 2 * 1.04; return { x0: cx - h, x1: cx + h, y0: cy - h, y1: cy + h };
+}
+/* the maps on each page */
+function maps() {
+  if (st.page === "kl") return [{ m: "ae", x: 30, y: 44, s: 230, title: "Without the KL term", sub: "the autoencoder" }, { m: "vae", x: 300, y: 44, s: 230, title: "With the KL term", sub: "the VAE" }];
+  return [{ m: "cvae", x: 30, y: 44, s: 300, title: `Conditional VAE, c = ${st.label}`, sub: "" }];
+}
+const scale = (M) => { const F = frameOf(M.m); return { F, X: (v) => M.x + (v - F.x0) / (F.x1 - F.x0) * M.s, Y: (v) => M.y + (F.y1 - v) / (F.y1 - F.y0) * M.s, inv: (px, py) => [F.x0 + (px - M.x) / M.s * (F.x1 - F.x0), F.y1 - (py - M.y) / M.s * (F.y1 - F.y0)] }; };
+
+function drawMap(M) {
+  const { F, X, Y } = scale(M), n = CK.digits.length;
+  T(M.title, M.x - 26, 14, { w: 600, fill: col.ink1, size: 12 }); if (M.sub) T(M.sub, M.x - 26, 28, { fill: col.ink3 });
+  const step = (F.x1 - F.x0) > 30 ? 10 : (F.x1 - F.x0) > 12 ? 4 : 1;
+  for (let v = Math.ceil(F.x0 / step) * step; v <= F.x1; v += step) { ln(X(v), M.y, X(v), M.y + M.s, col.grid); T(String(+v.toFixed(1)).replace("-", "−"), X(v), M.y + M.s + 13, { align: "center", size: 10, fill: col.ink3 }); }
+  for (let v = Math.ceil(F.y0 / step) * step; v <= F.y1; v += step) { ln(M.x, Y(v), M.x + M.s, Y(v), col.grid); T(String(+v.toFixed(1)).replace("-", "−"), M.x - 4, Y(v) + 3, { align: "right", size: 10, fill: col.ink3 }); }
+  ctx.save(); ctx.beginPath(); ctx.rect(M.x, M.y, M.s, M.s); ctx.clip();
+  let out = 0; const pts = [];
+  ctx.fillStyle = col.emp; ctx.globalAlpha = 0.5;
+  for (let i = 0; i < n; i++) { const c = code(M.m, i); pts.push(c); let px = X(c[0]), py = Y(c[1]);
+    if (px < M.x || px > M.x + M.s || py < M.y || py > M.y + M.s) { out++; px = Math.max(M.x + 1, Math.min(M.x + M.s - 1, px)); py = Math.max(M.y + 1, Math.min(M.y + M.s - 1, py)); ctx.globalAlpha = 0.25; ctx.fillRect(px - 1, py - 1, 2, 2); ctx.globalAlpha = 0.5; continue; }
+    ctx.fillRect(px - 1.2, py - 1.2, 2.4, 2.4); }
+  ctx.globalAlpha = 1;
+  for (let d = 0; d < 10; d++) { const xs = [], ys = []; for (let i = 0; i < n; i++) if (CK.digits[i] === d) { xs.push(pts[i][0]); ys.push(pts[i][1]); } xs.sort((a, b) => a - b); ys.sort((a, b) => a - b);
+    const mx = X(xs[xs.length >> 1]), my = Y(ys[ys.length >> 1]); if (mx > M.x && mx < M.x + M.s && my > M.y && my < M.y + M.s) T(String(d), mx, my + 4, { align: "center", w: 600, size: 12, fill: col.ink1, halo: true }); }
+  // the sampler: 95% of N(centre, spread² I)
+  const r = R95 * st.spread;
+  ctx.save(); ctx.strokeStyle = col.prior; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.ellipse(X(st.centre[0]), Y(st.centre[1]), r / (F.x1 - F.x0) * M.s, r / (F.y1 - F.y0) * M.s, 0, 0, 7); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.fillStyle = col.prior; ctx.beginPath(); ctx.arc(X(st.centre[0]), Y(st.centre[1]), 3.5, 0, 7); ctx.fill(); ctx.restore();
+  if (st.gen && st.mode === "draws") eps(100 + st.resample).forEach(([a, b]) => { const z = [st.centre[0] + st.spread * a, st.centre[1] + st.spread * b]; ctx.save(); ctx.fillStyle = col.prior; ctx.beginPath(); ctx.arc(X(z[0]), Y(z[1]), 3, 0, 7); ctx.fill(); ctx.restore(); });
+  ctx.restore();
+  box(M.x, M.y, M.s, M.s, col.axis);
+  if (out) T(`${Math.round(100 * out / n)}% of codes beyond this view, marked at the edge`, M.x + M.s, M.y + M.s + 26, { align: "right", size: 10, fill: col.ink3 });
+  const isN = st.centre[0] === 0 && st.centre[1] === 0 && st.spread === 1;
+  T(isN ? "dashed: 95% of draws from N(0, I)" : `dashed: 95% of draws from N((${f2(st.centre[0])}, ${f2(st.centre[1])}), ${st.spread}²I)`, M.x - 26, M.y + M.s + (out ? 40 : 28), { size: 10, fill: col.prior });
+}
+
+/* the sampler's region decoded, 6 x 6 points over centre ± 2 spread; or 16 draws */
+function drawGen(M, y) {
+  const s = M.s, label = st.label;
+  T(st.mode === "tiles" ? "The sampler's region, decoded (6 × 6 points)" : "16 draws from the sampler, decoded", M.x - 26, y - 8, { w: 600, fill: st.gen ? col.ink1 : col.ink3, size: 11 });
+  const nT = st.mode === "tiles" ? 6 : 4, cell = (s - (nT - 1) * 3) / nT;
+  for (let r = 0; r < nT; r++) for (let c = 0; c < nT; c++) {
+    const x = M.x + c * (cell + 3), yy = y + r * (cell + 3);
+    if (!st.gen || st.drag) { box(x, yy, cell, cell, col.grid, 1, [3, 3]); continue; }
+    let z;
+    if (st.mode === "tiles") { const u = -2 + 4 * c / (nT - 1), v = 2 - 4 * r / (nT - 1); z = [st.centre[0] + st.spread * u, st.centre[1] + st.spread * v]; }
+    else { const e = eps(100 + st.resample)[r * 4 + c]; z = [st.centre[0] + st.spread * e[0], st.centre[1] + st.spread * e[1]]; }
+    img(decode(M.m, z, label), x, yy, cell);
+  }
+  if (!st.gen) T(st.trained ? "Generate decodes the sampler's region" : "Train first, then Generate", M.x + s / 2 - 26 + 13, y + s / 2, { align: "center", fill: col.ink3 });
+  else if (st.drag) T("released: decoded again", M.x + s / 2, y + s / 2, { align: "center", fill: col.ink3 });
+}
+
+function lossPanel(R, key, series, title) {
+  T(title, R.x - 26, R.y - 10, { w: 600, fill: col.ink1 });
+  const lx = (s) => R.x + Math.log10(s) / Math.log10(2350) * R.w;
+  const ymax = key === "kl" ? 12 : 250, Y = (v) => R.y + R.h - v / ymax * R.h;
+  ln(R.x, R.y + R.h, R.x + R.w, R.y + R.h, col.axis); ln(R.x, R.y, R.x, R.y + R.h, col.axis);
+  [[1, "0", "left"], [10, "10 batches", "center"], [2350, "epoch 10", "right"]].forEach(([s, t, a]) => T(t, lx(s), R.y + R.h + 13, { align: a, size: 10, fill: col.ink3 }));
+  [0, ymax].forEach((v) => T(String(v), R.x - 4, Y(v) + 3, { align: "right", size: 10, fill: col.ink3 }));
+  if (!st.trained && !st.playing) { T("Train draws it", R.x + R.w / 2, R.y + R.h / 2, { align: "center", fill: col.ink3 }); return; }
+  const q = pos(), k = Math.floor(q + 1e-9), e = mv();
+  series.forEach(([m, c, dash, name], si) => {
+    const C = CK[m]; if (C[0][key] == null) { T(`${name}: no KL term (0)`, R.x + 6, R.y + R.h - 6 - si * 12, { fill: c, size: 10 }); return; }
+    const P = []; for (let j = 0; j <= k; j++) P.push([lx(STEPS[j]), Y(C[j][key])]);
+    let v = C[k][key]; if (e > 0 && k < NCK - 1) { v = C[k][key] + (C[k + 1][key] - C[k][key]) * e; P.push([lx(Math.exp(Math.log(STEPS[k]) + (Math.log(STEPS[k + 1]) - Math.log(STEPS[k])) * e)), Y(v)]); }
+    ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = 2; if (dash) ctx.setLineDash(dash); ctx.beginPath(); P.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore();
+    const [ex, ey] = P[P.length - 1]; T(`${name} ${v.toFixed(key === "kl" ? 1 : 0)}`, Math.min(ex + 4, R.x + R.w - 70), ey - 6 + si * 14, { fill: c, w: 600, size: 10 });
+  });
+}
+
+function drawRow16(y) {
+  const ms = st.page === "kl" ? [["ae", "without KL"], ["vae", "with KL"]] : [["cvae", `c = ${st.label}`]];
+  T("Latent size 16: 16 draws from N(0, I), decoded", 4, y - 10, { w: 600, fill: st.gen ? col.ink1 : col.ink3 });
+  ms.forEach(([m, name], r) => { T(name, 4, y + 14 + r * 40, { size: 10 }); const g = G16[m], imgs = m === "cvae" ? g[st.label].imgs : g.imgs;
+    for (let i = 0; i < 16; i++) { const x = 64 + i * 29; if (st.gen) img(Uint8Array.from(imgs[i]), x, y + r * 40, 27); else box(x, y + r * 40, 27, 27, col.grid, 1, [3, 3]); } });
+}
+
+/* the hover card: the decode under the pointer, and over a dot of a VAE map that image's q(z|x) */
+function drawHover() {
+  const h = st.hover; if (!h || st.drag || !st.trained) return;
+  const { M, z, i } = h, { F, X, Y } = scale(M);
+  if (i != null && CK[M.m][NCK - 1].lv) { const lv = [CK[M.m][NCK - 1].lv[2 * i], CK[M.m][NCK - 1].lv[2 * i + 1]], c = code(M.m, i);
+    ctx.save(); ctx.strokeStyle = col.post; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(X(c[0]), Y(c[1]), 2 * Math.exp(lv[0] / 2) / (F.x1 - F.x0) * M.s, 2 * Math.exp(lv[1] / 2) / (F.y1 - F.y0) * M.s, 0, 0, 7); ctx.stroke(); ctx.restore(); }
+  const zz = i != null ? code(M.m, i) : z, px = X(zz[0]), py = Y(zz[1]);
+  const cw = 132, chh = i != null && CK[M.m][NCK - 1].lv ? 108 : 92; let cx = px + 14, cy = py + 14; if (cx + cw > W - 4) cx = px - 14 - cw; if (cy + chh > H - 4) cy = py - 14 - chh;
+  ctx.save(); ctx.fillStyle = col.surf; ctx.strokeStyle = col.ink3; ctx.shadowColor = "rgba(0,0,0,.25)"; ctx.shadowBlur = 6; ctx.fillRect(cx, cy, cw, chh); ctx.shadowBlur = 0; ctx.strokeRect(cx + .5, cy + .5, cw - 1, chh - 1); ctx.restore();
+  img(decode(M.m, zz, i != null ? CK.digits[i] : st.label), cx + 6, cy + 6, 60, col.hl);
+  T(i != null ? `test image, a ${CK.digits[i]}` : "decoded here", cx + 72, cy + 18, { size: 10, fill: col.ink1, w: 600 });
+  T(`z = (${f2(zz[0])},`, cx + 72, cy + 34, { size: 10 }); T(`${f2(zz[1])})`, cx + 82, cy + 47, { size: 10 });
+  if (i != null && CK[M.m][NCK - 1].lv) { const lv = [CK[M.m][NCK - 1].lv[2 * i], CK[M.m][NCK - 1].lv[2 * i + 1]], sd = lv.map((v) => Math.exp(v / 2));
+    const km = 0.5 * (zz[0] ** 2 + zz[1] ** 2), ks = 0.5 * (sd[0] ** 2 - 1 - lv[0] + sd[1] ** 2 - 1 - lv[1]);
+    T(`σ = (${f2(sd[0])}, ${f2(sd[1])})`, cx + 6, cy + 82, { size: 10, fill: col.post });
+    T(`KL ${f2(km + ks)} = mean ${f2(km)} + spread ${f2(ks)}`, cx + 6, cy + 97, { size: 10, fill: col.prior }); }
+  else T(i != null ? "one point: no q(z|x)" : (zz[0] ** 2 + zz[1] ** 2 <= R95 * R95 ? "inside N(0, I)'s circle" : "outside N(0, I)'s circle"), cx + 6, cy + 82, { size: 10, fill: col.ink3 });
+}
+
+function render() {
+  if (!CK) return;
+  ctx.fillStyle = col.surf; ctx.fillRect(0, 0, W, H);
+  const Ms = maps(); Ms.forEach(drawMap);
+  let y;
+  if (st.page === "kl") {
+    const gy = Ms[0].y + Ms[0].s + 66; Ms.forEach((M) => drawGen(M, gy)); y = gy + Ms[0].s + 46;
+    lossPanel({ x: 30, y, w: 230, h: 80 }, "recon", [["ae", col.ink1, [6, 4], "without"], ["vae", col.ink1, null, "with"]], "Reconstruction term");
+    lossPanel({ x: 300, y, w: 230, h: 80 }, "kl", [["vae", col.prior, null, "with"], ["ae", col.ink3, null, "without"]], "KL term");
+    y += 136;
+  } else {
+    const M = Ms[0], sx = M.x + M.s + 16, sw = W - sx - 4;
+    // the centre decoded with each label, as a column beside the map
+    T("The centre, with each c", sx, 14, { w: 600, fill: col.ink1 });
+    const cell = Math.min(52, (M.s - 9 * 4) / 10 * 2);
+    for (let d = 0; d < 10; d++) { const x = sx + (d % 2) * (cell + 10), yy = M.y + Math.floor(d / 2) * (cell + 8);
+      if (st.trained) img(decode("cvae", st.centre, d), x, yy, cell, d === st.label ? col.hl : null); else box(x, yy, cell, cell, col.grid, 1, [3, 3]);
+      T(`c = ${d}`, x + cell + 2, yy + cell - 2, { size: 9, fill: d === st.label ? col.hl : col.ink3 }); }
+    const gy = M.y + M.s + 66; drawGen({ ...M, s: 300 }, gy); y = gy + 300 + 46;
+    lossPanel({ x: 30, y, w: 230, h: 80 }, "recon", [["cvae", col.ink1, null, "CVAE"]], "Reconstruction term");
+    lossPanel({ x: 300, y, w: 230, h: 80 }, "kl", [["cvae", col.prior, null, "CVAE"]], "KL term");
+    y += 136;
+  }
+  drawRow16(y);
+  drawHover();
+  document.getElementById("train").disabled = st.trained || st.playing;
+  document.getElementById("gen").disabled = !st.trained;
+  document.getElementById("gen").textContent = st.gen && st.mode === "draws" ? "Draw again" : "Generate";
+  document.getElementById("cap").textContent = caption();
+}
+function caption() {
+  if (st.page === "kl") return !st.trained ? "The same network trained twice, without and with the KL term. Untrained, both put every image's code near (0, 0). Train trains both for 10 epochs, showing ten checkpoints." :
+    !st.gen ? `Without the KL term the codes spread far past the sampler's circle (92% of them outside it, a quarter beyond this view); with it, they stay within the circle (KL term ${CK.vae[NCK - 1].kl.toFixed(1)} per image). Generate decodes the sampler's region with each decoder.` :
+    "Without the KL term the region around (0, 0) decodes to blends of a few digits; with it, to every kind of digit, each changing smoothly into its neighbour. Move the sampler to another region of the autoencoder's codes and it decodes to the digits there: without the KL term, nothing says where to sample.";
+  return !st.trained ? "The label's embedding c is given to the encoder and the decoder. Train shows ten checkpoints." :
+    !st.gen ? "The codes no longer group by digit: c carries the digit, so z holds the style. Generate decodes the sampler's region with the chosen label." :
+    `Every point of the region decodes to a ${st.label}: c sets the digit, and z, across the region, the slant and the thickness. The column decodes the sampler's centre with each label.`;
+}
+
+/* ---------------- input: drag the sampler, hover the maps ---------------- */
+function mapAt(e) { const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top; for (const M of maps()) if (px >= M.x && px <= M.x + M.s && py >= M.y && py <= M.y + M.s) return { M, px, py }; return null; }
+cv.addEventListener("pointerdown", (e) => { const h = mapAt(e); if (!h) return; st.drag = true; cv.setPointerCapture(e.pointerId); st.centre = scale(h.M).inv(h.px, h.py).map((v) => +v.toFixed(2)); render(); });
+cv.addEventListener("pointermove", (e) => {
+  const h = mapAt(e);
+  if (st.drag && h) { st.centre = scale(h.M).inv(h.px, h.py).map((v) => +v.toFixed(2)); render(); return; }
+  if (!h) { st.hover = null; render(); return; }
+  const { X, Y, inv } = scale(h.M); let best = null, bd = 30;
+  for (let i = 0; i < CK.digits.length; i++) { const c = code(h.M.m, i), d = (X(c[0]) - h.px) ** 2 + (Y(c[1]) - h.py) ** 2; if (d < bd) { bd = d; best = i; } }
+  st.hover = { M: h.M, z: inv(h.px, h.py), i: best }; render();
+});
+const end = () => { if (st.drag) { st.drag = false; render(); } };
+cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+cv.addEventListener("pointerleave", () => { st.hover = null; render(); });
+
+function seg(id, items, get, set) { const el = document.getElementById(id); el.innerHTML = ""; items.forEach(([v, l]) => { const b = document.createElement("button"); b.textContent = l; b.className = get() === v ? "on" : ""; b.onclick = () => { set(v); rail(); render(); }; el.appendChild(b); }); }
+function rail() {
+  seg("pages", [["kl", "Without and with KL"], ["cond", "Conditional"]], () => st.page, (v) => { st.page = v; st.hover = null; size(); });
+  document.getElementById("labelBox").style.display = st.page === "cond" ? "" : "none";
+  seg("labels", [...Array(10).keys()].map((d) => [d, String(d)]), () => st.label, (v) => (st.label = v));
+  seg("spreads", [[0.5, "0.5"], [1, "1"], [2, "2"]], () => st.spread, (v) => (st.spread = v));
+  seg("frames", [["8", "±8"], ["25", "±25"], ["own", "own"]], () => st.frame, (v) => (st.frame = v));
+  seg("modes", [["tiles", "6 × 6 region"], ["draws", "16 draws"]], () => st.mode, (v) => (st.mode = v));
+}
+let last = 0;
+function frame(t) { const dt = last ? t - last : 16; last = t; if (st.playing) { st.t = Math.min(1, st.t + dt / (MOVE_MS * (NCK - 1))); if (st.t >= 1) { st.playing = false; st.trained = true; } } render(); if (st.playing) requestAnimationFrame(frame); else last = 0; }
+document.getElementById("train").onclick = () => { st.playing = true; st.t = 0; requestAnimationFrame(frame); };
+document.getElementById("gen").onclick = () => { if (st.gen && st.mode === "draws") st.resample++; st.gen = 1; render(); };
+document.getElementById("reset").onclick = () => { Object.assign(st, { trained: false, playing: false, t: 0, gen: 0, centre: [0, 0], spread: 1, resample: 0 }); rail(); render(); };
+
+Promise.all(["vae-checkpoints.json", "vae-mock-data.json"].map((f) => fetch(f).then((r) => r.json()))).then(([ck, md]) => {
+  CK = ck; G16 = { ae: md.ae16, vae: md.vae16, cvae: md.cvae16 };
+  cols(); size(); rail(); render(); document.getElementById("status").textContent = "loaded";
+}).catch((e) => { document.getElementById("status").textContent = "load failed: " + e; });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { cols(); render(); });
+</script>
+</body>
+</html>

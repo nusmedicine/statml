@@ -25770,6 +25770,30 @@ the trained decoder: before Train every decode is a dashed frame saying "x̂
 after Train", and during Train the panel waits. The text sweep found one
 overrun (Conditional's grid title, 22px), shortened.
 
+### 106 ROUND 3, 2026-10-18: his five points on the rebuild, mocked (`_lab/vae-mock3.html`)
+
+His review: (1) the circle's size differed between pages, it could not move,
+and on the VAE it covered everything; (2) no visible point in pinning an
+image; (3) show it with and without the KL term; (4) Draw was "just the
+digit", lame; (5) hover could show the image dynamically.
+
+Measured for the shared scale (`vae-checkpoints.json`): a ±8 frame holds all
+of the VAE's and CVAE's codes at every checkpoint and the autoencoder's 100%
+to 20 batches, 35% at 200 batches and 75% at epoch 10 (±10: 82%; ±25: all).
+
+The mock, drawn at the widget's own width (540 px): Model **Without and with
+KL** (the autoencoder and the VAE side by side, one Train press for both, one
+±8 scale, codes beyond it marked on the edge and counted) · **Conditional**;
+the circle becomes a **sampler**, 95% of N(centre, s²I), a click or drag
+moving the centre and Spread 0.5 · 1 · 2; **Generate** decodes the sampler's
+region on a 6 × 6 grid under each map (without KL the region around (0, 0)
+is blends of 6, 5 and 2; with KL every kind of digit, each shading into its
+neighbour), re-decoded when the sampler is released; image pinning removed;
+a hover card follows the pointer with the decode under it (over a VAE dot,
+its q(z|x) ellipse and KL in one line); the bell-curve panel removed;
+Conditional decodes the region with the chosen label and the centre with
+each of the ten. Six calls at its foot.
+
 ---
 
 ## Two arcs, not one — now three
