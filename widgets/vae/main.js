@@ -11,66 +11,67 @@
    codes on N(0, I). At 2-D an autoencoder's draws are digits from the centre
    of its codes, not noise, and a 2-D VAE blurs 4 with 9 and 3, 5 with 8.
 
-   THREE ROUNDS (the catalogue's § 106 sections hold each):
-     1 (`_lab/vae-mock.html`)  a static map of trained codes per page, a click
-       to decode, a 16-D grid. His review: no schematic, no training, the KL
-       term not shown, the label not visibly conditioning, no motion or hover.
-     2 (`_lab/vae-mock2.html`) a two-row schematic, Train over ten checkpoints,
-       an image's q(z|x) and bell curves, Label as ten buttons, draws moving
-       into a grid. His review: the circle's size differed between pages (each
-       map had its own scale) and could not move; pinning an image had no
-       visible purpose; show the model with and without the KL term; Draw was
-       "just the digit"; hover could show the image.
-     3 (`_lab/vae-mock3.html`, all six calls the recommendation) is this file:
+   FOUR ROUNDS (the catalogue's § 106 sections hold each): a static map (1);
+   a schematic, Train, the KL panel and label buttons (2); the two models side
+   by side on one ±8 scale with a movable sampler and Generate decoding its
+   region (3); then his round-4 review and calls, which are this file:
 
-     pages       Model: "Without and with KL" — the autoencoder (10-3b's
-                 ConvVAE with the KL term removed, z = μ) and the VAE side by
-                 side, trained by one Train press — · "Conditional".
-     one scale   every map is ±8 in z, so the circle is the same size on all
-                 of them. It holds every VAE and CVAE code at every checkpoint
-                 and 75% of the trained autoencoder's (35% at 200 batches);
-                 codes beyond it are drawn on the edge and counted.
-     the sampler the circle holds 95% of draws from N(m, s²I): a click on a
-                 map outside it moves m there, a drag inside it carries it
-                 (core's `drag`), Spread sets s. m = (0, 0), s = 1 is N(0, I).
-                 m snaps to steps of 0.4, so the 6 × 6 decoding points land on
-                 a shared lattice and a drag decodes only the new row (cache).
-     Generate    the second press: the sampler's region, centre ± 2s on a
-                 6 × 6 grid, decoded under each map, appearing point by point;
-                 after it a moved sampler re-decodes at once. Without KL the
-                 region around (0, 0) is blends of a few digits; with KL every
-                 kind of digit, each shading into its neighbour. The 16-D row
-                 (16 draws from N(0, I) at the notebook's latent size) follows.
-     hover       a card follows the pointer: the decode of the point under it,
-                 or over a dot that image's x̂ from μ, and on a VAE its q(z|x)
-                 ellipse and KL split into its mean and spread parts. The card
-                 is an inspector (core's pointer rule): the grids carry every
-                 decode the card does.
-     Conditional one map, the region decoded with the chosen label, and the
-                 sampler's centre decoded with each of the ten labels beside
-                 the map (a click on one sets the label).
+     pages       Model: Autoencoder · VAE · Conditional, the notebook's order.
+                 Autoencoder: the autoencoder alone. VAE: without and with the
+                 KL term side by side (10-3b's ConvVAE with the term removed and
+                 z = μ, beside the VAE). Conditional: the VAE without a label
+                 beside the conditional VAE.
+     per map     "shared controls is difficult": every map has its OWN sampler
+                 and its OWN view, set on the map. A drag inside the circle
+                 moves the sampler, a drag on its rim sets its spread, a drag on
+                 empty map pans, a click (no drag) moves the sampler there, the
+                 wheel or the corner + and − zoom; Fit returns the view to
+                 autoscale (each map opens on it, following its codes during
+                 Train), N(0, I) resets the sampler.
+     Conditional the Label (ten buttons) highlights that digit's codes on both
+                 maps, sends the VAE's sampler onto them (their median, spread =
+                 their standard deviation) and gives the conditional VAE its c.
+                 Measured (`_lab/vae-mock4.html`): of the VAE codes inside such
+                 a circle 14–77% are the digit (5s 18%), so a place in z is a
+                 poor way to ask for a digit; c gets it at every z.
+     Train       the first press: ten checkpoints of the real run
+                 (`_lab/vae-checkpoints.py`), codes moving, the loss's two terms.
+     Generate    the second press: each sampler's region, centre ± 2s on a
+                 6 × 6 grid, decoded under its map point by point; afterwards a
+                 moved sampler re-decodes at once. The sampler's centre moves in
+                 steps of 0.4 so the points land on a shared lattice and a drag
+                 decodes only the new row (decode cache).
 
-   Nothing is trained here. data.js is generated by `_lab/vae-export.py` from
-   `_lab/vae-checkpoints.py` and `_lab/vae-measure.py`; the decoder runs here
-   from the TRAINED weights only, so every decode waits for Train.
+   STATE. Each map's sampler and view are TEXT parameters, "x,y,s" and
+   "x,y,half" (empty = N(0, I) and Fit; on Conditional's VAE an empty sampler
+   follows the label). The canvas gestures write them through the `setParam`
+   door `defineWidget` returns, which syncs the rail first (the door
+   probability-mechanisms uses), one parameter per gesture step; the samplers
+   have rail fields, the views are hidden. No core change.
+
+   Nothing is trained here. data.js is generated by `_lab/vae-export.py`; the
+   decoder runs here from the TRAINED weights only, so decodes wait for Train.
    ========================================================================= */
 
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import { MODELS, DIGITS, GRID16, STATS } from "./data.js";
 
 const PAGES = [
-  { value: "kl", label: "Without and with KL" },
+  { value: "ae", label: "Autoencoder" },
+  { value: "vae", label: "VAE" },
   { value: "conditional", label: "Conditional" },
 ];
 const LABELS = Array.from({ length: 10 }, (_, d) => ({ value: String(d), label: String(d) }));
-const SPREADS = [{ value: "0.5", label: "0.5" }, { value: "1", label: "1" }, { value: "2", label: "2" }];
-const N = STATS.n, NCK = STATS.steps.length, NT = 6;
+const N = STATS.n, NCK = STATS.steps.length, NT = 6, LAST = NCK - 1;
 const MOVE_MS = 650, TRAIN_MS = MOVE_MS * (NCK - 1), GEN_MS = 1800;
-const R95 = STATS.r95;                       // the circle holding 95% of draws from N(m, s²I) is radius 2.45 s
-const HALF = 8;                              // every map shows z in [−8, 8]²
-const SNAP = 0.4;                            // the sampler's centre moves in steps of 0.4
-/** the models each page draws, left to right */
-const MAPS = { kl: ["ae", "vae"], conditional: ["cvae"] };
+const R95 = STATS.r95;                       // the circle holding 95% of draws from N(m, s²I) has radius 2.45 s
+const SNAP = 0.4;                            // a sampler's centre moves in steps of 0.4
+/** each page's maps, left to right: the model, and the parameters holding its sampler and view */
+const MAPS = {
+  ae: [{ m: "ae", sp: "s_ae", vp: "v_ae" }],
+  vae: [{ m: "ae", sp: "s_without", vp: "v_without" }, { m: "vae", sp: "s_with", vp: "v_with" }],
+  conditional: [{ m: "vae", sp: "s_vae", vp: "v_vae", follows: true }, { m: "cvae", sp: "s_cvae", vp: "v_cvae" }],
+};
 
 /* ------------------------------------------------------------- the data */
 
@@ -133,7 +134,7 @@ const decCache = new Map();
 function decode(m, z, label = 0) {
   const key = `${m}|${z[0].toFixed(2)}|${z[1].toFixed(2)}|${m === "cvae" ? label : ""}`;
   if (!decCache.has(key)) {
-    if (decCache.size > 3000) decCache.clear();
+    if (decCache.size > 4000) decCache.clear();
     decCache.set(key, decodeRaw(m, z, label));
   }
   return decCache.get(key);
@@ -147,25 +148,46 @@ for (const [k, M] of Object.entries(MODELS)) {
 }
 const median = (a) => { const s = [...a].sort((p, q) => p - q); return s[s.length >> 1]; };
 const NORM = Object.fromEntries(Object.keys(MODELS).map((k) => [k, Array.from({ length: NCK }, (_, c) => median(Array.from({ length: N }, (_, i) => Math.hypot(...muAt(k, c, i)))))]));
-
-/* ------------------------------------------------------------- the sampler */
-
+/* each digit's trained VAE codes: the median and the spread (the sampler a Label sends the VAE to) */
 const num = (v) => (Math.abs(v) < 0.005 ? 0 : v);
-const snap = (v) => num(Math.max(-HALF, Math.min(HALF, Math.round(v / SNAP) * SNAP)));
-const twoNumbers = (t) => { const m = String(t ?? "").replace(/[−–]/g, "-").match(/-?\d*\.?\d+/g); return m && m.length === 2 ? m.map(Number) : null; };
-/** "1.2, −0.4" → "1.20,-0.40", snapped to the 0.4 lattice; the origin, or anything that is not two numbers → "" */
-function parseCentre(t) {
-  const m = twoNumbers(t);
-  if (!m) return "";
-  const v = m.map((x) => snap(Number(x)));
-  return v[0] === 0 && v[1] === 0 ? "" : v.map((x) => x.toFixed(2)).join(",");
-}
+const CLUSTER = Array.from({ length: 10 }, (_, d) => {
+  const xs = [], ys = [];
+  for (let i = 0; i < N; i++) if (DIGITS[i] === d) { const z = muAt("vae", LAST, i); xs.push(z[0]); ys.push(z[1]); }
+  const mx = median(xs), my = median(ys);
+  const sd = Math.sqrt((xs.reduce((s, v) => s + (v - mx) ** 2, 0) + ys.reduce((s, v) => s + (v - my) ** 2, 0)) / (2 * xs.length));
+  return { c: [num(Math.round(mx / SNAP) * SNAP), num(Math.round(my / SNAP) * SNAP)], s: Math.max(0.2, Math.round(sd * 10) / 10) };
+});
+
+/* ------------------------------------------------------------- samplers and views */
+
 const sgn = (s) => String(s).replace(/-/g, "−");
-const centreOf = (params) => (params.centre ? params.centre.split(",").map(Number) : [0, 0]);
-const spreadOf = (params) => Number(params.spread);
-const isPrior = (params) => !params.centre && params.spread === "1";
-/** the 6 × 6 decoding points: centre ± 2s, row by row from the top */
-const tileZ = (c, s, r, q) => [num(c[0] + s * (-2 + (4 * q) / (NT - 1))), num(c[1] + s * (2 - (4 * r) / (NT - 1)))];
+const threeNumbers = (t) => { const m = String(t ?? "").replace(/[−–]/g, "-").match(/-?\d*\.?\d+/g); return m && m.length === 3 ? m.map(Number) : null; };
+const snapC = (v) => num(Math.max(-40, Math.min(40, Math.round(v / SNAP) * SNAP)));
+const snapS = (v) => Math.max(0.2, Math.min(3, Math.round(v * 10) / 10));
+/** "1.2, −0.4, 0.8" → "1.20,-0.40,0.8"; N(0, I) or anything else → "" */
+function parseSampler(t) {
+  const m = threeNumbers(t);
+  if (!m) return "";
+  const c = [snapC(m[0]), snapC(m[1])], s = snapS(m[2]);
+  return c[0] === 0 && c[1] === 0 && s === 1 ? "" : `${c[0].toFixed(2)},${c[1].toFixed(2)},${s.toFixed(1)}`;
+}
+const encodeSampler = (S) => parseSampler(`${S.c[0]},${S.c[1]},${S.s}`);
+const showSampler = (v) => (v ? sgn(v.split(",").join(", ")) : "");
+/** "x,y,half", empty = Fit */
+function parseView(t) {
+  const m = threeNumbers(t);
+  if (!m) return "";
+  return `${m[0].toFixed(2)},${m[1].toFixed(2)},${Math.max(1.5, Math.min(40, m[2])).toFixed(2)}`;
+}
+const PRIOR = { c: [0, 0], s: 1 };
+function samplerOf(page, slot, params) {
+  const v = params[slot.sp];
+  if (v) { const m = v.split(",").map(Number); return { c: [m[0], m[1]], s: m[2] }; }
+  return slot.follows ? CLUSTER[Number(params.label)] : PRIOR;
+}
+const isPrior = (S) => S.c[0] === 0 && S.c[1] === 0 && S.s === 1;
+/** the tile grid's points: centre ± 2s, row by row from the top */
+const tileZ = (S, r, q) => [num(S.c[0] + S.s * (-2 + (4 * q) / (NT - 1))), num(S.c[1] + S.s * (2 - (4 * r) / (NT - 1)))];
 
 /* ------------------------------------------------------------- stages */
 
@@ -177,7 +199,6 @@ const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
 const posOf = (anim, page) => (pressesOf(anim, page) < 1 ? 0 : playing(anim, page, "train") ? anim.t * (NCK - 1) : NCK - 1);
 const ckOf = (anim, page) => Math.floor(posOf(anim, page) + 1e-9);
 const moveOf = (anim, page) => { const q = posOf(anim, page); return q >= NCK - 1 ? 0 : ease(q - Math.floor(q)); };
-/** how many of the 36 points are decoded: 0 before Generate, one by one during it, all after */
 const tilesOf = (anim, page) => (pressesOf(anim, page) < 2 ? 0 : playing(anim, page, "gen") ? Math.min(NT * NT, Math.floor(anim.t * NT * NT) + 1) : NT * NT);
 const generatedOn = (anim, page) => pressesOf(anim, page) >= 2 && !playing(anim, page, "gen");
 function codeOf(anim, page, m, i) {
@@ -193,9 +214,14 @@ const lossAt = (m, k) => MODELS[m].loss[k];
 const f2 = (v) => sgn(num(v).toFixed(2));
 const f1 = (v) => sgn(num(v).toFixed(1));
 const pct = (v) => `${Math.round(100 * v)}%`;
-const LAST = NCK - 1;
 const zText = (z) => `(${f2(z[0])}, ${f2(z[1])})`;
-const samplerText = (params) => (isPrior(params) ? "N(0, I)" : `N(${zText(centreOf(params))}, ${params.spread}²I)`);
+const samplerText = (S) => (isPrior(S) ? "N(0, I)" : `N(${zText(S.c)}, ${S.s.toFixed(1)}²I)`);
+/** the share of a model's trained codes inside a sampler's circle that are digit d */
+function shareOf(m, S, d) {
+  let tot = 0, hit = 0;
+  for (let i = 0; i < N; i++) { const z = muAt(m, LAST, i); if (Math.hypot(z[0] - S.c[0], z[1] - S.c[1]) <= R95 * S.s) { tot++; if (DIGITS[i] === d) hit++; } }
+  return tot ? hit / tot : 0;
+}
 
 const S = {
   subtitle:
@@ -203,65 +229,76 @@ const S = {
     "so a point drawn from N(0, I) decodes to a new image. A conditional VAE also gives the encoder and the decoder a label, which sets the digit that is generated.",
   pageLabel: "Model",
   labelLabel: "Label c",
-  labelDetail: "the digit whose text embedding c is given to the encoder and the decoder",
-  spreadLabel: "Spread s",
-  spreadDetail: "the sampler's standard deviation; s = 1 with the centre at (0, 0) is N(0, I)",
-  centreLabel: "Sampler centre",
-  centreDetail: "the centre m, as z₁, z₂; a click on a map moves it there, a drag inside the circle carries it",
-  centreCheck: "two numbers, as 1.2, −0.4",
-  schemaLabel: "The network in training (encoder, z, decoder, loss with the KL term) and in generating (z drawn from the sampler, the same decoder)",
-  mapTitle: { ae: "Without the KL term", vae: "With the KL term", cvae: "Conditional VAE" },
-  mapSub: { ae: "the autoencoder", vae: "the VAE", cvae: (d) => `codes of all ten digits; c = ${d}` },
-  beyond: (p) => `${p} of codes beyond this view, on the edge`,
+  labelDetail: "highlights that digit's codes; sends the VAE's sampler onto them and gives the conditional VAE c",
+  samplerLabel: { s_ae: "Sampler", s_without: "Sampler, without KL", s_with: "Sampler, with KL", s_vae: "Sampler, VAE", s_cvae: "Sampler, conditional VAE" },
+  samplerDetail: "centre and spread, as x, y, s; on a map, a drag inside the circle moves it and a drag on its rim sets s",
+  samplerCheck: "three numbers, as 1.2, −0.4, 0.8",
+  schemaLabel: "The network in training (encoder, z, decoder, loss) and in generating (z drawn from the sampler, the same decoder)",
+  title: { ae: "The autoencoder", without: "Without the KL term", with: "With the KL term", vae: "VAE, no label", cvae: "Conditional VAE" },
+  sub: { ae: "codes of 1,000 test images", without: "the autoencoder", with: "the VAE", vae: (d) => `the ${d}s highlighted`, cvae: (d) => `c = ${d}, the ${d}s highlighted` },
+  beyond: (p) => `${p} of codes beyond the view`,
+  radius: (S) => `${samplerText(S)}, radius ${(R95 * S.s).toFixed(2)}`,
+  buttons: { zoomIn: "+", zoomOut: "−", fit: "Fit", prior: "N(0, I)", label: (d) => `on the ${d}s` },
   regionTitle: "The sampler's region, decoded",
+  regionSub: (S, c) => `centre ± 2s, 6 × 6 points${c != null ? `, c = ${c}` : ""}`,
   regionWait: (trained) => (trained ? ["Generate decodes", "the sampler's region"] : ["Train first,", "then Generate"]),
-  labelsTitle: "The centre m, with each c",
   lossTitle: { recon: "Reconstruction term", kl: "KL term" },
   lossWait: "Train draws it",
   lossTicks: [[1, "0"], [10, "10 batches"], [2350, "epoch 10"]],
-  noKL: "without: no KL term",
+  noKL: "no KL term",
   row16Title: "Latent size 16: 16 draws from N(0, I), decoded",
-  row16Names: { ae: "without KL", vae: "with KL", cvae: (d) => `c = ${d}` },
-  card: { here: "decoded here", image: (d) => `test image, a ${d}`, point: "one point z, no q(z|x)", inside: "inside the circle", outside: "outside the circle" },
-  legend: { code: "a test image's code z", beyond: "codes beyond the view", circle: "95% of the sampler's draws" },
+  row16Names: { ae: "autoencoder", without: "without KL", with: "with KL", vae: "VAE", cvae: (d) => `c = ${d}` },
+  card: { here: "decoded here", image: (d) => `test image, a ${d}`, point: "one point z, no q(z|x)", inside: "inside N(0, I)'s circle", outside: "outside N(0, I)'s circle" },
+  legend: { code: "a test image's code z", chosen: (d) => `the ${d}s' codes`, circle: "95% of the sampler's draws" },
   tile: {
     inside: "Codes inside the circle",
-    insideNote: (params) => `of ${N.toLocaleString("en")} test images; the circle holds 95% of draws from ${samplerText(params)}`,
+    insideNote: "of 1,000 test images, inside the sampler's circle",
     norm: "Median length of a code",
     normNote: `latent size 2; a draw from N(0, I): ${f2(STATS.prior2)}`,
+    recon: "Reconstruction term",
+    reconNote: "per image, squared error summed over the 784 pixels",
     kl: "KL term, with KL",
-    klC: "KL term",
+    klC: "KL term, conditional VAE",
     klNote: (L) => `per image: mean part ${f2(L.klMu)} + spread part ${f2(L.klSd)}`,
     norm16: "Median code length, latent size 16",
     norm16Note: `a draw from N(0, I): ${f2(STATS.prior16)}`,
     wait16: "after Generate",
-    pair: (a, b) => `${a} · ${b}`,
     pairNote: "without KL · with KL",
+    shareV: (d) => `VAE: codes in its circle that are ${d}s`,
+    shareC: (d) => `Conditional VAE: codes in its circle that are ${d}s`,
+    shareNote: "of the trained codes inside that map's circle",
   },
   wait: "—",
 };
+const pair = (a, b) => `${a} · ${b}`;
 
 const CAP = {
-  kl: {
-    0: () => `The same network trained twice: without the KL term (the autoencoder) and with it (the VAE). Untrained, both put every image's code near (0, 0). Train trains both for 10 epochs, showing ten checkpoints; a hover over a map shows what is decoded there once training ends.`,
-    play: (k) => `Training, ${lossAt("vae", k).label}: median code length ${f2(NORM.ae[k])} without the KL term and ${f2(NORM.vae[k])} with it. The reconstruction term spreads both sets of codes apart; only the KL term draws them back toward N(0, I).`,
-    1: () => `Without the KL term the codes spread far past the circle of N(0, I) (median length ${f2(NORM.ae[LAST])}); with it they stay within it (${f2(NORM.vae[LAST])}, KL term ${f1(lossAt("vae", LAST).kl)} per image). Generate decodes the sampler's region with each decoder.`,
-    2: (params) => isPrior(params)
-      ? `Around (0, 0), without the KL term, the region decodes to blends of a few digits; with it, to every kind of digit, each changing smoothly into its neighbour. A click elsewhere on a map moves the sampler: on the autoencoder's map it finds the digits wherever their codes are, since without the KL term nothing sets where to sample.`
-      : `The sampler is at ${samplerText(params)}. Each decoder turns the same 36 points into what its own codes hold there; a VAE is trained so that N(0, I), at (0, 0) with spread 1, holds every digit.`,
+  ae: {
+    0: () => `Untrained, the encoder maps every image to a code near (0, 0) and the decoder gives the same grey blur for each. The dashed circle holds 95% of draws from the sampler, N(0, I) to start. Train shows ten checkpoints of 10 epochs.`,
+    play: (k) => `Training, ${lossAt("ae", k).label}: median code length ${f2(NORM.ae[k])}. The reconstruction term spreads the codes apart, so that the decoder can tell the images apart.`,
+    1: () => `The codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])} against ${f2(STATS.prior2)} for a draw). Generate decodes the sampler's region; on the map, a drag inside the circle moves it, a drag on its rim widens it.`,
+    2: () => `Around (0, 0) the decoder gives blends of a few digits. Moved onto a cluster, the sampler finds that digit: the autoencoder decodes its own codes well, but nothing in its training says where to sample.`,
+  },
+  vae: {
+    0: () => `The same network trained twice: without the KL term (the autoencoder, left) and with it (the VAE, right). Each map has its own sampler and view. Train trains both.`,
+    play: (k) => `Training, ${lossAt("vae", k).label}: median code length ${f2(NORM.ae[k])} without the KL term, ${f2(NORM.vae[k])} with it, KL term ${f1(lossAt("vae", k).kl)}. The reconstruction term spreads both sets of codes; only the KL term draws them back toward N(0, I).`,
+    1: () => `Without the KL term the codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])}); with it they fill the circle (${f2(NORM.vae[LAST])}), each digit in its own region. Generate decodes each map's sampler.`,
+    2: () => `With the KL term, N(0, I) decodes to every kind of digit, each shading into its neighbour; without it, the same circle decodes to blends of the few digits whose codes reach the centre.`,
   },
   conditional: {
-    0: () => `The label's embedding c is given to the encoder and the decoder, in training and in generating. Untrained, every code sits near (0, 0). Train shows ten checkpoints.`,
-    play: (k) => `Training, ${lossAt("cvae", k).label}: KL term ${f2(lossAt("cvae", k).kl)}, median code length ${f2(NORM.cvae[k])}.`,
-    1: (params) => `The codes no longer group by digit: c carries the digit, so z holds how the digit is written, and every digit's codes share the circle. Beside the map, the sampler's centre is decoded with each of the ten labels. Generate decodes the region with c = ${params.label}.`,
-    2: (params) => `Every point of the region decodes to a ${params.label}: c sets the digit, and z, across the region, the slant and the thickness of the stroke.`,
+    0: () => `Left, the VAE without a label; right, the conditional VAE, which is given the label as c. A Label button highlights that digit's codes on both maps. Train trains both.`,
+    play: (k) => `Training, ${lossAt("cvae", k).label}: KL term ${f2(lossAt("vae", k).kl)} for the VAE and ${f2(lossAt("cvae", k).kl)} for the conditional VAE.`,
+    1: (params, Sv) => { const d = Number(params.label); return `On the VAE the ${d}s occupy one region and the Label sent the sampler there: of the codes inside its circle, ${pct(shareOf("vae", Sv, d))} are ${d}s. On the conditional VAE the ${d}s spread over the whole circle of N(0, I): z does not hold the digit, c does. Generate decodes both samplers.`; },
+    2: (params) => { const d = Number(params.label); return `The VAE's region decodes to ${d}s and the digits whose codes share it; the conditional VAE, at N(0, I) with c = ${d}, decodes a ${d} at every point, z setting the slant and the stroke.`; },
   },
 };
 
-const GEN_TITLE = "Decode the sampler's region on a 6 × 6 grid of points";
+const GEN_TITLE = "Decode each sampler's region on a 6 × 6 grid of points";
+const TRAIN_T = (what) => `Train ${what} for 10 epochs, showing ten checkpoints`;
 const STEP_TITLES = {
-  kl: { anim: "beat", labels: { 0: "Train both models for 10 epochs, showing ten checkpoints", 1: GEN_TITLE }, default: GEN_TITLE },
-  conditional: { anim: "beat", labels: { 0: "Train the conditional VAE for 10 epochs, showing ten checkpoints", 1: `${GEN_TITLE}, with the label chosen` }, default: `${GEN_TITLE}, with the label chosen` },
+  ae: { anim: "beat", labels: { 0: TRAIN_T("the autoencoder"), 1: GEN_TITLE }, default: GEN_TITLE },
+  vae: { anim: "beat", labels: { 0: TRAIN_T("both models"), 1: GEN_TITLE }, default: GEN_TITLE },
+  conditional: { anim: "beat", labels: { 0: TRAIN_T("both models"), 1: GEN_TITLE }, default: GEN_TITLE },
 };
 
 /* --------------------------------------------------------- formula card */
@@ -276,12 +313,18 @@ const NI = `<mi mathvariant="script">N</mi>${mo("(")}${mn(0)}${mo(",")}${mi("I")
 const KL = (cond) => `${sub(mi("D"), `<mtext>KL</mtext>`)}${mo("(")}${qz(cond)}${mo("‖")}${NI}${mo(")")}`;
 const E = (cond) => `${sub(`<mi mathvariant="double-struck">E</mi>`, qz(cond))}${mo("[")}${norm2}${mo("]")}`;
 const L = (s) => sub(`<mi mathvariant="bold">L</mi>`, `<mtext>${s}</mtext>`);
+const KL_NOTE = "D_KL = Σⱼ ½μⱼ² + ½(σⱼ² − 1 − ln σⱼ²): a mean part and a spread part, both 0 only when μ = 0 and σ = 1.";
 const MATH = {
-  kl: {
+  ae: {
+    math: `<math display="block"><mrow>${L("AE")}${mo("=")}${norm2}</mrow></math>`,
+    plain: "L_AE = ‖x − x̂‖²",
+    note: "The encoder gives one code z for each image and the decoder turns a code back into an image, x̂ = g(z); training lowers the squared error between each image and its reconstruction.",
+  },
+  vae: {
     math: `<math display="block"><mtable columnalign="left"><mtr><mtd><mrow>${L("without KL")}${mo("=")}${norm2}</mrow></mtd></mtr>` +
       `<mtr><mtd><mrow>${L("with KL")}${mo("=")}${E(false)}${mo("+")}<mrow style="color:var(--c-prior)">${KL(false)}</mrow></mrow></mtd></mtr></mtable></math>`,
     plain: "L_without KL = ‖x − x̂‖²;  L_with KL = E_q(z|x)[‖x − x̂‖²] + D_KL(q_φ(z|x) ‖ N(0, I))",
-    note: "Without the KL term the encoder gives each image one code z = μ. With it the encoder gives a mean μ and a spread σ, z = μ + σ · ε with ε ~ N(0, I), and D_KL = Σⱼ ½μⱼ² + ½(σⱼ² − 1 − ln σⱼ²): a mean part and a spread part, both 0 only when μ = 0 and σ = 1.",
+    note: `Without the KL term the encoder gives each image one code z = μ. With it the encoder gives a mean μ and a spread σ, and z = μ + σ · ε with ε ~ N(0, I). ${KL_NOTE}`,
   },
   conditional: {
     math: `<math display="block"><mrow>${L("CVAE")}${mo("=")}${E(true)}${mo("+")}<mrow style="color:var(--c-prior)">${KL(true)}</mrow>${mo(",")}<mspace width="0.6em"/>${xh}${mo("=")}${mi("g")}${mo("(")}${mi("z")}${mo(",")}${mi("c")}${mo(")")}</mrow></math>`,
@@ -312,26 +355,29 @@ const svText = (x, y, t, anchor = "start", fill = "var(--ink-3)", weight = "") =
 const COL = { x: [0, 30], enc: [42, 70], ms: [124, 40], z: [176, 80], dec: [268, 70], xh: [350, 30], loss: [392, 142] };
 const mid = (c) => COL[c][0] + COL[c][1] / 2;
 function geomOf(page) {
-  const h = 30, y1 = 26, y2 = 150, c1 = y1 + h / 2, c2 = y2 + h / 2;
+  const h = 30, y1 = 26, y2 = page === "ae" ? 104 : 150, c1 = y1 + h / 2, c2 = y2 + h / 2;
   return {
-    h, y1, y2, H: page === "conditional" ? 256 : 200,
+    h, y1, y2, H: page === "conditional" ? 256 : page === "ae" ? 150 : 200,
     fwd: [[mid("x"), c1], [mid("enc"), c1], [mid("ms"), c1], [mid("z"), c1], [mid("dec"), c1], [mid("xh"), c1], [mid("loss"), c1]],
     back: [[mid("loss"), y1 + h], [mid("loss"), y1 + h + 12], [mid("enc"), y1 + h + 12], [mid("enc"), y1 + h]],
     gen: [[mid("z"), c2], [mid("dec"), c2], [COL.xh[0] + 23, c2]],
   };
 }
 function schemaSVG(page, label) {
-  const g = geomOf(page), { h, y1, y2 } = g, c1 = y1 + h / 2, c2 = y2 + h / 2;
+  const g = geomOf(page), { h, y1, y2 } = g, c1 = y1 + h / 2, c2 = y2 + h / 2, vae = page !== "ae";
   const right = (a, b, y) => svArrow(COL[a][0] + COL[a][1] + 1, y, COL[b][0] - 2, y);
   let s = svText(0, 12, "Training", "start", "var(--ink-1)", "font-weight:600");
   s += svBox(...COL.x, y1, h, "x") + right("x", "enc", c1) + svBox(...COL.enc, y1, h, "Encoder", { enc: true }) + right("enc", "ms", c1);
-  s += svBox(...COL.ms, y1 - 3, 18, "μ") + svBox(...COL.ms, y1 + 15, 18, "σ");
-  s += right("ms", "z", c1) + svBox(...COL.z, y1, h, "z = μ + σ·ε") + svText(mid("z"), y1 - 8, "ε ~ N(0, I)", "middle", "var(--c-prior)");
+  s += vae ? svBox(...COL.ms, y1 - 3, 18, "μ") + svBox(...COL.ms, y1 + 15, 18, "σ") : svBox(...COL.ms, y1, h, "μ");
+  s += right("ms", "z", c1) + svBox(...COL.z, y1, h, vae ? "z = μ + σ·ε" : "z = μ");
+  if (vae) s += svText(mid("z"), y1 - 8, "ε ~ N(0, I)", "middle", "var(--c-prior)");
   s += right("z", "dec", c1) + svBox(...COL.dec, y1, h, "Decoder", { enc: true }) + right("dec", "xh", c1) + svBox(...COL.xh, y1, h, "x̂") + right("xh", "loss", c1);
-  s += svBox(...COL.loss, y1, h, "‖x − x̂‖² + KL");
-  s += svLine([[mid("ms"), y1 + 34], [mid("ms"), 100], [COL.loss[0] + COL.loss[1] - 14, 100], [COL.loss[0] + COL.loss[1] - 14, y1 + h]], "var(--c-prior)");
-  s += svText(310, 113, "KL( N(μ, σ²) ‖ N(0, I) ): how far q(z|x) is from N(0, I)", "middle", "var(--c-prior)");
-  if (page === "kl") s += svText(310, 126, "without the KL term: σ dropped, z = μ, and the loss is ‖x − x̂‖² alone", "middle");
+  s += svBox(...COL.loss, y1, h, vae ? "‖x − x̂‖² + KL" : "‖x − x̂‖²");
+  if (vae) {
+    s += svLine([[mid("ms"), y1 + 34], [mid("ms"), 100], [COL.loss[0] + COL.loss[1] - 14, 100], [COL.loss[0] + COL.loss[1] - 14, y1 + h]], "var(--c-prior)");
+    s += svText(310, 113, "KL( N(μ, σ²) ‖ N(0, I) ): how far q(z|x) is from N(0, I)", "middle", "var(--c-prior)");
+    if (page === "vae") s += svText(310, 126, "without the KL term: σ dropped, z = μ, and the loss is ‖x − x̂‖² alone", "middle");
+  }
   s += svText(0, y2 - 10, "Generating", "start", "var(--ink-1)", "font-weight:600");
   s += svBox(...COL.z, y2, h, "z ~ N(m, s²I)", { stroke: "var(--c-prior)", fill: "var(--c-prior)" }) + right("z", "dec", c2) + svBox(...COL.dec, y2, h, "Decoder", { enc: true });
   s += svArrow(COL.dec[0] + COL.dec[1] + 1, c2, COL.xh[0] - 2, c2) + svBox(COL.xh[0], 46, y2, h, "new x̂");
@@ -344,7 +390,7 @@ function schemaSVG(page, label) {
     s += svLine([[100, cy], [100, 124], [mid("enc"), 124], [mid("enc"), y1 + h]], hl);
     s += svLine([[160, cy], [160, 132], [262, 132], [262, y1 + h + 20], [mid("dec") - 10, y1 + h + 20], [mid("dec") - 10, y1 + h]], hl);
     s += svLine([[190, cy + 13], [mid("dec"), cy + 13], [mid("dec"), y2 + h]], hl);
-    s += svText(mid("dec") + 10, cy + 17, "c goes into the encoder and both decoders", "start", hl);
+    s += svText(mid("dec") + 10, cy + 17, "conditional VAE: c into the encoder and both decoders", "start", hl);
   }
   return `<svg viewBox="-1 0 ${SV_W + 2} ${g.H}" role="img" aria-label="${svEsc(S.schemaLabel)}" style="display:block;width:100%;height:auto;font:11px var(--font)">` +
     `${s}<g data-sv="lane"></g><g data-sv="motion"></g></svg>`;
@@ -371,7 +417,7 @@ function updateSchema(page, anim) {
       lane += svText(230, g.y1 + g.h + 24, "gradient of the loss, to the decoder and the encoder", "middle", "var(--c-slope)");
     }
   }
-  if (playing(anim, page, "gen")) { const f = (anim.t * NT) % 1; motion += svDot(along(g.gen, ease(f)), "var(--c-prior)"); }
+  if (playing(anim, page, "gen")) motion += svDot(along(g.gen, ease((anim.t * NT) % 1)), "var(--c-prior)");
   layer("lane").innerHTML = lane;
   layer("motion").innerHTML = motion;
 }
@@ -446,85 +492,105 @@ function drawImage(ctx, colors, px, x, y, s, edge = null) {
 }
 const gridImg = (m, label, i) => GRID[m][m === "cvae" ? label : 0].subarray(i * 784, (i + 1) * 784);
 
-/* ------------------------------------------------------------- layout */
+/* ------------------------------------------------------------- layout and views */
 
-const PAD = 10, LM = 26;
+const PAD = 10, LM = 26, BTN = 17;
+const KEY = { ae: { ae: "ae" }, vae: { ae: "without", vae: "with" }, conditional: { vae: "vae", cvae: "cvae" } };
 function layoutOf(w, page) {
-  const inner = w - 2 * PAD;
-  let maps, side = null;
-  if (page === "kl") {
-    const s = Math.floor((inner - 2 * LM - 24) / 2);
-    maps = [{ m: "ae", x: PAD + LM, y: 46, s }, { m: "vae", x: PAD + 2 * LM + s + 24, y: 46, s }];
-  } else {
-    const sw = clamp(Math.round(inner * 0.28), 130, 190), s = Math.min(340, inner - LM - sw - 18);
-    maps = [{ m: "cvae", x: PAD + LM, y: 46, s }];
-    side = { x: PAD + LM + s + 18, y: 46, w: sw };
-  }
-  const s = maps[0].s, rTop = maps[0].y + s + 74;
-  const tile = Math.floor((s - (NT - 1) * 3) / NT), rH = NT * tile + (NT - 1) * 3;
-  const lTop = rTop + rH + 44, lH = 80;
-  const nRows = maps.length, cell = Math.min(28, Math.floor((inner - 64 - 15 * 3) / 16));
-  const r16 = lTop + lH + 58;
-  const capTop = r16 + nRows * (cell + 8) + 24;
-  return { inner, maps, side, region: { y: rTop, tile }, loss: { y: lTop, h: lH }, row: { y: r16, cell }, capTop, height: capTop + 5 * 17 };
+  const inner = w - 2 * PAD, two = page !== "ae";
+  const s = two ? Math.floor((inner - 2 * LM - 24) / 2) : Math.min(340, inner - LM - 10);
+  const maps = MAPS[page].map((slot, j) => ({ ...slot, key: KEY[page][slot.m], x: PAD + LM + j * (s + 24 + LM), y: 46, s }));
+  const rTop = 46 + s + 76, tile = Math.floor((s - (NT - 1) * 3) / NT), rH = NT * tile + (NT - 1) * 3;
+  const lTop = rTop + rH + 44, lH = 80, lw = Math.floor((inner - 2 * LM - 24) / 2);
+  const cell = Math.min(28, Math.floor((inner - 74 - 15 * 3) / 16));
+  const r16 = lTop + lH + 58, capTop = r16 + maps.length * (cell + 8) + 24;
+  return { inner, maps, region: { y: rTop, tile }, loss: { y: lTop, h: lH, w: lw }, row: { y: r16, cell }, capTop, height: capTop + 5 * 17 };
 }
-const mapScale = (M) => ({
-  X: (v) => M.x + ((v + HALF) / (2 * HALF)) * M.s,
-  Y: (v) => M.y + ((HALF - v) / (2 * HALF)) * M.s,
-  inv: (px, py) => [((px - M.x) / M.s) * 2 * HALF - HALF, HALF - ((py - M.y) / M.s) * 2 * HALF],
-  r: (zr) => (zr / (2 * HALF)) * M.s,
+/** a map's view: its parameter, or Fit — every code at the checkpoint shown and the sampler's circle, square, padded */
+function viewOf(M, params, anim, page) {
+  const v = params[M.vp];
+  if (v) { const m = v.split(",").map(Number); return { cx: m[0], cy: m[1], half: m[2] }; }
+  const Sm = samplerOf(page, M, params), r = R95 * Sm.s;
+  let x0 = Math.min(-R95, Sm.c[0] - r), x1 = Math.max(R95, Sm.c[0] + r), y0 = Math.min(-R95, Sm.c[1] - r), y1 = Math.max(R95, Sm.c[1] + r);
+  for (let i = 0; i < N; i++) { const z = codeOf(anim, page, M.m, i); x0 = Math.min(x0, z[0]); x1 = Math.max(x1, z[0]); y0 = Math.min(y0, z[1]); y1 = Math.max(y1, z[1]); }
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, half: (Math.max(x1 - x0, y1 - y0) / 2) * 1.06 };
+}
+const mapScale = (M, V) => ({
+  X: (v) => M.x + ((v - V.cx + V.half) / (2 * V.half)) * M.s,
+  Y: (v) => M.y + ((V.half - (v - V.cy)) / (2 * V.half)) * M.s,
+  inv: (px, py) => [V.cx + ((px - M.x) / M.s) * 2 * V.half - V.half, V.cy + V.half - ((py - M.y) / M.s) * 2 * V.half],
+  r: (zr) => (zr / (2 * V.half)) * M.s,
 });
 const insideMap = (M, x, y) => x >= M.x && x <= M.x + M.s && y >= M.y && y <= M.y + M.s;
-/** inside the sampler's circle, in pixels */
-function inCircle(M, params, x, y) { const sc = mapScale(M), c = centreOf(params); return Math.hypot(x - sc.X(c[0]), y - sc.Y(c[1])) <= sc.r(R95 * spreadOf(params)); }
+function buttonsOf(M) {
+  const names = M.follows ? ["zoomIn", "zoomOut", "fit", "label"] : ["zoomIn", "zoomOut", "fit", "prior"], ws = { zoomIn: BTN, zoomOut: BTN, fit: 28, prior: 46, label: 58 };
+  const out = []; let x = M.x + M.s - 4;
+  for (let k = names.length - 1; k >= 0; k--) { x -= ws[names[k]]; out.unshift({ k: names[k], x, y: M.y + 4, w: ws[names[k]], h: BTN }); x -= 3; }
+  return out;
+}
 
 /* ------------------------------------------------------------- drawing */
 
 function drawMap(ctx, colors, page, M, params, anim) {
-  const { X, Y, r } = mapScale(M), label = Number(params.label);
-  txt(ctx, colors, S.mapTitle[M.m], M.x - LM, 14, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
-  txt(ctx, colors, typeof S.mapSub[M.m] === "function" ? S.mapSub[M.m](label) : S.mapSub[M.m], M.x - LM, 29, { fill: colors.ink3 });
+  const V = viewOf(M, params, anim, page), { X, Y, r } = mapScale(M, V), d = Number(params.label), cond = page === "conditional";
+  txt(ctx, colors, S.title[M.key], M.x - LM, 14, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
+  const sub = S.sub[M.key];
+  txt(ctx, colors, typeof sub === "function" ? sub(d) : sub, M.x - LM, 29, { fill: colors.ink3 });
   ctx.save(); ctx.fillStyle = colors.surface; ctx.fillRect(M.x, M.y, M.s, M.s); ctx.restore();
-  for (let v = -HALF; v <= HALF; v += 4) {
-    line(ctx, X(v), M.y, X(v), M.y + M.s, colors.grid); line(ctx, M.x, Y(v), M.x + M.s, Y(v), colors.grid);
-    txt(ctx, colors, sgn(String(v)), X(v), M.y + M.s + 13, { align: "center", fill: colors.ink3 });
-    txt(ctx, colors, sgn(String(v)), M.x - 5, Y(v) + 4, { align: "right", fill: colors.ink3 });
+  const raw = (2 * V.half) / 5, p10 = 10 ** Math.floor(Math.log10(raw)), mm = raw / p10, step = (mm < 1.5 ? 1 : mm < 3.5 ? 2 : mm < 7.5 ? 5 : 10) * p10;
+  const lab = (v) => sgn(String(+v.toFixed(1)));
+  for (let v = Math.ceil((V.cx - V.half) / step) * step; v <= V.cx + V.half + 1e-9; v += step) {
+    line(ctx, X(v), M.y, X(v), M.y + M.s, colors.grid);
+    txt(ctx, colors, lab(v), X(v), M.y + M.s + 13, { align: "center", fill: colors.ink3 });
   }
-  txt(ctx, colors, "z₁", M.x + M.s - 2, M.y + M.s + 13, { align: "right", fill: colors.ink2 });
+  for (let v = Math.ceil((V.cy - V.half) / step) * step; v <= V.cy + V.half + 1e-9; v += step) {
+    line(ctx, M.x, Y(v), M.x + M.s, Y(v), colors.grid);
+    txt(ctx, colors, lab(v), M.x - 5, Y(v) + 4, { align: "right", fill: colors.ink3 });
+  }
   ctx.save(); ctx.beginPath(); ctx.rect(M.x, M.y, M.s, M.s); ctx.clip();
   const pts = Array.from({ length: N }, (_, i) => codeOf(anim, page, M.m, i));
   let out = 0;
-  ctx.fillStyle = colors.empirical;
-  pts.forEach(([a, b]) => {
+  pts.forEach(([a, b], i) => {
     let x = X(a), y = Y(b);
-    if (!insideMap(M, x, y)) { out++; x = clamp(x, M.x + 1, M.x + M.s - 1); y = clamp(y, M.y + 1, M.y + M.s - 1); ctx.globalAlpha = 0.25; ctx.fillRect(x - 1, y - 1, 2, 2); return; }
-    ctx.globalAlpha = 0.5; ctx.fillRect(x - 1.2, y - 1.2, 2.4, 2.4);
+    const inView = insideMap(M, x, y), mine = cond && DIGITS[i] === d;
+    if (!inView) { out++; x = clamp(x, M.x + 1, M.x + M.s - 1); y = clamp(y, M.y + 1, M.y + M.s - 1); }
+    ctx.fillStyle = mine ? colors.highlight : colors.empirical;
+    ctx.globalAlpha = !inView ? 0.25 : cond ? (mine ? 0.9 : 0.25) : 0.5;
+    const rr = mine ? 1.6 : 1.2;
+    ctx.fillRect(x - rr, y - rr, 2 * rr, 2 * rr);
   });
   ctx.globalAlpha = 1;
-  for (let d = 0; d < 10; d++) {
+  if (!cond) for (let q = 0; q < 10; q++) {
     const xs = [], ys = [];
-    pts.forEach(([a, b], i) => { if (DIGITS[i] === d) { xs.push(a); ys.push(b); } });
+    pts.forEach(([a, b], i) => { if (DIGITS[i] === q) { xs.push(a); ys.push(b); } });
     const mx = X(median(xs)), my = Y(median(ys));
-    if (insideMap(M, mx, my)) txt(ctx, colors, String(d), mx, my + 4, { size: colors.fsSm, align: "center", weight: "600", fill: colors.ink1, halo: true });
+    if (insideMap(M, mx, my)) txt(ctx, colors, String(q), mx, my + 4, { size: colors.fsSm, align: "center", weight: "600", fill: colors.ink1, halo: true });
   }
-  /* the sampler: 95% of N(m, s²I), and its centre */
-  const c = centreOf(params);
+  const Sm = samplerOf(page, M, params);
   ctx.save(); ctx.strokeStyle = colors.prior; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
-  ctx.beginPath(); ctx.arc(X(c[0]), Y(c[1]), r(R95 * spreadOf(params)), 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
-  dot(ctx, X(c[0]), Y(c[1]), 3.5, colors.prior);
+  ctx.beginPath(); ctx.arc(X(Sm.c[0]), Y(Sm.c[1]), r(R95 * Sm.s), 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
+  dot(ctx, X(Sm.c[0]), Y(Sm.c[1]), 3.5, colors.prior);
   ctx.restore();
   frame(ctx, M.x, M.y, M.s, M.s, colors.axis);
+  /* the map's own controls */
+  for (const b of buttonsOf(M)) {
+    const on = (b.k === "fit" && !params[M.vp]) || ((b.k === "prior" || b.k === "label") && !params[M.sp]);
+    ctx.save(); ctx.fillStyle = colors.surface; ctx.fillRect(b.x, b.y, b.w, b.h); ctx.restore();
+    frame(ctx, b.x, b.y, b.w, b.h, on ? colors.highlight : colors.ink3);
+    const t = b.k === "label" ? S.buttons.label(d) : S.buttons[b.k];
+    txt(ctx, colors, t, b.x + b.w / 2, b.y + 12.5, { align: "center", fill: colors.ink1, weight: on ? "600" : "" });
+  }
   if (out) txt(ctx, colors, S.beyond(pct(out / N)), M.x + M.s, M.y + M.s + 27, { align: "right", fill: colors.ink3 });
-  return pts;
+  txt(ctx, colors, S.radius(Sm), M.x - LM, M.y + M.s + (out ? 41 : 28), { fill: colors.prior });
 }
 
 function drawRegion(ctx, colors, page, M, Rg, params, anim) {
-  const n = tilesOf(anim, page), label = Number(params.label), c = centreOf(params), s = spreadOf(params);
-  txt(ctx, colors, S.regionTitle, M.x - LM, Rg.y - 30, { fill: n ? colors.ink1 : colors.ink3, weight: "600" });
-  txt(ctx, colors, `${samplerText(params)}: m ± 2s, 6 × 6 points`, M.x - LM, Rg.y - 16, { fill: colors.prior });
+  const n = tilesOf(anim, page), label = Number(params.label), Sm = samplerOf(page, M, params);
+  txt(ctx, colors, S.regionTitle, M.x - LM, Rg.y - 22, { fill: n ? colors.ink1 : colors.ink3, weight: "600" });
+  txt(ctx, colors, S.regionSub(Sm, M.m === "cvae" ? label : null), M.x - LM, Rg.y - 8, { fill: colors.prior });
   for (let r = 0; r < NT; r++) for (let q = 0; q < NT; q++) {
     const x = M.x + q * (Rg.tile + 3), y = Rg.y + r * (Rg.tile + 3);
-    if (r * NT + q < n) drawImage(ctx, colors, decode(M.m, tileZ(c, s, r, q), label), x, y, Rg.tile);
+    if (r * NT + q < n) drawImage(ctx, colors, decode(M.m, tileZ(Sm, r, q), label), x, y, Rg.tile);
     else frame(ctx, x, y, Rg.tile, Rg.tile, colors.grid, 1, [3, 3]);
   }
   if (!n) {
@@ -532,19 +598,6 @@ function drawRegion(ctx, colors, page, M, Rg, params, anim) {
     S.regionWait(trainedOn(anim, page)).forEach((l, j) => txt(ctx, colors, l, M.x + w6 / 2, Rg.y + w6 / 2 - 4 + j * 14, { align: "center", fill: colors.ink3 }));
   }
 }
-
-function drawLabels(ctx, colors, Sd, params, anim) {
-  const c = centreOf(params), label = Number(params.label), cell = Math.floor((Sd.w - 10) / 2 - 18), trained = trainedOn(anim, "conditional");
-  txt(ctx, colors, S.labelsTitle, Sd.x, 14, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
-  txt(ctx, colors, zText(c), Sd.x, 29, { fill: colors.ink3 });
-  for (let d = 0; d < 10; d++) {
-    const x = Sd.x + (d % 2) * (cell + 28), y = Sd.y + Math.floor(d / 2) * (cell + 10);
-    if (trained) drawImage(ctx, colors, decode("cvae", c, d), x, y, cell, d === label ? colors.highlight : null);
-    else frame(ctx, x, y, cell, cell, colors.grid, 1, [3, 3]);
-    txt(ctx, colors, String(d), x + cell + 5, y + cell - 3, { fill: d === label ? colors.highlight : colors.ink3, weight: d === label ? "600" : "" });
-  }
-}
-const labelCell = (Sd, d) => { const cell = Math.floor((Sd.w - 10) / 2 - 18); return { x: Sd.x + (d % 2) * (cell + 28), y: Sd.y + Math.floor(d / 2) * (cell + 10), w: cell + 20, h: cell }; };
 
 function lossPanel(ctx, colors, R, page, key, series, anim) {
   const q = posOf(anim, page), k = Math.floor(q + 1e-9), e = moveOf(anim, page);
@@ -559,7 +612,7 @@ function lossPanel(ctx, colors, R, page, key, series, anim) {
   if (pressesOf(anim, page) < 1) { txt(ctx, colors, S.lossWait, R.x + R.w / 2, R.y + R.h / 2, { align: "center", fill: colors.ink3 }); return; }
   series.forEach(([m, col, dash, name], si) => {
     const C = MODELS[m].loss;
-    if (C[0][key] == null) { txt(ctx, colors, S.noKL, R.x + 6, R.y + 10, { fill: colors.ink3 }); return; }
+    if (C[0][key] == null) { txt(ctx, colors, `${name ? name + ": " : ""}${S.noKL}`, R.x + 6, R.y + 10, { fill: colors.ink3 }); return; }
     const P = [];
     for (let j = 0; j <= k; j++) P.push([lx(steps[j]), Y(C[j][key])]);
     let v = C[k][key];
@@ -570,18 +623,29 @@ function lossPanel(ctx, colors, R, page, key, series, anim) {
     ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; if (dash) ctx.setLineDash(dash);
     ctx.beginPath(); P.forEach(([px, py], j) => (j ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke(); ctx.restore();
     const [ex, ey] = P[P.length - 1];
-    txt(ctx, colors, `${name ? name + " " : ""}${v.toFixed(key === "kl" ? 1 : 0)}`, Math.min(ex + 5, R.x + R.w - 64), ey - 6 + si * 14, { fill: col, weight: "600" });
+    txt(ctx, colors, `${name ? name + " " : ""}${v.toFixed(key === "kl" ? 1 : 0)}`, Math.min(ex + 5, R.x + R.w - 70), ey - 6 + si * 14, { fill: col, weight: "600" });
   });
+}
+function drawLoss(ctx, colors, page, Lo, anim) {
+  const R = (j) => ({ x: PAD + LM + j * (Lo.loss.w + 24 + LM), y: Lo.loss.y, w: Lo.loss.w, h: Lo.loss.h });
+  if (page === "ae") { lossPanel(ctx, colors, R(0), page, "recon", [["ae", colors.ink1, null, ""]], anim); return; }
+  if (page === "vae") {
+    lossPanel(ctx, colors, R(0), page, "recon", [["ae", colors.ink1, [6, 4], "without"], ["vae", colors.ink1, null, "with"]], anim);
+    lossPanel(ctx, colors, R(1), page, "kl", [["ae", colors.ink3, null, "without"], ["vae", colors.prior, null, "with"]], anim);
+    return;
+  }
+  lossPanel(ctx, colors, R(0), page, "recon", [["vae", colors.ink1, [6, 4], "VAE"], ["cvae", colors.ink1, null, "CVAE"]], anim);
+  lossPanel(ctx, colors, R(1), page, "kl", [["vae", colors.prior, [6, 4], "VAE"], ["cvae", colors.prior, null, "CVAE"]], anim);
 }
 
 function drawRow16(ctx, colors, page, Lo, params, anim) {
   const R = Lo.row, show = generatedOn(anim, page), label = Number(params.label);
   txt(ctx, colors, S.row16Title, PAD, R.y - 12, { fill: show ? colors.ink1 : colors.ink3, weight: "600" });
   Lo.maps.forEach((M, r) => {
-    const name = typeof S.row16Names[M.m] === "function" ? S.row16Names[M.m](label) : S.row16Names[M.m];
+    const nm = S.row16Names[M.key], name = typeof nm === "function" ? nm(label) : nm;
     txt(ctx, colors, name, PAD, R.y + r * (R.cell + 8) + R.cell / 2 + 4, { fill: colors.ink2 });
     for (let i = 0; i < 16; i++) {
-      const x = PAD + 64 + i * (R.cell + 3), y = R.y + r * (R.cell + 8);
+      const x = PAD + 74 + i * (R.cell + 3), y = R.y + r * (R.cell + 8);
       if (show) drawImage(ctx, colors, gridImg(M.m, label, i), x, y, R.cell);
       else frame(ctx, x, y, R.cell, R.cell, colors.grid, 1, [3, 3]);
     }
@@ -589,18 +653,18 @@ function drawRow16(ctx, colors, page, Lo, params, anim) {
 }
 
 /* the hover card: the decode of the point under the pointer, or over a dot that image's x̂ and q(z|x) */
-function hoverOf(pointer, Lo, page, anim) {
-  if (!pointer || !trainedOn(anim, page)) return null;
+function hoverOf(pointer, Lo, page, params, anim) {
+  if (!pointer || gesture || !trainedOn(anim, page)) return null;
   const M = Lo.maps.find((q) => insideMap(q, pointer.x, pointer.y));
-  if (!M) return null;
-  const { X, Y, inv } = mapScale(M);
+  if (!M || buttonsOf(M).some((b) => pointer.x >= b.x && pointer.x <= b.x + b.w && pointer.y >= b.y && pointer.y <= b.y + b.h)) return null;
+  const V = viewOf(M, params, anim, page), { X, Y, inv } = mapScale(M, V);
   let best = null, bd = 25;
   for (let i = 0; i < N; i++) { const c = muAt(M.m, LAST, i), d = (X(c[0]) - pointer.x) ** 2 + (Y(c[1]) - pointer.y) ** 2; if (d < bd) { bd = d; best = i; } }
-  return { M, i: best, z: best == null ? inv(pointer.x, pointer.y) : muAt(M.m, LAST, best) };
+  return { M, V, i: best, z: best == null ? inv(pointer.x, pointer.y) : muAt(M.m, LAST, best) };
 }
 function drawCard(ctx, colors, w, H, hv, params) {
   if (!hv) return;
-  const { M, i, z } = hv, sc = mapScale(M), px = sc.X(z[0]), py = sc.Y(z[1]), lv = i != null && LV[M.m] ? [LV[M.m][1][2 * i] / 100, LV[M.m][1][2 * i + 1] / 100] : null;
+  const { M, V, i, z } = hv, sc = mapScale(M, V), px = sc.X(z[0]), py = sc.Y(z[1]), lv = i != null && LV[M.m] ? [LV[M.m][1][2 * i] / 100, LV[M.m][1][2 * i + 1] / 100] : null;
   if (lv) {
     ctx.save(); ctx.strokeStyle = colors.posterior; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.ellipse(px, py, sc.r(2 * Math.exp(lv[0] / 2)), sc.r(2 * Math.exp(lv[1] / 2)), 0, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
@@ -608,7 +672,7 @@ function drawCard(ctx, colors, w, H, hv, params) {
   } else {
     ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 5, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
   }
-  const cw = 150, ch = lv ? 104 : 84, im = 58;
+  const cw = 152, ch = lv ? 104 : 84, im = 58;
   let cx = px + 14, cy = py + 14;
   if (cx + cw > w - 2) cx = px - 14 - cw;
   if (cy + ch > H - 2) cy = py - 14 - ch;
@@ -629,14 +693,94 @@ function drawCard(ctx, colors, w, H, hv, params) {
 function captionOf(params, anim) {
   const page = params.page, C = CAP[page];
   if (playing(anim, page, "train")) return C.play(ckOf(anim, page));
-  return C[Math.min(2, pressesOf(anim, page))](params);
+  return C[Math.min(2, pressesOf(anim, page))](params, samplerOf(page, MAPS.conditional[0], params));
+}
+
+/* ------------------------------------------------------------- the canvas gestures */
+
+/* Each map's sampler and view are moved on the map. The gesture is the widget's own (core's `drag`
+   carries one gesture for the whole figure and does not report where it began, which is what decides
+   between moving, resizing and panning here); it writes one parameter per step through `api.setParam`,
+   so the rail, the URL and the figure stay one state. */
+let api = null, gesture = null, lastW = 550;
+function partAt(M, params, anim, x, y) {
+  for (const b of buttonsOf(M)) if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return { kind: "btn", k: b.k };
+  const V = viewOf(M, params, anim, params.page), sc = mapScale(M, V), Sm = samplerOf(params.page, M, params);
+  const d = Math.hypot(x - sc.X(Sm.c[0]), y - sc.Y(Sm.c[1])), r = sc.r(R95 * Sm.s);
+  if (Math.abs(d - r) <= 6) return { kind: "rim", V };
+  if (d < r) return { kind: "move", V };
+  return { kind: "pan", V };
+}
+function wire(canvas) {
+  const at = (ev) => { const r = canvas.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * lastW, y: ((ev.clientY - r.top) / r.width) * lastW }; };
+  const mapAt = (p) => layoutOf(lastW, api.params.page).maps.find((M) => insideMap(M, p.x, p.y));
+  const write = (name, v) => { if (api.params[name] !== v) api.setParam(name, v); };
+  const zoom = (M, V, px, py, f) => {
+    const z = mapScale(M, V).inv(px, py), half = clamp(V.half * f, 1.5, 40);
+    write(M.vp, parseView(`${z[0] - ((z[0] - V.cx) * half) / V.half},${z[1] - ((z[1] - V.cy) * half) / V.half},${half}`));
+  };
+  canvas.addEventListener("pointerdown", (ev) => {
+    const p = at(ev), M = mapAt(p);
+    if (!M) return;
+    const params = api.params, part = partAt(M, params, api.anim, p.x, p.y);
+    ev.preventDefault();
+    if (part.kind === "btn") {
+      const V = viewOf(M, params, api.anim, params.page), c = [M.x + M.s / 2, M.y + M.s / 2];
+      if (part.k === "zoomIn") zoom(M, V, ...c, 1 / 1.4);
+      if (part.k === "zoomOut") zoom(M, V, ...c, 1.4);
+      if (part.k === "fit") write(M.vp, "");
+      if (part.k === "prior" || part.k === "label") write(M.sp, "");
+      return;
+    }
+    canvas.setPointerCapture?.(ev.pointerId);
+    gesture = { M, kind: part.kind, V: part.V, x0: p.x, y0: p.y, S0: samplerOf(params.page, M, params), moved: false };
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    const p = at(ev);
+    if (!gesture) {
+      const M = mapAt(p);
+      canvas.style.cursor = !M ? "default" : (() => { const k = partAt(M, api.params, api.anim, p.x, p.y).kind; return k === "btn" ? "pointer" : k === "rim" ? "ew-resize" : k === "move" ? "move" : "grab"; })();
+      return;
+    }
+    const G = gesture, perZ = G.M.s / (2 * G.V.half), dz = [(p.x - G.x0) / perZ, -(p.y - G.y0) / perZ];
+    if (!G.moved && Math.hypot(p.x - G.x0, p.y - G.y0) < 3) return;
+    G.moved = true;
+    if (G.kind === "pan") write(G.M.vp, parseView(`${G.V.cx - dz[0]},${G.V.cy - dz[1]},${G.V.half}`));
+    if (G.kind === "move") write(G.M.sp, encodeSampler({ c: [G.S0.c[0] + dz[0], G.S0.c[1] + dz[1]], s: G.S0.s }));
+    if (G.kind === "rim") {
+      const z = mapScale(G.M, G.V).inv(p.x, p.y);
+      write(G.M.sp, encodeSampler({ c: G.S0.c, s: Math.hypot(z[0] - G.S0.c[0], z[1] - G.S0.c[1]) / R95 }));
+    }
+  });
+  const end = (ev) => {
+    const G = gesture;
+    if (!G) return;
+    gesture = null;
+    /* a click (no movement) on empty map moves the sampler there */
+    /* each step already repainted through setParam; `api.render` would re-init the presses, so it is not called */
+    if (!G.moved && G.kind === "pan") { const z = mapScale(G.M, G.V).inv(G.x0, G.y0); write(G.M.sp, encodeSampler({ c: z, s: G.S0.s })); }
+    canvas.releasePointerCapture?.(ev.pointerId);
+  };
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointercancel", end);
+  canvas.addEventListener("wheel", (ev) => {
+    const p = at(ev), M = mapAt(p);
+    if (!M) return;
+    ev.preventDefault();
+    zoom(M, viewOf(M, api.params, api.anim, api.params.page), p.x, p.y, ev.deltaY > 0 ? 1.15 : 1 / 1.15);
+  }, { passive: false });
 }
 
 /* ------------------------------------------------------------- widget */
 
 const ON = (page) => ({ param: "page", equals: page });
+const samplerParam = (name, page) => ({
+  type: "text", label: S.samplerLabel[name], detail: S.samplerDetail, maxLength: 32, default: "", display: true, when: ON(page),
+  parse: parseSampler, show: showSampler, check: (t) => (String(t).trim() && !threeNumbers(t) ? S.samplerCheck : null),
+});
+const viewParam = () => ({ type: "text", maxLength: 32, default: "", display: true, hidden: true, parse: parseView });
 
-defineWidget({
+api = defineWidget({
   slug: "vae",
   status: "draft",
   title: "Deep Learning - Frontiers: Variational Autoencoders",
@@ -647,54 +791,29 @@ defineWidget({
   pointer: true,
 
   params: {
-    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "kl", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "ae", display: true },
     label: { type: "segmented", label: S.labelLabel, detail: S.labelDetail, options: LABELS, default: "5", display: true, when: ON("conditional") },
-    spread: { type: "segmented", label: S.spreadLabel, detail: S.spreadDetail, options: SPREADS, default: "1", display: true },
-    centre: {
-      type: "text", label: S.centreLabel, detail: S.centreDetail, maxLength: 24, default: "", display: true,
-      parse: parseCentre, show: (v) => (v ? sgn(v.split(",").join(", ")) : "0, 0"),
-      check: (t) => (String(t).trim() && !twoNumbers(t) ? S.centreCheck : null),
-    },
+    s_ae: samplerParam("s_ae", "ae"),
+    s_without: samplerParam("s_without", "vae"),
+    s_with: samplerParam("s_with", "vae"),
+    s_vae: samplerParam("s_vae", "conditional"),
+    s_cvae: samplerParam("s_cvae", "conditional"),
+    v_ae: viewParam(), v_without: viewParam(), v_with: viewParam(), v_vae: viewParam(), v_cvae: viewParam(),
     /* authoring escape hatch, first render only: presses already made on the page the link opens (1 Train, 2 Generate) */
     shown: { type: "int", min: 0, max: 2, default: 0, hidden: true },
   },
 
-  legend: () => [
+  legend: ({ params }) => [
     { token: "empirical", label: S.legend.code, mark: "dot" },
+    ...(params.page === "conditional" ? [{ token: "highlight", label: S.legend.chosen(params.label), mark: "dot" }] : []),
     { token: "prior", label: S.legend.circle, mark: "dash" },
   ],
 
   compute: () => ({}),
 
-  /* a click on a map outside the circle moves the sampler's centre there; Conditional's ten decodes set the label */
-  regions: ({ w, params }) => {
-    const page = params.page, Lo = layoutOf(w, page), out = [], cs = 8;
-    for (const M of Lo.maps) {
-      const sc = mapScale(M);
-      for (let py = M.y; py < M.y + M.s; py += cs) {
-        for (let px = M.x; px < M.x + M.s; px += cs) {
-          if (inCircle(M, params, px + cs / 2, py + cs / 2)) continue;
-          const v = parseCentre(sc.inv(px + cs / 2, py + cs / 2).join(","));
-          out.push({ x: px, y: py, w: cs, h: cs, set: { centre: v }, label: `move the sampler to ${v ? sgn(v.replace(",", ", ")) : "0, 0"}` });
-        }
-      }
-    }
-    if (Lo.side) for (let d = 0; d < 10; d++) out.push({ ...labelCell(Lo.side, d), set: { label: String(d) }, label: `c = ${d}` });
-    return out;
-  },
-  /* a drag inside the circle carries the sampler, in steps of 0.4 */
-  drag: {
-    param: "centre",
-    hit: ({ x, y, w, params }) => layoutOf(w, params.page).maps.some((M) => insideMap(M, x, y) && inCircle(M, params, x, y)),
-    value: ({ dx, dy, start, w, params }) => {
-      const M = layoutOf(w, params.page).maps[0], perZ = M.s / (2 * HALF), c0 = start.centre ? start.centre.split(",").map(Number) : [0, 0];
-      return { centre: parseCentre(`${c0[0] + dx / perZ},${c0[1] - dy / perZ}`) };
-    },
-  },
-
   animation: {
     stepLabel: { anim: "beat", labels: { 0: "Train", 1: "Generate" }, default: "Generate" },
-    stepTitle: { param: "page", labels: STEP_TITLES, default: STEP_TITLES.kl.labels[0] },
+    stepTitle: { param: "page", labels: STEP_TITLES, default: STEP_TITLES.ae.labels[0] },
     /* each press is read once: Step alone, no Play (play-only-for-motion-or-repetition) */
     runLabel: null,
 
@@ -706,7 +825,6 @@ defineWidget({
       anim.done = anim.n[page] >= 2;
       return anim;
     },
-    /* Train plays ten checkpoints; Generate decodes the 36 points one by one */
     advance: (anim, { dt, params }) => {
       if (anim.halt) { anim.halt = false; return false; }
       const page = params.page;
@@ -721,7 +839,7 @@ defineWidget({
       return anim.t < 1;
     },
     rebuild: (anim, { params }) => {
-      /* only a page change ends a press in flight (mid-press-page-switch); the sampler and the label keep it going */
+      /* only a page change ends a press in flight (mid-press-page-switch); samplers, views and the label keep it going */
       const page = params.page;
       if (page !== anim.stage && anim.t < 1) { anim.t = 1; anim.halt = true; }
       anim.stage = page;
@@ -732,44 +850,44 @@ defineWidget({
 
   draw({ ctx, colors, w, h, params, anim, pointer }) {
     const page = params.page, Lo = layoutOf(w, page), label = Number(params.label);
+    lastW = w;
     renderFormula(page, label);
     updateSchema(page, anim);
     for (const M of Lo.maps) {
       drawMap(ctx, colors, page, M, params, anim);
       drawRegion(ctx, colors, page, M, Lo.region, params, anim);
     }
-    if (Lo.side) drawLabels(ctx, colors, Lo.side, params, anim);
-    const s = Lo.maps[0].s, L0 = Lo.maps[0];
-    if (page === "kl") {
-      lossPanel(ctx, colors, { x: L0.x, y: Lo.loss.y, w: s, h: Lo.loss.h }, page, "recon", [["ae", colors.ink1, [6, 4], "without"], ["vae", colors.ink1, null, "with"]], anim);
-      lossPanel(ctx, colors, { x: Lo.maps[1].x, y: Lo.loss.y, w: s, h: Lo.loss.h }, page, "kl", [["ae", colors.ink3, null, ""], ["vae", colors.prior, null, "with"]], anim);
-    } else {
-      const lw = (Lo.inner - 2 * LM - 24) / 2;
-      lossPanel(ctx, colors, { x: L0.x, y: Lo.loss.y, w: lw, h: Lo.loss.h }, page, "recon", [["cvae", colors.ink1, null, ""]], anim);
-      lossPanel(ctx, colors, { x: L0.x + lw + 24 + LM, y: Lo.loss.y, w: lw, h: Lo.loss.h }, page, "kl", [["cvae", colors.prior, null, ""]], anim);
-    }
+    drawLoss(ctx, colors, page, Lo, anim);
     drawRow16(ctx, colors, page, Lo, params, anim);
     wrapText(ctx, colors, captionOf(params, anim), PAD, Lo.capTop, w - 2 * PAD, 17);
-    drawCard(ctx, colors, w, h ?? Lo.height, hoverOf(pointer, Lo, page, anim), params);
+    drawCard(ctx, colors, w, h ?? Lo.height, hoverOf(pointer, Lo, page, params, anim), params);
   },
 
   readout({ params, anim }) {
-    const page = params.page, T = S.tile, k = ckOf(anim, page), c = centreOf(params), rr = R95 * spreadOf(params);
-    const inside = (m) => { let n = 0; for (let i = 0; i < N; i++) { const z = muAt(m, k, i); if (Math.hypot(z[0] - c[0], z[1] - c[1]) <= rr) n++; } return n / N; };
-    const gen = generatedOn(anim, page);
-    if (page === "kl") {
-      const Lk = lossAt("vae", k);
+    const page = params.page, T = S.tile, k = ckOf(anim, page), gen = generatedOn(anim, page), d = Number(params.label);
+    const inside = (slot) => { const Sm = samplerOf(page, slot, params); let n = 0; for (let i = 0; i < N; i++) { const z = muAt(slot.m, k, i); if (Math.hypot(z[0] - Sm.c[0], z[1] - Sm.c[1]) <= R95 * Sm.s) n++; } return n / N; };
+    const [A, B] = MAPS[page];
+    if (page === "ae") {
       return [
-        { label: T.inside, value: T.pair(pct(inside("ae")), pct(inside("vae"))), note: `${T.pairNote}; ${T.insideNote(params)}` },
-        { label: T.norm, value: T.pair(f2(NORM.ae[k]), f2(NORM.vae[k])), note: `${T.pairNote}; ${T.normNote}` },
-        { label: T.kl, value: f2(Lk.kl), note: T.klNote(Lk) },
-        { label: T.norm16, value: gen ? T.pair(f2(STATS.norm16.ae), f2(STATS.norm16.vae)) : S.wait, note: gen ? `${T.pairNote}; ${T.norm16Note}` : T.wait16 },
+        { label: T.inside, value: pct(inside(A)), note: T.insideNote },
+        { label: T.norm, value: f2(NORM.ae[k]), note: T.normNote },
+        { label: T.recon, value: f1(lossAt("ae", k).recon), note: T.reconNote },
+        { label: T.norm16, value: gen ? f2(STATS.norm16.ae) : S.wait, note: gen ? T.norm16Note : T.wait16 },
       ];
     }
-    const Lk = lossAt("cvae", k);
+    if (page === "vae") {
+      const Lk = lossAt("vae", k);
+      return [
+        { label: T.inside, value: pair(pct(inside(A)), pct(inside(B))), note: `${T.pairNote}; ${T.insideNote}` },
+        { label: T.norm, value: pair(f2(NORM.ae[k]), f2(NORM.vae[k])), note: `${T.pairNote}; ${T.normNote}` },
+        { label: T.kl, value: f2(Lk.kl), note: T.klNote(Lk) },
+        { label: T.norm16, value: gen ? pair(f2(STATS.norm16.ae), f2(STATS.norm16.vae)) : S.wait, note: gen ? `${T.pairNote}; ${T.norm16Note}` : T.wait16 },
+      ];
+    }
+    const trained = trainedOn(anim, page), Lk = lossAt("cvae", k);
     return [
-      { label: T.inside, value: pct(inside("cvae")), note: T.insideNote(params) },
-      { label: T.norm, value: f2(NORM.cvae[k]), note: T.normNote },
+      { label: T.shareV(d), value: trained ? pct(shareOf("vae", samplerOf(page, A, params), d)) : S.wait, note: T.shareNote },
+      { label: T.shareC(d), value: trained ? pct(shareOf("cvae", samplerOf(page, B, params), d)) : S.wait, note: T.shareNote },
       { label: T.klC, value: f2(Lk.kl), note: T.klNote(Lk) },
       { label: T.norm16, value: gen ? f2(STATS.norm16.cvae) : S.wait, note: gen ? T.norm16Note : T.wait16 },
     ];
@@ -777,7 +895,13 @@ defineWidget({
 
   summary({ params, anim }) {
     const page = params.page, k = ckOf(anim, page);
-    return `${PAGES.find((p) => p.value === page).label}: ${N.toLocaleString("en")} test images' codes at a latent size of 2, ${lossAt(MAPS[page][0], k).label}; the sampler ${samplerText(params)}` +
-      `${generatedOn(anim, page) ? "; its region decoded" : ""}.`;
+    return `${PAGES.find((p) => p.value === page).label}: ${N.toLocaleString("en")} test images' codes at a latent size of 2, ${lossAt(MAPS[page][0].m, k).label}` +
+      `; ${MAPS[page].map((M) => samplerText(samplerOf(page, M, params))).join(" and ")}${generatedOn(anim, page) ? "; regions decoded" : ""}.`;
   },
 });
+
+/* the gestures need the door `defineWidget` returns, so they are wired once it has returned */
+{
+  const canvas = document.querySelector("#widget canvas");
+  if (canvas) wire(canvas);
+}

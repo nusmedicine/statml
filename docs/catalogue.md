@@ -25856,6 +25856,20 @@ syncs the rail first (the door `probability-mechanisms` uses), so the widget
 listens on its own canvas and writes one text parameter per gesture, a map's
 sampler "x,y,s" or its view "x,y,half" (empty = Fit). Three calls at its foot.
 
+**All three calls the recommendation, with round 4's, and the widget REBUILT
+the same day:** Model Autoencoder · VAE · Conditional; each map its own
+sampler and view, set on the map (drag inside = move, rim = spread, drag on
+empty = pan, a click with no drag moves the sampler there, wheel and corner
++ − zoom, Fit, N(0, I) or "on the 5s" on Conditional's VAE); ten text
+parameters (`s_ae`, `s_without`, `s_with`, `s_vae`, `s_cvae` with rail
+fields; `v_…` hidden), the gestures written through the `setParam` door
+`defineWidget` returns, wired after it returns. Found while verifying: the
+returned `render` is core's full render and RE-INITS the presses, so a gesture
+must end without calling it (each step has already repainted through
+setParam). Conditional's readouts: of the codes inside the VAE's circle on the
+5s, 16% are 5s (1s 60%); inside the conditional VAE's N(0, I), 9%, and it
+decodes a 5 at every point. Text sweep over seven states: no overrun, no NaN.
+
 ---
 
 ## Two arcs, not one — now three
