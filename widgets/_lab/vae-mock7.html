@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · vae — colouring the codes by digit</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 900px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  canvas { display: block; background: var(--surface-1); }
+  .chips { display: flex; gap: 4px; margin: 6px 0; font-size: 12px; align-items: center; }
+  .chips span.l { color: var(--ink-2); margin-right: 6px; }
+  .chips button { width: 30px; padding: 4px 0; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; font: inherit; }
+  .chips button.on { border-color: var(--c-highlight); font-weight: 600; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; } th { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 106 <code>vae</code> &middot; colouring the codes by digit</h1>
+  <p class="note">His question (2026-10-19): "check if coloring the dots by their classes would be better". Each option is drawn on the VAE page's two trained maps (without and with the KL term, Fit), at the widget's width (540 px). <span id="status">loading&hellip;</span></p>
+  <p class="note"><b>What colour by class costs here.</b> Ten digits need ten hues. The palette has eight, and two of them already mean something on these maps: amber is the sampler (<code>--c-prior</code>), violet the highlight and q(z|x). A ten-hue set built from the eight plus brown and grey fails the dataviz validator on the dark surface on every colour check: lightness band (4 hues), chroma floor (brown, grey), colour-blind separation (green ↔ orange ΔE 3.2, against 8), and normal vision (red ↔ orange ΔE 7.1, against a floor of 15). The rule it gives for more than eight categories: never more hues; fold, facet, or focus on one.</p>
+
+  <h2>A · now: one colour, each digit's numeral at its median code</h2>
+  <canvas id="cA"></canvas>
+
+  <h2>B · ten hues (shown to judge, not proposed)</h2>
+  <canvas id="cB"></canvas>
+  <p class="note">The colours that collide are the point: the 3s, 5s and 8s overlap on the VAE's map, and at this dot size orange, red and amber read as one; the amber also looks like the sampler.</p>
+
+  <h2>C · focus on one digit: a Digit row of ten buttons, and a hover over a numeral</h2>
+  <div class="chips" id="chips"><span class="l">Digit</span></div>
+  <canvas id="cC"></canvas>
+  <p class="note">The chosen digit's codes in <code>--c-highlight</code> on both maps, every other code dimmed, the numerals kept. The same mechanism the Conditional page already uses with its Label, so the reader learns it once. A hover over a numeral on the map previews that digit; a button keeps it. "None" returns to A.</p>
+
+  <h2>D · small multiples: where each digit lives</h2>
+  <canvas id="cD"></canvas>
+  <p class="note">Ten small maps per model, each with one digit's codes in ink over the others in grey. Every digit at once, with no hue to tell apart; it costs about 120 px of height a model.</p>
+
+  <h2>The call</h2>
+  <div class="q"><b class="h">How to show the classes</b>A (as now) · C (focus on one digit, a Digit control plus hover over a numeral) · D (small multiples) · B (ten hues).</div>
+  <div class="rec">Recommend <b>C</b>: it answers the question colour by class would ("where are the 5s, and what do they overlap with?") one digit at a time, keeps colour for the sampler and the highlight, and is the Conditional page's own control. D is the honest all-at-once view if he wants every digit visible together; B fails on this palette and this many classes.</div>
+</main>
+<script>
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const R95 = Math.sqrt(-2 * Math.log(0.05)), N = 1000;
+let CK, col = {}, pick = 5, hoverDigit = null;
+const TEN = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948", "#8c564b", "#7f7f7f"];
+function cols() { col = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), surf: css("--surface-1"), emp: css("--c-empirical"), prior: css("--c-prior"), hl: css("--c-highlight"), font: css("--font") || "sans-serif" }; }
+function setup(id, W, H) { const cv = document.getElementById(id), d = devicePixelRatio || 1; cv.width = W * d; cv.height = H * d; cv.style.width = W + "px"; cv.style.height = H + "px"; const g = cv.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); return g; }
+function T(g, s, x, y, o = {}) { g.save(); g.font = `${o.w || ""} ${o.size || 11}px ${col.font}`; g.textAlign = o.align || "left"; if (o.halo) { g.lineWidth = 3; g.strokeStyle = col.surf; g.strokeText(s, x, y); } g.fillStyle = o.fill || col.ink2; g.fillText(s, x, y); g.restore(); }
+const med = (a) => [...a].sort((p, q) => p - q)[a.length >> 1];
+function codes(m) { const C = CK[m][9].mu, out = []; for (let i = 0; i < N; i++) out.push([C[2 * i], C[2 * i + 1]]); return out; }
+function fit(pts) { let x0 = -R95, x1 = R95, y0 = -R95, y1 = R95; for (const [a, b] of pts) { x0 = Math.min(x0, a); x1 = Math.max(x1, a); y0 = Math.min(y0, b); y1 = Math.max(y1, b); } return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, half: Math.max(x1 - x0, y1 - y0) / 2 * 1.06 }; }
+function map(g, M, pts, V, dotStyle, numerals = true, title) {
+  const X = (v) => M.x + (v - V.cx + V.half) / (2 * V.half) * M.s, Y = (v) => M.y + (V.half - (v - V.cy)) / (2 * V.half) * M.s;
+  if (title) T(g, title, M.x - 20, M.y - 8, { w: 600, fill: col.ink1, size: 12 });
+  g.save(); g.fillStyle = col.surf; g.fillRect(M.x, M.y, M.s, M.s); g.beginPath(); g.rect(M.x, M.y, M.s, M.s); g.clip();
+  const order = [...pts.keys()].sort((a, b) => (dotStyle(a).z || 0) - (dotStyle(b).z || 0));
+  for (const i of order) { const st = dotStyle(i); g.fillStyle = st.c; g.globalAlpha = st.a; const r = st.r || 1.2; g.fillRect(X(pts[i][0]) - r, Y(pts[i][1]) - r, 2 * r, 2 * r); }
+  g.globalAlpha = 1;
+  if (numerals) for (let d = 0; d < 10; d++) { const xs = [], ys = []; pts.forEach((p, i) => { if (CK.digits[i] === d) { xs.push(p[0]); ys.push(p[1]); } }); T(g, String(d), X(med(xs)), Y(med(ys)) + 4, { align: "center", w: 600, size: M.s > 120 ? 12 : 9, fill: col.ink1, halo: true }); }
+  if (M.s > 120) { g.strokeStyle = col.prior; g.lineWidth = 2; g.setLineDash([6, 4]); g.beginPath(); g.arc(X(0), Y(0), R95 / (2 * V.half) * M.s, 0, 7); g.stroke(); g.setLineDash([]); }
+  g.restore(); g.strokeStyle = col.ink3; g.strokeRect(M.x + 0.5, M.y + 0.5, M.s - 1, M.s - 1);
+  return { X, Y };
+}
+const MAPS = [{ m: "ae", t: "Without the KL term" }, { m: "vae", t: "With the KL term" }];
+const pos = (j) => ({ x: 36 + j * 270, y: 26, s: 226 });
+let geomC = [];
+function drawA() { const g = setup("cA", 540, 266); g.fillStyle = col.surf; g.fillRect(0, 0, 540, 266); MAPS.forEach((o, j) => { const p = codes(o.m); map(g, pos(j), p, fit(p), () => ({ c: col.emp, a: 0.5 }), true, o.t); }); }
+function drawB() { const g = setup("cB", 540, 266); g.fillStyle = col.surf; g.fillRect(0, 0, 540, 266); MAPS.forEach((o, j) => { const p = codes(o.m); map(g, pos(j), p, fit(p), (i) => ({ c: TEN[CK.digits[i]], a: 0.75, r: 1.4 }), true, o.t); }); }
+function drawC() {
+  const g = setup("cC", 540, 266); g.fillStyle = col.surf; g.fillRect(0, 0, 540, 266); geomC = [];
+  const d = hoverDigit ?? pick;
+  MAPS.forEach((o, j) => { const p = codes(o.m), V = fit(p), M = pos(j);
+    const sc = map(g, M, p, V, (i) => (d == null ? { c: col.emp, a: 0.5 } : CK.digits[i] === d ? { c: col.hl, a: 0.95, r: 1.6, z: 1 } : { c: col.emp, a: 0.18 }), true, o.t);
+    for (let q = 0; q < 10; q++) { const xs = [], ys = []; p.forEach((pp, i) => { if (CK.digits[i] === q) { xs.push(pp[0]); ys.push(pp[1]); } }); geomC.push({ d: q, x: sc.X(med(xs)), y: sc.Y(med(ys)) }); } });
+  if (d != null) T(g, hoverDigit != null ? `hover: the ${d}s` : `the ${d}s`, 540 - 4, 14, { align: "right", fill: col.hl, w: 600 });
+}
+function drawD() {
+  const H = 2 * (20 + 2 * 52 + 8) + 10, g = setup("cD", 540, H); g.fillStyle = col.surf; g.fillRect(0, 0, 540, H);
+  MAPS.forEach((o, j) => { const p = codes(o.m), V = fit(p), y0 = j * (20 + 2 * 52 + 8) + 14; T(g, o.t, 4, y0 - 2, { w: 600, fill: col.ink1 });
+    for (let d = 0; d < 10; d++) { const M = { x: 4 + (d % 5) * 108, y: y0 + 6 + Math.floor(d / 5) * 52, s: 48 };
+      map(g, M, p, V, (i) => (CK.digits[i] === d ? { c: col.ink1, a: 0.9, r: 0.9, z: 1 } : { c: col.ink3, a: 0.25, r: 0.7 }), false);
+      T(g, String(d), M.x + 52, M.y + 30, { w: 600, size: 14, fill: col.ink1 }); } });
+}
+function chips() {
+  const el = document.getElementById("chips"); el.querySelectorAll("button").forEach((b) => b.remove());
+  [["None", null], ...[...Array(10).keys()].map((d) => [String(d), d])].forEach(([l, d]) => { const b = document.createElement("button"); b.textContent = l; if (l === "None") b.style.width = "48px"; b.className = pick === d ? "on" : ""; b.onclick = () => { pick = d; chips(); drawC(); }; el.appendChild(b); });
+}
+document.getElementById("cC").addEventListener("pointermove", (e) => { const r = e.target.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; const h = geomC.find((q) => Math.abs(q.x - x) < 9 && Math.abs(q.y - y) < 9); const nd = h ? h.d : null; if (nd !== hoverDigit) { hoverDigit = nd; drawC(); } });
+document.getElementById("cC").addEventListener("pointerleave", () => { hoverDigit = null; drawC(); });
+fetch("vae-checkpoints.json").then((r) => r.json()).then((ck) => { CK = ck; cols(); drawA(); drawB(); chips(); drawC(); drawD(); document.getElementById("status").textContent = "loaded"; })
+  .catch((e) => { document.getElementById("status").textContent = "load failed: " + e; });
+</script>
+</body>
+</html>

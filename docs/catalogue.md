@@ -25870,6 +25870,25 @@ setParam). Conditional's readouts: of the codes inside the VAE's circle on the
 5s, 16% are 5s (1s 60%); inside the conditional VAE's N(0, I), 9%, and it
 decodes a 5 at every point. Text sweep over seven states: no overrun, no NaN.
 
+### 106, 2026-10-18/19: two copy catches, then colour by digit
+
+His catches on the rebuild: (1) the autoencoder labelled its code μ (the
+implementation, the VAE's network with its mean head as the code, leaking
+into the schematic) — now x → Encoder → z; (2) the Autoencoder page's
+"Generating: z ~ N(m, s²I)" implied an autoencoder samples, and "Generate"
+named a deterministic 6 × 6 grid — the Autoencoder row is now "Decoding a
+chosen z", VAE and Conditional keep z ~ N(0, I) with a note that the grid spans
+the sampler's region, and the press is **Decode region** (his pick).
+
+**Colour by digit (his question 2026-10-19), mocked as `_lab/vae-mock7.html`:**
+A as now (one colour, numerals) · B ten hues · C focus on one digit (a Digit
+row and a hover over a numeral, the chosen digit in `--c-highlight`, the
+Conditional page's own mechanism) · D small multiples (ten small maps a
+model). B checked with the dataviz validator: the eight series hues plus brown
+and grey fail every colour check on the dark surface (lightness band 4 hues,
+chroma floor 2, CVD green ↔ orange ΔE 3.2 against 8, normal vision red ↔
+orange 7.1 against 15), and amber is the sampler's colour. Recommended: C.
+
 ---
 
 ## Two arcs, not one — now three
