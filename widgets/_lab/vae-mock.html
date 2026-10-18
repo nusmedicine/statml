@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · vae — the three pages proposed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  canvas.map { cursor: crosshair; }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--ink-3); background: var(--surface-2); max-width: 110ch; }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; font-size: 11px; }
+  .rail .lab2 { color: var(--ink-2); font-weight: 600; margin-right: 4px; }
+  .rail .pg { padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  .rail .pg.on { border-color: var(--c-highlight); }
+  .math { font-size: var(--fs-sm); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--grid); background: var(--surface-2); margin: 0 0 var(--sp-3); max-width: 110ch; }
+  .math .off { text-decoration: line-through; color: var(--ink-3); }
+  .math .lit { color: var(--c-prior); font-weight: 600; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 106 <code>vae</code> &middot; three pages on one layout: a 2-D map for the mechanism, a 16-D grid for the result</h1>
+  <p class="note">His call (2026-10-17): a <b>2-D latent map</b> with the N(0, I) circle over each model's codes, a click anywhere decoding that point, and beside it a <b>grid of 16 draws from N(0, I) at the notebook's latent size of 16</b>, as cell 19 prints.
+    All six models are 10-3b's own classes trained here (seed 42, Adam 1e-3, 10 epochs, batch 256; <code>_lab/vae-measure.py</code>); the autoencoder is 10-3b's <code>ConvVAE</code> with the KL term removed and z = &mu;.
+    A click runs the 2-D decoder itself in the page (its weights are in <code>_lab/vae-mock-data.json</code>), so every point decodes exactly. Grey boxes are draft reader copy; everything else is a note to him. <span id="status"></span></p>
+
+  <div class="rail"><span class="lab2">Model</span>
+    <span class="pg on" data-go="ae">Autoencoder</span><span class="pg" data-go="vae">VAE</span><span class="pg" data-go="cvae">Conditional</span></div>
+
+  <!-- ================================================================== AE -->
+  <h2 id="ae">Autoencoder &middot; the codes are spread far wider than N(0, I)</h2>
+  <div class="math">L<sub>AE</sub> = &Vert;x &minus; x&#770;&Vert;<sup>2</sup> &nbsp;&nbsp;<span class="off">+ D<sub>KL</sub>(q<sub>&phi;</sub>(z|x) &Vert; N(0, I))</span> &nbsp;&nbsp;&nbsp;<span style="color:var(--ink-3)">z = f<sub>&phi;</sub>(x), one point per image</span></div>
+  <div class="row" id="row-ae"></div>
+  <div class="cap"><i>draft caption, map</i><span id="cap-ae"></span></div>
+  <div class="cap"><i>draft caption, grid</i>16 draws from N(0, I) decoded by an autoencoder with a 16-dimensional latent, the notebook's size. Its codes have a median length of 26; a draw from N(0, I) has a median length of 4, so every draw lands far from every code.</div>
+
+  <!-- ================================================================== VAE -->
+  <h2 id="vae">VAE &middot; the KL term pulls the codes onto N(0, I)</h2>
+  <div class="math">L<sub>VAE</sub> = E<sub>q<sub>&phi;</sub>(z|x)</sub>[&Vert;x &minus; x&#770;&Vert;<sup>2</sup>] &nbsp;<span class="lit">+ D<sub>KL</sub>(q<sub>&phi;</sub>(z|x) &Vert; N(0, I))</span> &nbsp;&nbsp;&nbsp;<span style="color:var(--ink-3)">z = &mu; + &sigma; &middot; &epsilon;, &epsilon; ~ N(0, I)</span></div>
+  <div class="row" id="row-vae"></div>
+  <div class="cap"><i>draft caption, map</i><span id="cap-vae"></span></div>
+  <div class="cap"><i>draft caption, grid</i>16 draws from N(0, I) decoded by the VAE of cell 19, latent size 16.</div>
+  <p class="note"><b>Known limit, shown not hidden:</b> two numbers cannot hold ten digits apart. On the 2-D map 4 and 9 share a region and so do 3, 5 and 8; click between them and the decode is a blend. The 16-D grid beside it shows all ten digits (our classifier reads 47% of 16-D draws at &ge; 0.9, all ten digits among them; 2-D: 37%, never a confident 4, 5, 8 or 9).</p>
+
+  <!-- ================================================================== CVAE -->
+  <h2 id="cvae">Conditional &middot; the label sets the digit, z sets the style</h2>
+  <div class="math">z ~ q<sub>&phi;</sub>(z|x, c), &nbsp; x&#770; = g<sub>&theta;</sub>(z, c) &nbsp;&nbsp;&nbsp;<span style="color:var(--ink-3)">c = the text encoder's embedding of the digit, frozen</span></div>
+  <div class="rail"><span class="lab2">Label</span><span id="labels"></span></div>
+  <div class="row" id="row-cvae"></div>
+  <div class="row" style="margin-top:var(--sp-3)"><div><div style="font-size:11px;color:var(--ink-2);margin-bottom:4px">the clicked z under every label</div><canvas id="strip"></canvas></div></div>
+  <div class="cap"><i>draft caption, map</i><span id="cap-cvae"></span></div>
+  <div class="cap"><i>draft caption, strip</i>One z decoded under each of the ten labels. The digit changes with the label; the slant and stroke stay with z.</div>
+  <div class="cap"><i>draft caption, grid</i><span id="cap-cvae-grid"></span></div>
+
+  <!-- ================================================================== CALLS -->
+  <h2>The calls before building</h2>
+  <div class="q"><b class="h">1. Page control and names</b><b>Model</b>: Autoencoder · VAE · Conditional (as the catalogue row and 10-3b's headings "Autoencoder as a Foundation", "Base VAE", "Conditional VAE"); or Autoencoder · VAE · CVAE.</div>
+  <div class="rec">Recommend <b>Model: Autoencoder · VAE · Conditional</b>; "CVAE" is used once in the notebook's prose, "Conditional" in its heading.</div>
+  <div class="q"><b class="h">2. The autoencoder</b>10-3b's <code>ConvVAE</code> without the KL term and with z = &mu; (shown); or 10-1b's autoencoder (a different network, 128-d embedding).</div>
+  <div class="rec">Recommend <b>the ConvVAE without KL</b>: the KL term is then the one difference between the first two pages, and the loss card says so by striking it out.</div>
+  <div class="q"><b class="h">3. Map frame</b>each model in its own frame (shown: the AE's codes reach &minus;23 &hellip; 20, the VAE's &plusmn;3); or one shared frame, in which the VAE's codes are a dot at the centre.</div>
+  <div class="rec">Recommend <b>its own frame, the axis numbers on every map</b>, so the circle's size against the codes carries the comparison.</div>
+  <div class="q"><b class="h">4. The circle</b>one dashed circle holding 95% of draws from N(0, I) (radius 2.45, shown, in <code>--c-prior</code>); or rings at 1 and 2 standard deviations.</div>
+  <div class="rec">Recommend <b>the one 95% circle</b>, labelled "95% of draws from N(0, I)". <code>--c-prior</code> is the role's own meaning: the distribution before the data.</div>
+  <div class="q"><b class="h">5. The codes</b>2,000 test images as small dots in <code>--c-empirical</code>, each digit's numeral at its median code (shown); or dots coloured by digit (ten hues, no role for them; 104 settled on ink and numerals).</div>
+  <div class="rec">Recommend <b>one colour and numerals</b>, as 104. On Conditional the ten numerals pile up at the centre, every digit's median code within 0.75 of the origin; recommend keeping the pile, since it is the finding (the label holds the digit, so z does not), with the caption saying so.</div>
+  <div class="q"><b class="h">6. Draws on the 2-D map too?</b>a Draw press that places 16 points from N(0, I) on the 2-D map and decodes them; or the map is clicked only and the grid alone shows draws (shown).</div>
+  <div class="rec">Recommend <b>clicked only</b>. A second set of draws at a second latent size is two grids for one idea; the circle already says where draws land.</div>
+  <div class="q"><b class="h">7. The strip on Conditional</b>the clicked z under all ten labels (shown; measured: one z keeps 96% of its slant across labels); or the decode under the chosen label only.</div>
+  <div class="rec">Recommend <b>the strip</b>: it is the one figure that shows what z holds once c holds the digit.</div>
+  <div class="q"><b class="h">8. Training</b>the trained models only, the click as the interaction (shown); or a Train press stepping checkpoints as 104 does, the codes spreading (AE) or settling onto the circle (VAE).</div>
+  <div class="rec">Recommend <b>trained models only</b> for the first draft; a Train press can be added if the pages read as static. Measure the checkpoints first if he wants it.</div>
+  <div class="q"><b class="h">9. Title</b>"Deep Learning - Frontiers: Variational Autoencoders" (the series form of 104 and 105); or "&hellip;: Generative Models" (10-3's title, but the arc has GAN and diffusion still to come).</div>
+  <div class="rec">Recommend <b>"Deep Learning - Frontiers: Variational Autoencoders"</b>.</div>
+  <div class="q"><b class="h">10. Our classifier's reading</b>not on the page (shown: only the notes quote it); or a line under each decode "read as 6 (0.98)".</div>
+  <div class="rec">Recommend <b>not on the page</b>: it is our instrument, not the notebook's, and the picture is the reading.</div>
+</main>
+<script>
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const status = document.getElementById("status");
+let D;
+const R95 = Math.sqrt(-2 * Math.log(0.05));   // chi-square, 2 df, 95%: 2.448
+const state = { ae: [1.0, 1.0], vae: [1.0, 1.0], cvae: [1.0, 1.0], label: 5 };
+
+/* ---------- the 2-D decoder, as 10-3b's DecoderConvVAE ------------------ */
+function f32(a) { return Float32Array.from(a); }
+function prep(W) { return { ...W, lin_w: f32(W.lin_w), lin_b: f32(W.lin_b), d1_w: f32(W.d1_w), d1_b: f32(W.d1_b), d2_w: f32(W.d2_w), d2_b: f32(W.d2_b) }; }
+function convT(inp, Ci, H, w, b, Co) {          // ConvTranspose2d(k=4, s=2, p=1): H -> 2H
+  const Ho = 2 * H, out = new Float32Array(Co * Ho * Ho);
+  for (let i = 0; i < Ci; i++) for (let y = 0; y < H; y++) for (let x = 0; x < H; x++) {
+    const v = inp[(i * H + y) * H + x]; if (v === 0) continue;
+    for (let o = 0; o < Co; o++) { const wb = ((i * Co + o) * 16);
+      for (let ky = 0; ky < 4; ky++) { const yy = 2 * y - 1 + ky; if (yy < 0 || yy >= Ho) continue;
+        for (let kx = 0; kx < 4; kx++) { const xx = 2 * x - 1 + kx; if (xx < 0 || xx >= Ho) continue;
+          out[(o * Ho + yy) * Ho + xx] += v * w[wb + ky * 4 + kx]; } } }
+  }
+  for (let o = 0; o < Co; o++) for (let k = 0; k < Ho * Ho; k++) out[o * Ho * Ho + k] += b[o];
+  return out;
+}
+function decode(W, z, c) {
+  const inp = c ? [...z, ...c] : z, n = W.lin_in, h = new Float32Array(3136);
+  for (let j = 0; j < 3136; j++) { let s = W.lin_b[j]; for (let k = 0; k < n; k++) s += W.lin_w[j * n + k] * inp[k]; h[j] = W.relu_after_lin ? Math.max(0, s) : s; }
+  const a = convT(h, 64, 7, W.d1_w, W.d1_b, 32); for (let k = 0; k < a.length; k++) a[k] = Math.max(0, a[k]);
+  const o = convT(a, 32, 14, W.d2_w, W.d2_b, 1); for (let k = 0; k < o.length; k++) o[k] = 1 / (1 + Math.exp(-o[k]));
+  return o;
+}
+
+/* ---------- drawing -------------------------------------------------------- */
+function rgb(col) { const c = document.createElement("canvas").getContext("2d"); c.fillStyle = col; c.fillRect(0, 0, 1, 1); return c.getImageData(0, 0, 1, 1).data; }
+function digitCanvas(px, scale255) {
+  const c = document.createElement("canvas"); c.width = c.height = 28;
+  const g = c.getContext("2d"), im = g.createImageData(28, 28), [r, gg, b] = rgb(css("--ink-1"));
+  for (let i = 0; i < 784; i++) { const o = 4 * i; im.data[o] = r; im.data[o + 1] = gg; im.data[o + 2] = b; im.data[o + 3] = scale255 ? px[i] : Math.round(px[i] * 255); }
+  g.putImageData(im, 0, 0); return c;
+}
+function hidpi(cv, w, h) { const d = devicePixelRatio || 1; cv.width = w * d; cv.height = h * d; cv.style.width = w + "px"; cv.style.height = h + "px"; const g = cv.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); g.imageSmoothingEnabled = false; return g; }
+
+function frameOf(codes) {
+  let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+  for (let i = 0; i < codes.length; i += 2) for (let k = 0; k < 2; k++) { lo[k] = Math.min(lo[k], codes[i + k]); hi[k] = Math.max(hi[k], codes[i + k]); }
+  for (let k = 0; k < 2; k++) { lo[k] = Math.min(lo[k], -R95); hi[k] = Math.max(hi[k], R95); }
+  const cx = (lo[0] + hi[0]) / 2, cy = (lo[1] + hi[1]) / 2, half = Math.max(hi[0] - lo[0], hi[1] - lo[1]) / 2 * 1.06;
+  return { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half };
+}
+function niceStep(span) { const raw = span / 6, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+
+const MAP = 420, PAD = 34;
+function drawMap(cv, model, z) {
+  const g = hidpi(cv, MAP, MAP), F = model.frame, S = MAP - 2 * PAD;
+  const X = v => PAD + (v - F.x0) / (F.x1 - F.x0) * S, Y = v => PAD + (F.y1 - v) / (F.y1 - F.y0) * S;
+  g.fillStyle = css("--surface-1"); g.fillRect(0, 0, MAP, MAP);
+  const st = niceStep(F.x1 - F.x0);
+  g.strokeStyle = css("--grid"); g.lineWidth = 1; g.fillStyle = css("--ink-3"); g.font = `10px ${css("--font-mono")}`;
+  for (let v = Math.ceil(F.x0 / st) * st; v <= F.x1; v += st) { g.beginPath(); g.moveTo(X(v), PAD); g.lineTo(X(v), MAP - PAD); g.stroke(); g.textAlign = "center"; g.fillText(String(+v.toFixed(2)).replace("-", "−"), X(v), MAP - PAD + 13); }
+  for (let v = Math.ceil(F.y0 / st) * st; v <= F.y1; v += st) { g.beginPath(); g.moveTo(PAD, Y(v)); g.lineTo(MAP - PAD, Y(v)); g.stroke(); g.textAlign = "right"; g.fillText(String(+v.toFixed(2)).replace("-", "−"), PAD - 4, Y(v) + 3); }
+  g.textAlign = "center"; g.fillStyle = css("--ink-2"); g.fillText("z₁", MAP / 2, MAP - 6);
+  g.save(); g.translate(10, MAP / 2); g.rotate(-Math.PI / 2); g.fillText("z₂", 0, 0); g.restore();
+  g.fillStyle = css("--c-empirical"); g.globalAlpha = 0.45;
+  for (let i = 0; i < model.codes.length; i += 2) g.fillRect(X(model.codes[i]) - 1.2, Y(model.codes[i + 1]) - 1.2, 2.4, 2.4);
+  g.globalAlpha = 1;
+  // numerals at each digit's median code
+  g.font = `600 13px ${css("--font-sans") || "sans-serif"}`; g.textAlign = "center";
+  for (let d = 0; d < 10; d++) {
+    const xs = [], ys = [];
+    model.digits.forEach((dd, i) => { if (dd === d) { xs.push(model.codes[2 * i]); ys.push(model.codes[2 * i + 1]); } });
+    xs.sort((a, b) => a - b); ys.sort((a, b) => a - b);
+    const mx = X(xs[xs.length >> 1]), my = Y(ys[ys.length >> 1]);
+    g.lineWidth = 3; g.strokeStyle = css("--surface-1"); g.strokeText(d, mx, my + 4); g.fillStyle = css("--ink-1"); g.fillText(d, mx, my + 4);
+  }
+  // the 95% circle of N(0, I)
+  g.strokeStyle = css("--c-prior"); g.lineWidth = 2; g.setLineDash([6, 4]);
+  g.beginPath(); g.ellipse(X(0), Y(0), R95 / (F.x1 - F.x0) * S, R95 / (F.y1 - F.y0) * S, 0, 0, 2 * Math.PI); g.stroke(); g.setLineDash([]);
+  // its key, above the plot
+  g.setLineDash([6, 4]); g.beginPath(); g.moveTo(PAD, 16); g.lineTo(PAD + 22, 16); g.stroke(); g.setLineDash([]);
+  g.fillStyle = css("--ink-2"); g.font = `11px ${css("--font-sans") || "sans-serif"}`; g.textAlign = "left";
+  g.fillText("95% of draws from N(0, I) fall inside", PAD + 28, 20);
+  // the clicked point
+  g.strokeStyle = css("--c-highlight"); g.lineWidth = 2;
+  g.beginPath(); g.arc(X(z[0]), Y(z[1]), 6, 0, 2 * Math.PI); g.stroke();
+  g.beginPath(); g.moveTo(X(z[0]) - 10, Y(z[1])); g.lineTo(X(z[0]) - 7, Y(z[1])); g.moveTo(X(z[0]) + 7, Y(z[1])); g.lineTo(X(z[0]) + 10, Y(z[1])); g.stroke();
+  cv.onclick = e => { const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    model.onpick([F.x0 + (px - PAD) / S * (F.x1 - F.x0), F.y1 - (py - PAD) / S * (F.y1 - F.y0)]); };
+}
+function drawDecode(cv, img, z, label) {
+  const W = 200, H = 236, g = hidpi(cv, W, H);
+  g.fillStyle = css("--surface-1"); g.fillRect(0, 0, W, H);
+  g.drawImage(digitCanvas(img), 16, 16, 168, 168);
+  g.strokeStyle = css("--c-highlight"); g.lineWidth = 2; g.strokeRect(15, 15, 170, 170);
+  g.fillStyle = css("--ink-1"); g.font = `12px ${css("--font-mono")}`; g.textAlign = "center";
+  g.fillText(`z = (${z[0].toFixed(2)}, ${z[1].toFixed(2)})`.replace(/-/g, "−"), W / 2, 204);
+  g.fillStyle = css("--ink-2"); g.font = `11px ${css("--font-sans") || "sans-serif"}`;
+  g.fillText(label != null ? `x̂ = g(z, c = ${label})` : "x̂ = g(z)", W / 2, 222);
+}
+function drawGrid(cv, imgs, title) {
+  const cell = 56, W = 4 * cell + 8, H = 4 * cell + 30, g = hidpi(cv, W, H);
+  g.fillStyle = css("--surface-1"); g.fillRect(0, 0, W, H);
+  g.fillStyle = css("--ink-2"); g.font = `11px ${css("--font-sans") || "sans-serif"}`; g.textAlign = "left"; g.fillText(title, 4, 14);
+  imgs.forEach((px, i) => { const x = 4 + (i % 4) * cell, y = 22 + Math.floor(i / 4) * cell; g.drawImage(digitCanvas(px, true), x + 2, y + 2, cell - 4, cell - 4); g.strokeStyle = css("--grid"); g.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3); });
+}
+
+/* ---------- pages ---------------------------------------------------------- */
+function build(key) {
+  const row = document.getElementById("row-" + key), m = D[key + "2"];
+  row.innerHTML = "";
+  const box = (lab, el) => { const d = document.createElement("div"); d.innerHTML = `<div style="font-size:11px;color:var(--ink-2);margin-bottom:4px">${lab}</div>`; d.appendChild(el); row.appendChild(d); return el; };
+  const map = box("latent size 2: each dot is one test image's code μ; click to decode", Object.assign(document.createElement("canvas"), { className: "map" }));
+  const dec = box("the clicked point, decoded", document.createElement("canvas"));
+  const grid = box("latent size 16, as cell " + (key === "cvae" ? "40" : "19"), document.createElement("canvas"));
+  m.onpick = z => { state[key] = z; render(key); };
+  m.els = { map, dec, grid };
+}
+function render(key) {
+  const m = D[key + "2"], z = state[key], c = key === "cvae" ? D.c[state.label] : null;
+  drawMap(m.els.map, m, z);
+  drawDecode(m.els.dec, decode(m.Wf, z, c), z, key === "cvae" ? state.label : null);
+  const g16 = key === "cvae" ? D.cvae16[state.label] : D[key + "16"];
+  drawGrid(m.els.grid, g16.imgs, key === "cvae" ? `16 draws from N(0, I), label ${state.label}` : "16 draws from N(0, I)");
+  if (key === "cvae") {
+    const cv = document.getElementById("strip"), cell = 64, g = hidpi(cv, 10 * cell + 8, cell + 22);
+    g.fillStyle = css("--surface-1"); g.fillRect(0, 0, 10 * cell + 8, cell + 22);
+    for (let d = 0; d < 10; d++) { const x = 4 + d * cell; g.drawImage(digitCanvas(decode(m.Wf, z, D.c[d])), x + 3, 4, cell - 6, cell - 6);
+      g.strokeStyle = d === state.label ? css("--c-highlight") : css("--grid"); g.lineWidth = d === state.label ? 2 : 1; g.strokeRect(x + 2, 3, cell - 4, cell - 4);
+      g.fillStyle = css("--ink-2"); g.font = `11px ${css("--font-mono")}`; g.textAlign = "center"; g.fillText(`c = ${d}`, x + cell / 2, cell + 14); }
+    document.getElementById("cap-cvae-grid").textContent = `16 draws from N(0, I) decoded with the label ${state.label}, latent size 16, as cell 40 does with text_id = 5.`;
+  }
+}
+function norms(codes) { const n = []; for (let i = 0; i < codes.length; i += 2) n.push(Math.hypot(codes[i], codes[i + 1])); n.sort((a, b) => a - b); return n; }
+
+fetch("vae-mock-data.json").then(r => r.json()).then(data => {
+  D = data;
+  for (const k of ["ae", "vae", "cvae"]) {
+    const m = D[k + "2"]; m.Wf = prep(m.W); m.frame = frameOf(m.codes);
+    // check the JS decoder against torch's reference decode
+    const out = decode(m.Wf, m.ref.z, m.ref.label != null ? D.c[m.ref.label] : null);
+    let err = 0; out.forEach((v, i) => err = Math.max(err, Math.abs(v - m.ref.img[i])));
+    m.err = err;
+  }
+  status.textContent = `JS decoder against torch, max |difference|: ae ${D.ae2.err.toExponential(1)} · vae ${D.vae2.err.toExponential(1)} · cvae ${D.cvae2.err.toExponential(1)}`;
+  const lab = document.getElementById("labels");
+  for (let d = 0; d < 10; d++) { const s = document.createElement("span"); s.className = "pg" + (d === state.label ? " on" : ""); s.textContent = d;
+    s.onclick = () => { state.label = d; [...lab.children].forEach((c, i) => c.classList.toggle("on", i === d)); render("cvae"); }; lab.appendChild(s); }
+  const inside = k => { const n = norms(D[k + "2"].codes); return Math.round(100 * n.filter(v => v <= R95).length / n.length); };
+  const rng = (k, a) => { const v = D[k + "2"].codes.filter((_, i) => i % 2 === a); return `${fmt(Math.min(...v))} to ${fmt(Math.max(...v))}`; };
+  const fmt = v => v.toFixed(0).replace("-", "−");
+  document.getElementById("cap-ae").textContent = `Each dot is the code z = f(x) of one of 2,000 test images. The codes reach from ${rng("ae", 0)} on z₁ and ${rng("ae", 1)} on z₂; 95% of draws from N(0, I) fall inside the dashed circle, which holds ${inside("ae")}% of the codes. A draw decodes to one of the few digits near the centre, and a point between the digits' regions decodes to a blend.`;
+  document.getElementById("cap-vae").textContent = `The KL term pulls each image's q(z|x) toward N(0, I), so the circle holds ${inside("vae")}% of the codes and a draw from N(0, I) lands among them.`;
+  document.getElementById("cap-cvae").textContent = `With the digit given by the label c, the codes no longer group by digit: the circle holds ${inside("cvae")}% of them, every digit spread across it. Click a point to choose z; the label buttons choose c.`;
+  for (const k of ["ae", "vae", "cvae"]) { build(k); render(k); }
+  document.querySelectorAll(".rail .pg[data-go]").forEach(p => p.onclick = () => document.getElementById(p.dataset.go).scrollIntoView());
+}).catch(e => status.textContent = "load failed: " + e);
+</script>
+</body>
+</html>

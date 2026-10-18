@@ -25189,7 +25189,7 @@ seeded rng.
 |---|---|---|---|---|---|
 | 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | **SHIPPED 2026-10-16** (21 states) |
 | 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | **SHIPPED 2026-10-17** |
-| 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | picked; measure first |
+| 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | **DRAFTED 2026-10-18** (§ *106 MOCKED … DRAFTED*) |
 | 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | picked 2026-10-12; check a seed that converges without collapse |
 | 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | picked; measure first |
 
@@ -25636,6 +25636,82 @@ joint embedding."
 the toy. Alongside, his notebook work: 10-2b on the v6b CSVs (no code change,
 corrections item 14), and 10-2c, 10-2b plus a run cross-attention example
 (item 15; `_lab/cross-attention-mock.html`).
+
+### 106 MEASURED 2026-10-17, before any mock
+
+He confirmed **10-3b is current** and allowed the download of his
+`clip_mnist_align.pt` (keys `img_encoder`, `txt_encoder`; kept in
+`_scratch/frontiers-data/clip-106`). `_lab/vae-measure.py` trains 10-3b's
+`ConvVAE` and `ConditionalConvVAE` verbatim (seed 42, Adam 1e-3, 10 epochs,
+batch 256, summed MSE + KL ÷ B; the CVAE on the frozen text encoder, cell 25's
+`drop_last`), and the **AE as the same `ConvVAE` with the KL term removed and
+z = μ**, so the KL is the one difference. Each at a 2-D latent (the widget's
+map) and the notebook's 16. Checkpoints in `models-106`, JSON
+`_lab/vae-measure.json` (both untracked); ~1 min a model on CPU.
+
+Two instruments, because a CNN is confident on blends: our MNIST classifier
+(98.7% on test; on real test images 95.9% of top probabilities ≥ 0.9), and
+the L2 distance from a decode to its nearest of 10,000 training images (real
+test images: median 4.94). Each model's **reconstructions of test images**
+are its own ceiling.
+
+| model | code norm, median (N(0, I): 1.19 at 2-D, 3.94 at 16-D) | reconstructions ≥ 0.9 | N(0, I) draws ≥ 0.9 | nearest-train L2, reconstructions → draws | digits among confident draws |
+|---|---|---|---|---|---|
+| AE 2-D | 5.8 (range −23…11 × −7…20) | 47% | 26% | 4.65 → 5.91 | 0, 5, 6 only (6 = 171 of 255) |
+| VAE 2-D | 1.13 | 41% | 37% | 4.80 → 4.88 | 0 1 2 3 6 7, never 4 5 8 9 |
+| AE 16-D | 25.7 | 88% | 27% | 4.37 → **8.80** | 1 only (240 of 266) |
+| VAE 16-D | 2.9 (two of the first four dims sd ≈ 0.1: KL switched them off) | 80% | 47% | 4.03 → 4.70 | all ten |
+| CVAE 2-D | 1.15 | 99% | 97% | 3.97 → 3.94 | all ten, ~100 each |
+| CVAE 16-D | 2.2 | 98% | 93% | 3.83 → 4.02 | all ten |
+
+**What holds.** (1) The AE's codes are spread far wider than N(0, I): at 2-D
+a standard-normal draw lands in a small patch of the code cloud and decodes
+to the few digits there; at 16-D the draws land nowhere near any code and
+decode far from every training image (8.8 against 4.4), the few confident
+ones all read as "1". (2) The VAE's codes have the prior's scale, and its
+draws decode as close to the data as its reconstructions do (4.88 vs 4.80 at
+2-D). (3) **The CVAE's label sets the digit**: 95–100% of draws read as the
+requested digit at either size; and **z carries the style**: one z decoded
+under all ten labels keeps its slant (96% of the slant variance, after each
+digit's mean is removed, is between z's).
+
+**What does not, and the widget must not claim.** "Mostly garbage" is too
+strong at 2-D: a 2-D AE's random draws are digits from one corner, not noise
+(the 16-D AE is the garbage case). And a 2-D VAE cannot hold all ten digits:
+4/9 and 3/5/8 blur together, so it reconstructs only 41% confidently and its
+draws never give a confident 4, 5, 8 or 9. The 2-D click map shows the
+mechanism (the N(0, I) circle against each model's codes) but not a full
+set of digits; the CVAE at 2-D does, because the label carries the digit and
+z only the style.
+
+### 106 MOCKED 2026-10-17, DRAFTED 2026-10-18 (all ten calls the recommendation)
+
+His pick before the mock: a **2-D map for the mechanism** (the N(0, I)
+circle over each model's codes, a click decoding that point) **and a 16-D
+draw grid for the result**, as cell 19 prints. `_lab/vae-mock.html` (data
+`_lab/vae-mock-data.json` from `_lab/vae-mockdata.py`, untracked) ran the
+2-D decoders in the page; ten calls, all taken as recommended ("go with all
+ten"): Model **Autoencoder · VAE · Conditional**; the autoencoder is the
+ConvVAE without the KL term (the card strikes the term out); each map in its
+own frame; one dashed 95% circle in `--c-prior`; codes in `--c-empirical`
+with each digit's numeral at its median code (on Conditional the ten pile up
+at the centre, which is the finding); the map clicked only, no Draw on it;
+the clicked z under all ten labels on Conditional; trained models only, no
+Train press; our classifier's reading not on the page; title "Deep Learning
+- Frontiers: Variational Autoencoders".
+
+The draft (`widgets/vae/`, status draft, placeholder fingerprint): the point
+is one TEXT parameter `z` ("1.20,-0.40"), set by a 6px region grid over the
+map, typed in the rail, carried in the URL, shared by the three pages so one
+point can be decoded by each model. The decoder runs in the page from
+float16 weights (the CVAE's [z ‖ c] Linear folded into ten per-label
+biases) and checks itself at load against torch's decode of one point. A
+**Draw** press (Step only) reveals the sixteen 16-D draws one at a time;
+Label c 0–9 (default 5, cell 40's `text_id`) on Conditional, also set by a
+click on the row of ten. Tiles: codes inside the circle (8% · 94% · 96%), the
+median code length at 2 (5.81 · 1.13 · 1.14 against 1.18) and, after Draw,
+at 16 (25.69 · 2.92 · 2.19 against 3.92). `data.js` (691 KB) is GENERATED by
+`_lab/vae-export.py`, which asserts the catalogue table's code lengths.
 
 ---
 

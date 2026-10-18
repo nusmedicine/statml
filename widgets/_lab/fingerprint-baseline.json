@@ -14776,6 +14776,13 @@
       },
       "px": "0aa5ac55",
       "tx": "eab40cf2"
+    },
+    {
+      "$note": "vae · placeholder until the design is agreed",
+      "slug": "vae",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }
