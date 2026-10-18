@@ -226,11 +226,11 @@ function shareOf(m, S, d) {
 
 const S = {
   subtitle:
-    "An autoencoder compresses each image to a code z and decodes the code back into an image. A variational autoencoder (VAE) adds a KL term that keeps the codes close to N(0, I), " +
-    "so a point drawn from N(0, I) decodes to a new image. A conditional VAE also gives the encoder and the decoder a label, which sets the digit that is generated.",
+    "An autoencoder compresses each image to a code z and decodes the code back into an image. A variational autoencoder (VAE) adds a KL term to the loss, which penalises codes far from N(0, I), " +
+    "so that a point drawn from N(0, I) decodes to a new image. A conditional VAE also gives the encoder and the decoder a label c, which sets the digit that is generated.",
   pageLabel: "Model",
   labelLabel: "Label c",
-  labelDetail: "highlights that digit's codes; sends the VAE's sampler onto them and gives the conditional VAE c",
+  labelDetail: "highlights that digit's codes; moves the VAE's sampler onto them and sets c for the conditional VAE",
   digitLabel: "Digit",
   digitDetail: "highlights that digit's codes on every map; a hover over a numeral shows one, a click keeps it",
   digitNone: "None",
@@ -245,23 +245,23 @@ const S = {
   buttons: { zoomIn: "+", zoomOut: "−", fit: "Fit", prior: "N(0, I)", label: (d) => `on the ${d}s` },
   regionTitle: "The sampler's region, decoded",
   regionSub: (S, c) => `centre ± 2s, 6 × 6 points${c != null ? `, c = ${c}` : ""}`,
-  regionWait: (trained) => (trained ? ["Decode region", "fills this grid"] : ["Train first, then", "Decode region"]),
+  regionWait: (trained) => (trained ? ["Decode region", "decodes these points"] : ["Train first, then", "Decode region"]),
   lossTitle: { recon: "Reconstruction term", kl: "KL term" },
-  lossWait: "Train draws it",
+  lossWait: "after Train",
   lossTicks: [[1, "0"], [10, "10 batches"], [2350, "epoch 10"]],
   noKL: "no KL term",
   row16Title: "Latent size 16: 16 draws from N(0, I), decoded",
   row16Names: { ae: "autoencoder", without: "without KL", with: "with KL", vae: "VAE", cvae: (d) => `c = ${d}` },
-  card: { here: "decoded here", image: (d) => `test image, a ${d}`, point: "one point z, no q(z|x)", inside: "inside N(0, I)'s circle", outside: "outside N(0, I)'s circle" },
+  card: { here: "decoded here", image: (d) => `test image, a ${d}`, point: "one point z, no q(z|x)", inside: "inside the sampler's circle", outside: "outside the sampler's circle" },
   legend: { code: "a test image's code z", chosen: (d) => `the ${d}s' codes`, circle: "95% of the sampler's draws" },
   tile: {
     inside: "Codes inside the circle",
-    insideNote: "of 1,000 test images, inside the sampler's circle",
+    insideNote: "of 1,000 test images",
     norm: "Median length of a code",
     normNote: `latent size 2; a draw from N(0, I): ${f2(STATS.prior2)}`,
     recon: "Reconstruction term",
     reconNote: "per image, squared error summed over the 784 pixels",
-    kl: "KL term, with KL",
+    kl: "KL term, VAE",
     klC: "KL term, conditional VAE",
     klNote: (L) => `per image: mean part ${f2(L.klMu)} + spread part ${f2(L.klSd)}`,
     norm16: "Median code length, latent size 16",
@@ -278,21 +278,21 @@ const pair = (a, b) => `${a} · ${b}`;
 
 const CAP = {
   ae: {
-    0: () => `Untrained, the encoder maps every image to a code near (0, 0) and the decoder gives the same grey blur for each. The dashed circle holds 95% of draws from the sampler, N(0, I) to start. Train shows ten checkpoints of 10 epochs.`,
+    0: () => `Untrained, the encoder maps every image to a code near (0, 0). The dashed circle holds 95% of draws from the sampler, which starts as N(0, I), the standard normal distribution in two dimensions. Train shows ten checkpoints of 10 epochs.`,
     play: (k) => `Training, ${lossAt("ae", k).label}: median code length ${f2(NORM.ae[k])}. The reconstruction term spreads the codes apart, so that the decoder can tell the images apart.`,
-    1: () => `The codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])} against ${f2(STATS.prior2)} for a draw). Decode region decodes the sampler's region; on the map, a drag inside the circle moves it, a drag on its rim widens it.`,
-    2: () => `Around (0, 0) the decoder gives blends of a few digits. Moved onto a cluster, the sampler finds that digit: the autoencoder decodes its own codes well, but nothing in its training says where to sample.`,
+    1: () => `The codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])} against ${f2(STATS.prior2)} for a draw). Decode region decodes the sampler's region; on the map, a drag inside the circle moves it, a drag on its rim sets its spread.`,
+    2: () => `Around (0, 0) the decoder gives blends of a few digits. Moved onto a cluster, the sampler finds that digit: the autoencoder decodes its own codes well, but its training defines no distribution to sample z from.`,
   },
   vae: {
     0: () => `The same network trained twice: without the KL term (the autoencoder, left) and with it (the VAE, right). Each map has its own sampler and view. Train trains both.`,
-    play: (k) => `Training, ${lossAt("vae", k).label}: median code length ${f2(NORM.ae[k])} without the KL term, ${f2(NORM.vae[k])} with it, KL term ${f1(lossAt("vae", k).kl)}. The reconstruction term spreads both sets of codes; only the KL term draws them back toward N(0, I).`,
-    1: () => `Without the KL term the codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])}); with it they fill the circle (${f2(NORM.vae[LAST])}), each digit in its own region. Decode region decodes each map's sampler.`,
-    2: () => `With the KL term, N(0, I) decodes to every kind of digit, each shading into its neighbour; without it, the same circle decodes to blends of the few digits whose codes reach the centre.`,
+    play: (k) => `Training, ${lossAt("vae", k).label}: median code length ${f2(NORM.ae[k])} without the KL term, ${f2(NORM.vae[k])} with it, KL term ${f1(lossAt("vae", k).kl)}. The reconstruction term spreads both sets of codes; the KL term grows as the codes move away from N(0, I), and training lowers it.`,
+    1: () => `Without the KL term the codes spread far beyond the circle of N(0, I) (median length ${f2(NORM.ae[LAST])}); with it they fill the circle (${f2(NORM.vae[LAST])}), the digits in regions that partly overlap. Decode region decodes each map's sampler.`,
+    2: () => `With the KL term, N(0, I) decodes to every kind of digit, neighbouring points decoding to similar digits; without it, the same circle decodes to blends of the few digits whose codes reach the centre.`,
   },
   conditional: {
     0: () => `Left, the VAE without a label; right, the conditional VAE, which is given the label as c. A Label button highlights that digit's codes on both maps. Train trains both.`,
     play: (k) => `Training, ${lossAt("cvae", k).label}: KL term ${f2(lossAt("vae", k).kl)} for the VAE and ${f2(lossAt("cvae", k).kl)} for the conditional VAE.`,
-    1: (params, Sv) => { const d = Number(params.label); return `On the VAE the ${d}s occupy one region and the Label sent the sampler there: of the codes inside its circle, ${pct(shareOf("vae", Sv, d))} are ${d}s. On the conditional VAE the ${d}s spread over the whole circle of N(0, I): z does not hold the digit, c does. Decode region decodes both samplers.`; },
+    1: (params, Sv) => { const d = Number(params.label); return `On the VAE the ${d}s occupy one region and the Label moved the sampler to them: of the codes inside its circle, ${pct(shareOf("vae", Sv, d))} are ${d}s. On the conditional VAE the ${d}s spread over the whole circle of N(0, I): the digit is set by c, not by z. Decode region decodes both samplers.`; },
     2: (params) => { const d = Number(params.label); return `The VAE's region decodes to ${d}s and the digits whose codes share it; the conditional VAE, at N(0, I) with c = ${d}, decodes a ${d} at every point, z setting the slant and the stroke.`; },
   },
 };
@@ -322,7 +322,7 @@ const MATH = {
   ae: {
     math: `<math display="block"><mrow>${L("AE")}${mo("=")}${norm2}</mrow></math>`,
     plain: "L_AE = ‖x − x̂‖²",
-    note: "The encoder gives one code z for each image and the decoder turns a code back into an image, x̂ = g(z); training lowers the squared error between each image and its reconstruction.",
+    note: "The encoder gives one code z for each image and the decoder maps a code back to an image, x̂ = g(z); training lowers the squared error between each image and its reconstruction.",
   },
   vae: {
     math: `<math display="block"><mtable columnalign="left"><mtr><mtd><mrow>${L("without KL")}${mo("=")}${norm2}</mrow></mtd></mtr>` +
@@ -394,7 +394,7 @@ function schemaSVG(page, label) {
     s += svText(267, y2 + h + 14, "Decode region, below, decodes a 6 × 6 grid of points across each sampler's region,", "middle", "var(--c-prior)");
     s += svText(267, y2 + h + 27, "to show what draws from it decode to.", "middle", "var(--c-prior)");
   } else {
-    s += svText(267, y2 + h + 14, "An autoencoder defines no distribution for z: the sampler is ours, to test what its decoder gives.", "middle", "var(--c-prior)");
+    s += svText(267, y2 + h + 14, "An autoencoder defines no distribution for z: the sampler here tests what its decoder gives.", "middle", "var(--c-prior)");
   }
   if (page === "conditional") {
     const cy = 226, hl = "var(--c-highlight)";
@@ -704,7 +704,7 @@ function drawCard(ctx, colors, w, H, hv, params) {
   } else {
     ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 5, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
   }
-  const cw = 152, ch = lv ? 104 : 84, im = 58;
+  const cw = 196, ch = lv ? 116 : 96, im = 58;
   let cx = px + 14, cy = py + 14;
   if (cx + cw > w - 2) cx = px - 14 - cw;
   if (cy + ch > H - 2) cy = py - 14 - ch;
@@ -714,12 +714,13 @@ function drawCard(ctx, colors, w, H, hv, params) {
   drawImage(ctx, colors, decode(M.m, z, label), cx + 6, cy + 6, im, colors.highlight);
   txt(ctx, colors, i != null ? S.card.image(DIGITS[i]) : S.card.here, cx + im + 12, cy + 18, { fill: colors.ink1, weight: "600" });
   txt(ctx, colors, `z = ${zText(z)}`, cx + im + 12, cy + 34);
-  txt(ctx, colors, Math.hypot(z[0], z[1]) <= R95 ? S.card.inside : S.card.outside, cx + im + 12, cy + 50, { fill: colors.prior });
+  const Sm = samplerOf(params.page, M, params), inC = Math.hypot(z[0] - Sm.c[0], z[1] - Sm.c[1]) <= R95 * Sm.s;
+  txt(ctx, colors, inC ? S.card.inside : S.card.outside, cx + 6, cy + 80, { fill: colors.prior });
   if (lv) {
     const sd = lv.map((v) => Math.exp(v / 2)), km = 0.5 * (z[0] ** 2 + z[1] ** 2), ks = 0.5 * (sd[0] ** 2 - 1 - lv[0] + sd[1] ** 2 - 1 - lv[1]);
-    txt(ctx, colors, `σ = (${f2(sd[0])}, ${f2(sd[1])})`, cx + 6, cy + 80, { fill: colors.posterior });
-    txt(ctx, colors, `KL ${f2(km + ks)} = mean ${f2(km)} + spread ${f2(ks)}`, cx + 6, cy + 96, { fill: colors.prior });
-  } else if (i != null) txt(ctx, colors, S.card.point, cx + 6, cy + 78, { fill: colors.ink3 });
+    txt(ctx, colors, `σ = (${f2(sd[0])}, ${f2(sd[1])})`, cx + 6, cy + 95, { fill: colors.posterior });
+    txt(ctx, colors, `KL ${f2(km + ks)} = mean ${f2(km)} + spread ${f2(ks)}`, cx + 6, cy + 110, { fill: colors.prior });
+  } else if (i != null) txt(ctx, colors, S.card.point, cx + 6, cy + 92, { fill: colors.ink3 });
 }
 
 function captionOf(params, anim) {

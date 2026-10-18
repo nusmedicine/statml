@@ -1504,7 +1504,7 @@
     {
       "slug": "vae",
       "title": "Deep Learning - Frontiers: Variational Autoencoders",
-      "blurb": "An autoencoder's codes, a VAE's codes drawn onto N(0, I), and a conditional VAE that generates a chosen digit.",
+      "blurb": "An autoencoder's latent space, a VAE with and without the KL term, and a conditional VAE that generates a chosen class.",
       "course": "PHM5005",
       "topics": [
         "generative models",

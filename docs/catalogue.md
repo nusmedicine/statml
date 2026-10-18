@@ -25897,7 +25897,7 @@ it, a second click clears it. The hit test takes the NEAREST numeral within
 9 px: on the autoencoder's map the 3, 5 and 8 sit closer than that, and the
 first-match version picked 3 for a click on the 5.
 
-### 106 STUDENT WALK-THROUGH AND COPY AUDIT, 2026-10-19 (proposed, not yet applied)
+### 106 STUDENT WALK-THROUGH AND COPY AUDIT, 2026-10-19 (all rows applied)
 
 `_lab/vae-copy-scan.mjs <claudisms.md>` evaluates the widget's own S, CAP,
 MATH, press titles and schematic text on every page: 131 strings. Banlist
@@ -25925,6 +25925,16 @@ use (abstract "hold"); "moves", "points" and "turns" are literal.
 | C8 | Label detail | "sends the VAE's sampler onto them and gives the conditional VAE c" | "moves the VAE's sampler onto them and sets c for the conditional VAE" |
 | C9 | subtitle | "a KL term that keeps the codes close to N(0, I)" | options S1 · S2 |
 | C10 | blurb | "a VAE's codes drawn onto N(0, I)" (figurative) | options B1 · B2 |
+
+**His calls:** every row as proposed; subtitle **S1** ("… adds a KL term to the
+loss, which penalises codes far from N(0, I), so that a point drawn from N(0, I)
+decodes to a new image …"); blurb "like B1 but mention latent space and do not
+refer to digits, I should be general": **"An autoencoder's latent space, a VAE
+with and without the KL term, and a conditional VAE that generates a chosen
+class."** (119 characters; manifest and meta description). Found while
+applying W6: the hover card's circle line ran past the card; the card is wider
+(196 px) and the line has its own row. Re-scan: no banned use left (the
+remaining hits are literal "points" and "moves").
 
 ---
 
