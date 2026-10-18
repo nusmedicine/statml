@@ -1,6 +1,6 @@
 # Handover
 
-**SESSION 2026-10-17 → 19. 106 `vae` SHIPPED AND PUSHED** (6ceb648) as
+**SESSION 2026-10-17 → 19 CLOSED. 106 `vae` SHIPPED AND PUSHED** (6ceb648) as
 "Deep Learning - Frontiers: Variational Autoencoders" (22 states, 22/22 MATCH
 at DPR 1.25 with the pane fronted). Measured, then four review rounds, two
 copy catches, the colour-by-digit question, the walk-through and the copy
@@ -56,7 +56,7 @@ default seed that converges without mode collapse), then **107 `diffusion`**
 Carry over from 104–106 by default: the schematic in the card, a Train press,
 hover, per-map controls where maps are compared.
 
-**Dev server this session:** `widgets-alt4` on :8014.
+**Dev server this session:** `widgets-alt4` on :8014, stopped at the close. A card for 108 (measure and mock) was left in the app; it expires 2026-10-26.
 
 ---
 
