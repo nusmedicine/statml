@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · vae round 2 — training, KL, the schematic</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note, ol.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b, ol.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .proto { display: grid; grid-template-columns: 220px 1fr; gap: var(--sp-4); align-items: start; }
+  .rail { display: flex; flex-direction: column; gap: 10px; font-size: var(--fs-sm); }
+  .rail .lab2 { color: var(--ink-2); font-weight: 600; margin-bottom: 4px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 0; }
+  .seg button { flex: 1 1 auto; padding: 5px 8px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; font: inherit; font-size: 12px; min-width: 0; }
+  .seg button.on { border-color: var(--c-highlight); font-weight: 600; }
+  .seg.digits button { flex: 0 0 20%; }
+  .act { padding: 7px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); border-radius: 3px; cursor: pointer; font: inherit; font-weight: 600; }
+  .act:disabled { color: var(--ink-3); border-color: var(--grid); cursor: default; }
+  .detail { color: var(--ink-3); font-size: 11px; margin-top: 3px; }
+  .card { border: 1px solid var(--grid); background: var(--surface-2); padding: var(--sp-3); margin-bottom: var(--sp-3); }
+  .card .eq { text-align: center; font-size: 15px; margin: 6px 0 4px; }
+  .card .eq .kl { color: var(--c-prior); }
+  .card .eq .off { color: var(--ink-3); text-decoration: line-through; }
+  .card .nt { color: var(--ink-2); font-size: 12px; }
+  canvas { display: block; background: var(--surface-1); }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--ink-3); background: var(--surface-2); }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 120ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 9px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 106 <code>vae</code> &middot; round 2: a schematic, training, the KL term, the label, motion and hover</h1>
+  <p class="note">His five points on the draft (2026-10-18), and what this mock does with each. The prototype below is interactive: hover the map, click a dot or an empty spot, press Train, then Draw. <span id="status">loading&hellip;</span></p>
+  <ol class="note">
+    <li><b>Schematic.</b> The network in the card, in two rows: <b>Training</b> (x &rarr; encoder &rarr; &mu;, &sigma; &rarr; z &rarr; decoder &rarr; x&#770; &rarr; loss) and <b>Generating</b> (z drawn from N(0, I) &rarr; decoder &rarr; a new image). The Generating row has no encoder, which is the point of the VAE; on Conditional both rows take c.</li>
+    <li><b>Training.</b> Train plays ten checkpoints (0, 5, 20, 50, 100, 200 batches; epochs 1, 2, 5, 10) of the same models, retrained with the same seed (<code>_lab/vae-checkpoints.py</code>; the last checkpoint is bit-identical to the model measured). The codes move between checkpoints; a dot runs forward through the schematic and the gradient back, as in 104; the loss curve draws both terms.</li>
+    <li><b>The KL term.</b> On the VAE pages the encoder gives each image a distribution q(z|x) = N(&mu;, &sigma;&sup2;), not a point. Hover or click a dot: its q(z|x) is drawn as an ellipse (2&sigma;) in <code>--c-posterior</code> against the circle of N(0, I) in <code>--c-prior</code>, and a panel draws, for each of the two dimensions, the two bell curves and their KL, split into a <b>mean part</b> &frac12;&mu;&sup2; (how far the centre is from 0) and a <b>spread part</b> &frac12;(&sigma;&sup2; &minus; 1 &minus; ln &sigma;&sup2;) (how far the width is from 1). KL is 0 only when the two curves coincide.</li>
+    <li><b>Conditional.</b> Label c as ten buttons in the rail. In the schematic c enters the encoder and the decoder in both rows, and Draw runs the Generating row: each z from N(0, I) and the chosen c go into the decoder.</li>
+    <li><b>Tweening and hover.</b> Codes move between checkpoints; on Draw each of 16 points appears on the map inside the circle and flies to its cell, where its decode appears; a hover over the map decodes the point under the pointer, a hover over a dot shows its image, its reconstruction and its q(z|x); a click pins either.</li>
+  </ol>
+
+  <div class="proto">
+    <div class="rail">
+      <div><div class="lab2">Model</div><div class="seg" id="pages"></div></div>
+      <div id="labelBox"><div class="lab2">Label c</div><div class="seg digits" id="labels"></div><div class="detail">the digit whose embedding c is given to the encoder and the decoder</div></div>
+      <button class="act" id="train">Train</button>
+      <button class="act" id="draw">Draw</button>
+      <button class="act" id="reset">Reset</button>
+      <div class="detail" id="railNote"></div>
+    </div>
+    <div>
+      <div class="card" id="card"></div>
+      <canvas id="cv"></canvas>
+      <div class="cap"><i>draft caption</i><span id="cap"></span></div>
+    </div>
+  </div>
+
+  <h2>Measured for this round</h2>
+  <table id="meas"></table>
+  <p class="note" id="measNote"></p>
+
+  <h2>The calls before building</h2>
+  <div class="q"><b class="h">1. The schematic</b>two rows in the card, Training above Generating (shown); or one row whose encoder greys out when Draw runs.</div>
+  <div class="rec">Recommend <b>two rows</b>: the Generating row's missing encoder is what a student should see, and it stays on screen rather than appearing only during a press.</div>
+  <div class="q"><b class="h">2. Train</b>ten checkpoints with the codes moving between them (shown, about 6 s); or the codes switching at each checkpoint.</div>
+  <div class="rec">Recommend <b>moving</b>: every dot is one image travelling, so nothing new appears over the marks; 104's objection was to a whole new layout (a fresh UMAP) per checkpoint, which this is not, since the axes are z itself.</div>
+  <div class="q"><b class="h">3. Opening state</b>each page opens on the untrained model, Train first and then Draw (shown); or opening trained.</div>
+  <div class="rec">Recommend <b>untrained first</b> (widgets start empty), Draw enabled only after Train, as 105's presses.</div>
+  <div class="q"><b class="h">4. Showing the KL term</b>one image's ellipse and the bell-curve panel on hover and click (shown); add a "Show every q(z|x)" switch that draws all 2,000 ellipses faintly, so the circle is seen to be covered by them?</div>
+  <div class="rec">Recommend <b>one image only</b> for the first build; the faint 2,000 adds a second picture of one idea. Asked because it is the textbook figure for "the codes fill the prior".</div>
+  <div class="q"><b class="h">5. What Draw shows</b>16 draws at latent size 2 flying from the map into a 4 &times; 4 grid, and under the figure the same 16 at latent size 16 (shown); or the 2-D draws only.</div>
+  <div class="rec">Recommend <b>both</b>: the 2-D draws show where a draw comes from; the 16-D row is the result at the notebook's size, where the autoencoder's draws are noise.</div>
+  <div class="q"><b class="h">6. Label buttons</b>ten buttons 0&ndash;9 in the rail (shown); or the slider kept.</div>
+  <div class="rec">Recommend <b>ten buttons</b>, his ask.</div>
+  <div class="q"><b class="h">7. Colours</b>codes <code>--c-empirical</code>; the circle and the draws <code>--c-prior</code> (they come from N(0, I)); q(z|x) <code>--c-posterior</code>; the gradient <code>--c-slope</code>; the pinned point and c <code>--c-highlight</code>.</div>
+  <div class="rec">Recommend <b>as shown</b>: prior and posterior are the two sides of the KL term, and the roles already mean exactly that.</div>
+  <div class="q"><b class="h">8. Hover</b>a hover decodes, a click pins (shown); hover only shows, so a projector (no hover) reaches every view by click.</div>
+  <div class="rec">Recommend <b>as shown</b>; every hover view is reachable by a click, as core requires.</div>
+</main>
+<script>
+/* ======================================================================= */
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const R95 = Math.sqrt(-2 * Math.log(0.05));
+const STEPS = [1, 5, 20, 50, 100, 200, 235, 470, 1175, 2350];      // batches at each checkpoint (0 drawn at 1)
+const NCK = 10, MOVE_MS = 650, NDRAW = 16;
+const PAGES = [["ae", "Autoencoder"], ["vae", "VAE"], ["cvae", "Conditional"]];
+let CK, IMG, G16;
+const st = { page: "ae", label: 5, sel: null, hover: null, per: {} };
+const per = (p) => (st.per[p] ??= { trained: false, t: 0, playing: false, drawn: 0, drawT: 0, drawing: false });
+
+/* ---------------- decoding ---------------- */
+const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+function halves(s) { const b = bytes(s), n = b.length / 2, o = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const h = b[2 * i] | (b[2 * i + 1] << 8), e = (h >> 10) & 31, m = h & 1023, sg = h & 32768 ? -1 : 1;
+    o[i] = e === 0 ? sg * 2 ** -14 * (m / 1024) : sg * 2 ** (e - 15) * (1 + m / 1024); } return o; }
+function convT(inp, Ci, H, w, b, Co) { const Ho = 2 * H, out = new Float32Array(Co * Ho * Ho);
+  for (let i = 0; i < Ci; i++) for (let y = 0; y < H; y++) for (let x = 0; x < H; x++) { const v = inp[(i * H + y) * H + x]; if (v === 0) continue;
+    for (let o = 0; o < Co; o++) { const wb = (i * Co + o) * 16; for (let ky = 0; ky < 4; ky++) { const yy = 2 * y - 1 + ky; if (yy < 0 || yy >= Ho) continue;
+      for (let kx = 0; kx < 4; kx++) { const xx = 2 * x - 1 + kx; if (xx >= 0 && xx < Ho) out[(o * Ho + yy) * Ho + xx] += v * w[wb + ky * 4 + kx]; } } } }
+  for (let o = 0; o < Co; o++) for (let k = 0; k < Ho * Ho; k++) out[o * Ho * Ho + k] += b[o]; return out; }
+const decW = {};
+function dec(page, k) { const key = page + k; if (!decW[key]) { const D = CK[page][k].dec; decW[key] = { wz: halves(D.wz), b: halves(D.b), d1w: halves(D.d1w), d1b: halves(D.d1b), d2w: halves(D.d2w), d2b: halves(D.d2b) }; } return decW[key]; }
+const cache = new Map();
+function decode(page, k, z, label) {
+  const key = `${page}|${k}|${z[0].toFixed(3)}|${z[1].toFixed(3)}|${page === "cvae" ? label : ""}`;
+  if (cache.has(key)) return cache.get(key); if (cache.size > 600) cache.clear();
+  const D = dec(page, k), h = new Float32Array(3136), b0 = page === "cvae" ? label * 3136 : 0;
+  for (let j = 0; j < 3136; j++) { const s = D.b[b0 + j] + D.wz[2 * j] * z[0] + D.wz[2 * j + 1] * z[1]; h[j] = page === "cvae" ? Math.max(0, s) : s; }
+  const a = convT(h, 64, 7, D.d1w, D.d1b, 32); for (let q = 0; q < a.length; q++) a[q] = Math.max(0, a[q]);
+  const o = convT(a, 32, 14, D.d2w, D.d2b, 1), px = new Uint8Array(784); for (let q = 0; q < 784; q++) px[q] = Math.round(255 / (1 + Math.exp(-o[q])));
+  cache.set(key, px); return px;
+}
+
+/* ---------------- the draws: 16 points from N(0, I), seeded ---------------- */
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const DRAWS = (() => { const r = mulberry(106), out = []; while (out.length < NDRAW) { const u = r() || 1e-9, v = r(); const R = Math.sqrt(-2 * Math.log(u)); out.push([R * Math.cos(2 * Math.PI * v), R * Math.sin(2 * Math.PI * v)]); } return out; })();
+
+/* ---------------- where training is ---------------- */
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+function pos(page) { const P = per(page); if (!P.trained && !P.playing) return 0; return P.playing ? P.t * (NCK - 1) : NCK - 1; }
+const ckOf = (page) => Math.floor(pos(page) + 1e-9);
+const moveOf = (page) => { const q = pos(page); return q >= NCK - 1 ? 0 : ease(q - Math.floor(q)); };
+function codeAt(page, i) { const k = ckOf(page), e = moveOf(page), A = CK[page][k].mu, B = CK[page][Math.min(NCK - 1, k + 1)].mu;
+  return e > 0 ? [A[2 * i] + (B[2 * i] - A[2 * i]) * e, A[2 * i + 1] + (B[2 * i + 1] - A[2 * i + 1]) * e] : [A[2 * i], A[2 * i + 1]]; }
+function lvAt(page, i) { const C = CK[page][ckOf(page)]; return C.lv ? [C.lv[2 * i], C.lv[2 * i + 1]] : null; }
+
+/* ---------------- frames ---------------- */
+const FR = {};
+function frameOf(page) { if (FR[page]) return FR[page]; const lo = [-R95, -R95], hi = [R95, R95];
+  for (const C of CK[page]) for (let i = 0; i < C.mu.length; i += 2) for (let k = 0; k < 2; k++) { lo[k] = Math.min(lo[k], C.mu[i + k]); hi[k] = Math.max(hi[k], C.mu[i + k]); }
+  const cx = (lo[0] + hi[0]) / 2, cy = (lo[1] + hi[1]) / 2, half = Math.max(hi[0] - lo[0], hi[1] - lo[1]) / 2 * 1.04;
+  return (FR[page] = { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half }); }
+
+/* ---------------- canvas ---------------- */
+const cv = document.getElementById("cv"), W = 900, H = 760;
+const ctx = (() => { const d = devicePixelRatio || 1; cv.width = W * d; cv.height = H * d; cv.style.width = W + "px"; cv.style.height = H + "px"; const g = cv.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); return g; })();
+const M = { x: 46, y: 34, s: 400 };                 // the map
+const GR = { x: 480, y: 34, cell: 46, gap: 6 };     // the 2-D draws, 4 x 4
+const PN = { x: 480, y: 262, w: 400 };              // the panel under the pointer
+const LC = { x: 46, y: 500, w: 400, h: 140 };       // the loss curve
+const G16Y = 700;                                    // the 16-D row
+let col = {};
+function cols() { col = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), surf: css("--surface-1"), emp: css("--c-empirical"), prior: css("--c-prior"), post: css("--c-posterior"), hl: css("--c-highlight"), slope: css("--c-slope"), font: css("--font") || "sans-serif", mono: css("--font-mono") || "monospace" }; }
+function T(s, x, y, o = {}) { ctx.save(); ctx.font = `${o.w || ""} ${o.size || 11}px ${col.font}`; ctx.fillStyle = o.fill || col.ink2; ctx.textAlign = o.align || "left"; if (o.halo) { ctx.lineWidth = 3; ctx.strokeStyle = col.surf; ctx.strokeText(s, x, y); } ctx.fillText(s, x, y); ctx.restore(); }
+function ln(x1, y1, x2, y2, c, w = 1, dash) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+const rgb = (c) => { const g = document.createElement("canvas").getContext("2d"); g.fillStyle = c; g.fillRect(0, 0, 1, 1); return g.getImageData(0, 0, 1, 1).data; };
+const imgC = new WeakMap();
+function img(px, x, y, s, edge) { let c = imgC.get(px); if (!c) { c = document.createElement("canvas"); c.width = c.height = 28; const g = c.getContext("2d"), im = g.createImageData(28, 28), [r, gg, b] = rgb(col.ink1);
+    for (let i = 0; i < 784; i++) { im.data[4 * i] = r; im.data[4 * i + 1] = gg; im.data[4 * i + 2] = b; im.data[4 * i + 3] = px[i]; } g.putImageData(im, 0, 0); imgC.set(px, c); }
+  ctx.save(); ctx.fillStyle = col.surf; ctx.fillRect(x, y, s, s); ctx.imageSmoothingEnabled = false; ctx.drawImage(c, x, y, s, s); ctx.restore();
+  ctx.save(); ctx.strokeStyle = edge || col.grid; ctx.lineWidth = edge ? 2 : 1; ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1); ctx.restore(); }
+const testImg = (i) => IMG.subarray(i * 784, (i + 1) * 784);
+const sc = () => { const F = frameOf(st.page); return { F, X: (v) => M.x + (v - F.x0) / (F.x1 - F.x0) * M.s, Y: (v) => M.y + (F.y1 - v) / (F.y1 - F.y0) * M.s, inv: (px, py) => [F.x0 + (px - M.x) / M.s * (F.x1 - F.x0), F.y1 - (py - M.y) / M.s * (F.y1 - F.y0)] }; };
+const f2 = (v) => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2).replace("-", "−");
+
+function drawMap() {
+  const page = st.page, { F, X, Y } = sc(), n = CK.digits.length;
+  T(`Latent size 2: the codes of 2,000 test images, ${CK[page][ckOf(page)].label}`, 10, 18, { w: 600, fill: col.ink1 });
+  const step = (() => { const raw = (F.x1 - F.x0) / 6, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; })();
+  for (let v = Math.ceil(F.x0 / step) * step; v <= F.x1; v += step) { ln(X(v), M.y, X(v), M.y + M.s, col.grid); T(String(+v.toFixed(2)).replace("-", "−"), X(v), M.y + M.s + 14, { align: "center", fill: col.ink3, size: 10 }); }
+  for (let v = Math.ceil(F.y0 / step) * step; v <= F.y1; v += step) { ln(M.x, Y(v), M.x + M.s, Y(v), col.grid); T(String(+v.toFixed(2)).replace("-", "−"), M.x - 6, Y(v) + 4, { align: "right", fill: col.ink3, size: 10 }); }
+  T("z₁", M.x + M.s / 2, M.y + M.s + 30, { align: "center" }); T("z₂", 10, M.y + M.s / 2);
+  ctx.save(); ctx.beginPath(); ctx.rect(M.x, M.y, M.s, M.s); ctx.clip();
+  ctx.fillStyle = col.emp; ctx.globalAlpha = 0.45;
+  const pts = []; for (let i = 0; i < n; i++) { const c = codeAt(page, i); pts.push(c); ctx.fillRect(X(c[0]) - 1.2, Y(c[1]) - 1.2, 2.4, 2.4); }
+  ctx.globalAlpha = 1;
+  for (let d = 0; d < 10; d++) { const xs = [], ys = []; for (let i = 0; i < n; i++) if (CK.digits[i] === d) { xs.push(pts[i][0]); ys.push(pts[i][1]); }
+    xs.sort((a, b) => a - b); ys.sort((a, b) => a - b); T(String(d), X(xs[xs.length >> 1]), Y(ys[ys.length >> 1]) + 5, { align: "center", w: 600, size: 13, fill: col.ink1, halo: true }); }
+  ctx.save(); ctx.strokeStyle = col.prior; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.ellipse(X(0), Y(0), R95 / (F.x1 - F.x0) * M.s, R95 / (F.y1 - F.y0) * M.s, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
+  // the selected or hovered image: its code, and on a VAE its q(z|x) as a 2-sigma ellipse
+  const focus = st.hover ?? st.sel;
+  if (focus?.kind === "img") { const c = pts[focus.i], lv = lvAt(page, focus.i);
+    if (lv) { ctx.save(); ctx.fillStyle = col.post; ctx.globalAlpha = 0.18; ctx.beginPath(); ctx.ellipse(X(c[0]), Y(c[1]), 2 * Math.exp(lv[0] / 2) / (F.x1 - F.x0) * M.s, 2 * Math.exp(lv[1] / 2) / (F.y1 - F.y0) * M.s, 0, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col.post; ctx.lineWidth = 2; ctx.stroke(); ctx.restore(); }
+    ctx.save(); ctx.fillStyle = col.post; ctx.beginPath(); ctx.arc(X(c[0]), Y(c[1]), 4, 0, 7); ctx.fill(); ctx.restore(); }
+  if (focus?.kind === "pt") { const px = X(focus.z[0]), py = Y(focus.z[1]); ctx.save(); ctx.strokeStyle = col.hl; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.stroke(); ctx.restore(); }
+  // the draws already landed stay on the map as prior-coloured dots
+  const P = per(page);
+  for (let i = 0; i < Math.min(P.drawn, NDRAW); i++) { ctx.save(); ctx.fillStyle = col.prior; ctx.beginPath(); ctx.arc(X(DRAWS[i][0]), Y(DRAWS[i][1]), 3.5, 0, 7); ctx.fill(); ctx.restore(); }
+  ctx.restore();
+  ctx.save(); ctx.strokeStyle = col.ink3; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.s - 1, M.s - 1); ctx.restore();
+  return pts;
+}
+
+/* Draw: each draw appears on the map at its z, then moves right into its cell, where its decode appears */
+const STAGGER = 0.11, FLY = 0.32;        // in units of the press's 0..1 clock (about 3 s in all)
+const cellOf = (i) => [GR.x + (i % 4) * (GR.cell + GR.gap), GR.y + Math.floor(i / 4) * (GR.cell + GR.gap)];
+function drawGrid() {
+  const page = st.page, P = per(page), k = ckOf(page);
+  T(`Latent size 2: 16 draws from N(0, I), decoded${page === "cvae" ? ` with c = ${st.label}` : ""}`, GR.x, 18, { w: 600, fill: P.drawn || P.drawing ? col.ink1 : col.ink3 });
+  const { X, Y } = sc();
+  for (let i = 0; i < NDRAW; i++) {
+    const [cx, cy] = cellOf(i), t0 = i * STAGGER / (NDRAW * STAGGER / (1 - FLY)) ;
+    const landed = !P.drawing ? i < P.drawn : P.drawT >= t0 + FLY;
+    if (landed) img(decode(page, k, DRAWS[i], st.label), cx, cy, GR.cell);
+    else { ctx.save(); ctx.strokeStyle = col.grid; ctx.setLineDash([4, 3]); ctx.strokeRect(cx + 0.5, cy + 0.5, GR.cell - 1, GR.cell - 1); ctx.restore(); }
+    if (P.drawing && P.drawT >= t0 && P.drawT < t0 + FLY) {   // in flight: a dot from its z on the map to the cell's centre
+      const e = ease((P.drawT - t0) / FLY), x0 = X(DRAWS[i][0]), y0 = Y(DRAWS[i][1]), x1 = cx + GR.cell / 2, y1 = cy + GR.cell / 2;
+      ctx.save(); ctx.fillStyle = col.prior; ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * e, y0 + (y1 - y0) * e, 4, 0, 7); ctx.fill(); ctx.restore();
+    }
+  }
+  if (!P.drawn && !P.drawing) T(P.trained ? "Draw decodes 16 points drawn from N(0, I)" : "Train first, then Draw", GR.x + 2 * (GR.cell + GR.gap) - 3, GR.y + 2 * (GR.cell + GR.gap) - 4, { align: "center", fill: col.ink3 });
+}
+function drawnLanded(page, i) { const P = per(page); if (!P.drawing) return i < P.drawn; const t0 = i * STAGGER / (NDRAW * STAGGER / (1 - FLY)); return P.drawT >= t0; }
+
+/* the panel: what is under the pointer (or pinned) */
+function bell(x, y, w, h, mu, sd, kl, name) {
+  const lo = -4, hi = 4, X = (v) => x + (v - lo) / (hi - lo) * w, pdf = (v, m, s) => Math.exp(-0.5 * ((v - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI));
+  const top = Math.max(pdf(0, 0, 1), pdf(mu, mu, sd)), Y = (p) => y + h - p / top * (h - 4);
+  ln(x, y + h, x + w, y + h, col.ink3);
+  [[0, 1, col.prior, [6, 4]], [mu, sd, col.post, null]].forEach(([m, s, c, dash]) => { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = 2; if (dash) ctx.setLineDash(dash); ctx.beginPath();
+    for (let q = 0; q <= 120; q++) { const v = lo + (hi - lo) * q / 120; q ? ctx.lineTo(X(v), Y(pdf(v, m, s))) : ctx.moveTo(X(v), Y(pdf(v, m, s))); } ctx.stroke(); ctx.restore(); });
+  [-4, -2, 0, 2, 4].forEach((v) => T(String(v).replace("-", "−"), X(v), y + h + 12, { align: "center", size: 9, fill: col.ink3 }));
+  T(name, x, y - 4, { fill: col.ink1, w: 600 });
+  T(`μ ${f2(mu)}, σ ${f2(sd)}`, x + w, y - 4, { align: "right", fill: col.post });
+  T(`KL ${f2(kl.mu + kl.sd)} = mean ${f2(kl.mu)} + spread ${f2(kl.sd)}`, x, y + h + 26, { fill: col.ink1 });
+}
+function drawPanel() {
+  const page = st.page, k = ckOf(page), focus = st.hover ?? st.sel, x = PN.x, y = PN.y;
+  T(st.hover ? "Under the pointer" : st.sel ? "Pinned (a click elsewhere moves it)" : "Under the pointer", x, y, { w: 600, fill: col.ink1 });
+  if (!focus) { T("A hover over the map decodes the point under the pointer;", x, y + 22, { fill: col.ink3 }); T("a hover over a dot shows that image. A click pins either.", x, y + 38, { fill: col.ink3 }); return; }
+  if (focus.kind === "pt") {
+    img(decode(page, k, focus.z, st.label), x, y + 12, 110, col.hl);
+    T(`z = (${f2(focus.z[0])}, ${f2(focus.z[1])})`, x + 124, y + 30, { fill: col.ink1, size: 12 });
+    T(page === "cvae" ? `x̂ = decoder(z, c = ${st.label})` : "x̂ = decoder(z)", x + 124, y + 48);
+    T(focus.z[0] ** 2 + focus.z[1] ** 2 <= R95 * R95 ? "inside the circle" : "outside the circle", x + 124, y + 66, { fill: col.prior });
+    return;
+  }
+  const i = focus.i, c = codeAt(page, i), lv = lvAt(page, i), d = CK.digits[i];
+  img(testImg(i), x, y + 12, 70); T("x, a test image", x, y + 96, { size: 10 });
+  img(decode(page, k, c, d), x + 80, y + 12, 70); T("x̂, from its μ", x + 80, y + 96, { size: 10 });
+  T(`digit ${d}`, x + 162, y + 28, { fill: col.ink1, w: 600 });
+  T(`μ = (${f2(c[0])}, ${f2(c[1])})`, x + 162, y + 46, { fill: col.ink1 });
+  if (!lv) { T("The autoencoder gives this image", x + 162, y + 66); T("one point z, not a distribution:", x + 162, y + 80); T("there is no KL term.", x + 162, y + 94); return; }
+  const sd = lv.map((v) => Math.exp(v / 2)), kl = [0, 1].map((q) => ({ mu: 0.5 * c[q] ** 2, sd: 0.5 * (sd[q] ** 2 - 1 - lv[q]) }));
+  T(`σ = (${f2(sd[0])}, ${f2(sd[1])})`, x + 162, y + 62, { fill: col.post });
+  T(`KL = ${f2(kl[0].mu + kl[0].sd + kl[1].mu + kl[1].sd)} for this image`, x + 162, y + 80, { fill: col.prior, w: 600 });
+  bell(x, y + 130, 190, 54, c[0], sd[0], kl[0], "z₁");
+  bell(x + 210, y + 130, 190, 54, c[1], sd[1], kl[1], "z₂");
+  T("q(z|x) = N(μ, σ²), solid; N(0, 1), dashed. KL is 0 only when they coincide.", x, y + 222, { size: 10, fill: col.ink3 });
+}
+
+/* the loss, one panel a term (each to its own scale: the KL term is a tenth of the reconstruction), log batches */
+function lossPanel(R, C, key, title, c, dash, q) {
+  const k = Math.floor(q + 1e-9), e = q - k, page = st.page;
+  T(title, R.x - 36, R.y - 12, { w: 600, fill: col.ink1 });
+  const vals = C.map((x) => x[key]), ymax = key === "kl" ? Math.ceil(Math.max(...vals) / 2) * 2 : Math.ceil(Math.max(...vals) / 50) * 50;
+  const lx = (s) => R.x + Math.log10(s) / Math.log10(2350) * R.w, Y = (v) => R.y + R.h - v / ymax * R.h;
+  ln(R.x, R.y + R.h, R.x + R.w, R.y + R.h, col.ink3); ln(R.x, R.y, R.x, R.y + R.h, col.ink3);
+  [[1, "0"], [10, "10 batches"], [2350, "epoch 10"]].forEach(([s, t], j) => { ln(lx(s), R.y + R.h, lx(s), R.y + R.h + 4, col.ink3); T(t, lx(s), R.y + R.h + 15, { align: j === 2 ? "right" : j ? "center" : "left", size: 10, fill: col.ink3 }); });
+  [0, ymax / 2, ymax].forEach((v) => T(String(v), R.x - 6, Y(v) + 4, { align: "right", size: 10, fill: col.ink3 }));
+  if (!per(page).trained && !per(page).playing) { T("Train draws it", R.x + R.w / 2, R.y + R.h / 2, { align: "center", fill: col.ink3 }); return; }
+  const P = []; for (let j = 0; j <= k; j++) P.push([lx(STEPS[j]), Y(C[j][key])]);
+  let v = C[k][key];
+  if (e > 0 && k < NCK - 1) { const a = C[k][key], b = C[k + 1][key], s = Math.exp(Math.log(STEPS[k]) + (Math.log(STEPS[k + 1]) - Math.log(STEPS[k])) * ease(e)); v = a + (b - a) * ease(e); P.push([lx(s), Y(v)]); }
+  ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = 2; if (dash) ctx.setLineDash(dash); ctx.beginPath(); P.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore();
+  const [ex, ey] = P[P.length - 1]; ctx.save(); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, 7); ctx.fill(); ctx.restore();
+  T(v.toFixed(key === "kl" ? 2 : 1), ex + (ex > R.x + R.w - 40 ? -6 : 6), ey - 8, { fill: c, w: 600, align: ex > R.x + R.w - 40 ? "right" : "left" });
+}
+function drawLoss() {
+  const page = st.page, C = CK[page], q = pos(page);
+  if (page === "ae") { lossPanel({ x: LC.x, y: LC.y, w: LC.w, h: LC.h }, C, "recon", "Reconstruction term, 2,000 test images", col.ink1, null, q); return; }
+  const w = (LC.w - 60) / 2;
+  lossPanel({ x: LC.x, y: LC.y, w, h: LC.h }, C, "recon", "Reconstruction term", col.ink1, null, q);
+  lossPanel({ x: LC.x + w + 60, y: LC.y, w, h: LC.h }, C, "kl", "KL term", col.prior, null, q);
+}
+
+/* the 16-D row, after Draw */
+function drawRow16() {
+  const page = st.page, P = per(page);
+  const show = P.drawn >= NDRAW && !P.drawing;
+  T(`Latent size 16 (the notebook's): 16 draws from N(0, I), decoded${page === "cvae" ? ` with c = ${st.label}` : ""}`, 10, G16Y - 10, { w: 600, fill: show ? col.ink1 : col.ink3 });
+  const g = G16[page], imgs = page === "cvae" ? g[st.label].imgs : g.imgs, s = 50;
+  for (let i = 0; i < 16; i++) { const x = 10 + i * (s + 4);
+    if (show) img(Uint8Array.from(imgs[i]), x, G16Y, s); else { ctx.save(); ctx.strokeStyle = col.grid; ctx.setLineDash([4, 3]); ctx.strokeRect(x + 0.5, G16Y + 0.5, s - 1, s - 1); ctx.restore(); } }
+}
+
+/* ---------------- the schematic, in the card ---------------- */
+const SVW = 680;
+const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function box(x, y, w, h, t, o = {}) {
+  const stl = o.enc ? "fill:var(--surface-2);stroke:var(--ink-1);stroke-width:1.6" : `fill:var(--surface-1);stroke:${o.stroke || "var(--ink-3)"};stroke-width:${o.sw || 1}${o.dash ? ";stroke-dasharray:4 3" : ""}`;
+  return `<rect x="${x + 0.5}" y="${y + 0.5}" width="${w - 1}" height="${h - 1}" style="${stl}"/><text x="${x + w / 2}" y="${y + h / 2 + 4}" text-anchor="middle" style="fill:${o.fill || "var(--ink-1)"};${o.enc ? "font-weight:600" : ""}">${esc(t)}</text>`;
+}
+function arrow(x0, y0, x1, y1, c = "var(--ink-3)", sw = 1.2) { const a = Math.atan2(y1 - y0, x1 - x0), h = 7;
+  const p = [[x1, y1], [x1 - h * Math.cos(a - 0.4), y1 - h * Math.sin(a - 0.4)], [x1 - h * Math.cos(a + 0.4), y1 - h * Math.sin(a + 0.4)]];
+  return `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" style="stroke:${c};stroke-width:${sw}"/><polygon points="${p.map((q) => q.map((v) => v.toFixed(1)).join(",")).join(" ")}" style="fill:${c}"/>`; }
+const tx = (x, y, t, a = "start", c = "var(--ink-3)", w = "") => `<text x="${x}" y="${y}" text-anchor="${a}" style="fill:${c};${w}">${esc(t)}</text>`;
+/* the geometry: the Training row at y 22, the Generating row at y 112; c below on Conditional */
+function geom(page) {
+  const h = 30, y1 = 26, y2 = 146, vae = page !== "ae", cond = page === "cvae";
+  const B = { x: [0, 44], enc: [62, 96], ms: [178, 54], z: [252, 88], decoder: [362, 96], xh: [478, 44], loss: [540, 140] };
+  return { h, y1, y2, vae, cond, B,
+    fwd: [[22, y1 + h / 2], [110, y1 + h / 2], [205, y1 + h / 2], [296, y1 + h / 2], [410, y1 + h / 2], [500, y1 + h / 2], [610, y1 + h / 2]],
+    back: [[610, y1 + h], [610, y1 + h + 12], [110, y1 + h + 12], [110, y1 + h]],
+    gen: [[cond ? 300 : 296, y2 + h / 2], [410, y2 + h / 2], [500, y2 + h / 2]] };
+}
+function schemaSVG(page) {
+  const g = geom(page), { h, y1, y2, B } = g; let s = "";
+  s += tx(0, 12, "Training", "start", "var(--ink-1)", "font-weight:600");
+  s += box(B.x[0], y1, B.x[1], h, "x") + arrow(44, y1 + h / 2, 60, y1 + h / 2) + box(B.enc[0], y1, B.enc[1], h, "Encoder", { enc: true }) + arrow(158, y1 + h / 2, 176, y1 + h / 2);
+  if (g.vae) s += box(B.ms[0], y1 - 4, B.ms[1], 18, "μ") + box(B.ms[0], y1 + 16, B.ms[1], 18, "σ");
+  else s += box(B.ms[0], y1, B.ms[1], h, "z = μ");
+  s += arrow(232, y1 + h / 2, 250, y1 + h / 2);
+  s += box(B.z[0], y1, B.z[1], h, g.vae ? "z = μ + σ·ε" : "z (2 numbers)");
+  if (g.vae) s += tx(296, y1 - 8, "ε ~ N(0, I)", "middle", "var(--c-prior)") ;
+  s += arrow(340, y1 + h / 2, 360, y1 + h / 2) + box(B.decoder[0], y1, B.decoder[1], h, "Decoder", { enc: true }) + arrow(458, y1 + h / 2, 476, y1 + h / 2) + box(B.xh[0], y1, B.xh[1], h, "x̂") + arrow(522, y1 + h / 2, 538, y1 + h / 2);
+  s += box(B.loss[0], y1, B.loss[1], h, g.vae ? "‖x − x̂‖² + KL" : "‖x − x̂‖²");
+  if (g.vae) s += `<polyline points="205,${y1 + 34} 205,98 650,98 650,${y1 + h}" style="fill:none;stroke:var(--c-prior);stroke-width:1.4"/>` + tx(430, 111, "KL( N(μ, σ²) ‖ N(0, I) ): how far q(z|x) is from N(0, I)", "middle", "var(--c-prior)");
+  // generating
+  s += tx(0, y2 - 10, "Generating", "start", "var(--ink-1)", "font-weight:600");
+  s += box(B.z[0], y2, B.z[1], h, "z ~ N(0, I)", { stroke: "var(--c-prior)", fill: "var(--c-prior)" }) + arrow(340, y2 + h / 2, 360, y2 + h / 2) + box(B.decoder[0], y2, B.decoder[1], h, "Decoder", { enc: true }) + arrow(458, y2 + h / 2, 476, y2 + h / 2) + box(B.xh[0], y2, B.xh[1], h, "new x̂");
+  s += tx(0, y2 + 20, g.vae ? "no encoder: z is drawn" : "no encoder: z is drawn,", "start") + (g.vae ? "" : tx(0, y2 + 34, "but the codes are not N(0, I)", "start"));
+  s += tx(540, y2 + 20, "the same decoder,", "start") + tx(540, y2 + 34, "trained above", "start");
+  if (g.cond) {
+    const cy = 212;
+    s += box(150, cy, 120, 26, `c = embed("${st.label}")`, { stroke: "var(--c-highlight)", sw: 1.8, fill: "var(--c-highlight)" });
+    s += `<polyline points="180,${cy} 180,122 110,122 110,${y1 + h}" style="fill:none;stroke:var(--c-highlight);stroke-width:1.4"/>`;
+    s += `<polyline points="240,${cy} 240,126 352,126 352,${y1 + h + 20} 410,${y1 + h + 20} 410,${y1 + h}" style="fill:none;stroke:var(--c-highlight);stroke-width:1.4"/>`;
+    s += `<polyline points="270,${cy + 13} 410,${cy + 13} 410,${y2 + h}" style="fill:none;stroke:var(--c-highlight);stroke-width:1.4"/>`;
+    s += tx(280, cy + 28, "c goes into the encoder and the decoder; a chosen c generates that digit", "start", "var(--c-highlight)");
+  }
+  const H = g.cond ? 252 : 188;
+  return `<svg viewBox="-1 0 ${SVW + 2} ${H}" style="display:block;width:100%;max-width:${SVW}px;height:auto;font:11px var(--font)">${s}<g id="lane"></g><g id="motion"></g></svg>`;
+}
+function updSchema() {
+  const page = st.page, g = geom(page), P = per(page), m = document.getElementById("motion"), l = document.getElementById("lane"); if (!m) return;
+  let s = "", lane = "";
+  if (P.playing) {
+    lane = `<polyline points="${g.back.map((q) => q.join(",")).join(" ")}" style="fill:none;stroke:var(--grid);stroke-dasharray:3 3"/>` + tx(360, g.y1 + g.h + 26, "", "middle");
+    const q = P.t * (NCK - 1), f = q - Math.floor(q);
+    if (f < 0.55) s += dotAlong(g.fwd, ease(f / 0.55), "var(--ink-1)"); else if (f < 0.95) s += dotAlong(g.back, ease((f - 0.55) / 0.4), "var(--c-slope)");
+    if (f >= 0.55 && f < 0.95) lane += tx(330, g.y1 + g.h + 26, "gradient of the loss, to the decoder and the encoder", "middle", "var(--c-slope)");
+  }
+  if (P.drawing) { const i = Math.min(NDRAW - 1, Math.floor(P.drawT * NDRAW)), f = (P.drawT * NDRAW) % 1; s += dotAlong(g.gen, ease(f), "var(--c-prior)"); }
+  m.innerHTML = s; l.innerHTML = lane;
+}
+function along(P, t) { const seg = P.slice(1).map((q, i) => Math.hypot(q[0] - P[i][0], q[1] - P[i][1])), L = seg.reduce((a, b) => a + b, 0); let d = t * L;
+  for (let i = 0; i < seg.length; i++) { if (d <= seg[i]) { const f = seg[i] ? d / seg[i] : 0; return [P[i][0] + (P[i + 1][0] - P[i][0]) * f, P[i][1] + (P[i + 1][1] - P[i][1]) * f]; } d -= seg[i]; } return P[P.length - 1]; }
+const dotAlong = (P, t, c) => { const p = along(P, t); return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5" style="fill:${c}"/>`; };
+const EQ = {
+  ae: `<div class="eq">L<sub>AE</sub> = &Vert;x &minus; x&#770;&Vert;<sup>2</sup> &nbsp;<span class="off">+ D<sub>KL</sub>(q(z|x) &Vert; N(0, I))</span></div><div class="nt">The VAE's network trained without the KL term: each image gets one code z = μ.</div>`,
+  vae: `<div class="eq">L<sub>VAE</sub> = E<sub>q(z|x)</sub>[&Vert;x &minus; x&#770;&Vert;<sup>2</sup>] + <span class="kl">D<sub>KL</sub>(q(z|x) &Vert; N(0, I))</span>, &nbsp; D<sub>KL</sub> = &Sigma;<sub>j</sub> &frac12;&mu;<sub>j</sub><sup>2</sup> + &frac12;(&sigma;<sub>j</sub><sup>2</sup> &minus; 1 &minus; ln &sigma;<sub>j</sub><sup>2</sup>)</div><div class="nt">The reconstruction term spreads the codes apart so that images can be told apart; the KL term is 0 only when μ = 0 and σ = 1, so it holds every q(z|x) near N(0, I).</div>`,
+  cvae: `<div class="eq">L<sub>CVAE</sub> = E<sub>q(z|x, c)</sub>[&Vert;x &minus; x&#770;&Vert;<sup>2</sup>] + <span class="kl">D<sub>KL</sub>(q(z|x, c) &Vert; N(0, I))</span>, &nbsp; x&#770; = decoder(z, c)</div><div class="nt">c is the text encoder's embedding of the digit, held fixed. The digit comes from c, so z only has to hold how the digit is written.</div>`,
+};
+function card() { document.getElementById("card").innerHTML = schemaSVG(st.page) + EQ[st.page]; }
+
+/* ---------------- loop ---------------- */
+let last = 0;
+function frame(t) {
+  const dt = last ? t - last : 16; last = t; let more = false;
+  for (const [p] of PAGES) { const P = per(p);
+    if (P.playing) { P.t = Math.min(1, P.t + dt / (MOVE_MS * (NCK - 1))); if (P.t >= 1) { P.playing = false; P.trained = true; } else more = true; }
+    if (P.drawing) { P.drawT = Math.min(1, P.drawT + dt / 3000); if (P.drawT >= 1) { P.drawing = false; P.drawn = NDRAW; } else more = true; } }
+  render(); if (more) requestAnimationFrame(frame); else last = 0;
+}
+function kick() { requestAnimationFrame(frame); }
+function render() {
+  if (!CK) return;
+  ctx.fillStyle = col.surf; ctx.fillRect(0, 0, W, H);
+  drawMap(); drawGrid(); drawPanel(); drawLoss(); drawRow16(); updSchema();
+  const P = per(st.page);
+  document.getElementById("train").disabled = P.trained || P.playing;
+  document.getElementById("draw").disabled = !P.trained || P.drawing || P.drawn >= NDRAW;
+  document.getElementById("cap").textContent = caption();
+}
+function caption() {
+  const page = st.page, P = per(page), C = CK[page], L = C[NCK - 1];
+  if (page === "ae") return !P.trained ? `Untrained, every image's code sits near (0, 0) and the decoder gives the same grey blur for each. Train shows ten checkpoints of 10 epochs.` :
+    !P.drawn ? `Training spreads the codes so that the decoder can tell the images apart: the median code length grows from ${C[0].norm_med.toFixed(2)} to ${L.norm_med.toFixed(1)}, and nothing holds the codes near N(0, I). The dashed circle holds 95% of draws from N(0, I). Draw decodes 16 of them.` :
+    `The draws land in the small patch inside the circle and decode to the few digits whose codes are there. At latent size 16 the codes lie far outside the circle in every direction, and the draws decode to shapes that are not digits.`;
+  if (page === "vae") return !P.trained ? `Untrained, the encoder gives every image μ near 0 and σ near 1, which is N(0, I) already: the KL term starts near 0 (${C[0].kl.toFixed(2)}). Train shows ten checkpoints.` :
+    !P.drawn ? `Early in training the reconstruction term spreads the codes apart, as in the autoencoder (KL ${C[2].kl.toFixed(1)} at 20 batches); the KL term then draws them back within the circle (KL ${L.kl.toFixed(1)} at the end: ${L.kl_mu.toFixed(1)} from the means and ${L.kl_sd.toFixed(1)} from the spreads). A hover over a dot shows its q(z|x).` :
+    `Each draw from N(0, I) lands among the codes and decodes to a digit. With only two numbers, 4 and 9 share a region, and 3, 5 and 8 another; at latent size 16 every kind of digit appears.`;
+  return !P.trained ? `The label's embedding c goes into the encoder and the decoder. Train shows ten checkpoints.` :
+    !P.drawn ? `The codes no longer group by digit: c carries the digit, so z holds the slant and the stroke. Draw decodes 16 draws from N(0, I) with c = ${st.label}; the Label buttons change c.` :
+    `Every draw is a ${st.label}: the decoder takes z from N(0, I) and c = ${st.label}. A different label re-decodes the same 16 z.`;
+}
+
+/* ---------------- input ---------------- */
+function nearestDot(px, py) { const { X, Y } = sc(); let best = -1, bd = 36; for (let i = 0; i < CK.digits.length; i++) { const c = codeAt(st.page, i), d = (X(c[0]) - px) ** 2 + (Y(c[1]) - py) ** 2; if (d < bd) { bd = d; best = i; } } return best; }
+function targetAt(e) { const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  if (px < M.x || px > M.x + M.s || py < M.y || py > M.y + M.s) return null;
+  const i = nearestDot(px, py); return i >= 0 ? { kind: "img", i } : { kind: "pt", z: sc().inv(px, py) }; }
+cv.addEventListener("pointermove", (e) => { st.hover = targetAt(e); cv.style.cursor = st.hover ? "pointer" : "default"; render(); });
+cv.addEventListener("pointerleave", () => { st.hover = null; render(); });
+cv.addEventListener("click", (e) => { const t = targetAt(e); if (t) { st.sel = t; render(); } });
+
+function rail() {
+  const pg = document.getElementById("pages"); pg.innerHTML = "";
+  for (const [k, l] of PAGES) { const b = document.createElement("button"); b.textContent = l; b.className = k === st.page ? "on" : ""; b.onclick = () => { st.page = k; st.sel = null; st.hover = null; rail(); card(); render(); }; pg.appendChild(b); }
+  document.getElementById("labelBox").style.display = st.page === "cvae" ? "" : "none";
+  const lb = document.getElementById("labels"); lb.innerHTML = "";
+  for (let d = 0; d < 10; d++) { const b = document.createElement("button"); b.textContent = d; b.className = d === st.label ? "on" : ""; b.onclick = () => { st.label = d; rail(); card(); render(); }; lb.appendChild(b); }
+}
+document.getElementById("train").onclick = () => { const P = per(st.page); P.playing = true; P.t = 0; kick(); };
+document.getElementById("draw").onclick = () => { const P = per(st.page); P.drawing = true; P.drawT = 0; kick(); };
+document.getElementById("reset").onclick = () => { st.per[st.page] = undefined; st.sel = null; render(); };
+
+Promise.all(["vae-checkpoints.json", "vae-mock2-images.json", "vae-mock-data.json"].map((f) => fetch(f).then((r) => r.json()))).then(([ck, im, md]) => {
+  CK = ck; IMG = bytes(im.imgs); G16 = { ae: md.ae16, vae: md.vae16, cvae: md.cvae16 };
+  cols(); rail(); card(); render();
+  document.getElementById("status").textContent = "loaded";
+  const rows = [["", "AE", "VAE", "CVAE"]];
+  const g = (k, key, i) => { const v = CK[k][i][key]; return v == null ? "—" : v.toFixed(2); };
+  rows.push(["median code length, untrained → trained", ...["ae", "vae", "cvae"].map((k) => `${g(k, "norm_med", 0)} → ${g(k, "norm_med", 9)}`)]);
+  rows.push(["reconstruction term, untrained → trained", ...["ae", "vae", "cvae"].map((k) => `${g(k, "recon", 0)} → ${g(k, "recon", 9)}`)]);
+  rows.push(["KL term, untrained → trained", ...["ae", "vae", "cvae"].map((k) => `${g(k, "kl", 0)} → ${g(k, "kl", 9)}`)]);
+  rows.push(["KL: mean part · spread part, trained", "—", ...["vae", "cvae"].map((k) => `${g(k, "kl_mu", 9)} · ${g(k, "kl_sd", 9)}`)]);
+  document.getElementById("meas").innerHTML = rows.map((r, i) => `<tr>${r.map((c, j) => i === 0 ? `<th>${c}</th>` : `<td class="${j ? "num" : ""}">${c}</td>`).join("")}</tr>`).join("");
+  document.getElementById("measNote").textContent = "Averages over the first 2,000 test images, per image (the notebook's loss divides by the batch). The KL term starts near 0: untrained, the encoder already gives μ near 0 and σ near 1. Early in training the reconstruction term spreads the VAE's codes out (median length 4.72 and KL 11.3 at 20 batches); the KL term then draws them back to 1.13 while the reconstruction keeps improving. The autoencoder's codes spread to 12.0 at 200 batches with nothing drawing them back.";
+}).catch((e) => { document.getElementById("status").textContent = "load failed: " + e; });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { cols(); render(); });
+</script>
+</body>
+</html>
