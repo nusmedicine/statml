@@ -25832,6 +25832,17 @@ both, moves the VAE's sampler onto them and gives the CVAE c, its sampler
 staying at N(0, I)); Spread a slider 0.2–3, step 0.1; each map prints its
 circle's radius in z. Five calls at its foot.
 
+**His calls, asked one by one:** (1) pages Autoencoder · VAE · Conditional,
+as recommended; (2) the VAE page side by side, "but consider different
+scale? autoscale or manual zoom/pan control. mock to see" (3, scales, folded
+into it); (4) the Conditional pairing and (5) the Label target (median and
+its spread), as recommended. The scale mock is `_lab/vae-mock5.html`: the VAE
+page with a Scale switch over Shared ±4 · Each its own (±33 and ±6, every
+code at every checkpoint) · **Autoscale** (each map's view follows its codes
+at the checkpoint shown: at epoch 10 the autoencoder ±18 about (−5.9, 6.4),
+the VAE ±3) · Zoom (one linked slider and the mouse wheel, ±2 to ±25 about
+the origin). Recommended: Autoscale.
+
 ---
 
 ## Two arcs, not one — now three
