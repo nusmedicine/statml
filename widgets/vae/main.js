@@ -18,8 +18,9 @@
 
      pages       Model: Autoencoder · VAE · Conditional, the notebook's order.
                  Autoencoder: the autoencoder alone. VAE: without and with the
-                 KL term side by side (10-3b's ConvVAE with the term removed and
-                 z = μ, beside the VAE). Conditional: the VAE without a label
+                 KL term side by side (10-3b's ConvVAE with the term removed, its
+                 mean head used as the code z, beside the VAE; the reader sees an
+                 autoencoder's encoder giving z, never μ — his catch 2026-10-18). Conditional: the VAE without a label
                  beside the conditional VAE.
      per map     "shared controls is difficult": every map has its OWN sampler
                  and its OWN view, set on the map. A drag inside the circle
@@ -324,7 +325,7 @@ const MATH = {
     math: `<math display="block"><mtable columnalign="left"><mtr><mtd><mrow>${L("without KL")}${mo("=")}${norm2}</mrow></mtd></mtr>` +
       `<mtr><mtd><mrow>${L("with KL")}${mo("=")}${E(false)}${mo("+")}<mrow style="color:var(--c-prior)">${KL(false)}</mrow></mrow></mtd></mtr></mtable></math>`,
     plain: "L_without KL = ‖x − x̂‖²;  L_with KL = E_q(z|x)[‖x − x̂‖²] + D_KL(q_φ(z|x) ‖ N(0, I))",
-    note: `Without the KL term the encoder gives each image one code z = μ. With it the encoder gives a mean μ and a spread σ, and z = μ + σ · ε with ε ~ N(0, I). ${KL_NOTE}`,
+    note: `Without the KL term the encoder gives each image one code z, a point. With it the encoder gives a mean μ and a spread σ, a distribution q(z|x) = N(μ, σ²), and z = μ + σ · ε with ε ~ N(0, I). ${KL_NOTE}`,
   },
   conditional: {
     math: `<math display="block"><mrow>${L("CVAE")}${mo("=")}${E(true)}${mo("+")}<mrow style="color:var(--c-prior)">${KL(true)}</mrow>${mo(",")}<mspace width="0.6em"/>${xh}${mo("=")}${mi("g")}${mo("(")}${mi("z")}${mo(",")}${mi("c")}${mo(")")}</mrow></math>`,
@@ -358,7 +359,7 @@ function geomOf(page) {
   const h = 30, y1 = 26, y2 = page === "ae" ? 104 : 150, c1 = y1 + h / 2, c2 = y2 + h / 2;
   return {
     h, y1, y2, H: page === "conditional" ? 256 : page === "ae" ? 150 : 200,
-    fwd: [[mid("x"), c1], [mid("enc"), c1], [mid("ms"), c1], [mid("z"), c1], [mid("dec"), c1], [mid("xh"), c1], [mid("loss"), c1]],
+    fwd: [[mid("x"), c1], [mid("enc"), c1], ...(page === "ae" ? [] : [[mid("ms"), c1]]), [mid("z"), c1], [mid("dec"), c1], [mid("xh"), c1], [mid("loss"), c1]],
     back: [[mid("loss"), y1 + h], [mid("loss"), y1 + h + 12], [mid("enc"), y1 + h + 12], [mid("enc"), y1 + h]],
     gen: [[mid("z"), c2], [mid("dec"), c2], [COL.xh[0] + 23, c2]],
   };
@@ -367,16 +368,18 @@ function schemaSVG(page, label) {
   const g = geomOf(page), { h, y1, y2 } = g, c1 = y1 + h / 2, c2 = y2 + h / 2, vae = page !== "ae";
   const right = (a, b, y) => svArrow(COL[a][0] + COL[a][1] + 1, y, COL[b][0] - 2, y);
   let s = svText(0, 12, "Training", "start", "var(--ink-1)", "font-weight:600");
-  s += svBox(...COL.x, y1, h, "x") + right("x", "enc", c1) + svBox(...COL.enc, y1, h, "Encoder", { enc: true }) + right("enc", "ms", c1);
-  s += vae ? svBox(...COL.ms, y1 - 3, 18, "μ") + svBox(...COL.ms, y1 + 15, 18, "σ") : svBox(...COL.ms, y1, h, "μ");
-  s += right("ms", "z", c1) + svBox(...COL.z, y1, h, vae ? "z = μ + σ·ε" : "z = μ");
+  s += svBox(...COL.x, y1, h, "x") + right("x", "enc", c1) + svBox(...COL.enc, y1, h, "Encoder", { enc: true }) + (vae ? right("enc", "ms", c1) : "");
+  /* an autoencoder's encoder gives the code z itself; only a VAE's gives μ and σ */
+  if (vae) s += svBox(...COL.ms, y1 - 3, 18, "μ") + svBox(...COL.ms, y1 + 15, 18, "σ") + right("ms", "z", c1);
+  else s += svArrow(COL.enc[0] + COL.enc[1] + 1, c1, COL.z[0] - 2, c1);
+  s += svBox(...COL.z, y1, h, vae ? "z = μ + σ·ε" : "z");
   if (vae) s += svText(mid("z"), y1 - 8, "ε ~ N(0, I)", "middle", "var(--c-prior)");
   s += right("z", "dec", c1) + svBox(...COL.dec, y1, h, "Decoder", { enc: true }) + right("dec", "xh", c1) + svBox(...COL.xh, y1, h, "x̂") + right("xh", "loss", c1);
   s += svBox(...COL.loss, y1, h, vae ? "‖x − x̂‖² + KL" : "‖x − x̂‖²");
   if (vae) {
     s += svLine([[mid("ms"), y1 + 34], [mid("ms"), 100], [COL.loss[0] + COL.loss[1] - 14, 100], [COL.loss[0] + COL.loss[1] - 14, y1 + h]], "var(--c-prior)");
     s += svText(310, 113, "KL( N(μ, σ²) ‖ N(0, I) ): how far q(z|x) is from N(0, I)", "middle", "var(--c-prior)");
-    if (page === "vae") s += svText(310, 126, "without the KL term: σ dropped, z = μ, and the loss is ‖x − x̂‖² alone", "middle");
+    if (page === "vae") s += svText(310, 126, "without the KL term (left map): the encoder gives one code z, no μ, σ or ε, and the loss is ‖x − x̂‖²", "middle");
   }
   s += svText(0, y2 - 10, "Generating", "start", "var(--ink-1)", "font-weight:600");
   s += svBox(...COL.z, y2, h, "z ~ N(m, s²I)", { stroke: "var(--c-prior)", fill: "var(--c-prior)" }) + right("z", "dec", c2) + svBox(...COL.dec, y2, h, "Decoder", { enc: true });
