@@ -25190,7 +25190,7 @@ seeded rng.
 | 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | **SHIPPED 2026-10-16** (21 states) |
 | 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | **SHIPPED 2026-10-17** |
 | 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | **SHIPPED 2026-10-19** (22 states) |
-| 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | **MEASURED AND MOCKED 2026-10-19**: two modes, seed 4; D = ½ where the data are |
+| 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | **DRAFTED 2026-10-19** on his nine calls (two modes, seed 4; D = ½ where the data are) |
 | 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | picked; measure first |
 
 **Build order** is the lessons': 104 → 105 → 106 → 108 → 107.
@@ -26022,6 +26022,26 @@ presses); 8 slug `gan`, "Deep Learning - Frontiers: Generative Adversarial
 Networks". Carried over from 104–106 for the build: a dot moving along the
 diagram's arrows during a press, a hover card (D(x) and both densities at the
 pointer). NEXT: the draft.
+
+### 108 DRAFTED 2026-10-19 on the nine calls
+
+`widgets/gan/`: `engine.js` (moved from `_lab/`, which now re-exports it, so
+the mock, the measurement and the widget train one way) and `main.js`. Seed
+(1–40, default 4) is the only rail control; compute trains 150 rounds of 20 D
+then 20 G steps and keeps a snapshot after each half (301). The step press is
+one half, labelled by `anim.beat` Update D / Update G (0.9 s, the half's
+network moving between its two snapshots: D's curve, or G's samples and
+lines); Train plays all 300 halves in ~10 s. The card: the loop diagram (the
+half just run marked, a dot forward and the gradient back during a press;
+unmarked before training, during Train and at the end), the loss being
+minimised, and a note that each press repeats its update 20 times. The figure:
+real bars, generated outline at 2,000 quantiles of z, D(x) on a 0–1 right
+axis with ½ dashed, d log D/dx arrows on 21 samples, the z → x lines, the loss
+panel with 2 ln 2 and ln 2 dashed, a caption per state; hover gives x, D(x)
+and both bins. Readout: round, D(−2) · D(2), D(0), the generated split
+against the real one. Driven in node (each press one half, Train 300 halves,
+`shown` lands on its half); text sweep at 538 and 747 px clean. Status draft,
+placeholder fingerprint state.
 
 ---
 

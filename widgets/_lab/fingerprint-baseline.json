@@ -15010,6 +15010,13 @@
       },
       "px": "8e0e66e6",
       "tx": "0f1ad122"
+    },
+    {
+      "$note": "gan · placeholder until the design is agreed",
+      "slug": "gan",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

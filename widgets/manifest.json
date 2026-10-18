@@ -1516,6 +1516,21 @@
       ],
       "arc": 106,
       "status": "shipped"
+    },
+    {
+      "slug": "gan",
+      "title": "Deep Learning - Frontiers: Generative Adversarial Networks",
+      "blurb": "A generator and a discriminator trained in turn on one-dimensional data, one half of each round at a time.",
+      "course": "PHM5005",
+      "topics": [
+        "generative models",
+        "GAN",
+        "generator",
+        "discriminator",
+        "adversarial training"
+      ],
+      "arc": 108,
+      "status": "draft"
     }
   ]
 }
