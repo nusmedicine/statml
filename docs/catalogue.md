@@ -25843,6 +25843,19 @@ at the checkpoint shown: at epoch 10 the autoencoder ±18 about (−5.9, 6.4),
 the VAE ±3) · Zoom (one linked slider and the mouse wheel, ±2 to ±25 about
 the origin). Recommended: Autoscale.
 
+**His review of the scale mock:** "autoscale looks ok, but the spread is
+shared and hard to control. manual zoom looks ok but I cannot pan … decouple
+zoom and the spread between the 2 views. shared controls is difficult." Mocked
+as `_lab/vae-mock6.html`: every control on the map it acts on, each map its own
+sampler and view — a drag inside the circle moves it, a drag on its rim sets
+its spread, a drag elsewhere pans, the wheel or the corner + and − zoom about
+the pointer, **Fit** returns the view to autoscale (every map opens on it),
+**N(0, I)** resets the sampler. The rail's shared Spread slider goes. In the
+widget this needs no core change: `defineWidget` returns a `setParam` that
+syncs the rail first (the door `probability-mechanisms` uses), so the widget
+listens on its own canvas and writes one text parameter per gesture, a map's
+sampler "x,y,s" or its view "x,y,half" (empty = Fit). Three calls at its foot.
+
 ---
 
 ## Two arcs, not one — now three
