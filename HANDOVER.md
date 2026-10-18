@@ -1,5 +1,65 @@
 # Handover
 
+**SESSION 2026-10-17 → 19. 106 `vae` SHIPPED AND PUSHED** (6ceb648) as
+"Deep Learning - Frontiers: Variational Autoencoders" (22 states, 22/22 MATCH
+at DPR 1.25 with the pane fronted). Measured, then four review rounds, two
+copy catches, the colour-by-digit question, the walk-through and the copy
+audit, every call his. The record is the catalogue's § 106 sections.
+
+**106 now.** Model **Autoencoder · VAE · Conditional**. Autoencoder: the
+autoencoder alone (10-3b's ConvVAE with the KL term removed; its code is z,
+never μ, on the page). VAE: without and with the KL term side by side.
+Conditional: the VAE without a label beside the conditional VAE; the Label
+highlights that digit, moves the VAE's sampler onto its codes and sets c (of
+the codes in the VAE's circle on the 5s, 16% are 5s; the CVAE decodes a 5 at
+every z). Every map has its own sampler and view, set on the map: drag inside
+the circle = move, rim = spread, drag on empty = pan, a click = move there,
+wheel or corner + − = zoom, Fit (autoscale, the opening view), N(0, I) (or "on
+the 5s"). Train plays ten checkpoints of the real run (codes moving, two loss
+panels, the schematic's dot and gradient); **Decode region** decodes a 6 × 6
+grid over each sampler's region, then the 16-D row. Digit (None · 0–9) and a
+hover/click on a numeral highlight one digit (option C of
+`_lab/vae-mock7.html`; ten hues fail the palette validator). A hover card
+decodes the point under the pointer. Ten text parameters (`s_*` samplers with
+rail fields, `v_*` views hidden) written through the `setParam` door
+`defineWidget` returns — no core change.
+
+**Data.** `data.js` (797 KB) from `_lab/vae-export.py`, which needs
+`_lab/vae-checkpoints.json` (`vae-checkpoints.py`, ten checkpoints of the 2-D
+models, bit-identical to the measured ones) and the models in
+`_scratch/frontiers-data/models-106` (`vae-measure.py train …`). His
+`clip_mnist_align.pt` is in `_scratch/frontiers-data/clip-106`. Mocks
+`_lab/vae-mock*.html` (1–7) are committed; their JSON data is untracked.
+
+**Learned this session.**
+1. **Baseline with the session fronted.** With the session in no window the
+   pane still reported DPR 1.25 and three runs agreed, but all 14 settled
+   states hashed differently from a fronted pane (driven states matched in
+   both). The tell: a settled state and a driven state that end on the same
+   picture must hash alike. Run `mcp__ccd_view__get_layout` first; if `views`
+   is empty, ask him to open the window before any determinism run.
+2. `api.render()` (from `defineWidget`'s return) is core's FULL render and
+   re-inits the animation; never call it to repaint after a gesture.
+3. When a model is built from another for measurement, label it as the model
+   it stands for (the autoencoder's "z = μ" was his catch).
+4. Name a press for what it computes ("Decode region", not "Generate").
+5. Two maps compared side by side need independent controls ("shared
+   controls is difficult").
+6. When he proposes a mechanism, measure it and show it beside the
+   alternative (recentring the VAE's sampler on a digit: 14–77% that digit).
+7. Gallery copy is general: the blurb names the latent space and no digits.
+
+**NEXT: 108 `gan`** (catalogue slot 108: a 1-D GAN trained in `compute` from
+the seeded rng, 10-3b c42's two halves as presses, one page; check first for a
+default seed that converges without mode collapse), then **107 `diffusion`**
+(Forward · Reverse · Conditional; measure the signal left at each t first).
+Carry over from 104–106 by default: the schematic in the card, a Train press,
+hover, per-map controls where maps are compared.
+
+**Dev server this session:** `widgets-alt4` on :8014.
+
+---
+
 **SESSION 2026-10-17 CLOSED. 105 `fusion` SHIPPED AND PUSHED** (6e66c36) as
 "Deep Learning - Frontiers: Multimodal Fusion" (15 states, 15/15 MATCH at DPR
 1.25; deploy green). Level of fusion: **Early** (expression alone · mutations
