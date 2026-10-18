@@ -25806,6 +25806,32 @@ view and the grids carry every decode it shows; tiles pair the two models
 ("9% · 93%" inside the circle). Text sweep over six states: no overrun, no
 NaN; a click and a drag both tested.
 
+### 106 ROUND 4, 2026-10-18: his four points on round 3, mocked (`_lab/vae-mock4.html`)
+
+His review: (1) the autoencoder first, then the VAE, with the with/without-KL
+comparison under the VAE; (2) the spread as a slider, three buttons were hard
+to control; (3) the ±8 scale hid the VAE's clusters; (4) on Conditional the
+circle covered everything and nothing showed the conditioning ("if I click
+on a label, should it recentre around that area then we generate similar
+labels?").
+
+**Measured for (4)** (the 2-D VAE at epoch 10, 2,000 test codes): a sampler on
+a digit's codes (its median, spread = their standard deviation) holds that
+digit's codes only partly — of the codes within two spreads, 77% are 1s around
+the 1s, 45% 0s, 43% 4s, 38% 6s, 31% 9s, 28% 3s, 27% 7s, 24% 8s, 18% 5s, 14%
+2s. So his recentring is the VAE's only way to aim at a digit, and in 2-D it
+mostly fails; the conditional VAE returns the digit at any z. That pair is
+the demonstration.
+
+**The mock**: Model **Autoencoder** (alone, its own ±25 scale) · **VAE** (with
+and without KL side by side at ±4; without KL 29% of codes in view at epoch
+10, the rest on the edge; a one-map-with-switch alternative behind a mock
+switch) · **Conditional** (the VAE without a label beside the conditional VAE,
+both ±4; a Label button highlights that digit's codes in `--c-highlight` on
+both, moves the VAE's sampler onto them and gives the CVAE c, its sampler
+staying at N(0, I)); Spread a slider 0.2–3, step 0.1; each map prints its
+circle's radius in z. Five calls at its foot.
+
 ---
 
 ## Two arcs, not one — now three
