@@ -1,15 +1,23 @@
-"""Widget 106 `vae`: writes widgets/vae/data.js from the checkpoints `vae-measure.py train` saved.
+"""Widget 106 `vae`: writes widgets/vae/data.js from `vae-checkpoints.json` and the 16-D checkpoints.
 
-For each 2-D model (ae, vae, cvae): the codes mu of the first 2,000 test images
-and their digits; the decoder's weights as float16, so the page decodes any
-point itself; and a reference decode the page checks itself against at load.
-The CVAE's first Linear reads [z || c] with c one of ten fixed embeddings, so
-its c half is folded into ten biases (one per label): W [z; c] + b =
-W_z z + (W_c c + b). For each 16-D model: 16 draws from N(0, I) (seed 106)
-decoded, as uint8; the CVAE's for each of the ten labels. And the median code
-length at each size, against the median length of a draw from N(0, I).
+Round 2 (2026-10-18, `_lab/vae-mock2.html`): each page opens untrained and
+Train plays ten checkpoints, so for each 2-D model (ae, vae, cvae) this keeps,
+for the first 1,000 test images:
+  - mu at every checkpoint, as int16 hundredths (the codes move between them);
+  - logvar at the first and last checkpoint (the hover's q(z|x); the ellipse
+    is drawn only when training is not playing);
+  - the loss terms per checkpoint (reconstruction; KL and its mean and spread
+    parts), per image over all 2,000 test images, as vae-checkpoints.py
+    computed them;
+  - the TRAINED decoder only, float16 (Draw and the hover decode come after
+    Train; before it the page says so), the CVAE's [z || c] Linear folded into
+    one bias per label, and a reference decode the page checks at load.
+For each 16-D model: 16 draws from N(0, I) (seed 106) decoded, as uint8, the
+CVAE's for each label; and the median code length at each size, against the
+median length of a draw from N(0, I).
 
   python -I widgets/_lab/vae-export.py "<...>/_scratch/frontiers-data"
+needs `vae-checkpoints.json` (`vae-checkpoints.py`) and the models in models-106.
 """
 import base64, importlib.util, json, os, sys
 import numpy as np
@@ -21,53 +29,68 @@ sys.argv = [sys.argv[0], sys.argv[1], "none"]
 vm = importlib.util.module_from_spec(spec); spec.loader.exec_module(vm)
 OUT = os.path.join(HERE, "..", "vae", "data.js")
 
-b64 = lambda a: base64.b64encode(a.tobytes()).decode()
+b64 = lambda a: base64.b64encode(np.ascontiguousarray(a).tobytes()).decode()
 f16 = lambda t: b64(t.detach().numpy().astype("<f2"))
 u8 = lambda t: b64((t.detach().numpy() * 255).round().clip(0, 255).astype(np.uint8))
+i16 = lambda a: b64((np.asarray(a) * 100).round().astype("<i2"))
 
+N = 1000
+CKJ = json.load(open(os.path.join(HERE, "vae-checkpoints.json")))
 txt = vm.txt_encoder()
 C = txt(torch.arange(10)).detach()
-N = 2000
 xs, ys = vm.Xte[:N], vm.Yte[:N]
+assert CKJ["digits"][:N] == ys.tolist()
 rng = np.random.default_rng(106)
 prior = {d: float(np.median(np.linalg.norm(rng.standard_normal((1_000_000, d)), axis=1))) for d in (2, 16)}
 models, grids, norm16 = {}, {}, {}
-R95 = float(np.sqrt(-2 * np.log(0.05)))
 with torch.no_grad():
     for kind in ("ae", "vae", "cvae"):
+        cks = CKJ[kind]
+        mu = np.array([c["mu"][:2 * N] for c in cks])                      # 10 x 2N
+        lv = [np.array(cks[j]["lv"][:2 * N]) for j in (0, len(cks) - 1)] if kind != "ae" else None
+        loss = []
+        for c in cks:   # both terms over all 2,000 test images, as vae-checkpoints.py computed them
+            row = {"label": c["label"], "recon": c["recon"]}
+            if kind != "ae":
+                row.update({"kl": c["kl"], "klMu": c["kl_mu"], "klSd": c["kl_sd"]})
+            loss.append(row)
         m = vm.load(kind, 2)
-        mu = m.encoder(xs, txt(ys))[0] if kind == "cvae" else m.encoder(xs)[0]
         lin, d1, d2 = m.decoder.expand[0], m.decoder.deconv[0], m.decoder.deconv[2]
         if kind == "cvae":
-            Wz, Wc = lin.weight[:, :2], lin.weight[:, 2:]
-            bias = (C @ Wc.T + lin.bias)                         # 10 x 3136, one per label
+            wz, bias = lin.weight[:, :2], C @ lin.weight[:, 2:].T + lin.bias
             ref = m.decoder(torch.tensor([[0.5, -0.3]]), C[3:4])
         else:
-            Wz, bias = lin.weight, lin.bias[None]
+            wz, bias = lin.weight, lin.bias[None]
             ref = m.decoder(torch.tensor([[0.5, -0.3]]))
-        norms = mu.norm(dim=1)
+        # the last checkpoint's codes are the saved model's
+        mu_now = (m.encoder(xs, txt(ys)) if kind == "cvae" else m.encoder(xs))[0].flatten().numpy()
+        assert np.abs(mu_now - mu[-1]).max() < 0.006, kind
         models[kind] = {
-            "codes": [round(v, 2) for v in mu.flatten().tolist()], "digits": ys.tolist(),
-            "inside": round(float((norms <= R95).float().mean()), 4), "norm2": round(float(norms.median()), 2),
-            "dec": {"wz": f16(Wz), "b": f16(bias), "relu": kind == "cvae",
+            "loss": loss,
+            "mu": i16(mu), "lv": [i16(a) for a in lv] if lv else None,
+            "dec": {"wz": f16(wz), "b": f16(bias), "relu": kind == "cvae",
                     "d1w": f16(d1.weight), "d1b": f16(d1.bias), "d2w": f16(d2.weight), "d2b": f16(d2.bias)},
             "ref": {"z": [0.5, -0.3], "label": 3 if kind == "cvae" else 0, "img": [round(v, 3) for v in ref.flatten().tolist()]},
         }
         m16 = vm.load(kind, 16)
-        mu16 = m16.encoder(xs, txt(ys))[0] if kind == "cvae" else m16.encoder(xs)[0]
+        X2, Y2 = vm.Xte[:2000], vm.Yte[:2000]  # the median the catalogue table quotes, on 2,000
+        mu16 = m16.encoder(X2, txt(Y2))[0] if kind == "cvae" else m16.encoder(X2)[0]
         norm16[kind] = round(float(mu16.norm(dim=1).median()), 2)
         torch.manual_seed(106)
         z = torch.randn(16, 16)
         grids[kind] = [u8(m16.decoder(z, C[d:d + 1].expand(16, -1))) for d in range(10)] if kind == "cvae" else u8(m16.decoder(z))
 
 meas = json.load(open(os.path.join(HERE, "vae-measure.json")))
-for k in ("ae", "vae", "cvae"):  # the same models the catalogue's table was measured on
+for k in ("ae", "vae", "cvae"):
     assert abs(meas[f"{k}16"]["codes"]["norm"]["p50"] - norm16[k]) < 0.01, (k, norm16[k])
-    assert abs(meas[f"{k}2"]["codes"]["norm"]["p50"] - models[k]["norm2"]) < 0.01, (k, models[k]["norm2"])
-stats = {"prior2": round(prior[2], 2), "prior16": round(prior[16], 2), "norm16": norm16, "r95": round(R95, 4)}
+stats = {"prior2": round(prior[2], 2), "prior16": round(prior[16], 2), "norm16": norm16, "r95": round(float(np.sqrt(-2 * np.log(0.05))), 4),
+         "n": N, "steps": [0, 5, 20, 50, 100, 200, 235, 470, 1175, 2350]}
 with open(OUT, "w", encoding="utf-8", newline="\n") as f:
     f.write("/* Widget 106 `vae`: generated by widgets/_lab/vae-export.py. Do not edit by hand. */\n")
     f.write(f"export const MODELS = {json.dumps(models, separators=(',', ':'))};\n")
+    f.write(f"export const DIGITS = {json.dumps(ys.tolist(), separators=(',', ':'))};\n")
     f.write(f"export const GRID16 = {json.dumps(grids, separators=(',', ':'))};\n")
     f.write(f"export const STATS = {json.dumps(stats, separators=(',', ':'))};\n")
-print("wrote", OUT, os.path.getsize(OUT) // 1024, "KB", stats, {k: (v["inside"], v["norm2"]) for k, v in models.items()})
+print("wrote", OUT, os.path.getsize(OUT) // 1024, "KB", stats)
+for k, v in models.items():
+    print(k, [(r["label"], r["recon"], r.get("kl")) for r in v["loss"]][::3])

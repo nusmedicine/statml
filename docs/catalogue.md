@@ -25756,6 +25756,20 @@ Train) puts 16 draws from N(0, I) on the map, each moving into a 4 × 4 grid
 where its decode appears, a dot running the Generating row, and the 16-D row
 after; Label c as ten buttons. Eight calls at its foot.
 
+**All eight calls the recommendation** ("go with all eight"), and the widget
+REBUILT on the mock the same day: two presses a page (Train, then Draw; the
+button's label follows the press count); the pin one text parameter `pin`
+("1.20,-0.40" or "image-37", a 6px region grid of points with the dots on
+top); on Conditional a point is decoded with every label in a row (round 1's
+strip, kept inside the panel); four tiles (codes inside the circle, median
+code length and, per page, the reconstruction or KL term at the checkpoint
+shown, and after Draw the 16-D code length). `data.js` (797 KB) now holds the
+first 1,000 test images' codes at all ten checkpoints (int16), log-variances
+at the first and last, the loss terms per checkpoint (over 2,000), and only
+the trained decoder: before Train every decode is a dashed frame saying "x̂
+after Train", and during Train the panel waits. The text sweep found one
+overrun (Conditional's grid title, 22px), shortened.
+
 ---
 
 ## Two arcs, not one — now three
