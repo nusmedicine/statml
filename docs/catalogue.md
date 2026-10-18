@@ -25794,6 +25794,18 @@ its q(z|x) ellipse and KL in one line); the bell-curve panel removed;
 Conditional decodes the region with the chosen label and the centre with
 each of the ten. Six calls at its foot.
 
+**All six calls the recommendation** ("go with all six"), and the widget
+REBUILT on the mock the same day: Model **Without and with KL** · **Conditional**
+(page values `kl` · `conditional`); every map ±8; the sampler is `centre` (a
+text parameter, snapped to steps of 0.4 so the 6 × 6 points share a lattice
+and a drag decodes only the new row, ~160 ms for 72 decodes uncached) and
+`spread` 0.5 · 1 · 2; a click on a map outside the circle moves it (regions,
+8px cells), a drag inside carries it (core's `drag` with a `hit`); Generate
+decodes the region point by point (1.8 s); the hover card is the only hover
+view and the grids carry every decode it shows; tiles pair the two models
+("9% · 93%" inside the circle). Text sweep over six states: no overrun, no
+NaN; a click and a drag both tested.
+
 ---
 
 ## Two arcs, not one — now three
