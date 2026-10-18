@@ -25897,6 +25897,35 @@ it, a second click clears it. The hit test takes the NEAREST numeral within
 9 px: on the autoencoder's map the 3, 5 and 8 sit closer than that, and the
 first-match version picked 3 for a click on the 5.
 
+### 106 STUDENT WALK-THROUGH AND COPY AUDIT, 2026-10-19 (proposed, not yet applied)
+
+`_lab/vae-copy-scan.mjs <claudisms.md>` evaluates the widget's own S, CAP,
+MATH, press titles and schematic text on every page: 131 strings. Banlist
+(292 terms): 7 hits, of which only "z does not hold the digit" is the banned
+use (abstract "hold"); "moves", "points" and "turns" are literal.
+
+| # | where | now | proposed |
+|---|---|---|---|
+| W1 | Autoencoder, opening caption | N(0, I) before any page defines it | "N(0, I), the standard normal distribution in two dimensions" at its first mention |
+| W2 | Autoencoder, opening caption | "the decoder gives the same grey blur for each" (not visible: decodes wait for Train) | cut |
+| W3 | Autoencoder, trained caption | "a drag on its rim widens it" | "sets its spread" |
+| W4 | Autoencoder, decoded caption | "nothing in its training says where to sample" | "its training defines no distribution to sample z from" |
+| W5 | VAE, trained caption | "each digit in its own region" (4/9 and 3/5/8 overlap) | "the digits in regions that partly overlap" |
+| W6 | hover card | inside/outside N(0, I)'s circle, from the origin even when the map's sampler moved | inside/outside the map's sampler circle |
+| W7 | loss panels | "Train draws it" (collides with draws from N(0, I)) | "after Train" |
+| W8 | VAE readout | "KL term, with KL" | "KL term, VAE" |
+| W9 | circle tile note | repeats its label | "of 1,000 test images" |
+| C1 | VAE, training caption | "only the KL term draws them back toward N(0, I)" | "the KL term grows as the codes move away from N(0, I), and training lowers it" |
+| C2 | Conditional, trained caption | "z does not hold the digit, c does" | "the digit is set by c, not by z" |
+| C3 | Conditional, trained caption | "the Label sent the sampler there" | "the Label moved the sampler to them" |
+| C4 | VAE, decoded caption | "each shading into its neighbour" | "neighbouring points decoding to similar digits" |
+| C5 | Autoencoder schematic note | "the sampler is ours, to test …" | "the sampler here tests what its decoder gives" |
+| C6 | Autoencoder card note | "the decoder turns a code back into an image" | "maps a code back to an image" |
+| C7 | region grid, waiting | "fills this grid" | "decodes these points" |
+| C8 | Label detail | "sends the VAE's sampler onto them and gives the conditional VAE c" | "moves the VAE's sampler onto them and sets c for the conditional VAE" |
+| C9 | subtitle | "a KL term that keeps the codes close to N(0, I)" | options S1 · S2 |
+| C10 | blurb | "a VAE's codes drawn onto N(0, I)" (figurative) | options B1 · B2 |
+
 ---
 
 ## Two arcs, not one — now three
