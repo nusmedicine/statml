@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · gan mock — a 1-D GAN beside 10-3b c42's pseudocode</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note, ul.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b, ul.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border-bottom: 1px solid var(--grid); padding: 3px 10px 3px 0; text-align: left; vertical-align: top; }
+  table.m th { color: var(--ink-2); font-weight: 600; }
+  .proto { display: grid; grid-template-columns: 230px 540px; gap: var(--sp-4); align-items: start; }
+  .rail { display: flex; flex-direction: column; gap: 12px; font-size: var(--fs-sm); }
+  .rail .lab2 { color: var(--ink-2); font-weight: 600; margin-bottom: 4px; }
+  .seg { display: flex; flex-wrap: wrap; }
+  .seg button { flex: 1 1 auto; padding: 5px 6px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; font: inherit; font-size: 12px; }
+  .seg button.on { border-color: var(--c-highlight); font-weight: 600; }
+  .act { padding: 7px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); border-radius: 3px; cursor: pointer; font: inherit; font-weight: 600; }
+  .act:disabled { color: var(--ink-3); border-color: var(--grid); cursor: default; }
+  .detail { color: var(--ink-3); font-size: 11px; margin-top: 3px; }
+  .mockonly { border-top: 1px dashed var(--grid); padding-top: 10px; }
+  .mockonly .lab2 { color: var(--c-reference); }
+  canvas { display: block; background: var(--surface-1); }
+  .card { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); padding: var(--sp-2) var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .card pre { margin: 0; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.45; white-space: pre; color: var(--ink-3); }
+  .card pre span { display: block; }
+  .card pre span.on { color: var(--ink-1); }
+  .card pre span.on.d { box-shadow: inset 3px 0 0 var(--c-theory); }
+  .card pre span.on.g { box-shadow: inset 3px 0 0 var(--c-empirical); }
+  #diagram svg { display: block; width: 100%; height: auto; }
+  #diagram text { font-family: var(--font); font-size: 12px; fill: var(--ink-1); }
+  #diagram text.sub { font-size: 11px; fill: var(--ink-2); }
+  #diagram text.held { font-size: 10.5px; fill: var(--ink-3); font-style: italic; }
+  #diagram text.grad { font-size: 11px; fill: var(--c-slope); }
+  #diagram .off { opacity: 0.28; }
+  .lossline { font-size: var(--fs-sm); color: var(--ink-1); margin: 4px 0 0; min-height: 1.4em; }
+  .lossline b { font-weight: 600; }
+  .readout { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--ink-1); }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--ink-3); background: var(--surface-2); }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 120ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 108 <code>gan</code> &middot; mock: a 1-D GAN beside 10-3b c42's pseudocode</h1>
+  <p class="note">Slot 108 (picked 2026-10-12): 10-3b has the GAN as theory and pseudocode only (c41&ndash;43) and links GAN Lab. This is a one-dimensional GAN trained in the browser from the seed, exactly as c42's pseudocode: each round updates D on a batch of real and generated samples, then G on fresh noise with L<sub>G</sub> = &minus;log D(G(z)). G and D are each a 1 &rarr; 16 &rarr; 1 network (tanh), Adam, batch 64, learning rate 0.002 for both. The canvas is drawn at the widget's width (540 px). <span id="status">training&hellip;</span></p>
+
+  <h2>Measured first (<code>_lab/gan-measure.mjs</code>, <code>_lab/gan-engine.js</code>)</h2>
+  <table class="m">
+    <tr><th>real data</th><th>each round</th><th>distance to the data, median (worst)</th><th>|D &minus; &frac12;| at the data, median</th><th>D(0), between the modes</th><th>collapsed onto one mode</th></tr>
+    <tr><td>one bell, N(3, 0.6&sup2;)</td><td>1 D step, 1 G step, equal rates</td><td>0.64 (0.97)</td><td>0.02</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>one bell</td><td>the same, D 5&times; faster</td><td>0.15 (0.35)</td><td>0.01</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td><b>two modes</b>, &frac12;N(&minus;2, 0.5&sup2;) + &frac12;N(2, 0.5&sup2;)</td><td><b>1 D step, 1 G step, equal rates</b> (A)</td><td><b>0.18 (0.24)</b></td><td><b>0.02</b></td><td>0.07&ndash;0.21</td><td><b>0 / 40</b></td></tr>
+    <tr><td>two modes</td><td>the same, D 5&times; faster</td><td>0.19 (1.33)</td><td>0.05</td><td>0.01&ndash;0.65</td><td>9 / 40</td></tr>
+    <tr><td><b>two modes</b></td><td><b>20 D steps, then 20 G steps</b> (B)</td><td><b>0.18 (0.25)</b></td><td><b>0.02</b></td><td>0.07&ndash;0.24</td><td><b>0 / 40</b></td></tr>
+    <tr><td>two modes</td><td>100 D steps, then 20 G steps</td><td>0.35 (1.47)</td><td>0.04</td><td>0.00&ndash;0.85</td><td>5 / 20</td></tr>
+  </table>
+  <ul class="note">
+    <li>Seeds 1&ndash;40 (1&ndash;20 for the last row). <b>Distance</b> = the 1-D Wasserstein distance between 2,000 generated samples and the 1,000 real ones, after training; collapsed seeds are left out of the medians. <b>Collapsed</b> = under 10% or over 90% of the generated samples on one side of 0.</li>
+    <li><b>The one bell at equal rates fails in a way that would confuse a class</b>: D goes flat at &frac12; while G sits off the data (median distance 0.64), so the figure would say &ldquo;D cannot tell&rdquo; about samples that are visibly wrong. The two modes at equal rates cover both modes on every seed, under either schedule.</li>
+    <li><b>D never reaches &frac12; between the modes.</b> G maps noise to x continuously, so it cannot jump the gap: a thin bridge of generated samples stays between the modes, the data have almost none there, and D reads 0.07&ndash;0.24 at x = 0. That is the optimal discriminator p<sub>data</sub>/(p<sub>data</sub> + p<sub>G</sub>) where p<sub>data</sub> &asymp; 0. So the claim is D(x) = &frac12; <i>where the data are</i>, not everywhere.</li>
+    <li>The default seed below, 4, is among the 13 (A) and 19 (B) seeds of 40 that end within 0.17 of the data with D within 0.06 of &frac12; at both modes; 5, 7, 10 and 13 are in both lists too. Seed 4 sends every generated sample left of 0 early on (rounds 25&ndash;100 under A, 1&ndash;4 under B) and recovers.</li>
+    <li>Training takes ~215 ms in node, once per seed, in <code>compute</code>. The figure only replays snapshots.</li>
+  </ul>
+
+  <h2>The mock</h2>
+  <div class="proto">
+    <div class="rail">
+      <div class="mockonly"><div class="lab2">Mock only: schedule (call 2)</div><div class="seg" id="sched"></div><div class="detail" id="schedDetail"></div></div>
+      <div><div class="lab2">Seed</div><div class="seg" id="seeds"></div><div class="detail">the random draws: the data, the starting weights, the noise and the batches</div></div>
+      <button class="act" id="step">Step</button>
+      <button class="act" id="train">Train</button>
+      <button class="act" id="reset">Reset</button>
+      <div class="mockonly"><div class="lab2">Mock only: the card (call 9)</div><div class="seg" id="cards"></div></div>
+      <div class="mockonly"><div class="lab2">Mock only: show (calls 3&ndash;5)</div><div class="seg" id="shows"></div></div>
+    </div>
+    <div>
+      <div class="card"><div id="diagram"></div><div class="lossline" id="lossline"></div><pre id="code"></pre></div>
+      <canvas id="cv"></canvas>
+      <div class="readout" id="readout"></div>
+      <div class="cap"><i>draft caption</i><span id="cap"></span></div>
+    </div>
+  </div>
+
+  <h2>The calls before building</h2>
+  <div class="q"><b class="h">1. The real data</b>Two modes, &frac12;N(&minus;2, 0.5&sup2;) + &frac12;N(2, 0.5&sup2;), 1,000 draws (shown); or one bell.</div>
+  <div class="rec">Recommend <b>two modes</b>: at the pseudocode's own schedule it covers both modes on all 40 seeds and ends near the data (median 0.18), where one bell ends off the data with D flat at &frac12; (median 0.64).</div>
+
+  <div class="q"><b class="h">2. The presses</b><b>A</b>: the pseudocode's schedule (1 D step, 1 G step a round); Step advances 25 rounds, Train plays all 3,000. <b>B</b>: 20 D steps then 20 G steps a round, one press whose label alternates <b>Update D</b> / <b>Update G</b>, so each half is seen alone; Train plays the 150 rounds. Switch with the mock-only schedule above and press Step a few times on each. The two schedules end alike (table).</div>
+  <div class="rec">Recommend <b>B</b>. It is c42's two halves as two presses: Update D raises D over the data and lowers it over the generated samples; Update G then slides the generated samples along D's slope (the arrows), with G never touching the data. Under A both move at once in every frame. B is the pseudocode with each update repeated 20 times, which the card says. Its cost: it is not quite the loop the notebook prints.</div>
+
+  <div class="q"><b class="h">3. The noise-to-x lines</b>21 lines from evenly spaced quantiles of z ~ N(0, 1) (the lower axis) up to G(z) (shown, as in Goodfellow et al. 2014's Figure 1); or no lines.</div>
+  <div class="rec">Recommend <b>the lines</b>: they show what G is, a map from noise to x, and where the lines bunch is where the generated samples pile up.</div>
+
+  <div class="q"><b class="h">4. The gradient arrows</b>on 21 generated samples, the direction and size of the step Update G gives each one, (1 &minus; D)&middot;dlogit D/dx (shown, <code>--c-slope</code>); or none.</div>
+  <div class="rec">Recommend <b>the arrows</b>: they are the generator's only information about the data, which is c42's first bullet.</div>
+
+  <div class="q"><b class="h">5. The loss panel</b>L<sub>D</sub> and L<sub>G</sub> per round with their values at D = &frac12; marked (2 ln 2 = 1.39 and ln 2 = 0.69) (shown); or no loss panel.</div>
+  <div class="rec">Recommend <b>the panel</b>: it shows that neither loss goes to zero. Both settle at the value D = &frac12; gives, which is how a GAN's losses differ from every loss the class has trained before.</div>
+
+  <div class="q"><b class="h">6. The colours</b>real data <code>--c-reference</code> (the fixed target), generated samples and G's loss <code>--c-empirical</code> (what is built), D(x) and D's loss <code>--c-theory</code>, arrows <code>--c-slope</code> (shown); or real and generated as <code>--c-group-a</code> / <code>--c-group-b</code>.</div>
+  <div class="rec">Recommend <b>as shown</b>: real is the benchmark the moving thing is judged against, which is <code>--c-reference</code>'s role; D's line and D's loss share a colour, as do G's samples and G's loss.</div>
+
+  <div class="q"><b class="h">7. Mode collapse</b>Not shown (shown: no seed collapses at equal rates); or a rail control for D's learning rate (5&times; faster: 9 of 40 seeds collapse onto one mode).</div>
+  <div class="rec">Recommend <b>not shown</b>: one page, the base GAN, as picked. Seed 4 sends every generated sample to the left mode early on and recovers, which Train shows in passing.</div>
+
+  <div class="q"><b class="h">8. Name</b>slug <code>gan</code>; title "Deep Learning - Frontiers: Generative Adversarial Networks", the series form of 104&ndash;106.</div>
+  <div class="rec">Recommend <b>as written</b>. Carried over from 104&ndash;106 by default, unless you say otherwise: the pseudocode in the card with the running half marked, a hover card (D(x) and the density at the pointer), Seed in the rail.</div>
+
+  <div class="q"><b class="h">9. The card</b>The loop drawn as a diagram: x<sub>real</sub> and G(z) into D, D(x) into the loss, and the gradient (<code>--c-slope</code>) back to the network being updated, with the other one marked held fixed; the real data's branch fades during Update G. Three arms: <b>Pseudocode</b> (c42's text, the running half marked) &middot; <b>Diagram + loss</b> (the diagram and one line: the loss being minimised) &middot; <b>Diagram + pseudocode</b>. Press Update D and Update G with each.</div>
+  <div class="rec">Recommend <b>Diagram + loss</b>, the form of 104&ndash;106's card (schematic, then loss). The diagram shows c42's first bullet as a picture: during Update G the data have no path to G except the gradient through D. The pseudocode is in the lesson a click away, and with both the card runs to ~300 px above the figure. Under B the diagram switches half with every press; a dot moving along the arrows during the press, as in 104&ndash;106, is carried over in the build.</div>
+</main>
+<script type="module">
+import { train, net, slope, sig } from "./gan-engine.js";
+import { makeRng } from "../core/rng.js";
+
+const W = 540, Hc = 470;
+const cv = document.getElementById("cv");
+const dpr = window.devicePixelRatio || 1;
+cv.width = W * dpr; cv.height = Hc * dpr; cv.style.width = W + "px"; cv.style.height = Hc + "px";
+const ctx = cv.getContext("2d");
+ctx.scale(dpr, dpr);
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+function colors() { for (const k of ["ink-1", "ink-2", "ink-3", "grid", "axis", "surface-1", "surface-2", "c-reference", "c-empirical", "c-theory", "c-slope", "font", "fs-xs"]) C[k] = css("--" + k); }
+colors();
+
+const SCHED = {
+  A: { label: "1 and 1 (pseudocode)", opts: { rounds: 3000, every: 25 }, detail: "each round: one D step, one G step; Step = 25 rounds" },
+  B: { label: "20 and 20", opts: { kD: 20, kG: 20, rounds: 150, every: 1 }, detail: "each round: 20 D steps, then 20 G steps; Step = one half" },
+};
+const S = { sched: "B", seed: 4, i: 0, playing: false, card: "diagram", show: { lines: true, arrows: true, loss: true } };
+const CARDS = { code: "Pseudocode", diagram: "Diagram + loss", both: "Diagram + pseudocode" };
+const cache = {};
+function run() { const k = S.sched + S.seed; return (cache[k] ??= train(S.seed, SCHED[S.sched].opts)); }
+
+// fixed noise for the picture: 2000 draws for the density, 21 quantiles for the lines
+const zr = makeRng(12345);
+const Z = Array.from({ length: 2000 }, () => zr.normal());
+const Q = [-2.0, -1.6, -1.3, -1.05, -0.85, -0.67, -0.5, -0.36, -0.23, -0.11, 0, 0.11, 0.23, 0.36, 0.5, 0.67, 0.85, 1.05, 1.3, 1.6, 2.0];
+
+// layout
+const L = 44, R = W - 36;
+const X0 = -4.5, X1 = 4.5;
+const px = (x) => L + (x - X0) / (X1 - X0) * (R - L);
+const top = { y0: 24, y1: 214 };             // density + D(x)
+const zax = { y: 278 };                       // z axis
+const loss = { y0: 330, y1: 450 };
+const DMAX = 0.75;                            // density axis
+
+function seg(id, items, get, set) {
+  const el = document.getElementById(id); el.innerHTML = "";
+  for (const [v, lab] of items) { const b = document.createElement("button"); b.textContent = lab; b.className = get() === v ? "on" : ""; b.onclick = () => { set(v); build(); }; el.appendChild(b); }
+}
+function build() {
+  seg("sched", Object.entries(SCHED).map(([k, v]) => [k, v.label]), () => S.sched, (v) => { S.sched = v; S.i = 0; S.playing = false; });
+  document.getElementById("schedDetail").textContent = SCHED[S.sched].detail;
+  seg("seeds", [1, 2, 3, 4, 5, 6, 7, 8].map((s) => [s, String(s)]), () => S.seed, (v) => { S.seed = v; S.i = 0; S.playing = false; });
+  seg("cards", Object.entries(CARDS), () => S.card, (v) => { S.card = v; });
+  const el = document.getElementById("shows"); el.innerHTML = "";
+  for (const [k, lab] of [["lines", "z → x lines"], ["arrows", "arrows"], ["loss", "loss panel"]]) {
+    const b = document.createElement("button"); b.textContent = lab; b.className = S.show[k] ? "on" : ""; b.onclick = () => { S.show[k] = !S.show[k]; build(); }; el.appendChild(b);
+  }
+  draw();
+}
+
+/* The loop as a diagram. half: "" (before training), "d" or "g" (the half
+   just run). The data's only path to G is through D: in the G half the real
+   branch is off and D is held fixed while the gradient passes through it. */
+function diagram(half) {
+  const on = (who) => (half === "" || who.includes(half) ? "" : "off");
+  const box = (x, y, w, h, label, cls, color, dashed) =>
+    `<g class="${cls}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" style="fill:var(--surface-1);stroke:${color};stroke-width:1.6${dashed ? ";stroke-dasharray:4 3" : ""}"/>` +
+    `<text x="${x + w / 2}" y="${y + h / 2 + 4}" text-anchor="middle">${label}</text></g>`;
+  const arrow = (d, cls, color, mk, extra = "") =>
+    `<path class="${cls}" d="${d}" style="fill:none;stroke:${color};stroke-width:1.5${extra}" marker-end="url(#${mk})"/>`;
+  const mk = (id, color) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:${color}"/></marker>`;
+  const ink = "var(--ink-2)", slope = "var(--c-slope)";
+  const heldG = half === "d", heldD = half === "g";
+  let g = `<svg viewBox="0 0 540 170" xmlns="http://www.w3.org/2000/svg"><defs>${mk("ah", ink)}${mk("as", slope)}</defs>`;
+  // real data -> D (D half only)
+  g += `<g class="${on("d")}">` + box(8, 14, 118, 30, "x_real (the data)", "", "var(--c-reference)") +
+       arrow("M126,29 C190,29 210,58 262,62", "", ink, "ah") + `</g>`;
+  // noise -> G -> x_fake -> D (both halves)
+  g += box(8, 92, 84, 30, "z ~ N(0, 1)", "", ink);
+  g += arrow("M92,107 L126,107", "", ink, "ah");
+  g += box(128, 90, 56, 34, "G", "", "var(--c-empirical)", heldG);
+  if (heldG) g += `<text class="held" x="156" y="139" text-anchor="middle">held fixed</text>`;
+  g += arrow("M184,107 C215,107 225,86 262,84", "", ink, "ah");
+  g += `<text class="sub" x="196" y="122">x_fake = G(z)</text>`;
+  g += box(264, 52, 56, 44, "D", "", "var(--c-theory)", heldD);
+  if (heldD) g += `<text class="held" x="292" y="45" text-anchor="middle">held fixed</text>`;
+  g += arrow("M320,74 L352,74", "", ink, "ah");
+  g += `<text x="356" y="78">D(x)</text>`;
+  g += arrow("M394,74 L420,74", "", ink, "ah");
+  const loss = half === "g" ? "L_G" : half === "d" ? "L_D" : "L_D · L_G";
+  g += box(422, 58, 108, 32, loss, "", ink);
+  // the gradient lane
+  if (half === "d") {
+    g += arrow("M476,90 L476,152 L292,152 L292,98", "", slope, "as");
+    g += `<text class="grad" x="330" y="146">update D's weights</text>`;
+  } else if (half === "g") {
+    g += arrow("M476,90 L476,152 L306,152 L306,98", "", slope, "as");
+    g += arrow("M278,98 L278,152 L156,152 L156,126", "", slope, "as");
+    g += `<text class="grad" x="316" y="146">back through D</text>`;
+    g += `<text class="grad" x="168" y="146">update G</text>`;
+  }
+  return g + `</svg>`;
+}
+const LOSS = {
+  "": "Each round: <b>Update D</b> on real and generated samples, then <b>Update G</b> on fresh noise.",
+  d: "<b>Update D</b> to minimise L<sub>D</sub> = &minus;[ log D(x<sub>real</sub>) + log(1 &minus; D(x<sub>fake</sub>)) ]",
+  g: "<b>Update G</b> to minimise L<sub>G</sub> = &minus;log D(G(z))",
+};
+
+const CODE = [
+  ["", "for each training iteration:"],
+  ["d", "    # 1. Train the Discriminator (real vs fake)"],
+  ["d", "    x_fake ← G(z),  z ~ p(z)"],
+  ["d", "    L_D ← - [ log D(x_real) + log(1 - D(x_fake)) ]"],
+  ["d", "    Update D to minimize L_D"],
+  ["g", "    # 2. Train the Generator (fool the discriminator)"],
+  ["g", "    x_fake ← G(z),  z ~ p(z)"],
+  ["g", "    L_G ← - log D(x_fake)"],
+  ["g", "    Update G to minimize L_G"],
+];
+
+function nextHalf(r) { const s = r.snaps[S.i + 1]; return s ? s.half : null; }
+
+function draw() {
+  const r = run(), s = r.snaps[S.i], last = r.snaps.length - 1;
+  document.getElementById("status").textContent = `${r.snaps.length - 1} snapshots`;
+  // card
+  const lit = S.sched === "B" ? (s.half === "D" ? "d" : s.half === "G" ? "g" : "") : (S.i > 0 ? "dg" : "");
+  const rep = S.sched === "B" ? "  (each Update × 20)" : "";
+  const half = S.sched === "B" ? (s.half === "D" ? "d" : s.half === "G" ? "g" : "") : "";
+  document.getElementById("diagram").innerHTML = S.card === "code" ? "" : diagram(half);
+  document.getElementById("lossline").innerHTML = S.card === "diagram" ? LOSS[half] : "";
+  document.getElementById("code").style.display = S.card === "diagram" ? "none" : "";
+  document.getElementById("code").innerHTML = CODE.map(([k, t], j) =>
+    `<span class="${k && lit.includes(k) ? "on " + k : ""}">${(j === 0 ? t + rep : t).replace(/</g, "&lt;")}</span>`).join("");
+  // presses
+  const step = document.getElementById("step");
+  if (S.sched === "B") { const h = nextHalf(r); step.textContent = h === "D" ? "Update D" : h === "G" ? "Update G" : "Update D"; }
+  else step.textContent = "Step";
+  step.disabled = S.i >= last || S.playing;
+  document.getElementById("train").disabled = S.i >= last || S.playing;
+
+  ctx.clearRect(0, 0, W, Hc);
+  ctx.font = `${C["fs-xs"]} ${C.font}`;
+  ctx.textBaseline = "alphabetic";
+  const yD = (p) => top.y1 - p * (top.y1 - top.y0);           // D on 0..1
+  const yP = (d) => top.y1 - Math.min(d / DMAX, 1.02) * (top.y1 - top.y0);
+
+  // axes
+  ctx.strokeStyle = C.axis || C["ink-3"]; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L, top.y1 + 0.5); ctx.lineTo(R, top.y1 + 0.5); ctx.stroke();
+  ctx.fillStyle = C["ink-2"]; ctx.textAlign = "center";
+  for (let x = -4; x <= 4; x += 2) { ctx.fillText(String(x), px(x), top.y1 + 14); }
+  ctx.textAlign = "left"; ctx.fillText("x", R + 6, top.y1 + 4);
+  // D = ½ line and right axis
+  ctx.strokeStyle = C.grid; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(L, yD(0.5)); ctx.lineTo(R, yD(0.5)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = C["c-theory"]; ctx.textAlign = "left";
+  ctx.fillText("1", R + 6, yD(1) + 4); ctx.fillText("½", R + 6, yD(0.5) + 4); ctx.fillText("0", R + 6, yD(0) - 2);
+
+  // histograms
+  const bw = 0.25, nb = Math.round((X1 - X0) / bw);
+  const hist = (xs) => { const h = new Array(nb).fill(0); for (const x of xs) { const b = Math.floor((x - X0) / bw); if (b >= 0 && b < nb) h[b]++; } return h.map((c) => c / xs.length / bw); };
+  const hr = hist(r.real);
+  const fake = Z.map((z) => net(s.G, z));
+  const hf = hist(fake);
+  ctx.fillStyle = C["c-reference"]; ctx.globalAlpha = 0.28;
+  hr.forEach((d, b) => { const x = X0 + b * bw; ctx.fillRect(px(x) + 0.5, yP(d), px(x + bw) - px(x) - 1, top.y1 - yP(d)); });
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 2; ctx.beginPath();
+  hf.forEach((d, b) => { const x = X0 + b * bw; if (b === 0) ctx.moveTo(px(x), yP(d)); else ctx.lineTo(px(x), yP(d)); ctx.lineTo(px(x + bw), yP(d)); });
+  ctx.stroke();
+  const off = fake.filter((x) => x < X0 || x > X1).length;
+
+  // D(x)
+  ctx.strokeStyle = C["c-theory"]; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 200; i++) { const x = X0 + (X1 - X0) * i / 200; const y = yD(sig(net(s.D, x))); i ? ctx.lineTo(px(x), y) : ctx.moveTo(px(x), y); }
+  ctx.stroke();
+
+  // legend
+  ctx.textAlign = "left";
+  const leg = [["c-reference", "real data", "box"], ["c-empirical", "generated, G(z)", "line"], ["c-theory", "D(x)", "line"]];
+  let lx = L; const ly = 12;
+  for (const [c, t, k] of leg) {
+    ctx.fillStyle = C[c]; ctx.strokeStyle = C[c];
+    if (k === "box") { ctx.globalAlpha = 0.28; ctx.fillRect(lx, ly - 8, 14, 9); ctx.globalAlpha = 1; } else { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lx, ly - 4); ctx.lineTo(lx + 14, ly - 4); ctx.stroke(); }
+    ctx.fillStyle = C["ink-2"]; ctx.fillText(t, lx + 18, ly); lx += 18 + ctx.measureText(t).width + 16;
+  }
+  if (off) { ctx.fillStyle = C["ink-3"]; ctx.textAlign = "right"; ctx.fillText(`${(100 * off / fake.length).toFixed(0)}% of G(z) beyond ±4.5`, R, ly); }
+
+  // z -> x lines and arrows
+  const zx = (z) => L + (z + 3) / 6 * (R - L);
+  if (S.show.lines) {
+    ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 0.8; ctx.globalAlpha = 0.7;
+    for (const q of Q) { const x = net(s.G, q); const xc = Math.max(X0, Math.min(X1, x)); ctx.beginPath(); ctx.moveTo(zx(q), zax.y); ctx.lineTo(px(xc), top.y1 + 20); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.axis || C["ink-3"]; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, zax.y + 0.5); ctx.lineTo(R, zax.y + 0.5); ctx.stroke();
+    ctx.fillStyle = C["ink-2"]; ctx.textAlign = "center";
+    for (let z = -3; z <= 3; z++) ctx.fillText(String(z), zx(z), zax.y + 14);
+    ctx.textAlign = "left"; ctx.fillText("z ~ N(0, 1)", R - 66, zax.y - 6);
+  }
+  if (S.show.arrows) {
+    ctx.strokeStyle = C["c-slope"]; ctx.fillStyle = C["c-slope"]; ctx.lineWidth = 1.6;
+    const ay = top.y1 - 8;
+    for (const q of Q) {
+      const x = net(s.G, q); if (x < X0 || x > X1) continue;
+      const g = (1 - sig(net(s.D, x))) * slope(s.D, x);      // d log D / dx
+      const len = Math.max(-34, Math.min(34, g * 22));
+      if (Math.abs(len) < 2) { ctx.beginPath(); ctx.arc(px(x), ay, 1.6, 0, 7); ctx.fill(); continue; }
+      const x0 = px(x), x1 = x0 + len, dir = Math.sign(len);
+      ctx.beginPath(); ctx.moveTo(x0, ay); ctx.lineTo(x1, ay); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x1 + dir * 2, ay); ctx.lineTo(x1 - dir * 4, ay - 3.5); ctx.lineTo(x1 - dir * 4, ay + 3.5); ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // loss panel
+  if (S.show.loss) {
+    const snaps = r.snaps.filter((t) => t.half === "G");
+    const RM = r.cfg.rounds, lmax = 2.2;
+    const lxp = (rd) => L + rd / RM * (R - L), lyp = (v) => loss.y1 - Math.min(v, lmax) / lmax * (loss.y1 - loss.y0);
+    ctx.strokeStyle = C.axis || C["ink-3"]; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(L, loss.y0); ctx.lineTo(L, loss.y1 + 0.5); ctx.lineTo(R, loss.y1 + 0.5); ctx.stroke();
+    ctx.fillStyle = C["ink-2"]; ctx.textAlign = "right";
+    for (const v of [0, 1, 2]) ctx.fillText(String(v), L - 5, lyp(v) + 4);
+    ctx.textAlign = "center"; ctx.fillText("0", L, loss.y1 + 14); ctx.fillText(String(RM), R, loss.y1 + 14); ctx.fillText("round", (L + R) / 2, loss.y1 + 14);
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = C.grid;
+    for (const v of [2 * Math.LN2, Math.LN2]) { ctx.beginPath(); ctx.moveTo(L, lyp(v)); ctx.lineTo(R, lyp(v)); ctx.stroke(); }
+    ctx.setLineDash([]);
+    const upto = s.round;
+    for (const [key, c] of [["LD", "c-theory"], ["LG", "c-empirical"]]) {
+      ctx.strokeStyle = C[c]; ctx.lineWidth = 1.5; ctx.beginPath(); let first = true;
+      for (const t of snaps) { if (t.round > upto) break; const v = t[key]; if (!isFinite(v)) continue; first ? ctx.moveTo(lxp(t.round), lyp(v)) : ctx.lineTo(lxp(t.round), lyp(v)); first = false; }
+      ctx.stroke();
+    }
+    ctx.textAlign = "left";
+    ctx.fillStyle = C["c-theory"]; ctx.fillText("L_D   (2 ln 2 at D = ½)", L + 6, loss.y0 - 6);
+    ctx.fillStyle = C["c-empirical"]; ctx.fillText("L_G   (ln 2)", L + 150, loss.y0 - 6);
+  }
+
+  // readout + caption
+  const dAt = (x) => sig(net(s.D, x)).toFixed(2);
+  const left = fake.filter((x) => x < 0).length / fake.length;
+  document.getElementById("readout").innerHTML =
+    `round <b>${s.round}</b> of ${r.cfg.rounds}${S.sched === "B" && s.half !== "start" ? ` (after Update ${s.half})` : ""} · D(−2) <b>${dAt(-2)}</b> · D(0) <b>${dAt(0)}</b> · D(2) <b>${dAt(2)}</b> · generated left of 0 <b>${(100 * left).toFixed(0)}%</b>`;
+  document.getElementById("cap").textContent = S.i === 0
+    ? "Before training. G maps noise z to x without ever seeing the real data; D(x) is the discriminator's probability that x is real."
+    : S.i < last
+      ? (S.sched === "B" && s.half === "D"
+        ? "Update D: D rises where the real data are and falls where the generated samples are. G has not moved."
+        : "Update G: each generated sample moves along D's slope, the arrows, toward where D reads real. G uses only D's slope, never the data.")
+      : "Trained. Where the data are, D(x) is near ½: it can no longer tell real from generated, and both losses sit at their value for D = ½. Between the modes G still leaves a thin bridge of samples, and D marks it as generated.";
+}
+
+document.getElementById("step").onclick = () => { const r = run(); if (S.sched === "A") S.i = Math.min(S.i + 1, r.snaps.length - 1); else S.i = Math.min(S.i + 1, r.snaps.length - 1); draw(); };
+document.getElementById("reset").onclick = () => { S.i = 0; S.playing = false; draw(); };
+document.getElementById("train").onclick = () => {
+  S.playing = true; const r = run(); const last = r.snaps.length - 1;
+  const per = S.sched === "A" ? 1 : 2;   // snapshots a frame
+  const tick = () => { if (!S.playing) return; S.i = Math.min(S.i + per, last); draw(); if (S.i < last) requestAnimationFrame(tick); else { S.playing = false; draw(); } };
+  requestAnimationFrame(tick);
+};
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { colors(); draw(); });
+build();
+</script>
+</body>
+</html>

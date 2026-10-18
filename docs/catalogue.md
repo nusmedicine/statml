@@ -25190,7 +25190,7 @@ seeded rng.
 | 104 | `representation` | 10-1 | the embedding sorts digits without a label: each objective makes its training signal from the data itself | Reconstruct · Mask · Contrast, then the embedding map | **SHIPPED 2026-10-16** (21 states) |
 | 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | **SHIPPED 2026-10-17** |
 | 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | **SHIPPED 2026-10-19** (22 states) |
-| 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | picked 2026-10-12; check a seed that converges without collapse |
+| 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | **MEASURED AND MOCKED 2026-10-19**: two modes, seed 4; D = ½ where the data are |
 | 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | picked; measure first |
 
 **Build order** is the lessons': 104 → 105 → 106 → 108 → 107.
@@ -25955,6 +25955,73 @@ state, which lands on that same opening) must hash alike, and only the fronted
 run gives them one hash (e814637d). The cursor was ruled out (parked outside
 the frames, same result). Rebaselined from three fronted runs identical on all
 22, then a MATCH pass, 22/22 at DPR 1.25.
+
+### 108 MEASURED AND MOCKED 2026-10-19, before any build
+
+**Host.** 10-3b c41–43 (the Master folder's b copy, 2026-10-13): the GAN as a
+table of the two players, the minimax objective and c42's pseudocode (one D
+update on real and fake, then one G update with L_G = −log D(G(z))), three
+bullets (G never sees the data; D is a learned loss; p_G → p_data), a link
+to GAN Lab. No code. c43's conditional GAN is pseudocode only and stays out
+(one page, base GAN, as picked).
+
+**Engine** (`_lab/gan-engine.js`, node and browser): G and D are 1 → 16 → 1
+tanh MLPs initialised as torch's `nn.Linear`, Adam (β1 0.5), batch 64, 1,000
+real draws, everything from one `makeRng(seed)`; `kD`/`kG` steps a half;
+snapshots of both networks every `every` rounds. ~215 ms a run in node, so it
+trains in `compute` once per seed. `_lab/gan-measure.mjs` prints the table:
+
+| real data | each round | distance to data, median (worst) | \|D − ½\| at the data, median | D(0) | collapsed |
+|---|---|---|---|---|---|
+| one bell N(3, 0.6²) | 1 D, 1 G, equal rates | 0.64 (0.97) | 0.02 | — | — |
+| one bell | D 5× faster | 0.15 (0.35) | 0.01 | — | — |
+| **two modes** ½N(−2, 0.5²) + ½N(2, 0.5²) | **1 D, 1 G, equal rates (A)** | **0.18 (0.24)** | **0.02** | 0.07–0.21 | **0/40** |
+| two modes | D 5× faster | 0.19 (1.33) | 0.05 | 0.01–0.65 | 9/40 |
+| **two modes** | **20 D, then 20 G (B)** | **0.18 (0.25)** | **0.02** | 0.07–0.24 | **0/40** |
+| two modes | 100 D, then 20 G | 0.35 (1.47) | 0.04 | 0.00–0.85 | 5/20 |
+
+Seeds 1–40 (1–20 last row); distance is the 1-D Wasserstein distance from
+2,000 generated samples to the 1,000 real; collapsed is under 10% or over 90%
+on one side of 0.
+
+**What it says.** (1) The one bell at the pseudocode's schedule fails in a
+way that would mislead: D goes flat at ½ while G sits visibly off the data.
+(2) The two modes cover both modes on every seed under either schedule.
+(3) **The catalogue's claim needs narrowing**: D(x) = ½ *where the data are*,
+not everywhere. G maps noise to x continuously, so a thin bridge of generated
+samples stays in the gap where the data have almost none, and D reads
+0.07–0.24 there: the optimal p_data/(p_data + p_G). (4) A D that trains much
+faster than G is what collapses onto one mode here (5× rate, or 100 D steps a
+round). (5) Seed 4 ends within 0.17 of the data with D within 0.06 of ½ at
+both modes under A and B (so do 5, 7, 10, 13), and sends every sample left of
+0 early on (rounds 25–100 under A, 1–4 under B) before recovering.
+(6) Under B one press visibly moves one half: D's curve, or the pile.
+
+**Mocked** (`_lab/gan-mock.html`, at 540 px, the engine live): the pseudocode
+in the card with the running half marked; x panel with the real histogram
+(`--c-reference`), G's samples (`--c-empirical`), D(x) on a 0–1 right axis
+(`--c-theory`) and a dashed ½; Goodfellow et al.'s z → x lines; arrows on 21
+generated samples, d log D/dx (`--c-slope`); a loss panel with 2 ln 2 and
+ln 2 dashed. Eight calls at the mock's foot (target, presses A vs B, lines,
+arrows, loss panel, colours, collapse control, name). Awaiting his answer.
+
+**His calls, 2026-10-19.** Call 2 **B** (20 D then 20 G a round, one press
+labelled Update D / Update G). He asked what is generated ("digits?"): one
+number per sample; the axis stays **plain x** on his word, and the subtitle
+can say the same game generates images when x is an image. He asked whether
+the pseudocode could be a diagram: **call 9** added to the mock, the loop as
+an inline-SVG diagram in the card (x_real and G(z) into D, D(x) into the
+loss, the gradient in `--c-slope` back to the network being updated, the
+other marked held fixed; in Update G the real branch fades and the gradient
+runs back through D to G). Arms Pseudocode · Diagram + loss (recommended, the
+104–106 card form) · Diagram + pseudocode. **Picked: Diagram + loss.** The
+remaining calls asked one by one, on his request, **all the recommendation**:
+1 two modes; 3 the z → x lines; 4 the arrows; 5 the loss panel; 6 the
+mock's colours; 7 no collapse control (Seed the only rail control besides the
+presses); 8 slug `gan`, "Deep Learning - Frontiers: Generative Adversarial
+Networks". Carried over from 104–106 for the build: a dot moving along the
+diagram's arrows during a press, a hover card (D(x) and both densities at the
+pointer). NEXT: the draft.
 
 ---
 
