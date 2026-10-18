@@ -231,6 +231,9 @@ const S = {
   pageLabel: "Model",
   labelLabel: "Label c",
   labelDetail: "highlights that digit's codes; sends the VAE's sampler onto them and gives the conditional VAE c",
+  digitLabel: "Digit",
+  digitDetail: "highlights that digit's codes on every map; a hover over a numeral shows one, a click keeps it",
+  digitNone: "None",
   samplerLabel: { s_ae: "Sampler", s_without: "Sampler, without KL", s_with: "Sampler, with KL", s_vae: "Sampler, VAE", s_cvae: "Sampler, conditional VAE" },
   samplerDetail: "centre and spread, as x, y, s; on a map, a drag inside the circle moves it and a drag on its rim sets s",
   samplerCheck: "three numbers, as 1.2, −0.4, 0.8",
@@ -531,6 +534,28 @@ const mapScale = (M, V) => ({
   r: (zr) => (zr / (2 * V.half)) * M.s,
 });
 const insideMap = (M, x, y) => x >= M.x && x <= M.x + M.s && y >= M.y && y <= M.y + M.s;
+/** each digit's numeral at its median code, on the pages that draw them (not Conditional, whose Label does this job) */
+function numeralsOf(M, params, anim, page) {
+  if (page === "conditional") return [];
+  const { X, Y } = mapScale(M, viewOf(M, params, anim, page)), out = [];
+  for (let q = 0; q < 10; q++) {
+    const xs = [], ys = [];
+    for (let i = 0; i < N; i++) if (DIGITS[i] === q) { const z = codeOf(anim, page, M.m, i); xs.push(z[0]); ys.push(z[1]); }
+    const x = X(median(xs)), y = Y(median(ys));
+    if (insideMap(M, x, y)) out.push({ d: q, x, y });
+  }
+  return out;
+}
+/** the nearest numeral within 9 px of a point (numerals can sit closer than that: the 3, 5 and 8 on the autoencoder's map) */
+function nearestNumeral(list, x, y) {
+  let best = null, bd = 81;
+  for (const n of list) { const d = (n.x - x) ** 2 + (n.y - y) ** 2; if (d <= bd) { bd = d; best = n.d; } }
+  return best;
+}
+function numeralAt(Lo, params, anim, page, x, y) {
+  return nearestNumeral(Lo.maps.flatMap((M) => numeralsOf(M, params, anim, page)), x, y);
+}
+const digitOf = (params) => (params.digit === "none" ? null : Number(params.digit));
 function buttonsOf(M) {
   const names = M.follows ? ["zoomIn", "zoomOut", "fit", "label"] : ["zoomIn", "zoomOut", "fit", "prior"], ws = { zoomIn: BTN, zoomOut: BTN, fit: 28, prior: 46, label: 58 };
   const out = []; let x = M.x + M.s - 4;
@@ -540,8 +565,9 @@ function buttonsOf(M) {
 
 /* ------------------------------------------------------------- drawing */
 
-function drawMap(ctx, colors, page, M, params, anim) {
+function drawMap(ctx, colors, page, M, params, anim, focusDigit) {
   const V = viewOf(M, params, anim, page), { X, Y, r } = mapScale(M, V), d = Number(params.label), cond = page === "conditional";
+  const hd = cond ? d : focusDigit;
   txt(ctx, colors, S.title[M.key], M.x - LM, 14, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
   const sub = S.sub[M.key];
   txt(ctx, colors, typeof sub === "function" ? sub(d) : sub, M.x - LM, 29, { fill: colors.ink3 });
@@ -561,19 +587,16 @@ function drawMap(ctx, colors, page, M, params, anim) {
   let out = 0;
   pts.forEach(([a, b], i) => {
     let x = X(a), y = Y(b);
-    const inView = insideMap(M, x, y), mine = cond && DIGITS[i] === d;
+    const inView = insideMap(M, x, y), mine = hd != null && DIGITS[i] === hd;
     if (!inView) { out++; x = clamp(x, M.x + 1, M.x + M.s - 1); y = clamp(y, M.y + 1, M.y + M.s - 1); }
     ctx.fillStyle = mine ? colors.highlight : colors.empirical;
-    ctx.globalAlpha = !inView ? 0.25 : cond ? (mine ? 0.9 : 0.25) : 0.5;
+    ctx.globalAlpha = !inView ? 0.25 : hd != null ? (mine ? 0.9 : 0.22) : 0.5;
     const rr = mine ? 1.6 : 1.2;
     ctx.fillRect(x - rr, y - rr, 2 * rr, 2 * rr);
   });
   ctx.globalAlpha = 1;
-  if (!cond) for (let q = 0; q < 10; q++) {
-    const xs = [], ys = [];
-    pts.forEach(([a, b], i) => { if (DIGITS[i] === q) { xs.push(a); ys.push(b); } });
-    const mx = X(median(xs)), my = Y(median(ys));
-    if (insideMap(M, mx, my)) txt(ctx, colors, String(q), mx, my + 4, { size: colors.fsSm, align: "center", weight: "600", fill: colors.ink1, halo: true });
+  for (const n of numeralsOf(M, params, anim, page)) {
+    txt(ctx, colors, String(n.d), n.x, n.y + 4, { size: colors.fsSm, align: "center", weight: "600", fill: n.d === hd ? colors.highlight : colors.ink1, halo: true });
   }
   const Sm = samplerOf(page, M, params);
   ctx.save(); ctx.strokeStyle = colors.prior; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
@@ -714,6 +737,8 @@ function captionOf(params, anim) {
 let api = null, gesture = null, lastW = 550;
 function partAt(M, params, anim, x, y) {
   for (const b of buttonsOf(M)) if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return { kind: "btn", k: b.k };
+  const nd = nearestNumeral(numeralsOf(M, params, anim, params.page), x, y);
+  if (nd != null) return { kind: "numeral", d: nd };
   const V = viewOf(M, params, anim, params.page), sc = mapScale(M, V), Sm = samplerOf(params.page, M, params);
   const d = Math.hypot(x - sc.X(Sm.c[0]), y - sc.Y(Sm.c[1])), r = sc.r(R95 * Sm.s);
   if (Math.abs(d - r) <= 6) return { kind: "rim", V };
@@ -733,6 +758,7 @@ function wire(canvas) {
     if (!M) return;
     const params = api.params, part = partAt(M, params, api.anim, p.x, p.y);
     ev.preventDefault();
+    if (part.kind === "numeral") { write("digit", params.digit === String(part.d) ? "none" : String(part.d)); return; }
     if (part.kind === "btn") {
       const V = viewOf(M, params, api.anim, params.page), c = [M.x + M.s / 2, M.y + M.s / 2];
       if (part.k === "zoomIn") zoom(M, V, ...c, 1 / 1.4);
@@ -748,7 +774,7 @@ function wire(canvas) {
     const p = at(ev);
     if (!gesture) {
       const M = mapAt(p);
-      canvas.style.cursor = !M ? "default" : (() => { const k = partAt(M, api.params, api.anim, p.x, p.y).kind; return k === "btn" ? "pointer" : k === "rim" ? "ew-resize" : k === "move" ? "move" : "grab"; })();
+      canvas.style.cursor = !M ? "default" : (() => { const k = partAt(M, api.params, api.anim, p.x, p.y).kind; return k === "btn" || k === "numeral" ? "pointer" : k === "rim" ? "ew-resize" : k === "move" ? "move" : "grab"; })();
       return;
     }
     const G = gesture, perZ = G.M.s / (2 * G.V.half), dz = [(p.x - G.x0) / perZ, -(p.y - G.y0) / perZ];
@@ -802,6 +828,7 @@ api = defineWidget({
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "ae", display: true },
     label: { type: "segmented", label: S.labelLabel, detail: S.labelDetail, options: LABELS, default: "5", display: true, when: ON("conditional") },
+    digit: { type: "segmented", label: S.digitLabel, detail: S.digitDetail, options: [{ value: "none", label: S.digitNone }, ...LABELS], default: "none", display: true, when: { param: "page", oneOf: ["ae", "vae"] } },
     s_ae: samplerParam("s_ae", "ae"),
     s_without: samplerParam("s_without", "vae"),
     s_with: samplerParam("s_with", "vae"),
@@ -814,7 +841,8 @@ api = defineWidget({
 
   legend: ({ params }) => [
     { token: "empirical", label: S.legend.code, mark: "dot" },
-    ...(params.page === "conditional" ? [{ token: "highlight", label: S.legend.chosen(params.label), mark: "dot" }] : []),
+    ...(params.page === "conditional" ? [{ token: "highlight", label: S.legend.chosen(params.label), mark: "dot" }]
+      : params.digit !== "none" ? [{ token: "highlight", label: S.legend.chosen(params.digit), mark: "dot" }] : []),
     { token: "prior", label: S.legend.circle, mark: "dash" },
   ],
 
@@ -862,14 +890,16 @@ api = defineWidget({
     lastW = w;
     renderFormula(page, label);
     updateSchema(page, anim);
+    const overNumeral = pointer && !gesture ? numeralAt(Lo, params, anim, page, pointer.x, pointer.y) : null;
+    const focusDigit = overNumeral ?? digitOf(params);
     for (const M of Lo.maps) {
-      drawMap(ctx, colors, page, M, params, anim);
+      drawMap(ctx, colors, page, M, params, anim, focusDigit);
       drawRegion(ctx, colors, page, M, Lo.region, params, anim);
     }
     drawLoss(ctx, colors, page, Lo, anim);
     drawRow16(ctx, colors, page, Lo, params, anim);
     wrapText(ctx, colors, captionOf(params, anim), PAD, Lo.capTop, w - 2 * PAD, 17);
-    drawCard(ctx, colors, w, h ?? Lo.height, hoverOf(pointer, Lo, page, params, anim), params);
+    if (overNumeral == null) drawCard(ctx, colors, w, h ?? Lo.height, hoverOf(pointer, Lo, page, params, anim), params);
   },
 
   readout({ params, anim }) {

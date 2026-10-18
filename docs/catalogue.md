@@ -25889,6 +25889,14 @@ and grey fail every colour check on the dark surface (lightness band 4 hues,
 chroma floor 2, CVD green ↔ orange ΔE 3.2 against 8, normal vision red ↔
 orange 7.1 against 15), and amber is the sampler's colour. Recommended: C.
 
+**His pick: C, built.** A **Digit** control (None · 0–9, on Autoencoder and
+VAE; Conditional's Label already does this) highlights that digit's codes in
+`--c-highlight` on every map of the page and dims the rest; a hover over a
+numeral previews its digit (and takes the hover card's place), a click keeps
+it, a second click clears it. The hit test takes the NEAREST numeral within
+9 px: on the autoencoder's map the 3, 5 and 8 sit closer than that, and the
+first-match version picked 3 for a click on the 5.
+
 ---
 
 ## Two arcs, not one — now three
