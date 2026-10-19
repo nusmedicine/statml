@@ -106,13 +106,14 @@ print("generation", len(fr["t"]), flush=True)
 # the row's seed draws the same x_T and the same z at every step, so a row
 # differs only in the label.
 mc = load("cond", "e5")
-cond = {"steps": 75, "t": None, "xt": [], "x0_hat": []}
+cond = {"steps": 75, "t": None, "xt": [], "x0_hat": [], "eps_hat": []}   # eps_hat added 2026-10-20 for the subtraction row
 for r in range(4):
     for d in range(10):
         fr = run(mc, 1, 75, 200 + r, y=torch.tensor([d]), every=3)
         cond["t"] = fr["t"]
         cond["xt"].append([b64(v) for v in fr["xt"]])
         cond["x0_hat"].append([b64(v) for v in fr["x0_hat"]])
+        cond["eps_hat"].append([b64(v) for v in fr["eps_hat"]])
 print("conditional", len(cond["t"]), flush=True)
 out["conditional"] = cond
 
