@@ -82,6 +82,7 @@
       <button class="act" id="play">Train</button>
       <button class="act" id="reset">Reset</button>
       <div class="mockonly" data-page="forward"><div class="lab2">Mock only: the classifier curve (call 3)</div><div class="seg" id="clfToggle"></div></div>
+      <div class="mockonly"><div class="lab2">Mock only: stored greys (call 12)</div><div class="seg" id="bitsToggle"></div></div>
       <div class="mockonly" data-page="generation"><div class="lab2">Mock only: x&#x0302;&#8320; (call 6)</div><div class="seg" id="x0Toggle"></div></div>
     </div>
     <div>
@@ -124,7 +125,12 @@
   <div class="rec">Recommend <b>as shown</b>.</div>
 
   <div class="q"><b class="h">11. Name</b>slug <code>diffusion</code>; title &ldquo;Deep Learning - Frontiers: Diffusion Models&rdquo;, the series form of 104&ndash;108.</div>
-  <div class="rec">Recommend <b>as written</b>. Carried over by default unless you say otherwise: hover (the curves read out &radic;&#x0101;<sub>t</sub> at the pointer; a hovered frame or grid cell previews its image large), the diagram's moving dot, the Train press.</div>
+  <div class="rec">Recommend <b>as written</b>, with the credit line 104 and 106 use: &ldquo;Data: MNIST (LeCun, Cortes and Burges)&rdquo;. Carried over by default unless you say otherwise: hover (the curves read out &radic;&#x0101;<sub>t</sub> at the pointer; a hovered frame or grid cell previews its image large), the diagram's moving dot, the Train press.</div>
+  <div class="q"><b class="h">12. The page's weight</b>Stored as mocked, the images come to ~5 MB of <code>data.js</code> (16 generation samples &times; 51 frames &times; x<sub>t</sub>, &epsilon;&#x0302;, x&#x0302;&#8320;; 40 conditional samples &times; 26 frames &times; x<sub>t</sub>, x&#x0302;&#8320;), six times 106's 0.8 MB. <b>A</b> as mocked, 8 bits; <b>B</b> 4 bits a pixel (16 greys, toggle in the rail), ~2.5 MB; <b>C</b> 4 bits and 8 generation samples instead of c113's 16, ~1.8 MB.</div>
+  <div class="rec">Recommend <b>B</b>: the noise and the digits read the same at 16 greys (flip the toggle on Generation at t &asymp; 500), and c113's 16 samples stay.</div>
+
+  <div class="q"><b class="h">13. Training's presses</b><b>Step</b> = the next checkpoint (0, 5, 20, 50, 100, 200 batches, epochs 1&ndash;3; shown), <b>Train</b> plays them all; or one press only, <b>Train</b>.</div>
+  <div class="rec">Recommend <b>Step and Train</b>, as on the other pages: the early checkpoints (5 to 50 batches) are where &epsilon;&#x0302; changes most, and Step lets a class stop on each.</div>
 </main>
 <script type="module">
 import { makeRng } from "../core/rng.js";
@@ -151,7 +157,7 @@ let D = null;
 const off = document.createElement("canvas"); off.width = off.height = 28;
 const octx = off.getContext("2d"); const idata = octx.createImageData(28, 28);
 function img(u8, k, x, y, s, frame, lw = 2) {
-  for (let i = 0; i < 784; i++) { const v = u8[k * 784 + i]; idata.data[4 * i] = idata.data[4 * i + 1] = idata.data[4 * i + 2] = v; idata.data[4 * i + 3] = 255; }
+  for (let i = 0; i < 784; i++) { const v = S.bits === 4 ? Math.round(u8[k * 784 + i] / 17) * 17 : u8[k * 784 + i]; idata.data[4 * i] = idata.data[4 * i + 1] = idata.data[4 * i + 2] = v; idata.data[4 * i + 3] = 255; }
   octx.putImageData(idata, 0, 0);
   ctx.imageSmoothingEnabled = false; ctx.drawImage(off, x, y, s, s);
   if (frame) { ctx.strokeStyle = frame; ctx.lineWidth = lw; ctx.strokeRect(x - lw / 2, y - lw / 2, s + lw, s + lw); }
@@ -160,7 +166,7 @@ const disp = (v) => Math.round(Math.max(0, Math.min(1, Math.max(-1, Math.min(1, 
 
 // ---- state ----
 const PAGES = { forward: "Forward", training: "Training", generation: "Generation", conditional: "Generation" };
-const S = { page: "forward", digit: 0, t: 0, clf: false, iter: 0, ck: 0, gi: 0, gsel: 0, x0: true, label: 3, crow: 0, ci: 0, playing: false };
+const S = { page: "forward", digit: 0, t: 0, clf: false, iter: 0, ck: 0, gi: 0, gsel: 0, x0: true, label: 3, crow: 0, ci: 0, playing: false, bits: 8 };
 let EPS = null;  // the forward page's epsilon, from the seed
 function fwdEps() { const r = makeRng(107); EPS = Float64Array.from({ length: 784 }, () => r.normal()); }
 fwdEps();
@@ -178,6 +184,7 @@ function build() {
     seg("labels", [...Array(10).keys()].map((d) => [d, String(d)]), () => S.label, (v) => { S.label = v; });
   }
   seg("clfToggle", [[false, "not drawn"], [true, "drawn"]], () => S.clf, (v) => { S.clf = v; });
+  seg("bitsToggle", [[8, "8 bits (256 greys)"], [4, "4 bits (16 greys)"]], () => S.bits, (v) => { S.bits = v; });
   seg("x0Toggle", [[true, "with x̂₀"], [false, "x_t and ε̂ only"]], () => S.x0, (v) => { S.x0 = v; });
   for (const el of document.querySelectorAll("[data-page]")) el.hidden = el.dataset.page !== S.page;
   draw();
