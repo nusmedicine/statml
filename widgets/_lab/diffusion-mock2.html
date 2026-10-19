@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · diffusion mock 2 — his three questions on the draft</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note, ul.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b, ul.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .proto { display: grid; grid-template-columns: 230px 540px; gap: var(--sp-4); align-items: start; margin-bottom: var(--sp-3); }
+  .rail { display: flex; flex-direction: column; gap: 12px; font-size: var(--fs-sm); }
+  .rail .lab2 { color: var(--ink-2); font-weight: 600; margin-bottom: 4px; }
+  .rail .sec { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin: 4px 0 2px; }
+  .seg { display: flex; flex-wrap: wrap; }
+  .seg button { flex: 1 1 auto; padding: 5px 6px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; font: inherit; font-size: 12px; }
+  .seg button.on { border-color: var(--c-highlight); font-weight: 600; }
+  .seg button:disabled { color: var(--ink-3); cursor: default; }
+  .act { padding: 7px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); border-radius: 3px; cursor: pointer; font: inherit; font-weight: 600; }
+  .act:disabled { color: var(--ink-3); border-color: var(--grid); cursor: default; }
+  .detail { color: var(--ink-3); font-size: 11px; margin-top: 3px; }
+  input[type=range] { width: 100%; }
+  .mockonly { border-top: 1px dashed var(--grid); padding-top: 10px; }
+  .mockonly .lab2 { color: var(--c-reference); }
+  canvas { display: block; background: var(--surface-1); }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--ink-3); background: var(--surface-2); }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 120ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 107 <code>diffusion</code> &middot; mock 2: his three questions on the draft</h1>
+  <p class="note">Draft 6a878ed, reviewed 2026-10-20. Three questions: <b>(1)</b> is a value of N(0, 1) shown anywhere, and is x a single value from it; <b>(2)</b> does Conditional show Forward and Training too; <b>(3)</b> is there a visual way of showing the noise being subtracted during generation. Each section draws its arms at the widget's width (540 px); the calls are at the foot. Data: the draft's own <code>data.js</code> and <code>_lab/diffusion-mock2data.py</code>. <span id="status">loading&hellip;</span></p>
+
+  <h2>1 &middot; Forward: one value of N(0, 1) per pixel</h2>
+  <p class="note"><b>The answer.</b> &epsilon; ~ N(0, I) is one draw of 784 numbers, one per pixel, each from N(0, 1) independently; x<sub>t</sub> is computed pixel by pixel, x<sub>t</sub>[i] = &radic;&#x0101;<sub>t</sub> x<sub>0</sub>[i] + &radic;(1&minus;&#x0101;<sub>t</sub>) &epsilon;[i]. Nothing in the draft shows a single value, and the grey picture hides them: an image is drawn from &minus;1 (black) to 1 (white), so the <span id="clampShare">32%</span> of &epsilon;'s values beyond &plusmn;1 all show as pure black or white. <b>Hover any pixel of the three images</b>: the same pixel is ringed in all three, and the card does the sum.</p>
+  <div class="proto">
+    <div class="rail">
+      <div><div class="lab2">t <span id="tval" style="font-weight:400"></span></div><input type="range" id="tslider" min="0" max="999" step="1" value="400"></div>
+      <div class="mockonly"><div class="lab2">Mock only: call 1</div><div class="seg" id="arm1"></div><div class="detail" id="arm1d"></div></div>
+    </div>
+    <div><canvas id="cv1"></canvas><div class="cap"><i>draft caption</i><span id="cap1"></span></div></div>
+  </div>
+
+  <h2>2 &middot; Conditional: Forward and Training too?</h2>
+  <p class="note"><b>Forward: no.</b> The forward process never sees the label: x<sub>t</sub> = &radic;&#x0101;<sub>t</sub> x<sub>0</sub> + &radic;(1&minus;&#x0101;<sub>t</sub>) &epsilon; is the same whatever digit x<sub>0</sub> is, so a conditional Forward page would be the Forward page again. <b>Training: there is something to show.</b> The loop is the unconditional one with c concatenated, but the eleven checkpoints of the conditional run show the <b>shapes learned before the label</b>: one sample a label from one shared starting noise, read by a classifier, is the same digit for every label until 100 batches (all 1s), mixed through epoch 3 (5 of 10 match their label), and 9 of 10 from epoch 4. Below, arm B's Training page for the conditional model, Step through the checkpoints.</p>
+  <div class="proto">
+    <div class="rail">
+      <div><div class="lab2">Stage</div>
+        <div class="sec">Diffusion</div><div class="seg" id="pA"></div>
+        <div class="sec">Conditional diffusion</div><div class="seg" id="pB"></div></div>
+      <div><div class="lab2">Iteration</div><div class="seg" id="iters2"></div><div class="detail">the same 12 iterations as Training, each with its label c</div></div>
+      <button class="act" id="step2">Step</button>
+      <button class="act" id="reset2">Reset</button>
+      <div class="mockonly"><div class="lab2">Mock only: call 2</div><div class="seg" id="arm2"></div><div class="detail" id="arm2d"></div></div>
+    </div>
+    <div><canvas id="cv2"></canvas><div class="cap"><i>draft caption</i><span id="cap2"></span></div></div>
+  </div>
+
+  <h2>3 &middot; Generation: the noise subtracted</h2>
+  <p class="note"><b>The constraint.</b> One step removes a small share of &epsilon;&#x0302; and adds fresh noise: on c113's 500-step run, k = (1 &minus; &alpha;<sub>t</sub>)/&radic;(1 &minus; &#x0101;<sub>t</sub>) is <span id="kvals"></span>, while the fresh noise &sigma;<sub>t</sub> z has &sigma;<sub>t</sub> = <span id="svals"></span>. So a single step's subtraction is too small to see as an image. Three arms: <b>A</b> the subtraction written as c96's x&#x0302;<sub>0</sub> formula, x<sub>t</sub> &minus; &radic;(1&minus;&#x0101;<sub>t</sub>)&middot;&epsilon;&#x0302; = &radic;&#x0101;<sub>t</sub>&middot;x&#x0302;<sub>0</sub>, the Forward page's equation run backwards, at the stored step; <b>B</b> one step exactly as c96's pseudocode writes it, at t = 998, 498 or 98; <b>C</b> the draft (x<sub>t</sub> &middot; &epsilon;&#x0302; &middot; x&#x0302;<sub>0</sub> side by side).</p>
+  <div class="proto">
+    <div class="rail">
+      <div><div class="lab2">Sample</div><div class="seg" id="samples3"></div></div>
+      <div id="frameBox"><div class="lab2">Stored step <span id="fval" style="font-weight:400"></span></div><input type="range" id="fslider" min="0" max="50" step="1" value="25"><div class="detail">mock only, in place of Step and Generate</div></div>
+      <div id="stepBox"><div class="lab2">t</div><div class="seg" id="tB"></div></div>
+      <div class="mockonly"><div class="lab2">Mock only: call 3</div><div class="seg" id="arm3"></div></div>
+    </div>
+    <div><canvas id="cv3"></canvas><div class="cap"><i>draft caption</i><span id="cap3"></span></div></div>
+  </div>
+
+  <h2>The calls</h2>
+  <div class="q"><b class="h">1. Forward: show the values</b><b>A</b> a hover on any pixel rings it in x<sub>0</sub>, &epsilon; and x<sub>t</sub> and prints the sum, e.g. 0.44 &times; 1.00 + 0.90 &times; (&minus;1.37) = &minus;0.79; <b>B</b> A plus a panel of the 784 pixel values as a histogram: x<sub>0</sub>'s (two spikes, background &minus;1 and stroke 1) and x<sub>t</sub>'s, with the N(0, 1) curve dashed, so the slider moves the values from the data's two spikes to N(0, 1); <b>C</b> neither.</div>
+  <div class="rec">Recommend <b>B</b>. The hover answers &ldquo;a single value&rdquo; at one pixel; the histogram answers it for all 784 at once, and it is the only place on the page where N(0, 1) itself is drawn, so x<sub>T</sub> &asymp; N(0, I) becomes something to see rather than a label. It replaces the six-frame strip's row (the strip moves under the histogram), and the page grows ~120 px.</div>
+
+  <div class="q"><b class="h">2. Conditional: which stages</b><b>A</b> as drafted, Generation only, the card saying the loop is the unconditional one with c added; <b>B</b> <b>Training &middot; Generation</b> under Conditional diffusion, Training as drawn above: the iteration's x<sub>0</sub> with its label, &epsilon;, x<sub>t</sub>, &epsilon;&#x0302; = &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t, c), the loss over 5 epochs, and one sample a label from this checkpoint; Step and Train through the eleven checkpoints. No conditional Forward either way.</div>
+  <div class="rec">Recommend <b>B</b>. It is the one thing the conditional run shows that the unconditional one cannot: the shapes come before the label (every label draws a 1 at 50 batches, 5 of 10 labels obeyed at epoch 3, 9 of 10 at epoch 4), which is also why the lesson trains it 5 epochs to the unconditional's 3. The caption says what the row shows, not a share.</div>
+
+  <div class="q"><b class="h">3. Generation: the subtraction</b><b>A</b>, <b>B</b> or <b>C</b> above, as the top row of the Generation page (and Conditional's).</div>
+  <div class="rec">Recommend <b>A</b>. It is the Forward page's row read backwards with the same colours: x<sub>t</sub> minus its noise share leaves the image's share, and as the steps go the weight on &epsilon;&#x0302; falls from 1.00 to 0 while the one on x&#x0302;<sub>0</sub> rises, so the subtraction is visible as the noise's share shrinking. B is the literal step, but at every t the change it makes is mostly the fresh noise (at t = 998, &sigma; = 0.20 against k = 0.04), so as a picture it shows x<sub>t</sub> &asymp; x<sub>t&minus;1</sub>; its numbers can go in the card's note instead.</div>
+</main>
+<script type="module">
+import { FORWARD, GENERATION } from "../diffusion/data.js";
+import { makeRng } from "../core/rng.js";
+
+const W = 540;
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+for (const k of ["ink-1", "ink-2", "ink-3", "grid", "axis", "surface-1", "surface-2", "c-reference", "c-empirical", "c-group-a", "c-group-b", "c-highlight", "c-slope", "font", "fs-xs", "fs-sm"]) C[k] = css("--" + k);
+function setup(id, h) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, h); return ctx; }
+function text(ctx, s, x, y, color = C["ink-2"], align = "left", font = C["fs-xs"], weight = "") { ctx.fillStyle = color; ctx.textAlign = align; ctx.font = `${weight} ${font} ${C.font}`; ctx.fillText(s, x, y); }
+const off = document.createElement("canvas"); off.width = off.height = 28; const octx = off.getContext("2d"), idata = octx.createImageData(28, 28);
+function img(ctx, u8, k, x, y, s, frame, lw = 2) {
+  for (let i = 0; i < 784; i++) { const v = u8[k * 784 + i]; idata.data[4 * i] = idata.data[4 * i + 1] = idata.data[4 * i + 2] = v; idata.data[4 * i + 3] = 255; }
+  octx.putImageData(idata, 0, 0); ctx.imageSmoothingEnabled = false; ctx.drawImage(off, x, y, s, s);
+  if (frame) { ctx.strokeStyle = frame; ctx.lineWidth = lw; ctx.strokeRect(x - lw / 2, y - lw / 2, s + lw, s + lw); }
+}
+const disp = (v) => Math.round((Math.max(-1, Math.min(1, v)) * 0.5 + 0.5) * 255);
+const unpack4 = (b64) => { const s = atob(b64), u = new Uint8Array(s.length * 2); for (let i = 0; i < s.length; i++) { const v = s.charCodeAt(i); u[2 * i] = (v >> 4) * 17; u[2 * i + 1] = (v & 15) * 17; } return u; };
+const unpack8 = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+const T = 1000; const ABAR = []; { let p = 1; for (let i = 0; i < T; i++) { p *= 1 - (1e-4 + (0.02 - 1e-4) * i / (T - 1)); ABAR.push(p); } }
+const sa = (t) => Math.sqrt(ABAR[t]), sn = (t) => Math.sqrt(1 - ABAR[t]);
+function seg(id, items, get, set, after) {
+  const el = document.getElementById(id); el.innerHTML = "";
+  for (const [v, lab] of items) { const b = document.createElement("button"); b.textContent = lab; b.className = get() === v ? "on" : ""; b.onclick = () => { set(v); after(); }; el.appendChild(b); }
+}
+
+/* ---------------- 1. Forward ---------------- */
+const X0 = unpack8(FORWARD.x0), K = 0;          // train_set[0], the 5 c107 uses
+const rng = makeRng(1); const EPS = Float64Array.from({ length: 784 }, () => rng.normal());
+const S1 = { t: 400, arm: "B", hover: null };
+const L1 = { s: 112, y: 30, xa: 56, xb: 56 + 112 + 68, xc: 56 + 2 * 112 + 68 + 26 };
+const x0v = (i) => X0[K * 784 + i] / 255 * 2 - 1;
+function draw1() {
+  const H = S1.arm === "B" ? 486 : 360, ctx = setup("cv1", H), t = S1.t, a = sa(t), b = sn(t);
+  document.getElementById("tval").textContent = `= ${t}`;
+  const { s, y, xa, xb, xc } = L1, mid = y + s / 2 + 5;
+  const eu = new Uint8Array(784), xu = new Uint8Array(784);
+  for (let i = 0; i < 784; i++) { eu[i] = disp(EPS[i]); xu[i] = disp(a * x0v(i) + b * EPS[i]); }
+  text(ctx, a.toFixed(2), 10, mid, C["c-group-a"], "left", C["fs-sm"], 600); text(ctx, "×", 44, mid);
+  img(ctx, X0, K, xa, y, s, C["c-group-a"]);
+  text(ctx, "+", xa + s + 8, mid, C["ink-1"], "left", C["fs-sm"]); text(ctx, b.toFixed(2), xa + s + 22, mid, C["c-group-b"], "left", C["fs-sm"], 600); text(ctx, "×", xa + s + 54, mid);
+  img(ctx, eu, 0, xb, y, s, C["c-group-b"]);
+  text(ctx, "=", xb + s + 9, mid, C["ink-1"], "left", C["fs-sm"]);
+  img(ctx, xu, 0, xc, y, s, C["c-highlight"]);
+  text(ctx, "x₀", xa + s / 2, y - 9, C["c-group-a"], "center"); text(ctx, "ε ~ N(0, I)", xb + s / 2, y - 9, C["c-group-b"], "center"); text(ctx, `xₜ, t = ${t}`, xc + s / 2, y - 9, C["ink-1"], "center", C["fs-xs"], 600);
+  // hover: ring the pixel in all three and print the sum
+  if (S1.arm !== "C" && S1.hover != null) {
+    const i = S1.hover, r = Math.floor(i / 28), c = i % 28, p = s / 28;
+    for (const X of [xa, xb, xc]) { ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 2; ctx.strokeRect(X + c * p - 1.5, y + r * p - 1.5, p + 3, p + 3); }
+    const v0 = x0v(i), e = EPS[i], v = a * v0 + b * e, f = (z) => (z < 0 ? `(−${Math.abs(z).toFixed(2)})` : z.toFixed(2));
+    const line = `pixel (${r}, ${c}):  ${a.toFixed(2)} × ${f(v0)} + ${b.toFixed(2)} × ${f(e)} = ${v.toFixed(2).replace("-", "−")}`;
+    ctx.fillStyle = C["surface-2"]; ctx.fillRect(8, y + s + 10, W - 16, 26); ctx.strokeStyle = C["ink-3"]; ctx.lineWidth = 1; ctx.strokeRect(8.5, y + s + 10.5, W - 17, 25);
+    text(ctx, line, 18, y + s + 28, C["ink-1"], "left", C["fs-sm"], 600);
+  } else if (S1.arm !== "C") text(ctx, "hover a pixel to see its three values", 10, y + s + 28, C["ink-3"]);
+  let yy = y + s + 56;
+  if (S1.arm === "B") {
+    // histogram of the 784 values: x0 (two spikes) and x_t, with N(0, 1) dashed
+    const L = 40, R = W - 20, y0 = yy + 14, y1 = yy + 120, lo = -3.5, hi = 3.5, nb = 35, bw = (hi - lo) / nb;
+    const px = (v) => L + (v - lo) / (hi - lo) * (R - L);
+    text(ctx, "The 784 pixel values (share in each bin)", 10, yy, C["ink-1"], "left", C["fs-sm"], 600);
+    const hist = (vals) => { const h = new Array(nb).fill(0); for (const v of vals) { const k = Math.min(nb - 1, Math.max(0, Math.floor((v - lo) / bw))); h[k]++; } return h.map((c) => c / vals.length); };
+    const h0 = hist(Array.from({ length: 784 }, (_, i) => x0v(i))), ht = hist(Array.from({ length: 784 }, (_, i) => a * x0v(i) + b * EPS[i]));
+    const ymax = 0.25, py = (v) => y1 - Math.min(v, ymax) / ymax * (y1 - y0);
+    ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y1 + 0.5); ctx.lineTo(R, y1 + 0.5); ctx.stroke();
+    for (const v of [-3, -2, -1, 0, 1, 2, 3]) text(ctx, String(v).replace("-", "−"), px(v), y1 + 14, C["ink-3"], "center");
+    // x0: outline steps
+    ctx.strokeStyle = C["c-group-a"]; ctx.lineWidth = 1.5; ctx.beginPath();
+    h0.forEach((v, k) => { const X = px(lo + k * bw); k ? ctx.lineTo(X, py(v)) : ctx.moveTo(X, py(v)); ctx.lineTo(px(lo + (k + 1) * bw), py(v)); }); ctx.stroke();
+    const big = h0.map((v, k) => [v, k]).filter(([v]) => v > ymax);
+    for (const [v, k] of big) text(ctx, `${Math.round(100 * v)}%`, px(lo + (k + 0.5) * bw), y0 - 2, C["c-group-a"], "center", C["fs-xs"], 600);
+    // x_t: filled bars
+    ctx.fillStyle = C["c-highlight"]; ctx.globalAlpha = 0.45;
+    ht.forEach((v, k) => { if (v > 0) ctx.fillRect(px(lo + k * bw) + 0.5, py(v), px(lo + (k + 1) * bw) - px(lo + k * bw) - 1, y1 - py(v)); }); ctx.globalAlpha = 1;
+    // N(0,1) per bin, dashed
+    ctx.strokeStyle = C["c-group-b"]; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let i = 0; i <= 140; i++) { const v = lo + (hi - lo) * i / 140, d = Math.exp(-v * v / 2) / Math.sqrt(2 * Math.PI) * bw; i ? ctx.lineTo(px(v), py(d)) : ctx.moveTo(px(v), py(d)); } ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = C.grid; for (const v of [-1, 1]) { ctx.beginPath(); ctx.moveTo(px(v), y0); ctx.lineTo(px(v), y1); ctx.stroke(); }
+    text(ctx, "x₀, the image", px(2.0), y0 + 14, C["c-group-a"]); text(ctx, "xₜ at this t", px(2.0), y0 + 30, C["c-highlight"]); text(ctx, "N(0, 1), dashed", px(2.0), y0 + 46, C["c-group-b"]);
+    text(ctx, "below −1 drawn black · above 1 drawn white", px(0), y1 + 30, C["ink-3"], "center");
+    yy = y1 + 56;
+  }
+  // c107's strip
+  const fs = 64, gap = (W - 20 - 6 * fs) / 5;
+  text(ctx, "Six steps of the forward process", 10, yy, C["ink-1"], "left", C["fs-sm"], 600);
+  [0, 50, 200, 400, 800, 999].forEach((tt, j) => { const u = new Uint8Array(784); for (let i = 0; i < 784; i++) u[i] = disp(sa(tt) * x0v(i) + sn(tt) * EPS[i]); const X = 10 + j * (fs + gap); img(ctx, u, 0, X, yy + 10, fs, tt === t ? C["c-highlight"] : null); text(ctx, `t = ${tt}`, X + fs / 2, yy + fs + 24, C["ink-2"], "center"); });
+  document.getElementById("cap1").textContent = S1.arm === "C" ? "(the draft's Forward page)" :
+    S1.arm === "A" ? "Every pixel of ε is one value drawn from N(0, 1); xₜ adds the two weighted values pixel by pixel." :
+    "Every pixel of ε is one value drawn from N(0, 1), and xₜ adds the two weighted values pixel by pixel. As t grows, the 784 values move from the image's two spikes, black background and white stroke, to N(0, 1). Values beyond ±1 are drawn as black or white.";
+}
+document.getElementById("cv1").addEventListener("pointermove", (e) => {
+  const r = e.currentTarget.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, { s, y: Y, xa, xb, xc } = L1;
+  let hov = null; for (const X of [xa, xb, xc]) if (x >= X && x < X + s && y >= Y && y < Y + s) hov = Math.floor((y - Y) / (s / 28)) * 28 + Math.floor((x - X) / (s / 28));
+  if (hov !== S1.hover) { S1.hover = hov; draw1(); }
+});
+document.getElementById("cv1").addEventListener("pointerleave", () => { S1.hover = null; draw1(); });
+document.getElementById("tslider").oninput = (e) => { S1.t = +e.target.value; draw1(); };
+function build1() {
+  seg("arm1", [["A", "A hover"], ["B", "B hover + values"], ["C", "C draft"]], () => S1.arm, (v) => (S1.arm = v), build1);
+  draw1();
+}
+
+/* ---------------- 2. Conditional Training ---------------- */
+let M2 = null;
+const S2 = { arm: "B", ck: 0, iter: 0, page: "ctrain" };
+const CKN = ["before training", "after 5 batches", "after 20 batches", "after 50 batches", "after 100 batches", "after 200 batches", "after epoch 1", "after epoch 2", "after epoch 3", "after epoch 4", "after epoch 5"];
+function draw2() {
+  const ctx = setup("cv2", 470);
+  seg("pA", [["f", "Forward"], ["t", "Training"], ["g", "Generation"]], () => "", () => {}, () => {});
+  for (const b of document.querySelectorAll("#pA button")) b.disabled = true;
+  seg("pB", S2.arm === "B" ? [["ctrain", "Training"], ["cgen", "Generation"]] : [["cgen", "Generation"]], () => (S2.arm === "B" ? "ctrain" : "cgen"), () => {}, () => {});
+  if (!M2) return;
+  if (S2.arm === "A") { text(ctx, "Arm A: no conditional Training page; Conditional diffusion holds Generation only (the draft).", 10, 30, C["ink-2"], "left", C["fs-sm"]); document.getElementById("cap2").textContent = ""; return; }
+  const ct = M2.cond_training, i = S2.iter, ck = S2.ck, s = 100, y = 30, xs = [10, 146, 282, 422];
+  const TR = M2.tr;
+  img(ctx, TR.x0, i, xs[0], y, s, C["ink-3"], 1); img(ctx, TR.eps, i, xs[1], y, s, C["c-reference"]); img(ctx, TR.xt, i, xs[2], y, s, C["ink-3"], 1);
+  img(ctx, unpack8(ct.eps_hat[ck]), i, xs[3], y, s, C["c-empirical"]);
+  text(ctx, `x₀, c = ${TR.label[i]}`, xs[0] + s / 2, y - 9, C["ink-1"], "center"); text(ctx, "ε, the noise added", xs[1] + s / 2, y - 9, C["ink-1"], "center");
+  text(ctx, `xₜ, t = ${TR.t[i]}`, xs[2] + s / 2, y - 9, C["ink-1"], "center"); text(ctx, "ε̂ = εθ(xₜ, t, c)", xs[3] + s / 2, y - 9, C["c-empirical"], "center", C["fs-xs"], 600);
+  text(ctx, `‖ε − ε̂‖² per pixel = ${ct.mse[ck][i].toFixed(4)}`, xs[3] + s, y + s + 18, C["c-empirical"], "right", C["fs-xs"], 600);
+  // loss
+  const L = 44, R = W - 16, y0 = 190, y1 = 290, NB = ct.batch_loss.length, lx = (bt) => L + Math.log10(bt + 1) / Math.log10(NB + 1) * (R - L), ly = (v) => y1 - (Math.log10(v) + 2) / 2.2 * (y1 - y0);
+  text(ctx, "Training loss per batch (log axes)", 10, y0 - 14, C["ink-1"], "left", C["fs-sm"], 600);
+  ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y0); ctx.lineTo(L, y1 + .5); ctx.lineTo(R, y1 + .5); ctx.stroke();
+  for (const v of [0.01, 0.1, 1]) text(ctx, String(v), L - 5, ly(v) + 4, C["ink-3"], "right");
+  for (const bt of [0, 5, 20, 50, 100, 200, 1175]) text(ctx, String(bt), lx(bt), y1 + 14, C["ink-3"], "center");
+  ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 1.4; ctx.beginPath();
+  for (let bt = 0; bt < ct.tag_batch[ck]; bt++) { const X = lx(bt + 1), Y = ly(Math.max(0.0105, ct.batch_loss[bt])); bt ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.stroke();
+  ct.tag_batch.forEach((bt, j) => { ctx.fillStyle = j === ck ? C["c-highlight"] : C.grid; ctx.beginPath(); ctx.arc(lx(bt), y1, j === ck ? 4 : 2.5, 0, 7); ctx.fill(); });
+  // one sample a label
+  const ss = 46, g = (W - 20 - 10 * ss) / 9, sy = 350, sm = unpack8(ct.samples[ck]);
+  text(ctx, `One sample a label from the model ${CKN[ck]}, all from one starting noise`, 10, sy - 26, C["ink-1"], "left", C["fs-sm"], 600);
+  for (let d = 0; d < 10; d++) { const X = 10 + d * (ss + g); text(ctx, `c = ${d}`, X + ss / 2, sy - 6, C["ink-2"], "center"); img(ctx, sm, d, X, sy, ss, null); }
+  const rb = ct.read_back[ck].filter((v, d) => v === d).length;
+  text(ctx, `mock only: a classifier reads ${rb} of 10 as their label (read as ${ct.read_back[ck].join(" ")})`, 10, sy + ss + 20, C["ink-3"]);
+  document.getElementById("cap2").textContent = ck < 4
+    ? "Early in training the model draws one shape whatever the label: the label is in its input, but its weights do not use it yet."
+    : ck < 9 ? "The shapes become digits before they follow the label: different labels give digits, but often not the digit asked for."
+    : "From epoch 4 the samples follow the label. The conditional model is trained for 5 epochs, the unconditional one for 3.";
+  document.getElementById("step2").disabled = ck >= ct.tags.length - 1;
+}
+function build2() {
+  seg("arm2", [["A", "A as drafted"], ["B", "B Training too"]], () => S2.arm, (v) => (S2.arm = v), build2);
+  if (M2) seg("iters2", M2.tr.t.map((t, i) => [i, String(i + 1)]), () => S2.iter, (v) => (S2.iter = v), build2);
+  draw2();
+}
+document.getElementById("step2").onclick = () => { S2.ck = Math.min(S2.ck + 1, 10); draw2(); };
+document.getElementById("reset2").onclick = () => { S2.ck = 0; draw2(); };
+
+/* ---------------- 3. Generation: the subtraction ---------------- */
+const S3 = { arm: "A", sample: 2, f: 25, tB: 498 };
+function draw3() {
+  const ctx = setup("cv3", 300);
+  document.getElementById("frameBox").style.display = S3.arm === "B" ? "none" : "";
+  document.getElementById("stepBox").style.display = S3.arm === "B" ? "" : "none";
+  const k = S3.sample;
+  if (S3.arm === "B") {
+    if (!M2) return;
+    /* five images, an operator in each gap, each coefficient in the label over its image */
+    const st = M2.step[S3.tB], s = 70, y = 40, mid = y + s / 2 + 5, step = 112;
+    const xs = [0, 1, 2, 3, 4].map((j) => 8 + j * step), gap = (j) => xs[j] + s + (step - s) / 2;
+    const U = (key) => unpack8(st[key]);
+    img(ctx, U("xt"), k, xs[0], y, s, C["c-highlight"]);
+    img(ctx, U("eps_hat"), k, xs[1], y, s, C["c-empirical"]);
+    img(ctx, U("mean"), k, xs[2], y, s, C["ink-3"], 1);
+    img(ctx, U("sigma_z"), k, xs[3], y, s, C["ink-3"], 1);
+    img(ctx, U("next"), k, xs[4], y, s, C["c-highlight"]);
+    [["−", 0], ["→", 1], ["+", 2], ["=", 3]].forEach(([op, j]) => text(ctx, op, gap(j), mid, C["ink-1"], "center", C["fs-sm"], 600));
+    text(ctx, `xₜ, t = ${S3.tB}`, xs[0] + s / 2, y - 9, C["ink-1"], "center", C["fs-xs"], 600);
+    text(ctx, `${st.k.toFixed(3)} × ε̂`, xs[1] + s / 2, y - 9, C["c-empirical"], "center", C["fs-xs"], 600);
+    text(ctx, `÷ ${st.sqrt_alpha.toFixed(3)}: the mean`, xs[2] + s / 2, y - 9, C["ink-2"], "center");
+    text(ctx, `${st.sigma.toFixed(3)} × z`, xs[3] + s / 2, y - 9, C["ink-2"], "center");
+    text(ctx, `xₜ₋₁, t = ${st.prev}`, xs[4] + s / 2, y - 9, C["ink-1"], "center", C["fs-xs"], 600);
+    text(ctx, "One step as the pseudocode writes it: xₜ₋₁ = (xₜ − k·ε̂)/√αₜ + σₜ z, k = (1 − αₜ)/√(1 − ᾱₜ)", 10, 150, C["ink-1"], "left", C["fs-sm"]);
+    text(ctx, `Here k = ${st.k.toFixed(3)} and σₜ = ${st.sigma.toFixed(3)}: the step removes ${(100 * st.k).toFixed(1)}% of ε̂ and adds noise of size ${st.sigma.toFixed(2)}.`, 10, 172, C["ink-2"]);
+    document.getElementById("cap3").textContent = "Each step subtracts a small share of the predicted noise, rescales, and adds a little fresh noise; the picture changes too little in one step to see. Over many steps the subtraction adds up.";
+    return;
+  }
+  const G = GENERATION, f = S3.f, t = G.t[f];
+  document.getElementById("fval").textContent = t < 0 ? "= result" : `= ${f * 10} of 500 (t = ${t})`;
+  const xt = unpack4(G.xt[f]), eh = unpack4(G.epsHat[f]), x0 = unpack4(G.x0Hat[f]);
+  const s = 112, y = 30, mid = y + s / 2 + 5;
+  if (t < 0) { img(ctx, xt, k, 214, y, s, C["c-highlight"]); text(ctx, "x₀, the result", 214 + s / 2, y - 9, C["ink-1"], "center", C["fs-xs"], 600); return; }
+  if (S3.arm === "C") {
+    const xs = [16, 210, 404].map((v) => v - 6);
+    img(ctx, xt, k, xs[0], y, s, C["c-highlight"]); img(ctx, eh, k, xs[1], y, s, C["c-empirical"]); img(ctx, x0, k, xs[2], y, s, C["c-empirical"]);
+    text(ctx, `xₜ, t = ${t}`, xs[0] + s / 2, y - 9, C["ink-1"], "center", C["fs-xs"], 600); text(ctx, "ε̂ = εθ(xₜ, t)", xs[1] + s / 2, y - 9, C["c-empirical"], "center"); text(ctx, "x̂₀, the image ε̂ implies", xs[2] + s / 2, y - 9, C["c-empirical"], "center");
+    document.getElementById("cap3").textContent = "(the draft's Generation row)";
+    return;
+  }
+  // A: xₜ − √(1−ᾱ)·ε̂ = √ᾱ·x̂₀, the forward row read backwards
+  const xa = 10, xb = xa + s + 68, xc = xb + s + 60;
+  img(ctx, xt, k, xa, y, s, C["c-highlight"]);
+  text(ctx, "−", xa + s + 8, mid, C["ink-1"], "left", C["fs-sm"]); text(ctx, sn(t).toFixed(2), xa + s + 22, mid, C["c-group-b"], "left", C["fs-sm"], 600); text(ctx, "×", xa + s + 54, mid);
+  img(ctx, eh, k, xb, y, s, C["c-group-b"]);
+  text(ctx, "=", xb + s + 8, mid, C["ink-1"], "left", C["fs-sm"]); text(ctx, sa(t).toFixed(2), xb + s + 22, mid, C["c-group-a"], "left", C["fs-sm"], 600); text(ctx, "×", xb + s + 50, mid);
+  img(ctx, x0, k, xc, y, s, C["c-group-a"]);
+  text(ctx, `xₜ, t = ${t}`, xa + s / 2, y - 9, C["ink-1"], "center", C["fs-xs"], 600); text(ctx, "ε̂, the predicted noise", xb + s / 2, y - 9, C["c-group-b"], "center"); text(ctx, "x̂₀, what remains", xc + s / 2, y - 9, C["c-group-a"], "center");
+  // the two weights over the run, with where we are
+  const L = 40, R = W - 20, y0 = 196, y1 = 270, px = (tt) => R - (tt / 999) * (R - L), py = (v) => y1 - v * (y1 - y0);
+  text(ctx, "The weights as generation runs (t from 999 down to 0)", 10, y0 - 14, C["ink-1"], "left", C["fs-sm"], 600);
+  ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y1 + .5); ctx.lineTo(R, y1 + .5); ctx.stroke();
+  for (const tt of [999, 800, 600, 400, 200, 0]) text(ctx, String(tt), px(tt), y1 + 14, C["ink-3"], "center");
+  for (const [fn, col] of [[sa, C["c-group-a"]], [sn, C["c-group-b"]]]) { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); for (let tt = 999; tt >= 0; tt -= 3) { const X = px(tt), Y = py(fn(tt)); tt === 999 ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y); } ctx.stroke(); }
+  ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px(t), y0 - 4); ctx.lineTo(px(t), y1); ctx.stroke();
+  text(ctx, "on ε̂", px(120), py(sn(120)) - 6, C["c-group-b"]); text(ctx, "on x̂₀", px(880), py(sa(880)) - 6, C["c-group-a"]);
+  document.getElementById("cap3").textContent = t > 600
+    ? "Subtracting the predicted noise's share from xₜ leaves the image's share. Early on almost all of xₜ is noise, so what remains is a faint blur."
+    : t > 200 ? "As the steps go, the weight on the noise falls and the weight on the image rises: less is subtracted, and what remains takes the shape of a digit."
+    : "Near the end almost nothing is subtracted: xₜ is nearly the image itself.";
+}
+function build3() {
+  seg("arm3", [["A", "A subtract (rec)"], ["B", "B one step"], ["C", "C draft"]], () => S3.arm, (v) => (S3.arm = v), build3);
+  seg("samples3", Array.from({ length: 16 }, (_, i) => [i, String(i + 1)]), () => S3.sample, (v) => (S3.sample = v), build3);
+  seg("tB", [[998, "998"], [498, "498"], [98, "98"]], () => S3.tB, (v) => (S3.tB = v), build3);
+  draw3();
+}
+document.getElementById("fslider").oninput = (e) => { S3.f = +e.target.value; draw3(); };
+
+build1(); build2(); build3();
+fetch("diffusion-mock2-data.json").then((r) => r.json()).then(async (d) => {
+  M2 = d;
+  // the Training page's 12 iterations, from the draft's data (4 bits) — same seed-7 draws the conditional eps-hat was computed on
+  const { TRAINING } = await import("../diffusion/data.js");
+  M2.tr = { x0: unpack4(TRAINING.x0), eps: unpack4(TRAINING.eps), xt: unpack4(TRAINING.xt), t: TRAINING.t, label: TRAINING.label };
+  document.getElementById("clampShare").textContent = `${Math.round(100 * d.eps_clamped_share)}%`;
+  document.getElementById("kvals").textContent = [998, 498, 98].map((t) => `${d.step[t].k.toFixed(3)} at t = ${t}`).join(", ");
+  document.getElementById("svals").textContent = [998, 498, 98].map((t) => d.step[t].sigma.toFixed(3)).join(", ");
+  document.getElementById("status").textContent = "loaded";
+  build2(); build3();
+});
+window.__m2 = { S1, S2, S3, draw1, draw2, draw3 };
+</script>
+</body>
+</html>
