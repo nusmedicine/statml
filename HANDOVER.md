@@ -1,5 +1,54 @@
 # Handover
 
+**SESSION 2026-10-19. 108 `gan` SHIPPED AND PUSHED** (49cc0cd) as "Deep
+Learning - Frontiers: Generative Adversarial Networks" (11 states, 11/11 MATCH
+at DPR 1.25 with the session fronted). Measured, mocked, nine calls (all the
+recommendation; the card as a diagram was his ask), drafted, walk-through and
+copy audit, shipped, in one session. The record is the catalogue's § 108
+sections.
+
+**108 now.** One page, the base GAN of 10-3b c41–42 on one-dimensional data
+(½N(−2, 0.5²) + ½N(2, 0.5²), 1,000 draws; plain x, his call). Seed (1–40,
+default 4) is the only rail control. `compute` trains in the page (~215 ms,
+`widgets/gan/engine.js`: 1 → 16 → 1 tanh MLPs, Adam β1 0.5, lr 0.002 both,
+batch 64) and keeps a snapshot after every half: 150 iterations of 20 D steps
+then 20 G steps. The step press is one half, labelled Update D / Update G by
+`anim.beat`; Train plays all 300 halves. The card is the loop as an inline-SVG
+diagram (the half just run marked, the other network held fixed, the gradient
+back through D to G in Update G, a dot during a press), the loss being
+minimised, and a note that each press repeats its update 20 times where the
+standard algorithm has one of each. The figure: real bars, G's outline at
+2,000 quantiles of z (a clipped bin prints its share), D(x) on a 0–1 axis,
+d log D/dx arrows, Goodfellow's z → x lines, the loss panel with 2 ln 2 and
+ln 2 dashed. `_lab/gan-engine.js` re-exports the engine for the mock
+(`_lab/gan-mock.html`) and the measurement (`_lab/gan-measure.mjs`).
+
+**Learned this session.**
+1. **The catalogue's claim was narrowed by measuring**: D(x) = ½ where the
+   data are, not everywhere. G maps z to x continuously, so a thin set of
+   samples stays between the modes and D(0) is 0.07–0.24 there. One bell
+   stalls with D flat at ½ while G is off the data, so two modes it is.
+2. **A caption that states an outcome must hold on every press, not on
+   average.** Update G raised D on the generated samples in 85% of presses;
+   the captions now say what each update does.
+3. **Check the 120-character blurb cap before offering blurb options** (B2
+   was 141 and failed `check`).
+4. **Baseline with the session fronted** held again: the run made with the
+   session in no window gave two settled states other hashes.
+5. Node driving works for a widget whose core import is
+   `{ defineWidget, mathmlRenders }`: stub both (HANDOVER § Driving the
+   animation in node).
+
+**NEXT: 107 `diffusion`** (catalogue slot 107, 10-3b cells 95–129: Forward ·
+Reverse · Conditional; measure the signal left at each t under the linear
+schedule first, then one mock). Carry over from 104–108 by default: the
+diagram in the card, a Train press, hover, per-map controls where maps are
+compared. It closes the DL Frontiers arc.
+
+**Dev server this session:** `widgets-alt4` on :8014.
+
+---
+
 **SESSION 2026-10-17 → 19 CLOSED. 106 `vae` SHIPPED AND PUSHED** (6ceb648) as
 "Deep Learning - Frontiers: Variational Autoencoders" (22 states, 22/22 MATCH
 at DPR 1.25 with the pane fronted). Measured, then four review rounds, two
