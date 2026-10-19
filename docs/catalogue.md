@@ -26043,6 +26043,46 @@ against the real one. Driven in node (each press one half, Train 300 halves,
 `shown` lands on its half); text sweep at 538 and 747 px clean. Status draft,
 placeholder fingerprint state.
 
+### 108 STUDENT WALK-THROUGH AND COPY AUDIT, 2026-10-19 (all rows applied)
+
+`_lab/gan-copy-scan.mjs <claudisms.md>` evaluates the widget's own S, CAP,
+card text, diagram text, press labels and titles: 59 strings. Banlist (292
+terms): 28 hits, 26 of them "real" / "real data", the GAN's own term (real
+against generated), not the banned intensifier; 2 are "turns … into"
+(figurative). Measured for the captions on all 40 seeds: the end caption
+holds on every seed (|D − ½| ≤ 0.03 at the modes, D(0) 0.07–0.24, 48–52% on
+each side), but the press captions state an outcome that is not always true
+(Update G raised the mean D(x) on generated samples in 5,078 of 6,000
+presses). The generated outline is clipped by the panel top (15%) in about
+half the snapshots, at the opening by far (52–81% of samples in one bin).
+
+| # | where | now | proposed |
+|---|---|---|---|
+| W1 | opening caption | "G turns each value of noise z into an x: the lines show where 21 values of z land, and the blue outline where 2,000 land" | "G maps each value of noise z to an x: the lines join 21 values of z to their x, and the outline shows where 2,000 values of z map" (no colour name) |
+| W2 | Update D caption | "D(x) rose where the real data are and fell where the generated samples are … up D's slope" (an outcome, not true on every press) | "Update D: 20 steps that raise D(x) on real data and lower it on generated samples, with G held fixed. The arrows show the direction in which Update G will move each generated sample: the direction in which D(x) increases." |
+| W3 | Update G caption | "each generated sample moved along D's slope, toward where D(x) is higher … the real data enter its update" (outcome; figurative) | "Update G: 20 steps that move each generated sample in the direction in which D(x) increases, with D held fixed. L_G contains no real data: G is updated through D(x) and its slope only." |
+| W4 | end caption | "both losses sit at …", "G still leaves a thin bridge of samples" | "Where the real data are, D(x) is near ½, and both losses are near their values for D(x) = ½. The generated samples cover both modes; some remain between them, because G maps z to x continuously, and there D(x) is low." |
+| W5 | card note | "the notebook's loop alternates one of each" (a lesson reference, 5.9) | "In the standard algorithm each iteration has one update of each; here each press repeats its update 20 times, on fresh batches of 64." |
+| W6 | readout, loss axis, Train title, captions | "round" (our word for one Update D and one Update G) | "iteration", the pseudocode's word (his call) |
+| W7 | loss panel, before training | "Update D begins" | "after Update D" |
+| W8 | top panel | the generated outline runs off the top with no sign (59% of seed 4's samples in one bin at the opening) | the share printed at the top of each clipped bin |
+| W9 | lines note | "each line: one value of z and the x that G gives it" | "each line joins a value of z to G(z)" |
+| W10 | legend, arrows | "the step Update G gives a sample" | "the direction in which Update G moves a sample" |
+| W11 | legend, real data | "real data (1,000 samples)"; "the two modes" is used and never located | "real data, 1,000 samples (modes at −2 and 2)" |
+| C1 | diagram's accessible label | "Update D sends the loss's gradient to D, Update G sends it back through D" | "Update D computes the gradient of L_D for D's weights; Update G computes the gradient of L_G through D, held fixed, for G's weights" |
+| C2 | subtitle | "a generator G that turns random noise z into a sample" (banlist), "gives the probability" | options S1 · S2 |
+| C3 | blurb and meta | "one half of each round at a time" (our schedule words) | options B1 · B2 |
+
+**His calls:** every row as proposed; W6 **iteration**; subtitle **S1** ("…
+a generator G, which maps random noise z to a sample, and a discriminator D,
+which outputs the probability D(x) that a sample x is real data …"); blurb
+**B2**, which at 141 characters failed `check`'s 120 cap (not measured before
+offering it), so three shortened forms were asked and he picked the shortest:
+**"A generative adversarial network trained one update at a time, with its
+samples, probabilities and losses."** (106). Re-scan: the banlist's only hits
+are the literal "real" and "moves"; the text sweep at 538 and 747 px is clean,
+the clipped-bin share reading 59% at the opening and 19%, 21% at the end.
+
 ---
 
 ## Two arcs, not one — now three

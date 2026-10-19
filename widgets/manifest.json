@@ -1520,7 +1520,7 @@
     {
       "slug": "gan",
       "title": "Deep Learning - Frontiers: Generative Adversarial Networks",
-      "blurb": "A generator and a discriminator trained in turn on one-dimensional data, one half of each round at a time.",
+      "blurb": "A generative adversarial network trained one update at a time, with its samples, probabilities and losses.",
       "course": "PHM5005",
       "topics": [
         "generative models",

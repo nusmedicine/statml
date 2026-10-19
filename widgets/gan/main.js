@@ -64,25 +64,25 @@ const pct = (v) => `${Math.round(100 * v)}%`;
 
 const S = {
   subtitle:
-    "A generative adversarial network (GAN) trains two networks in turn: a generator G that turns random noise z into a sample, and a discriminator D that gives the probability D(x) that a sample x is real data. " +
+    "A generative adversarial network (GAN) trains two networks in turn: a generator G, which maps random noise z to a sample, and a discriminator D, which outputs the probability D(x) that a sample x is real data. " +
     "Here each sample is one number x; the same training generates images when x is an image.",
   seedLabel: "Seed",
   seedDetail: "the random draws: the data, the starting weights, the noise and the batches",
   topTitle: "Real and generated samples, and D(x)",
   beyond: (p) => `${p} of generated samples beyond ±4.5`,
   zLabel: "z ~ N(0, 1)",
-  linesNote: "each line: one value of z and the x that G gives it",
-  lossTitle: "Loss per round",
+  linesNote: "each line joins a value of z to G(z)",
+  lossTitle: "Loss per iteration",
   lossLD: "L_D",
   lossLG: "L_G",
   lossAtHalf: "dashed: each loss when D(x) = ½ (2 ln 2 for L_D, ln 2 for L_G)",
-  lossWait: "Update D begins",
-  round: "round",
+  lossWait: "after Update D",
+  round: "iteration",
   card: { x: (x) => `x = ${f2(x)}`, d: (v) => `D(x) = ${f2(v)}`, real: (v) => `real data: ${pct(v)} in this bin`, gen: (v) => `generated: ${pct(v)} in this bin` },
-  legend: { real: "real data (1,000 samples)", gen: "generated samples, G(z)", d: "D(x), the probability that x is real", step: "the step Update G gives a sample" },
+  legend: { real: "real data, 1,000 samples (modes at −2 and 2)", gen: "generated samples, G(z)", d: "D(x), the probability that x is real", step: "the direction in which Update G moves a sample" },
   tile: {
-    round: "Round",
-    roundNote: "each round: Update D, then Update G",
+    round: "Iteration",
+    roundNote: "each iteration: Update D, then Update G",
     modes: "D(−2) · D(2), at the two modes",
     modesNote: "½: real and generated samples given the same probability",
     gap: "D(0), between the modes",
@@ -93,11 +93,11 @@ const S = {
 };
 
 const CAP = {
-  start: "Before training. G turns each value of noise z into an x: the lines show where 21 values of z land, and the blue outline where 2,000 land. D(x) is D's probability that x is real data. Update D trains D for 20 steps.",
-  d: "Update D: D(x) rose where the real data are and fell where the generated samples are. G did not change. The arrows show where Update G will move each generated sample: up D's slope.",
-  g: "Update G: each generated sample moved along D's slope, toward where D(x) is higher. G is trained only through D: the real data enter its update through D's slope alone.",
-  run: (r) => `Training, round ${r} of ${ROUNDS}: each round, Update D, then Update G.`,
-  end: "After 150 rounds. Where the real data are, D(x) is near ½: D gives real and generated samples the same probability, and both losses sit at their value for D(x) = ½. Between the modes G still leaves a thin bridge of samples, where D(x) is low.",
+  start: "Before training. G maps each value of noise z to an x: the lines join 21 values of z to their x, and the outline shows where 2,000 values of z map. D(x) is D's probability that x is real data. Update D trains D for 20 steps.",
+  d: "Update D: 20 steps that raise D(x) on real data and lower it on generated samples, with G held fixed. The arrows show the direction in which Update G will move each generated sample: the direction in which D(x) increases.",
+  g: "Update G: 20 steps that move each generated sample in the direction in which D(x) increases, with D held fixed. L_G contains no real data: G is updated through D(x) and its slope only.",
+  run: (r) => `Training, iteration ${r} of ${ROUNDS}: each iteration, Update D, then Update G.`,
+  end: "After 150 iterations. Where the real data are, D(x) is near ½, and both losses are near their values for D(x) = ½. The generated samples cover both modes; some remain between them, because G maps z to x continuously, and there D(x) is low.",
 };
 function captionOf(anim) {
   const { k } = viewOf(anim);
@@ -137,7 +137,7 @@ const P = {
 };
 const FWD = { d: [[...P.real, [292, 74], [476, 74]], [[50, 107], ...P.fake, ...P.gOut, [292, 74], [476, 74]]], g: [[[50, 107], ...P.fake, ...P.gOut, [292, 74], [476, 74]]] };
 const BACK = { d: P.backD, g: [...P.backD, ...P.backDG] };
-const DIAGRAM_LABEL = "The training loop: the real data and G's samples go into D, D(x) into the loss; Update D sends the loss's gradient to D, Update G sends it back through D, held fixed, to G.";
+const DIAGRAM_LABEL = "The training loop: the real data and G's samples go into D, D(x) into the loss; Update D computes the gradient of L_D for D's weights; Update G computes the gradient of L_G through D, held fixed, for G's weights.";
 
 function diagramSVG(lit) {
   const ink = "var(--ink-3)", sl = "var(--c-slope)", fade = (on) => (on ? "" : ` style="opacity:0.28"`);
@@ -167,8 +167,8 @@ const EQ = {
   d: { math: `<math display="block"><mrow>${Lx("D")}${mo("=")}${mo("−")}${mo("[")}${log}${Dof(xr)}${mo("+")}${log}${mo("(")}${mn(1)}${mo("−")}${Dof(xf)}${mo(")")}${mo("]")}</mrow></math>`, plain: "L_D = −[ log D(x_real) + log(1 − D(x_fake)) ]" },
   g: { math: `<math display="block"><mrow>${Lx("G")}${mo("=")}${mo("−")}${log}${Dof(`${mi("G")}${mo("(")}${mi("z")}${mo(")")}`)}</mrow></math>`, plain: "L_G = −log D(G(z))" },
 };
-const LEAD = { "": "Each round: Update D to minimise L_D, then Update G to minimise L_G.", d: "Update D to minimise", g: "Update G to minimise" };
-const NOTE = "Each press repeats its update 20 times on fresh batches of 64; the notebook's loop alternates one of each. L_D is low when D(x) is near 1 on real data and near 0 on generated samples; L_G is low when D(x) is near 1 on generated samples.";
+const LEAD = { "": "Each iteration: Update D to minimise L_D, then Update G to minimise L_G.", d: "Update D to minimise", g: "Update G to minimise" };
+const NOTE = "In the standard algorithm each iteration has one update of each; here each press repeats its update 20 times, on fresh batches of 64. L_D is low when D(x) is near 1 on real data and near 0 on generated samples; L_G is low when D(x) is near 1 on generated samples.";
 
 let mathHost = null, mathKey = null;
 function renderCard(lit) {
@@ -263,6 +263,14 @@ function drawTop(ctx, colors, Lo, state, nets, pointer) {
   ctx.strokeStyle = colors.empirical; ctx.lineWidth = 2; ctx.beginPath();
   hf.forEach((v, b) => { const x = X0 + b * BW; if (b === 0) ctx.moveTo(px(x), yP(v)); else ctx.lineTo(px(x), yP(v)); ctx.lineTo(px(x + BW), yP(v)); });
   ctx.stroke(); ctx.restore();
+  /* a bin taller than the panel: its share printed at the top, once for each run of neighbouring clipped bins (audit W8) */
+  for (let b = 0; b < NB; b++) {
+    if (hf[b] <= hmax) continue;
+    let e = b, best = b;
+    while (e + 1 < NB && hf[e + 1] > hmax) { e++; if (hf[e] > hf[best]) best = e; }
+    txt(ctx, colors, pct(hf[best]), px(X0 + (best + 0.5) * BW), top.y0 - 3, { align: "center", fill: colors.empirical, weight: "600", halo: true });
+    b = e;
+  }
   /* D(x) */
   ctx.save(); ctx.strokeStyle = colors.theory; ctx.lineWidth = 2; ctx.beginPath();
   for (let i = 0; i <= 180; i++) { const x = X0 + ((X1 - X0) * i) / 180, y = yD(sig(nets.D(x))); i ? ctx.lineTo(px(x), y) : ctx.moveTo(px(x), y); }
@@ -378,7 +386,7 @@ defineWidget({
     stepLabel: { anim: "beat", labels: { 0: "Update D", 1: "Update G" }, default: "Update D" },
     stepTitle: { anim: "beat", labels: { 0: "Train D for 20 steps on real and generated samples", 1: "Train G for 20 steps through D, held fixed" }, default: "Train D for 20 steps on real and generated samples" },
     runLabel: "Train",
-    runTitle: "Play every round to the end: Update D, then Update G, 150 times",
+    runTitle: "Play every iteration to the end: Update D, then Update G, 150 times",
 
     init: ({ params, fromScratch }) => {
       const k = fromScratch ? 0 : Math.max(0, Math.min(LAST, Number(params.shown) || 0));
@@ -426,6 +434,6 @@ defineWidget({
 
   summary({ state, anim }) {
     const { k } = viewOf(anim), nets = netsOf(state, anim);
-    return `Round ${roundOf(k)} of ${ROUNDS}: D(−2) ${f2(sig(nets.D(-2)))}, D(0) ${f2(sig(nets.D(0)))}, D(2) ${f2(sig(nets.D(2)))}.`;
+    return `Iteration ${roundOf(k)} of ${ROUNDS}: D(−2) ${f2(sig(nets.D(-2)))}, D(0) ${f2(sig(nets.D(0)))}, D(2) ${f2(sig(nets.D(2)))}.`;
   },
 });
