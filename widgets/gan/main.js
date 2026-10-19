@@ -355,7 +355,7 @@ function drawLoss(ctx, colors, Lo, state, anim) {
 
 defineWidget({
   slug: "gan",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Frontiers: Generative Adversarial Networks",
   subtitle: S.subtitle,
   layout: "side",

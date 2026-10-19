@@ -15012,11 +15012,120 @@
       "tx": "0f1ad122"
     },
     {
-      "$note": "gan · placeholder until the design is agreed",
+      "$note": "gan · opening: untrained G at x near 0 (59% in one bin, printed), D sloping, nothing marked on the card",
       "slug": "gan",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "3baea70a",
+      "tx": "ce76dfdc"
+    },
+    {
+      "$note": "gan · after the first Update D: D's half marked on the card, L_D's first point",
+      "slug": "gan",
+      "state": "?theme=light&shown=1",
+      "px": "40712528",
+      "tx": "887566bf"
+    },
+    {
+      "$note": "gan · after the first Update G: every generated sample left of 0, the gradient back through D to G",
+      "slug": "gan",
+      "state": "?theme=light&shown=2",
+      "px": "6d313943",
+      "tx": "d22e2e97"
+    },
+    {
+      "$note": "gan · iteration 21, after Update D: mid-training",
+      "slug": "gan",
+      "state": "?theme=light&shown=41",
+      "px": "a25fe81f",
+      "tx": "48eb1a46"
+    },
+    {
+      "$note": "gan · after 150 iterations: D near ½ at the modes, low between them, both losses on their dashed lines",
+      "slug": "gan",
+      "state": "?theme=light&shown=300",
+      "px": "fcb7f302",
+      "tx": "4a2ce84d"
+    },
+    {
+      "$note": "gan · seed 7, after 150 iterations",
+      "slug": "gan",
+      "state": "?theme=light&seed=7&shown=300",
+      "px": "4fef7407",
+      "tx": "cf62fe36"
+    },
+    {
+      "$note": "gan · DRIVEN: Update D mid-press (10 frames): D's curve between snapshots, dots forward on the diagram",
+      "slug": "gan",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "8d464046",
+      "tx": "83d6e55a"
+    },
+    {
+      "$note": "gan · DRIVEN: Update D late in the press (22 frames): the gradient dot on its lane",
+      "slug": "gan",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 22,
+        "dt": 32
+      },
+      "px": "4f984bb3",
+      "tx": "887566bf"
+    },
+    {
+      "$note": "gan · DRIVEN: Update G mid-press (12 frames): the samples and lines between snapshots",
+      "slug": "gan",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "b7729f2d",
+      "tx": "e9faedd7"
+    },
+    {
+      "$note": "gan · DRIVEN: Train in flight (60 frames): the running caption, the card unmarked",
+      "slug": "gan",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "04e37ea1",
+      "tx": "60522dd9"
+    },
+    {
+      "$note": "gan · INTERRUPTED: Update D in flight, then the seed changed to 5: seed 5's opening",
+      "slug": "gan",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 10
+          }
+        ],
+        "set": {
+          "seed": 5
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "b93f8603",
+      "tx": "7e74aed9"
     }
   ]
 }
