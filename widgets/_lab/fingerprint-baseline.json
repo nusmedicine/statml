@@ -15126,6 +15126,13 @@
       },
       "px": "b93f8603",
       "tx": "7e74aed9"
+    },
+    {
+      "$note": "diffusion · placeholder while the draft is under review; real states are recorded at the ship",
+      "slug": "diffusion",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

@@ -1531,6 +1531,21 @@
       ],
       "arc": 108,
       "status": "shipped"
+    },
+    {
+      "slug": "diffusion",
+      "title": "Deep Learning - Frontiers: Diffusion Models",
+      "blurb": "The forward process, a network trained to predict the noise, and generation by denoising, with and without a label.",
+      "course": "PHM5005",
+      "topics": [
+        "generative models",
+        "diffusion",
+        "DDPM",
+        "denoising",
+        "conditional generation"
+      ],
+      "arc": 107,
+      "status": "draft"
     }
   ]
 }
