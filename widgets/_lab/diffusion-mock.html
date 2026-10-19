@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · diffusion mock — 10-3b c95–129 on the notebook's two trained U-Nets</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note, ul.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b, ul.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); font-variant-numeric: tabular-nums; }
+  table.m th, table.m td { border-bottom: 1px solid var(--grid); padding: 3px 10px 3px 0; text-align: left; vertical-align: top; }
+  table.m th { color: var(--ink-2); font-weight: 600; }
+  .proto { display: grid; grid-template-columns: 230px 540px; gap: var(--sp-4); align-items: start; }
+  .rail { display: flex; flex-direction: column; gap: 12px; font-size: var(--fs-sm); }
+  .rail .lab2 { color: var(--ink-2); font-weight: 600; margin-bottom: 4px; }
+  .rail .sec { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin: 4px 0 2px; }
+  .seg { display: flex; flex-wrap: wrap; }
+  .seg button { flex: 1 1 auto; padding: 5px 6px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-1); cursor: pointer; font: inherit; font-size: 12px; }
+  .seg button.on { border-color: var(--c-highlight); font-weight: 600; }
+  .act { padding: 7px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); border-radius: 3px; cursor: pointer; font: inherit; font-weight: 600; }
+  .act:disabled { color: var(--ink-3); border-color: var(--grid); cursor: default; }
+  .detail { color: var(--ink-3); font-size: 11px; margin-top: 3px; }
+  input[type=range] { width: 100%; }
+  .mockonly { border-top: 1px dashed var(--grid); padding-top: 10px; }
+  .mockonly .lab2 { color: var(--c-reference); }
+  canvas { display: block; background: var(--surface-1); }
+  .card { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); padding: var(--sp-2) var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); border-radius: var(--radius); }
+  #diagram svg { display: block; width: 100%; height: auto; }
+  #diagram text { font-family: var(--font); font-size: 12px; fill: var(--ink-1); }
+  #diagram text.sub { font-size: 11px; fill: var(--ink-2); }
+  #diagram text.grad { font-size: 11px; fill: var(--c-slope); }
+  .lossline { font-size: var(--fs-sm); color: var(--ink-1); margin: 4px 0 0; min-height: 1.4em; }
+  .readout { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--ink-1); }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--ink-3); background: var(--surface-2); }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 120ch; }
+  .q b.h { display: block; margin-bottom: 2px; }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 107 <code>diffusion</code> &middot; mock: 10-3b c95&ndash;129 on the notebook's two trained U-Nets</h1>
+  <p class="note">Slot 107, the DL Frontiers arc's last. Both of 10-3b's models were trained as the notebook builds them (<code>UNet2DModel</code> (64, 64), <code>DDPMScheduler(1000, "linear")</code>, AdamW 1e-3, batch 256; 3 epochs unconditional, 5 conditional with the one-hot label map). The U-Net does not run in the browser: Forward is computed in the page from a seeded &epsilon;, everything else replays stored runs (<code>_lab/diffusion-mockdata.py</code>). Images are drawn as the notebook draws them, clamp(x, &minus;1, 1) &middot; 0.5 + 0.5. The canvas is the widget's width (540 px). <span id="status">loading&hellip;</span></p>
+
+  <h2>Measured first (<code>_lab/diffusion-measure.py</code>; catalogue &sect; <i>107 MEASURED</i>)</h2>
+  <table class="m">
+    <tr><th>t</th><th>0</th><th>100</th><th>200</th><th>300</th><th>400</th><th>500</th><th>600</th><th>700</th><th>800</th><th>999</th></tr>
+    <tr><td>&radic;&#x0101;<sub>t</sub>, the signal left</td><td>1.00</td><td>0.95</td><td>0.81</td><td>0.63</td><td>0.44</td><td>0.28</td><td>0.16</td><td>0.08</td><td>0.04</td><td>0.006</td></tr>
+    <tr><td>a classifier trained on x<sub>t</sub> names the digit</td><td>97%</td><td>97%</td><td>96%</td><td>93%</td><td>82%</td><td>58%</td><td>34%</td><td>20%</td><td>13%</td><td>11%</td></tr>
+    <tr><td>Generation: x&#x0302;<sub>0</sub>'s digit = the digit the sample ends as</td><td>100%</td><td>98%</td><td>97%</td><td>83%</td><td>61%</td><td>38%</td><td>33%</td><td>11%</td><td>14%</td><td>14%</td></tr>
+    <tr><td>trained &epsilon;&#x0302;'s error, MSE(&epsilon;, &epsilon;&#x0302;) on test digits</td><td>0.32</td><td>0.06</td><td>0.04</td><td>&mdash;</td><td>0.02</td><td>&mdash;</td><td>0.008</td><td>&mdash;</td><td>0.002</td><td>0.002</td></tr>
+  </table>
+  <ul class="note">
+    <li><b>On the linear schedule the digit is gone from x<sub>t</sub> by t &asymp; 700</b>, so c107's frames 800 and 999 are both noise.</li>
+    <li><b>Generation decides the digit between t &asymp; 500 and 300</b> (median 372), the same window in which the forward process erases it, while x<sub>t</sub> still looks like noise. x&#x0302;<sub>0</sub> = (x<sub>t</sub> &minus; &radic;(1&minus;&#x0101;<sub>t</sub>) &epsilon;&#x0302;)/&radic;&#x0101;<sub>t</sub> is c96's own formula: the image the noise prediction implies.</li>
+    <li><b>Predicting the noise is easiest where x<sub>t</sub> is mostly noise</b> (MSE 0.002 at t = 999) and hardest near the clean image (0.32 at t = 0): the reason c96 samples t at random, &ldquo;so the model learns all noise levels&rdquo;.</li>
+    <li>75 steps (c129) sample as well as 500 (c113): 70% and 61% of samples a clean classifier reads at &ge; 0.9; 10 steps 49%. The 3-epoch model's samples are about two thirds digits.</li>
+    <li>Conditional: the label is read back on 91% of samples (5s 63%); it is learned late, 22% after epoch 1, 59% after 3, 86% after 5.</li>
+  </ul>
+
+  <h2>The mock</h2>
+  <div class="proto">
+    <div class="rail">
+      <div><div class="lab2">Stage <span style="font-weight:400;color:var(--ink-3)">(call 1)</span></div>
+        <div class="sec">Diffusion</div><div class="seg" id="pagesA"></div>
+        <div class="sec">Conditional diffusion</div><div class="seg" id="pagesB"></div></div>
+      <div data-page="forward"><div class="lab2">Digit</div><div class="seg" id="digits"></div><div class="detail">x&#8320;, an image from the training set</div></div>
+      <div data-page="forward"><div class="lab2">t <span id="tval" style="font-weight:400"></span></div><input type="range" id="tslider" min="0" max="999" step="1" value="0"><div class="detail">the step of the forward process; a click on a frame below sets it</div></div>
+      <div data-page="training"><div class="lab2">Iteration</div><div class="seg" id="iters"></div><div class="detail">one pass of the loop: an image x&#8320;, a step t and a noise &epsilon;, all drawn at random</div></div>
+      <div data-page="conditional"><div class="lab2">Label c</div><div class="seg" id="labels"></div><div class="detail">the digit to generate; a click on a column picks it</div></div>
+      <button class="act" id="step">Step</button>
+      <button class="act" id="play">Train</button>
+      <button class="act" id="reset">Reset</button>
+      <div class="mockonly" data-page="forward"><div class="lab2">Mock only: the classifier curve (call 3)</div><div class="seg" id="clfToggle"></div></div>
+      <div class="mockonly" data-page="generation"><div class="lab2">Mock only: x&#x0302;&#8320; (call 6)</div><div class="seg" id="x0Toggle"></div></div>
+    </div>
+    <div>
+      <div class="card"><div id="diagram"></div><div class="lossline" id="lossline"></div></div>
+      <canvas id="cv"></canvas>
+      <div class="readout" id="readout"></div>
+      <div class="cap"><i>draft caption</i><span id="cap"></span></div>
+    </div>
+  </div>
+
+  <h2>The calls before building</h2>
+  <div class="q"><b class="h">1. The pages and the control's name</b><b>A</b>: four pages in c96&ndash;c117's order and headings, <b>Forward &middot; Training &middot; Generation</b> under <i>Diffusion</i>, then <b>Generation</b> under <i>Conditional diffusion</i> (shown; the rail control named <b>Stage</b>). <b>B</b>: the catalogue's three, <b>Forward &middot; Reverse &middot; Conditional</b>, with Training and Generation on one Reverse page.</div>
+  <div class="rec">Recommend <b>A</b>. Training is where &ldquo;the network predicts the noise&rdquo; is drawn (&epsilon; beside &epsilon;&#x0302;, the loss between them), and Generation is where that prediction is used: one page each keeps each page to one press and one picture. Conditional training is the same loop with c concatenated (c124), so Conditional gets Generation only, and its card says so. <b>Stage</b> because the pages are the method's stages; &ldquo;Step&rdquo; is the press.</div>
+
+  <div class="q"><b class="h">2. Forward: the t slider and c107's strip</b>A t slider (0&ndash;999) drives the equation of images &radic;&#x0101;<sub>t</sub>&middot;x&#8320; + &radic;(1&minus;&#x0101;<sub>t</sub>)&middot;&epsilon; = x<sub>t</sub>, the two curves, and c107's six frames (t = 0, 50, 200, 400, 800, 999, click to jump). One &epsilon; for every t, so the slider moves the image smoothly (c107 draws a fresh &epsilon; per frame). Or no strip.</div>
+  <div class="rec">Recommend <b>as shown</b>. The strip is the notebook's own figure, and with the curves under it the reader sees why its last two frames look alike: &radic;&#x0101;<sub>t</sub> is 0.04 and 0.006 there. No press: the forward process has nothing to learn, and the slider is the whole page.</div>
+
+  <div class="q"><b class="h">3. Forward: the classifier curve</b>Not drawn (shown by default); or the measured &ldquo;a classifier trained on x<sub>t</sub> names the digit&rdquo; line on the curves panel (toggle in the rail).</div>
+  <div class="rec">Recommend <b>not drawn</b>. It is our instrument, not the lesson's; the strip and the curves already show the digit gone by ~700. It stays in the catalogue as the measurement behind the page.</div>
+
+  <div class="q"><b class="h">4. Training: what one press and Train show</b>One iteration of c96's loop on the trained-as-the-notebook model: x&#8320; &rarr; x<sub>t</sub> (with t and &epsilon;) &rarr; &epsilon;&#x0302; = &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t), and MSE(&epsilon;, &epsilon;&#x0302;). <b>Step</b> moves to the next of nine checkpoints (0, 5, 20, 50, 100, 200 batches, epochs 1&ndash;3), <b>Train</b> plays them: &epsilon;&#x0302; turns from nothing into the noise, the loss curve (every batch, log axes) draws to that checkpoint, and eight samples from that checkpoint's model fill the bottom row. Iteration 1&ndash;12 in the rail picks the (x&#8320;, t, &epsilon;).</div>
+  <div class="rec">Recommend <b>as shown</b>. Iteration 1 (t = 8) and 4 (t = 930) side by side are the measurement's third bullet in one click: after training, &epsilon;&#x0302; at t = 930 is the noise to 0.001, at t = 8 it is still off by 0.17. The sample row is the payoff of Train and the bridge to Generation.</div>
+
+  <div class="q"><b class="h">5. Training: Iteration as a rail control</b>(shown) 12 stored iterations, each with its t in the button; or a press <b>New iteration</b> that draws the next one, as the loop does.</div>
+  <div class="rec">Recommend <b>the rail control</b>: picking an iteration is choosing an example, and a press would put two presses (New iteration, Step) on one page that do different things.</div>
+
+  <div class="q"><b class="h">6. Generation: x&#x0302;&#8320; beside x<sub>t</sub></b>Three panels, x<sub>t</sub> &middot; &epsilon;&#x0302; &middot; x&#x0302;&#8320;, and the trajectory as two rows, x<sub>t</sub> (c115) and x&#x0302;&#8320; under it (shown); or x<sub>t</sub> and &epsilon;&#x0302; only (toggle).</div>
+  <div class="rec">Recommend <b>with x&#x0302;&#8320;</b>. It is c96's formula, and it is the measured finding made visible: by t &asymp; 400 x&#x0302;&#8320; is the digit while x<sub>t</sub> is still mostly noise. At t &ge; 900 x&#x0302;&#8320; is saturated noise (the scheduler clips it to [&minus;1, 1]; dividing by &radic;&#x0101;<sub>t</sub> = 0.006 magnifies every error); the caption says so.</div>
+
+  <div class="q"><b class="h">7. Generation and Conditional presses</b><b>Step</b> = 50 of c113's 500 steps (10 presses; 15 of c129's 75 on Conditional, 5 presses), <b>Generate</b> plays the rest (shown); or Step = one denoising step.</div>
+  <div class="rec">Recommend <b>as shown</b>: one step changes x<sub>t</sub> by too little to see, and 500 presses is no lesson. The card's diagram marks the loop as repeated, with the count.</div>
+
+  <div class="q"><b class="h">8. Conditional: c129's grid with rows sharing x<sub>T</sub></b>4 per digit as c129, where each row starts from one x<sub>T</sub> and draws the same z at every step, so a row differs only in the label (shown); or four independent noises per label.</div>
+  <div class="rec">Recommend <b>shared rows</b>: it is still 4 per digit, and the label is then the only thing that differs along a row, which is what &ldquo;conditioned on c&rdquo; means. Measured: the rows share no visible style (pixel correlation 0.48 across labels against 0.38 across noises), so the caption claims only that the label sets the digit.</div>
+
+  <div class="q"><b class="h">9. The card</b>A diagram per page with one formula under it (shown; 104&ndash;108's form): the Markov chain with q on Forward, the training loop with the gradient back into &epsilon;<sub>&theta;</sub> on Training, the sampling loop on Generation, the same with c into &epsilon;<sub>&theta;</sub> on Conditional; or c96's pseudocode.</div>
+  <div class="rec">Recommend <b>the diagram</b>, carried over from the arc. In the build a dot moves along it during a press, as 104&ndash;108.</div>
+
+  <div class="q"><b class="h">10. The colours</b>Forward: x&#8320; and &radic;&#x0101;<sub>t</sub> <code>--c-group-a</code>, &epsilon; and &radic;(1&minus;&#x0101;<sub>t</sub>) <code>--c-group-b</code> (the two parts of the mix). Training: &epsilon; <code>--c-reference</code> (the target), &epsilon;&#x0302; and the loss <code>--c-empirical</code> (what the model produced). Generation: &epsilon;&#x0302; and x&#x0302;&#8320; <code>--c-empirical</code>. The selected sample, frame and column <code>--c-highlight</code>; the gradient <code>--c-slope</code>. Images stay grey; colour is on frames, curves and labels only.</div>
+  <div class="rec">Recommend <b>as shown</b>.</div>
+
+  <div class="q"><b class="h">11. Name</b>slug <code>diffusion</code>; title &ldquo;Deep Learning - Frontiers: Diffusion Models&rdquo;, the series form of 104&ndash;108.</div>
+  <div class="rec">Recommend <b>as written</b>. Carried over by default unless you say otherwise: hover (the curves read out &radic;&#x0101;<sub>t</sub> at the pointer; a hovered frame or grid cell previews its image large), the diagram's moving dot, the Train press.</div>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+
+const W = 540;
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const dpr = window.devicePixelRatio || 1;
+function size(h) { cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {};
+function colors() { for (const k of ["ink-1", "ink-2", "ink-3", "grid", "axis", "surface-1", "surface-2", "c-reference", "c-empirical", "c-group-a", "c-group-b", "c-highlight", "c-slope", "font", "fs-xs", "fs-sm"]) C[k] = css("--" + k); }
+colors();
+
+// ---- schedule (diffusers "linear"), exact ----
+const T = 1000;
+const beta = Array.from({ length: T }, (_, i) => 1e-4 + (0.02 - 1e-4) * i / (T - 1));
+const abar = []; { let p = 1; for (let i = 0; i < T; i++) { p *= 1 - beta[i]; abar.push(p); } }
+const CLF = [[0, .972], [50, .971], [100, .971], [200, .958], [300, .931], [400, .823], [500, .579], [600, .338], [700, .201], [800, .132], [900, .113], [999, .109]];
+
+// ---- data ----
+const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+let D = null;
+const off = document.createElement("canvas"); off.width = off.height = 28;
+const octx = off.getContext("2d"); const idata = octx.createImageData(28, 28);
+function img(u8, k, x, y, s, frame, lw = 2) {
+  for (let i = 0; i < 784; i++) { const v = u8[k * 784 + i]; idata.data[4 * i] = idata.data[4 * i + 1] = idata.data[4 * i + 2] = v; idata.data[4 * i + 3] = 255; }
+  octx.putImageData(idata, 0, 0);
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(off, x, y, s, s);
+  if (frame) { ctx.strokeStyle = frame; ctx.lineWidth = lw; ctx.strokeRect(x - lw / 2, y - lw / 2, s + lw, s + lw); }
+}
+const disp = (v) => Math.round(Math.max(0, Math.min(1, Math.max(-1, Math.min(1, v)) * 0.5 + 0.5)) * 255);
+
+// ---- state ----
+const PAGES = { forward: "Forward", training: "Training", generation: "Generation", conditional: "Generation" };
+const S = { page: "forward", digit: 0, t: 0, clf: false, iter: 0, ck: 0, gi: 0, gsel: 0, x0: true, label: 3, crow: 0, ci: 0, playing: false };
+let EPS = null;  // the forward page's epsilon, from the seed
+function fwdEps() { const r = makeRng(107); EPS = Float64Array.from({ length: 784 }, () => r.normal()); }
+fwdEps();
+
+function seg(id, items, get, set) {
+  const el = document.getElementById(id); el.innerHTML = "";
+  for (const [v, lab] of items) { const b = document.createElement("button"); b.textContent = lab; b.className = get() === v ? "on" : ""; b.onclick = () => { set(v); build(); }; el.appendChild(b); }
+}
+function build() {
+  seg("pagesA", [["forward", "Forward"], ["training", "Training"], ["generation", "Generation"]], () => S.page, (v) => { S.page = v; S.playing = false; });
+  seg("pagesB", [["conditional", "Generation"]], () => S.page, (v) => { S.page = v; S.playing = false; });
+  if (D) {
+    seg("digits", D.forward.labels.map((l, i) => [i, String(l)]), () => S.digit, (v) => { S.digit = v; });
+    seg("iters", D.training.t.map((t, i) => [i, `${i + 1}`]), () => S.iter, (v) => { S.iter = v; });
+    seg("labels", [...Array(10).keys()].map((d) => [d, String(d)]), () => S.label, (v) => { S.label = v; });
+  }
+  seg("clfToggle", [[false, "not drawn"], [true, "drawn"]], () => S.clf, (v) => { S.clf = v; });
+  seg("x0Toggle", [[true, "with x̂₀"], [false, "x_t and ε̂ only"]], () => S.x0, (v) => { S.x0 = v; });
+  for (const el of document.querySelectorAll("[data-page]")) el.hidden = el.dataset.page !== S.page;
+  draw();
+}
+
+// ---- card diagrams ----
+const mk = (id, color) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:${color}"/></marker>`;
+// x_t, x_{t−1}, ε_θ, σ_t: subscripts as tspans, so the card reads as the notebook's math
+const sv = (t) => t.replace(/_\{([^}]*)\}|_([A-Za-zθ])/g, (m, a, b) => `<tspan baseline-shift="sub" font-size="9">${a ?? b}</tspan>`);
+const box = (x, y, w, h, label, color, dashed) =>
+  `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" style="fill:var(--surface-1);stroke:${color};stroke-width:1.6${dashed ? ";stroke-dasharray:4 3" : ""}"/>` +
+  `<text x="${x + w / 2}" y="${y + h / 2 + 4}" text-anchor="middle">${sv(label)}</text>`;
+const arrow = (d, color, m, extra = "") => `<path d="${d}" style="fill:none;stroke:${color};stroke-width:1.5${extra}" marker-end="url(#${m})"/>`;
+const INK = "var(--ink-2)";
+function diagram() {
+  let g = `<svg viewBox="0 0 540 120" xmlns="http://www.w3.org/2000/svg"><defs>${mk("ah", INK)}${mk("as", "var(--c-slope)")}${mk("ar", "var(--c-highlight)")}</defs>`;
+  if (S.page === "forward") {
+    const xs = [10, 120, 230, 380, 470];
+    const lab = ["x₀", "x₁", "x_{t−1}", "x_t", "x_T"];
+    xs.forEach((x, i) => { g += box(x, 30, 60, 30, lab[i], i === 0 ? "var(--c-group-a)" : i === 3 ? "var(--c-highlight)" : INK); });
+    g += arrow("M70,45 L118,45", INK, "ah") + `<text class="sub" x="94" y="24" text-anchor="middle">q</text>`;
+    g += `<text x="200" y="50" text-anchor="middle">···</text>`;
+    g += arrow("M290,45 L378,45", INK, "ah") + `<text class="sub" x="334" y="24" text-anchor="middle">${sv("q(x_t | x_{t−1})")}</text>`;
+    g += `<text x="455" y="50" text-anchor="middle">···</text>`;
+    g += `<text class="sub" x="40" y="80" text-anchor="middle">data</text><text class="sub" x="500" y="80" text-anchor="middle">≈ N(0, I)</text>`;
+    g += `<text class="sub" x="270" y="104" text-anchor="middle">${sv("fixed: each step adds a little Gaussian noise (β_t); nothing is learned")}</text>`;
+  } else if (S.page === "training") {
+    g += box(8, 8, 50, 28, "x₀", INK) + box(8, 46, 50, 28, "t", INK) + box(8, 84, 50, 28, "ε", "var(--c-reference)");
+    g += arrow("M58,22 C90,22 95,50 118,56", INK, "ah") + arrow("M58,60 L118,60", INK, "ah") + arrow("M58,98 C90,98 95,70 118,64", INK, "ah");
+    g += box(120, 44, 96, 32, "add noise", INK);
+    g += arrow("M216,60 L246,60", INK, "ah") + `<text class="sub" x="231" y="52" text-anchor="middle">${sv("x_t")}</text>`;
+    g += box(248, 40, 70, 40, "ε_θ", "var(--c-empirical)");
+    g += arrow("M318,60 L350,60", INK, "ah") + `<text class="sub" x="334" y="52" text-anchor="middle">ε̂</text>`;
+    g += box(352, 44, 110, 32, "MSE(ε, ε̂)", "var(--c-empirical)");
+    g += arrow("M58,104 L407,104 L407,78", "var(--c-reference)", "ah", ";stroke-dasharray:3 3");
+    g += arrow("M462,60 L510,60 L510,20 L283,20 L283,38", "var(--c-slope)", "as");
+    g += `<text class="grad" x="400" y="14" text-anchor="middle">${sv("update ε_θ's weights")}</text>`;
+  } else {
+    const cond = S.page === "conditional";
+    g += box(8, 44, 86, 32, "x_T ~ N(0, I)", INK);
+    g += arrow("M94,60 L132,60", INK, "ah");
+    g += box(134, 40, 70, 40, "ε_θ", "var(--c-empirical)");
+    if (cond) { g += box(134, 92, 70, 24, "c (label)", "var(--c-highlight)"); g += arrow("M169,92 L169,82", INK, "ah"); }
+    g += arrow("M204,60 L240,60", INK, "ah") + `<text class="sub" x="222" y="52" text-anchor="middle">ε̂</text>`;
+    g += box(242, 40, 190, 40, "x_{t−1} from x_t and ε̂, + σ_t z", INK);
+    g += arrow("M432,60 L470,60", INK, "ah");
+    g += box(472, 44, 60, 32, "x₀", "var(--c-empirical)");
+    g += arrow("M337,40 L337,18 L112,18 L112,58", INK, "ah", ";stroke-dasharray:3 3");
+    g += `<text class="sub" x="225" y="13" text-anchor="middle">repeat for t = T … 1 (${cond ? 75 : 500} steps)</text>`;
+  }
+  return g + "</svg>";
+}
+const FORMULA = {
+  forward: "x<sub>t</sub> = &radic;&#x0101;<sub>t</sub> x<sub>0</sub> + &radic;(1 &minus; &#x0101;<sub>t</sub>) &epsilon;, &nbsp; &epsilon; ~ N(0, I), &nbsp; &#x0101;<sub>t</sub> = &prod;<sub>s&le;t</sub> (1 &minus; &beta;<sub>s</sub>)",
+  training: "Update &epsilon;<sub>&theta;</sub> to minimise L = &#8214;&epsilon; &minus; &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t)&#8214;&sup2;",
+  generation: "x<sub>t&minus;1</sub> = (x<sub>t</sub> &minus; (1 &minus; &alpha;<sub>t</sub>)/&radic;(1 &minus; &#x0101;<sub>t</sub>) &middot; &epsilon;&#x0302;) / &radic;&alpha;<sub>t</sub> + &sigma;<sub>t</sub> z, &nbsp; and the image &epsilon;&#x0302; implies: x&#x0302;<sub>0</sub> = (x<sub>t</sub> &minus; &radic;(1 &minus; &#x0101;<sub>t</sub>) &epsilon;&#x0302;) / &radic;&#x0101;<sub>t</sub>",
+  conditional: "&epsilon;&#x0302; = &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t, c): the label enters as ten one-hot channels concatenated to x<sub>t</sub>; trained with the same loss, &#8214;&epsilon; &minus; &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t, c)&#8214;&sup2;",
+};
+
+// ---- drawing helpers ----
+function text(s, x, y, color = C["ink-2"], align = "left", font = C["fs-xs"]) { ctx.fillStyle = color; ctx.textAlign = align; ctx.font = `${font} ${C.font}`; ctx.fillText(s, x, y); }
+function curvesPanel(y0, y1, tNow) {
+  const L = 40, R = W - 20;
+  const px = (t) => L + t / 999 * (R - L), py = (v) => y1 - v * (y1 - y0);
+  ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y0); ctx.lineTo(L, y1 + .5); ctx.lineTo(R, y1 + .5); ctx.stroke();
+  for (const v of [0, 0.5, 1]) text(String(v), L - 6, py(v) + 4, C["ink-2"], "right");
+  for (const t of [0, 200, 400, 600, 800, 999]) text(String(t), px(t), y1 + 14, C["ink-2"], "center");
+  text("t", R + 8, y1 + 4);
+  const line = (f, c) => { ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.beginPath(); for (let t = 0; t < T; t += 3) { const y = py(f(t)); t ? ctx.lineTo(px(t), y) : ctx.moveTo(px(t), y); } ctx.stroke(); };
+  line((t) => Math.sqrt(abar[t]), C["c-group-a"]);
+  line((t) => Math.sqrt(1 - abar[t]), C["c-group-b"]);
+  if (S.clf) {
+    ctx.strokeStyle = C["ink-3"]; ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath();
+    CLF.forEach(([t, a], i) => (i ? ctx.lineTo(px(t), py(a)) : ctx.moveTo(px(t), py(a)))); ctx.stroke(); ctx.setLineDash([]);
+    text("classifier on x_t names the digit", px(560), py(0.42), C["ink-3"]);
+  }
+  text("√ᾱ_t, the weight on x₀", px(640), py(Math.sqrt(abar[640])) - 10, C["c-group-a"], "left");
+  text("√(1−ᾱ_t), the weight on ε", px(640), py(Math.sqrt(1 - abar[640])) + 18, C["c-group-b"], "left");
+  ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px(tNow), y0 - 4); ctx.lineTo(px(tNow), y1); ctx.stroke();
+  ctx.fillStyle = C["c-group-a"]; ctx.beginPath(); ctx.arc(px(tNow), py(Math.sqrt(abar[tNow])), 3.5, 0, 7); ctx.fill();
+  ctx.fillStyle = C["c-group-b"]; ctx.beginPath(); ctx.arc(px(tNow), py(Math.sqrt(1 - abar[tNow])), 3.5, 0, 7); ctx.fill();
+  return { L, R, px };
+}
+let HITS = [];
+
+function draw() {
+  document.getElementById("diagram").innerHTML = diagram();
+  document.getElementById("lossline").innerHTML = FORMULA[S.page];
+  const step = document.getElementById("step"), play = document.getElementById("play"), reset = document.getElementById("reset");
+  HITS = [];
+  if (!D) { size(60); return; }
+  const cap = document.getElementById("cap"), ro = document.getElementById("readout");
+
+  if (S.page === "forward") {
+    step.hidden = play.hidden = reset.hidden = true;
+    size(440); ctx.clearRect(0, 0, W, 440);
+    const t = S.t, a = Math.sqrt(abar[t]), b = Math.sqrt(1 - abar[t]);
+    document.getElementById("tval").textContent = `= ${t}`;
+    const x0 = b64cache("fx0", D.forward.x0);
+    const k = S.digit;
+    // epsilon and x_t as display bytes
+    const eu8 = new Uint8Array(784), xu8 = new Uint8Array(784);
+    for (let i = 0; i < 784; i++) { const xv = x0[k * 784 + i] / 255 * 2 - 1; eu8[i] = disp(EPS[i]); xu8[i] = disp(a * xv + b * EPS[i]); }
+    const s = 112, y = 26;
+    text(a.toFixed(2), 8, y + s / 2 + 4, C["c-group-a"], "left", C["fs-sm"]); text("×", 44, y + s / 2 + 4, C["ink-2"]);
+    img(x0, k, 56, y, s, C["c-group-a"]);
+    text("+", 182, y + s / 2 + 4, C["ink-1"], "left", C["fs-sm"]);
+    text(b.toFixed(2), 196, y + s / 2 + 4, C["c-group-b"], "left", C["fs-sm"]); text("×", 230, y + s / 2 + 4, C["ink-2"]);
+    img(eu8, 0, 244, y, s, C["c-group-b"]);
+    text("=", 370, y + s / 2 + 4, C["ink-1"], "left", C["fs-sm"]);
+    img(xu8, 0, 392, y, s, C["c-highlight"]);
+    text("x₀", 56 + s / 2, y - 8, C["c-group-a"], "center"); text("ε ~ N(0, I)", 244 + s / 2, y - 8, C["c-group-b"], "center"); text(`x_t,  t = ${t}`, 392 + s / 2, y - 8, C["ink-1"], "center");
+    curvesPanel(186, 306, t);
+    // c107's strip
+    const steps = [0, 50, 200, 400, 800, 999], fs = 64, gap = (W - 6 * fs) / 7;
+    text("c107's frames", 8, 352, C["ink-3"]);
+    const near = steps.reduce((m, v) => (Math.abs(v - t) < Math.abs(m - t) ? v : m), 0);
+    steps.forEach((tt, j) => {
+      const aa = Math.sqrt(abar[tt]), bb = Math.sqrt(1 - abar[tt]); const u = new Uint8Array(784);
+      for (let i = 0; i < 784; i++) u[i] = disp(aa * (x0[k * 784 + i] / 255 * 2 - 1) + bb * EPS[i]);
+      const x = gap + j * (fs + gap), yy = 360;
+      img(u, 0, x, yy, fs, tt === t ? C["c-highlight"] : null);
+      text(`t = ${tt}`, x + fs / 2, yy + fs + 13, tt === t ? C["ink-1"] : C["ink-2"], "center");
+      HITS.push({ x, y: yy, w: fs, h: fs, on: () => { S.t = tt; document.getElementById("tslider").value = tt; build(); } });
+    });
+    ro.innerHTML = `t <b>${t}</b> · √ᾱ_t <b>${a.toFixed(3)}</b> · √(1−ᾱ_t) <b>${b.toFixed(3)}</b>`;
+    cap.textContent = t < 300
+      ? "The forward process mixes the image with Gaussian noise. At this t most of x_t is still x₀."
+      : t < 650
+        ? "Past t ≈ 300 the noise term outweighs the image, and by t ≈ 600 only the faintest outline remains."
+        : "From t ≈ 700 x_t is noise for every digit: √ᾱ_t is under 0.1, which is why c107's last two frames look the same.";
+    return;
+  }
+
+  if (S.page === "training") {
+    step.hidden = play.hidden = reset.hidden = false; play.textContent = "Train"; step.textContent = "Step";
+    step.disabled = play.disabled = S.ck >= 8 || S.playing;
+    size(470); ctx.clearRect(0, 0, W, 470);
+    const tr = D.training, i = S.iter, ck = S.ck;
+    const x0 = b64cache("tx0", tr.x0), ep = b64cache("teps", tr.eps), xt = b64cache("txt", tr.xt), eh = b64cache("teh" + ck, tr.eps_hat[ck]);
+    const s = 104, y = 24, xs = [8, 142, 276, 418];
+    img(x0, i, xs[0], y, s, C["ink-3"], 1); img(ep, i, xs[1], y, s, C["c-reference"]); img(xt, i, xs[2], y, s, C["ink-3"], 1); img(eh, i, xs[3], y, s, C["c-empirical"]);
+    text(`x₀ (a ${tr.label[i]})`, xs[0] + s / 2, y - 8, C["ink-1"], "center");
+    text("ε, the noise added", xs[1] + s / 2, y - 8, C["ink-1"], "center");
+    text(`x_t,  t = ${tr.t[i]}`, xs[2] + s / 2, y - 8, C["ink-1"], "center");
+    text("ε̂ = ε_θ(x_t, t)", xs[3] + s / 2, y - 8, C["c-empirical"], "center");
+    text("→", 124, y + s / 2 + 4, C["ink-2"], "center"); text("→", 258, y + s / 2 + 4, C["ink-2"], "center"); text("→", 400, y + s / 2 + 4, C["ink-2"], "center");
+    const mse = tr.mse[ck][i];
+    text(`MSE(ε, ε̂) = ${mse.toFixed(4)}`, xs[3] + s / 2, y + s + 18, C["c-empirical"], "center", C["fs-sm"]);
+    // loss curve, log-log
+    const L = 46, R = W - 16, y0 = 180, y1 = 300;
+    const lx = (bt) => L + Math.log10(bt + 1) / Math.log10(706) * (R - L), ly = (v) => y1 - (Math.log10(v) + 2) / 2.2 * (y1 - y0);
+    ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y0); ctx.lineTo(L, y1 + .5); ctx.lineTo(R, y1 + .5); ctx.stroke();
+    for (const v of [0.01, 0.1, 1]) text(String(v), L - 6, ly(v) + 4, C["ink-2"], "right");
+    for (const bt of [0, 5, 20, 50, 100, 200, 705]) text(String(bt), lx(bt), y1 + 14, C["ink-2"], "center");
+    text("batch", R, y1 + 28, C["ink-2"], "right");
+    text("training loss, every batch (log axes)", L + 6, y0 - 6, C["c-empirical"]);
+    const upto = tr.tag_batch[ck];
+    ctx.strokeStyle = C["c-empirical"]; ctx.lineWidth = 1.2; ctx.beginPath();
+    for (let bt = 0; bt < upto; bt++) { const X = lx(bt + 1), Y = ly(tr.batch_loss[bt]); bt ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.stroke();
+    tr.tag_batch.forEach((bt, j) => { ctx.fillStyle = j === ck ? C["c-highlight"] : C.grid; ctx.beginPath(); ctx.arc(lx(bt), y1, j === ck ? 4 : 2.5, 0, 7); ctx.fill(); });
+    // samples
+    const sm = b64cache("ts" + ck, tr.samples[ck]);
+    const tagName = ["before training", "after 5 batches", "after 20 batches", "after 50 batches", "after 100 batches", "after 200 batches", "after epoch 1", "after epoch 2", "after epoch 3"][ck];
+    text(`8 samples from this model, ${tagName} (500 steps each)`, 8, 352, C["ink-2"]);
+    for (let j = 0; j < 8; j++) img(sm, j, 8 + j * 66, 362, 60, null);
+    ro.innerHTML = `checkpoint <b>${tagName}</b> · iteration ${i + 1}: t <b>${tr.t[i]}</b> · MSE(ε, ε̂) <b>${mse.toFixed(4)}</b>`;
+    cap.textContent = ck === 0
+      ? "One pass of the loop: noise ε is added to x₀ at step t, and the network is asked for ε back. Before training its ε̂ has nothing of ε in it."
+      : ck < 8
+        ? "Each update lowers the gap between ε̂ and ε. The samples come from running the generation loop with the model as it stands at this checkpoint."
+        : "Trained: where t is large, x_t is mostly ε, and ε̂ matches it almost exactly; near t = 0 the noise is a faint layer over the digit and ε̂ is still off.";
+    return;
+  }
+
+  if (S.page === "generation") {
+    step.hidden = play.hidden = reset.hidden = false; play.textContent = "Generate"; step.textContent = "Step";
+    const G = D.generation, nF = G.t.length - 1;
+    step.disabled = play.disabled = S.gi >= nF || S.playing;
+    size(470); ctx.clearRect(0, 0, W, 470);
+    const f = S.gi, sel = S.gsel, tNow = G.t[f];
+    const xt = b64cache("gx" + f, G.xt[f]), eh = b64cache("ge" + f, G.eps_hat[f]), x0 = b64cache("g0" + f, G.x0_hat[f]);
+    const s = 120, y = 24;
+    const xs = S.x0 ? [16, 210, 404] : [80, 330];
+    img(xt, sel, xs[0], y, s, C["c-highlight"]);
+    text(tNow < 0 ? "x₀, the result" : `x_t,  t = ${tNow}`, xs[0] + s / 2, y - 8, C["ink-1"], "center");
+    if (tNow >= 0) { img(eh, sel, xs[1], y, s, C["c-empirical"]); text("ε̂ = ε_θ(x_t, t)", xs[1] + s / 2, y - 8, C["c-empirical"], "center"); }
+    if (S.x0 && tNow >= 0) { img(x0, sel, xs[2], y, s, C["c-empirical"]); text("x̂₀, the image ε̂ implies", xs[2] + s / 2, y - 8, C["c-empirical"], "center"); }
+    // grid of 16
+    text(`all 16 samples at this step (c113)`, 8, 172, C["ink-2"]);
+    for (let j = 0; j < 16; j++) {
+      const X = 8 + j * 33, Y = 180; img(xt, j, X, Y, 30, j === sel ? C["c-highlight"] : null);
+      HITS.push({ x: X, y: Y, w: 30, h: 30, on: () => { S.gsel = j; draw(); } });
+    }
+    // trajectory: 8 frames at evenly spaced steps reached so far
+    text(S.x0 ? "the trajectory so far (c115): x_t, and x̂₀ under it" : "the trajectory so far (c115)", 8, 240, C["ink-2"]);
+    const picks = [0, 7, 14, 21, 28, 35, 42, 50].filter((p) => p <= f);
+    picks.forEach((p, j) => {
+      const X = 8 + j * 66;
+      img(b64cache("gx" + p, G.xt[p]), sel, X, 250, 58, null);
+      text(G.t[p] < 0 ? "result" : `t = ${G.t[p]}`, X + 29, 322, C["ink-2"], "center");
+      if (S.x0 && G.t[p] >= 0) img(b64cache("g0" + p, G.x0_hat[p]), sel, X, 334, 58, C["c-empirical"], 1);
+    });
+    ro.innerHTML = tNow < 0 ? `done: 500 steps · sample <b>${sel + 1}</b>` : `step <b>${f * 10}</b> of 500 · t <b>${tNow}</b> · √ᾱ_t <b>${Math.sqrt(abar[tNow]).toFixed(3)}</b> · sample <b>${sel + 1}</b>`;
+    cap.textContent = f === 0
+      ? "Generation starts from pure noise x_T. The network predicts the noise in it; x̂₀ is what is left if all of that noise is removed at once. At this t x̂₀ is clipped noise: √ᾱ_t is 0.006, so every error in ε̂ is magnified over 150 times."
+      : tNow < 0
+        ? "Each of the 500 steps removed one step's share of the predicted noise."
+        : tNow > 500
+          ? "Each step removes one step's share of the predicted noise and adds a little fresh noise. x̂₀ is a blur that changes from step to step."
+          : "Between t ≈ 500 and 300 x̂₀ settles on a digit while x_t still looks like noise; the remaining steps sharpen it.";
+    return;
+  }
+
+  // conditional
+  step.hidden = play.hidden = reset.hidden = false; play.textContent = "Generate"; step.textContent = "Step";
+  const Cd = D.conditional, nF = Cd.t.length - 1;
+  step.disabled = play.disabled = S.ci >= nF || S.playing;
+  size(470); ctx.clearRect(0, 0, W, 470);
+  const f = S.ci, tNow = Cd.t[f], k = S.crow * 10 + S.label;
+  const s = 120, y = 24;
+  img(b64cache(`cx${k}_${f}`, Cd.xt[k][f]), 0, 110, y, s, C["c-highlight"]);
+  text(tNow < 0 ? `x₀, the result (c = ${S.label})` : `x_t,  t = ${tNow},  c = ${S.label}`, 110 + s / 2, y - 8, C["ink-1"], "center");
+  if (tNow >= 0) { img(b64cache(`c0${k}_${f}`, Cd.x0_hat[k][f]), 0, 310, y, s, C["c-empirical"]); text("x̂₀, the image ε̂ implies", 310 + s / 2, y - 8, C["c-empirical"], "center"); }
+  text("4 per label (c129); each row starts from one x_T", 8, 176, C["ink-2"]);
+  const cs = 46, gx = (W - 10 * cs) / 11;
+  for (let d = 0; d < 10; d++) {
+    const X = gx + d * (cs + gx);
+    text(String(d), X + cs / 2, 196, d === S.label ? C["c-highlight"] : C["ink-2"], "center", C["fs-sm"]);
+    for (let r = 0; r < 4; r++) {
+      const kk = r * 10 + d, Y = 204 + r * (cs + 6);
+      img(b64cache(`cx${kk}_${f}`, Cd.xt[kk][f]), 0, X, Y, cs, d === S.label && r === S.crow ? C["c-highlight"] : null);
+      HITS.push({ x: X, y: Y, w: cs, h: cs, on: () => { S.label = d; S.crow = r; build(); } });
+    }
+    if (d === S.label) { ctx.strokeStyle = C["c-highlight"]; ctx.lineWidth = 1; ctx.strokeRect(X - 3, 200, cs + 6, 4 * (cs + 6) + 2); }
+  }
+  ro.innerHTML = tNow < 0 ? `done: 75 steps · label c <b>${S.label}</b>` : `step <b>${f * 3}</b> of 75 · t <b>${tNow}</b> · label c <b>${S.label}</b>`;
+  cap.textContent = f === 0
+    ? "The same loop, with the label c given to the network at every step. Along a row the starting noise and every added noise are the same; only c differs."
+    : tNow < 0
+      ? "Along a row the noise was identical and only the label differed. Most samples end as the digit their label names; a few do not (measured on 300 samples: 91%)."
+      : "The label enters at every step. Along a row the noise is identical, so where the samples differ, the label made the difference.";
+}
+
+const cache = new Map();
+function b64cache(key, s) { if (!cache.has(key)) cache.set(key, b64(s)); return cache.get(key); }
+
+// ---- presses ----
+function animate(field, to, per, ms) {
+  S.playing = true; draw();
+  let last = 0;
+  const tick = (now) => {
+    if (!S.playing) return;
+    if (now - last >= ms) { S[field] = Math.min(S[field] + per, to); last = now; draw(); }
+    if (S[field] < to) requestAnimationFrame(tick); else { S.playing = false; draw(); }
+  };
+  requestAnimationFrame(tick);
+}
+document.getElementById("step").onclick = () => {
+  if (S.page === "training") animate("ck", Math.min(S.ck + 1, 8), 1, 0);
+  else if (S.page === "generation") animate("gi", Math.min(S.gi + 5, D.generation.t.length - 1), 1, 60);
+  else if (S.page === "conditional") animate("ci", Math.min(S.ci + 5, D.conditional.t.length - 1), 1, 90);
+};
+document.getElementById("play").onclick = () => {
+  if (S.page === "training") animate("ck", 8, 1, 450);
+  else if (S.page === "generation") animate("gi", D.generation.t.length - 1, 1, 60);
+  else if (S.page === "conditional") animate("ci", D.conditional.t.length - 1, 1, 90);
+};
+document.getElementById("reset").onclick = () => { S.playing = false; if (S.page === "training") S.ck = 0; else if (S.page === "generation") S.gi = 0; else S.ci = 0; draw(); };
+document.getElementById("tslider").oninput = (e) => { S.t = +e.target.value; draw(); };
+cv.addEventListener("click", (e) => {
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const h = HITS.find((h) => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h); if (h) h.on();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { colors(); draw(); });
+
+window.__mock = { S, draw, build };  // for checking end states without waiting on rAF
+build();
+fetch("diffusion-mock-data.json").then((r) => r.json()).then((d) => {
+  D = d; document.getElementById("status").textContent = `loaded: ${d.generation.t.length - 1} generation frames, ${d.conditional.t.length - 1} conditional frames, ${d.training.tags.length} checkpoints`;
+  build();
+});
+</script>
+</body>
+</html>

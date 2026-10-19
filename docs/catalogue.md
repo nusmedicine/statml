@@ -25191,7 +25191,7 @@ seeded rng.
 | 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | **SHIPPED 2026-10-17** |
 | 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | **SHIPPED 2026-10-19** (22 states) |
 | 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | **SHIPPED 2026-10-19** (11 states) |
-| 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | picked; measure first |
+| 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | **MEASURED 2026-10-20** |
 
 **Build order** is the lessons': 104 → 105 → 106 → 108 → 107.
 
@@ -26094,6 +26094,81 @@ state is required. A first run made while the session was in no window gave
 two settled states (the opening, after Update D) other hashes; three runs with
 the session fronted agreed on all 11, a fourth on the harness page itself
 matched, and the MATCH pass after the status flip read 11/11 at DPR 1.25.
+
+### 107 MEASURED 2026-10-20, before any mock
+
+**Host.** 10-3b c95–129: the forward process (q(x_t | x_{t−1}), the closed
+form x_t = √ᾱ_t x₀ + √(1−ᾱ_t) ε), the reverse process predicting ε, the
+training and sampling pseudocode (c96's sampler as corrected, item 6), the
+architecture table; then two worked examples on MNIST in [−1, 1] with
+`diffusers`: c99–115 unconditional (`UNet2DModel` (64, 64), two DownBlock2D,
+DDPMScheduler(1000, "linear"), AdamW 1e-3, batch 256, 3 epochs; c107 shows
+x_t at t = 0, 50, 200, 400, 800, 999; c113 samples 16 at 500 inference
+steps; c115 one trajectory in 8 frames) and c116–129 conditional (the label
+as a one-hot map concatenated to x_t, 11 input channels, 5 epochs; c129
+samples 4 per digit at 75 steps).
+
+**Models.** Both trained as the notebook builds them (`_lab/diffusion-measure.py
+train uncond|cond`, seed 42; torch's shuffle, not DataLoader's), checkpoints
+at 0, 5, 20, 50, 100, 200 batches and every epoch in
+`_scratch/frontiers-data/models-107`. Unconditional on the CPU (~18 min,
+epoch losses 0.054 · 0.029 · 0.026); conditional on the GPU (`diffusers`
+0.41 and torch 2.14 cu130 installed on his yes; 5 epochs in 110 s, final
+loss 0.024). The instrument is 106's clean MNIST classifier (`clf.pt`).
+
+**The schedule** (`schedule`, `_lab/diffusion-schedule.json`). A classifier
+trained on x_t with t as an input names the digit:
+
+| t | 0 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 999 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| √ᾱ_t | 1.00 | 0.95 | 0.81 | 0.63 | 0.44 | 0.28 | 0.16 | 0.08 | 0.04 | 0.006 |
+| classifier on x_t | 97% | 97% | 96% | 93% | 82% | 58% | 34% | 20% | 13% | 11% |
+
+So on the linear schedule the digit is gone from x_t by t ≈ 700, and c107's
+frames 800 and 999 are both noise.
+
+**The reverse process** (`measure uncond`, 64 samples at c113's 500 steps).
+x̂₀, the scheduler's `pred_original_sample` at each step, agrees with the
+class the sample ends as in 11–14% of samples from t = 999 to 700, 33% at
+600, 61% at 400, 83% at 300, 97% at 200: **the digit is decided between t ≈
+500 and 300** (median commit t = 372, quartiles 289–474), while x_t itself
+still looks like noise (`_lab/diffusion-look.py`'s trajectory: x_t shows a stroke from ~t
+300, x̂₀ a blob from 700 and the final shape by 400). The window is the one
+in which the forward process erases the digit. x̂₀ is **clipped** to
+[−1, 1] by diffusers (`clip_sample=True`) and the step is taken from the
+clipped x̂₀, not from ε as the notebook's pseudocode writes it: 86% of x̂₀'s
+pixels are clipped at t ≈ 998, 67% at 900, 36% at 800, ≤ 13% below 700. x̂₀
+at t ≥ 900 draws as saturated noise.
+
+**The noise prediction** is easiest where the image is most noise: ε's MSE
+on test digits is 0.32 at t = 0, 0.09 at 50, 0.04 at 200, 0.007 at 600,
+0.002 at 999.
+
+**Inference steps** (128 samples each, share the classifier reads at ≥ 0.9):
+1000 · 500 · 75 · 20 · 10 steps → 61% · 61% · 70% · 64% · 49%. 75 steps (c129)
+is as good as 500 (c113); 10 is worse. The 3-epoch model's samples are about
+two thirds digits, a third digit-like strokes (`_lab/diffusion-look.py`'s grid); 1s are
+rare among the confident reads at every step count.
+
+**Training checkpoints** (32 samples at 500 steps, share ≥ 0.9): 0 · 5 · 20 ·
+50 · 100 · 200 batches · epochs 1 · 2 · 3 → 0 · 0 · 0 · 3% · 28% · 50% · 41%
+· 56% · 62%. A Train press replaying them has a visible arc (noise →
+blobs → strokes → digits).
+
+**Conditional** (`measure cond`, 30 a digit at c129's 75 steps). The label
+read back 91% (per digit 1.00 · 0.93 · 0.97 · 0.80 · 0.97 · **0.63** · 0.93 ·
+1.00 · 0.93 · 0.90; 5s become 6s and 3s). The label is learned late: 7% ·
+12% · 17% · 22% · 59% · 86% at 0 · 20 · 100 batches · epochs 1 · 3 · 5, so the
+notebook's 5 epochs matter. One x_T under ten labels: pixel correlation 0.48
+between labels against 0.38 between noises under one label, and no visible
+shared style in a row: the condition is not a claim to make.
+
+**What it says for the widget.** The catalogue's claim holds and narrows to
+something drawable: the network predicts ε; x̂₀ = (x_t − √(1−ᾱ_t) ε̂)/√ᾱ_t is
+the image that prediction implies, and it settles on a digit in the middle of
+the reverse run while x_t is still noise. Forward is pure arithmetic, so it
+can be exact in the browser (x_t from a seeded ε for any t). Reverse and
+Conditional replay stored trajectories (the U-Net does not run in JS).
 
 ---
 
