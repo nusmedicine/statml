@@ -13,7 +13,9 @@ verified byte for byte); Conditioning runs a sibling trained with [TREAT] or
 [NEG] after [BOS], the condition token left out of 20% of notes and carrying
 no loss. Each token is drawn by one uniform u on the tokens' intervals, most
 probable first, and the same u's serve every rule and every prefix, so the
-table of ten notes compares the arms on the same draws. Data
+table of ten notes compares the arms on the same draws. Round 1 (his pick
+A): Draw and Generate fill only the chosen rule's or prefix's column; each
+arm keeps its own place, and an arm change halts Generate. Data
 `widgets/generation-control/weights.js` (481 kB) from
 `_lab/generation-control-weights.py` (~1 min, CPU), which also writes
 `generation-control-reference.json` (committed, the verify reads it) and

@@ -33,9 +33,13 @@
 
    compute() draws the u's, one for each token of each note, and nothing else:
    the rules and the prefixes are display parameters, and a note is a pure
-   function of its u's, the model and the arm (model.js, memoised). A press
-   draws one token of the shown arm's current note; every arm's note appears
-   in the table when the shown arm's note ends.
+   function of its u's, the model and the arm (model.js, memoised). Each arm
+   keeps its own place (note i, j tokens drawn): a press draws one token of the
+   CHOSEN arm's note, and only that arm's column of the table fills. His
+   question after the first draft (2026-10-20, "whether i choose the prefix,
+   the list generates all versions? the button has no influence?"): the table
+   had filled all three columns whichever arm was chosen; his pick A, on both
+   pages. Row n still uses the same u's in every column.
    ========================================================================= */
 
 import { defineWidget, mathmlRenders } from "../core/index.js";
@@ -61,13 +65,13 @@ const S = {
     "Sampling: three rules for drawing the token. Conditioning: a token placed before the text that every later token is predicted from.",
   pageLabel: "Control",
   ruleLabel: "Decoding rule",
-  ruleDetail: "how the token is chosen from the model's probabilities; the table below shows all three",
+  ruleDetail: "how the token is chosen from the model's probabilities, and the column of the table Draw and Generate fill",
   tLabel: "Temperature T",
   tDetail: "the log probabilities are divided by T, then renormalised",
   kLabel: "k, for top-k",
   kDetail: "the number of most probable tokens kept",
   prefixLabel: "Prefix",
-  prefixDetail: "the condition token placed after [BOS]",
+  prefixDetail: "the condition token placed after [BOS], and the column of the table Draw and Generate fill",
   seedLabel: "Seed",
   seedDetail: `the uniform numbers u, one for each token of the ${N} notes`,
   noteTitle: (i) => `Note ${i + 1}, one token at a time`,
@@ -77,7 +81,8 @@ const S = {
   others: (n) => `${n} other tokens`,
   uLabel: "u",
   uVal: (u) => `u = ${f2(u)}`,
-  tableTitle: { sampling: `${N} notes: each row uses the same u's under each rule`, conditioning: `${N} notes: each row uses the same u's under each prefix` },
+  tableTitle: { sampling: `${N} notes under each rule: row n uses the same u's in every column`, conditioning: `${N} notes under each prefix: row n uses the same u's in every column` },
+  none: "no notes yet",
   armRule: { greedy: "Greedy", temperature: (T) => `Temperature, T = ${T}`, topk: (k) => `Top-k, k = ${k}` },
   armPrefix: { treat: "[TREAT]", neg: "[NEG]", none: "No prefix" },
   headSampling: (d, fw) => `${d} different, ${fw} first word${fw === 1 ? "" : "s"}`,
@@ -97,13 +102,13 @@ const S = {
     note: "Note",
     noteNote: (j) => (j ? `${j} token${j === 1 ? "" : "s"} drawn` : "no token drawn yet"),
     diff: "Different notes",
-    diffNote: "greedy · temperature · top-k, of the notes complete",
+    diffNote: "greedy · temperature · top-k",
     first: "Different first words",
     firstNote: "greedy · temperature · top-k",
     treat: "[TREAT]: start treated or managed",
     neg: "[NEG]: start no",
     none: "No prefix: treated or managed · no",
-    ofDone: "of the notes complete",
+    ofDone: "of the notes generated",
   },
 };
 
@@ -124,7 +129,7 @@ const CAP = {
   cond: (pre, tok) => (pre === "none" ? `u falls in the interval of ${tok}.` : `u falls in the interval of ${tok}. The outlines are the same tokens with no prefix.`),
   ended: (i) => ` The model drew [EOS]: note ${i + 1} is complete.`,
   capped: (i) => ` Note ${i + 1} reached ${M.MAX_TOKENS} tokens without [EOS] and is stopped there.`,
-  done: ` All ${N} notes are complete.`,
+  done: { sampling: ` All ${N} notes under this rule are complete.`, conditioning: ` All ${N} notes with this prefix are complete.` },
 };
 
 /* ------------------------------------------------------------- the arms and their notes */
@@ -150,15 +155,20 @@ function notesOf(state, arm) {
   return v;
 }
 
-/** the shown page's place: note i, j tokens drawn in it (clamped to the shown arm's note, which a rule change can shorten) */
-function placeOf(anim, params, state) {
-  const at = anim?.at?.[params.page] ?? { i: 0, j: 0 }, notes = notesOf(state, shownArm(params));
+const ARM_KEYS = { sampling: RULES.map((r) => r.value), conditioning: PREFIXES.map((r) => r.value) };
+/** every arm's place, at the start: note 1, nothing drawn */
+const freshPlaces = () => Object.fromEntries(Object.entries(ARM_KEYS).map(([pg, ks]) => [pg, Object.fromEntries(ks.map((k) => [k, { i: 0, j: 0 }]))]));
+/** an arm's place: note i, j tokens drawn in it (clamped to its note, which T or k can shorten); complete = its notes ended */
+function placeOf(anim, params, state, arm = shownArm(params)) {
+  const at = anim?.at?.[params.page]?.[arm.key] ?? { i: 0, j: 0 }, notes = notesOf(state, arm);
   const len = notes[at.i].steps.length, j = Math.min(at.j, len);
   return { i: at.i, j, len, note: notes[at.i], complete: at.i + (j >= len ? 1 : 0), done: at.i === N - 1 && j >= len };
 }
-/** one press: the next token of the shown arm's note, or the first of the next note */
+/** what a halt is keyed to: the page and the arm chosen on it */
+const stageOf = (params) => `${params.page}|${shownArm(params).key}`;
+/** one press: the next token of the chosen arm's note, or the first of the next note */
 function pressOnce(anim, params, state) {
-  const pl = placeOf(anim, params, state), at = anim.at[params.page];
+  const pl = placeOf(anim, params, state), at = anim.at[params.page][shownArm(params).key];
   if (pl.done) return false;
   if (pl.j < pl.len) at.j = pl.j + 1;
   else { at.i = pl.i + 1; at.j = 1; }
@@ -373,7 +383,7 @@ function captionOf(params, pl) {
     ? params.rule === "greedy" ? CAP.rule.greedy(tok, st.p[st.tok]) : params.rule === "temperature" ? CAP.rule.temperature(params.T, tok) : CAP.rule.topk(params.k, tok)
     : CAP.cond(params.prefix, tok);
   if (pl.j >= pl.len) s += pl.note.ended ? CAP.ended(pl.i) : CAP.capped(pl.i);
-  if (pl.done) s += CAP.done;
+  if (pl.done) s += CAP.done[params.page];
   return s;
 }
 function drawCaption(ctx, colors, Lo, s) {
@@ -392,24 +402,27 @@ function headOf(params, arm, notes) {
   if (arm.key === "neg") return S.headNeg(k.filter((v) => v === "neg").length, notes.length);
   return S.headNone(k.filter((v) => v === "treat").length, k.filter((v) => v === "neg").length);
 }
-function drawTable(ctx, colors, Lo, params, state, pl) {
+function drawTable(ctx, colors, Lo, params, state, anim) {
   const { L, R, tableTitle, head, rowsTop, foot } = Lo, arms = armsOf(params), numW = 18, gapX = 10;
   const colW = (R - L - numW - 2 * gapX) / 3, cx = (c) => L + numW + c * (colW + gapX);
   txt(ctx, colors, S.tableTitle[params.page], L, tableTitle, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
-  const done = arms.map((a) => notesOf(state, a).slice(0, pl.complete));
+  const done = arms.map((a) => notesOf(state, a).slice(0, placeOf(anim, params, state, a).complete));
   const font = `${colors.fsXs} ${colors.font}`;
   let anyOut = false;
   arms.forEach((a, c) => {
     const col = params.page === "sampling" ? colors.ink1 : { treat: colors.groupA, neg: colors.groupB, none: colors.reference }[a.key];
     txt(ctx, colors, a.label, cx(c), head, { size: colors.fsSm, fill: col, weight: a.shown ? "700" : "" });
     if (a.shown) line(ctx, cx(c), head + 4, cx(c) + Math.min(colW, textW(ctx, a.label, `700 ${colors.fsSm} ${colors.font}`)), head + 4, colors.highlight, 2);
-    if (pl.complete) txt(ctx, colors, headOf(params, a, done[c]), cx(c), head + 18, { fill: colors.ink2 });
+    txt(ctx, colors, done[c].length ? headOf(params, a, done[c]) : S.none, cx(c), head + 18, { fill: done[c].length ? colors.ink2 : colors.ink3 });
   });
   line(ctx, L, rowsTop - 8.5, R, rowsTop - 8.5, colors.grid);
   let y = rowsTop;
-  for (let i = 0; i < pl.complete; i++) {
+  const rowsN = Math.max(...done.map((ns) => ns.length));
+  for (let i = 0; i < rowsN; i++) {
     const cells = done.map((ns) => {
-      const n = ns[i], out = !M.inGrammar(n.text) || !n.ended;
+      const n = ns[i];
+      if (!n) return [];
+      const out = !M.inGrammar(n.text) || !n.ended;
       if (out) anyOut = true;
       return wrapLines(ctx, (out ? "† " : "") + (n.text || "(empty)"), font, colW).slice(0, 2);
     });
@@ -465,9 +478,10 @@ defineWidget({
     runTitle: `Draw every token of all ${N} notes`,
 
     init: ({ params, state, fromScratch }) => {
-      const anim = { at: { sampling: { i: 0, j: 0 }, conditioning: { i: 0, j: 0 } }, stage: params.page, t: 0, live: false, halt: false };
+      const anim = { at: freshPlaces(), stage: stageOf(params), t: 0, live: false, halt: false };
+      /* a link's shown= fills every column of the page it opens */
       const s = fromScratch ? 0 : Math.max(0, Math.min(N, Number(params.shown) || 0));
-      if (s > 0) anim.at[params.page] = { i: s - 1, j: notesOf(state, shownArm(params))[s - 1].steps.length };
+      if (s > 0) for (const a of armsOf(params)) anim.at[params.page][a.key] = { i: s - 1, j: notesOf(state, a)[s - 1].steps.length };
       anim.done = placeOf(anim, params, state).done;
       return anim;
     },
@@ -481,9 +495,10 @@ defineWidget({
       return anim.live;
     },
     rebuild: (anim, { params, state }) => {
-      /* only a page change ends Generate in flight (mid-press-page-switch); a rule, T, k or prefix keeps it going */
-      if (params.page !== anim.stage && anim.live) anim.halt = true;
-      anim.stage = params.page;
+      /* a page or an arm change ends Generate in flight (mid-press-page-switch): each arm has its own presses, so
+         running on would fill the newly chosen column unasked. T and k keep it going: they redraw a column, the arm is the same */
+      if (stageOf(params) !== anim.stage && anim.live) anim.halt = true;
+      anim.stage = stageOf(params);
       anim.done = placeOf(anim, params, state).done;
     },
   },
@@ -494,24 +509,24 @@ defineWidget({
     drawNote(ctx, colors, Lo, params, pl);
     drawDist(ctx, colors, Lo, params, pl);
     drawCaption(ctx, colors, Lo, captionOf(params, pl));
-    drawTable(ctx, colors, Lo, params, state, pl);
+    drawTable(ctx, colors, Lo, params, state, anim);
   },
 
   readout({ params, state, anim }) {
     const pl = placeOf(anim, params, state), T = S.tile, arms = armsOf(params);
-    const done = arms.map((a) => notesOf(state, a).slice(0, pl.complete));
+    const done = arms.map((a) => notesOf(state, a).slice(0, placeOf(anim, params, state, a).complete));
     const note = { label: T.note, value: `${pl.i + 1} of ${N}`, note: T.noteNote(pl.j) };
-    if (params.page === "sampling") {
-      const d = done.map((ns) => new Set(ns.map((n) => n.text)).size), fw = done.map((ns) => new Set(ns.map((n) => n.words[0])).size);
+    /* a column with no notes yet reads "–" */
+    const each = (f) => done.map((ns) => (ns.length ? f(ns) : "–")).join(" · ");
+    if (params.page === "sampling")
       return [note,
-        { label: T.diff, value: pl.complete ? d.join(" · ") : "–", note: T.diffNote },
-        { label: T.first, value: pl.complete ? fw.join(" · ") : "–", note: T.firstNote }];
-    }
-    const k = done.map((ns) => ns.map(kindOf)), c = pl.complete;
+        { label: T.diff, value: each((ns) => new Set(ns.map((n) => n.text)).size), note: T.diffNote },
+        { label: T.first, value: each((ns) => new Set(ns.map((n) => n.words[0])).size), note: T.firstNote }];
+    const count = (ns, kind) => ns.filter((n) => kindOf(n) === kind).length, [t, g, z] = done;
     return [note,
-      { label: T.treat, value: c ? `${k[0].filter((v) => v === "treat").length} of ${c}` : "–", note: T.ofDone },
-      { label: T.neg, value: c ? `${k[1].filter((v) => v === "neg").length} of ${c}` : "–", note: T.ofDone },
-      { label: T.none, value: c ? `${k[2].filter((v) => v === "treat").length} · ${k[2].filter((v) => v === "neg").length}` : "–", note: T.ofDone }];
+      { label: T.treat, value: t.length ? `${count(t, "treat")} of ${t.length}` : "–", note: T.ofDone },
+      { label: T.neg, value: g.length ? `${count(g, "neg")} of ${g.length}` : "–", note: T.ofDone },
+      { label: T.none, value: z.length ? `${count(z, "treat")} · ${count(z, "neg")}` : "–", note: T.ofDone }];
   },
 
   summary({ params, state, anim }) {

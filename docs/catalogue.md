@@ -26339,6 +26339,16 @@ model's outline --c-reference, the drawn token --c-highlight, [TREAT] / [NEG]
 label "Control", the title, subtitle and blurb (drafts for the copy audit).
 Fingerprint states are placeholders.
 
+**Round 1 (2026-10-20), his question on the first draft:** "whether i choose
+the prefix, the list generates all versions? the button has no influence?" —
+the table had filled all three columns whatever was chosen, so the Prefix and
+Decoding rule controls changed only the upper half. His pick A, on both pages:
+each rule and each prefix keeps its own place, and Draw and Generate fill only
+the chosen column; the others read "no notes yet" until chosen. Row n still
+uses the same u's in every column, and a link's `shown=` fills every column.
+Since each arm now has its own presses, a change of arm halts Generate as a
+page change does; T and k do not (they redraw a column).
+
 ---
 
 ## Two arcs, not one — now three
