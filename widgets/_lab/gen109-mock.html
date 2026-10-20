@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · gen109 mock — Sampling · Conditioning on 84's clinical model</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-1); color: var(--ink-1); }
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-3) 0 var(--sp-1); }
+  p.note, ul.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 118ch; font-size: var(--fs-sm); line-height: 1.5; }
+  p.note b, ul.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  table.m th, table.m td { border-bottom: 1px solid var(--grid); padding: 3px 12px 3px 0; text-align: left; vertical-align: top; }
+  table.m th { color: var(--ink-2); font-weight: 600; }
+  table.m td.n { font-variant-numeric: tabular-nums; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .cap { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--ink-3); background: var(--surface-2); max-width: 118ch; }
+  .cap i { color: var(--ink-3); font-style: normal; font-size: 11px; display: block; margin-bottom: 2px; }
+  .warn { border-left-color: var(--c-extreme); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 118ch; line-height: 1.5; }
+  .q b.h { display: block; margin-bottom: 3px; }
+  .gen { font-family: var(--font-mono); font-size: 12px; color: var(--ink-1); }
+  .gen .pre { color: var(--ink-3); }
+  #status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .two { display: grid; grid-template-columns: 540px 1fr; gap: var(--sp-4); align-items: start; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 109 <code>generation-control</code> &middot; mock: <b>Sampling &middot; Conditioning</b> on 84/85's clinical model</h1>
+  <p class="note">Settled 2026-10-20: built on the clinical causal model 84 ships, <b>not</b> on generated protein/enzyme/antibody sequences &mdash; a student can read a note and judge whether a decoding rule or a prefix steered it, and cannot read a sampled sequence. Everything below is <b>measured</b> on that model (<code>scratchpad/gen109-measure.py</code> &rarr; <code>_lab/gen109-mock-data.json</code>); 200 samples per rule, seeds 0&ndash;199. Canvases drawn at the widget's width, 540&nbsp;px. <span id="status">loading&hellip;</span></p>
+
+  <!-- ============================================ PAGE 1 ============================================ -->
+  <h2>Page 1 &mdash; <b>Sampling</b>: one distribution, three ways to draw from it</h2>
+  <p class="note">84 generates greedily throughout. This page is where greedy, <b>temperature</b> and <b>top-k</b> are the same distribution read three ways. The honest finding: a mid-clause prompt is deterministic, so generation must start at <b>the note's opening</b>, which is the only place with real uncertainty.</p>
+
+  <div class="cap warn"><i>why generation starts at the opening, not at 84's prompt</i>
+    <span id="deadcap"></span></div>
+
+  <h3>The next-token distribution at the note's opening (the <code>[BOS]</code> position)</h3>
+  <canvas id="c-dist" width="540" height="250"></canvas>
+
+  <h3>The same distribution under each rule, and what 200 draws produce</h3>
+  <canvas id="c-rules" width="540" height="300"></canvas>
+  <table class="m" id="t-rules"></table>
+  <div class="cap"><i>reading</i> Greedy gives one note every time. Temperature reshapes the whole distribution (a slider in the widget); higher T lets the rare openings through. Top-k keeps only the k most probable tokens, then renormalises &mdash; at small k the tail openings vanish, at <code>k&ge;10</code> it is indistinguishable from plain sampling because only <span id="tailn"></span> tokens are live here.</div>
+
+  <h3>Entropy falls to zero once the clause is chosen</h3>
+  <canvas id="c-ent" width="540" height="150"></canvas>
+  <div class="cap"><i>the teaching hook</i> The opening word is a real choice (high entropy); after one or two tokens the grammar locks the rest, so the decoding rule only ever changes the beginning. This figure is why.</div>
+
+  <!-- ============================================ PAGE 2 ============================================ -->
+  <h2>Page 2 &mdash; <b>Conditioning</b>: a token at the front steers every later token</h2>
+  <p class="note">A sibling model trained with a <b>condition token at the front</b> of each note (two readable conditions from the grammar &mdash; a treatment clause <code>[TREAT]</code> or a negated finding <code>[NEG]</code>), the prefix dropped 20% of the time so an unconditional fallback exists. The only thing that makes the token a condition is its position and that training always put it there &mdash; a different mechanism from 84's cross-attention.</p>
+
+  <h3>The first-position distribution under each prefix</h3>
+  <canvas id="c-cond" width="540" height="230"></canvas>
+  <div class="cap"><i>measured</i> The two conditioned distributions are <b>disjoint</b> (total-variation distance <span id="tvd"></span> of 1). Dropping the prefix gives a clean blend of the two &mdash; that is the <b>&ldquo;remove the prefix&rdquo;</b> toggle: the fallback sits visibly between the conditioned ones.</div>
+
+  <h3>Do the generated notes honour the prefix?</h3>
+  <table class="m" id="t-honour"></table>
+  <div id="gens"></div>
+
+  <!-- ============================================ QUESTIONS ============================================ -->
+  <h2>What to pick</h2>
+  <div class="q"><b class="h">Q1 &mdash; Sampling: which decoding arms?</b>
+    A. Greedy &middot; Temperature (slider) &middot; Top-k (small k, 3&ndash;5) &mdash; all three, <b>recommended</b> (top-k's tail-clipping is visible only at small k).<br>
+    B. Greedy &middot; Temperature only (cut top-k, since at k&ge;10 it equals plain sampling on a ~9-token live set).<br>
+    C. All three, with top-k's k as a slider so the reader sees it collapse into plain sampling as k grows.</div>
+
+  <div class="q"><b class="h">Q2 &mdash; Sampling: open with the entropy-by-position strip?</b>
+    A. Yes &mdash; lead with it, it explains why only the opening changes, <b>recommended</b>.<br>
+    B. No &mdash; keep it as a hover/footnote under the distribution.</div>
+
+  <div class="q"><b class="h">Q3 &mdash; Conditioning: which two conditions?</b>
+    A. <code>[TREAT]</code> treatment clause &middot; <code>[NEG]</code> negated finding &mdash; disjoint, clearly different sentences, <b>recommended</b>.<br>
+    B. Discharge sense: <code>[HOME]</code> (planned discharge home) &middot; <code>[WOUND]</code> (discharge from wound) &mdash; the same word <i>discharge</i> under two senses (ties to 84's <i>discharge</i> example).<br>
+    C. Outcome: <code>[RECOVERED]</code> &middot; <code>[DETERIORATED]</code>.</div>
+
+  <div class="q"><b class="h">Q4 &mdash; Conditioning: show the dropped-prefix fallback?</b>
+    A. Yes, as a toggle that removes the condition token and shows the blended distribution, <b>recommended</b> (it proves conditional and unconditional are one model).<br>
+    B. No &mdash; two prefixes side by side is enough.</div>
+
+  <div class="q"><b class="h">Q5 &mdash; one widget or two pages?</b>
+    A. One widget, two pages Sampling &middot; Conditioning, <b>recommended</b> (both are &ldquo;controlling generation&rdquo;; the card can hold both objectives).<br>
+    B. Two separate widgets.</div>
+</main>
+
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {
+  emp: css('--c-empirical'), hi: css('--c-highlight'), ref: css('--c-reference'),
+  a: css('--c-group-a'), b: css('--c-group-b'),
+  ink1: css('--ink-1'), ink2: css('--ink-2'), ink3: css('--ink-3'),
+  grid: css('--grid'), s2: css('--surface-2'), s3: css('--surface-3'),
+  font: css('--font'), mono: css('--font-mono'),
+};
+const D = await (await fetch('./gen109-mock-data.json')).json();
+document.getElementById('status').textContent = 'loaded';
+
+// a horizontal bar chart of {tok,p} rows
+function bars(ctx, rows, x0, y0, w, rowH, opts = {}) {
+  const gut = opts.gut ?? 150, max = opts.max ?? Math.max(...rows.map(r => r.p));
+  const bw = w - gut - 48;
+  ctx.font = `12px ${C.mono}`;
+  rows.forEach((r, i) => {
+    const y = y0 + i * rowH, cut = opts.cut && i >= opts.cut;
+    ctx.fillStyle = r.sel ? C.ink1 : cut ? C.ink3 : C.ink2;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(r.tok, x0 + gut - 8, y + rowH / 2);
+    const bl = Math.max(1, (r.p / max) * bw);
+    ctx.fillStyle = r.sel ? C.hi : cut ? C.s3 : (opts.color || C.emp);
+    ctx.fillRect(x0 + gut, y + 3, bl, rowH - 6);
+    ctx.fillStyle = cut ? C.ink3 : C.ink2; ctx.textAlign = 'left';
+    ctx.fillText(r.p.toFixed(2), x0 + gut + bl + 6, y + rowH / 2);
+  });
+}
+function title(ctx, s, x, y, col) { ctx.font = `600 12px ${C.font}`; ctx.fillStyle = col || C.ink1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); }
+
+// ---- dead-prompt caption text
+const dp = D.sampling.deadPrompt;
+document.getElementById('deadcap').innerHTML =
+  `After 84's own prompt <code>&ldquo;${dp.text}&rdquo;</code> the next token is <b>${dp.rows[0].tok}</b> with probability ${dp.rows[0].p.toFixed(3)} (entropy ${dp.H} nats): greedy, temperature and top-k all produce the same word. Sampling shows nothing here &mdash; the grammar is deterministic once a clause is under way.`;
+document.getElementById('tailn').textContent = `${D.sampling.tail.n99} of ${D.sampling.tail.vocab}`;
+
+// ---- Page 1: start distribution
+{
+  const ctx = document.getElementById('c-dist').getContext('2d');
+  const rows = D.sampling.startDist.map((r, i) => ({ ...r, sel: i === 0 }));
+  title(ctx, 'p(first token)   — the sampled/greedy token in highlight', 10, 18, C.ink1);
+  bars(ctx, rows, 10, 32, 520, 20, {});
+}
+
+// ---- Page 1: three rules as small multiples of the same distribution
+{
+  const ctx = document.getElementById('c-rules').getContext('2d');
+  const base = D.sampling.startDist;
+  const panelW = 174, gap = 9;
+  function panel(px, label, transform, cut) {
+    title(ctx, label, px, 16, C.ink1);
+    const rows = transform(base);
+    ctx.font = `11px ${C.mono}`;
+    const max = Math.max(...rows.map(r => r.p));
+    rows.slice(0, 9).forEach((r, i) => {
+      const y = 26 + i * 24, isCut = cut && i >= cut;
+      ctx.fillStyle = r.sel ? C.ink1 : isCut ? C.ink3 : C.ink2;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(r.tok.length > 12 ? r.tok.slice(0, 11) + '…' : r.tok, px, y);
+      const bw = 80, bl = Math.max(1, (r.p / max) * bw);
+      ctx.fillStyle = r.sel ? C.hi : isCut ? C.s3 : C.emp;
+      ctx.fillRect(px + 86, y - 6, bl, 12);
+    });
+  }
+  // greedy: top token selected
+  panel(10, 'Greedy', (b) => b.map((r, i) => ({ ...r, sel: i === 0 })), null);
+  // temperature T=1.0: unchanged distribution (T=1), mark nothing fixed
+  panel(10 + panelW + gap, 'Temperature T=1.0', (b) => b.map(r => ({ ...r })), null);
+  // top-k k=3: keep 3, grey the rest
+  panel(10 + 2 * (panelW + gap), 'Top-k  k=3', (b) => {
+    const kept = b.slice(0, 3), s = kept.reduce((a, r) => a + r.p, 0);
+    return b.map((r, i) => ({ ...r, p: i < 3 ? r.p / s : r.p }));
+  }, 3);
+}
+
+// ---- Page 1: rules table
+{
+  const t = document.getElementById('t-rules');
+  const order = [['greedy', 'Greedy'], ['temp0.7', 'Temperature T=0.7'], ['temp1.0', 'Temperature T=1.0'],
+                 ['temp1.3', 'Temperature T=1.3'], ['topk3', 'Top-k k=3'], ['topk5', 'Top-k k=5'], ['topk10', 'Top-k k=10']];
+  t.innerHTML = '<tr><th>rule</th><th>distinct / 200</th><th>most common openings</th></tr>' +
+    order.map(([k, lbl]) => {
+      const r = D.sampling.rules[k];
+      const ex = r.examples.slice(0, 3).map(e => `${e.out} ×${e.n}`).join('&nbsp; · &nbsp;');
+      return `<tr><td>${lbl}</td><td class="n">${r.distinct}</td><td class="gen">${ex}</td></tr>`;
+    }).join('');
+}
+
+// ---- Page 1: entropy strip
+{
+  const ctx = document.getElementById('c-ent').getContext('2d');
+  const ep = D.sampling.entropyByPos, n = ep.length;
+  const x0 = 20, y0 = 110, w = 500, Hmax = 2.0, hpx = 90;
+  // axis
+  ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + w, y0); ctx.stroke();
+  ctx.font = `11px ${C.mono}`; ctx.fillStyle = C.ink3; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const step = w / n;
+  ep.forEach((e, i) => {
+    const x = x0 + i * step + step / 2, h = (e.H / Hmax) * hpx;
+    ctx.fillStyle = e.H > 0.5 ? C.hi : C.emp;
+    ctx.fillRect(x - 16, y0 - h, 32, h);
+    ctx.fillStyle = C.ink3; ctx.fillText(`pos ${e.pos}`, x, y0 + 4);
+    ctx.fillStyle = C.ink2; ctx.textBaseline = 'bottom';
+    ctx.fillText(e.H.toFixed(2), x, y0 - h - 2);
+    ctx.fillStyle = C.ink1; ctx.textBaseline = 'top'; ctx.font = `11px ${C.mono}`;
+    ctx.fillText(e.top[0].tok.length > 9 ? e.top[0].tok.slice(0, 8) + '…' : e.top[0].tok, x, y0 + 18);
+    ctx.font = `11px ${C.mono}`;
+  });
+  title(ctx, 'next-token entropy (nats) along the greedy walk', 20, 18, C.ink1);
+}
+
+// ---- Page 2: conditioning distributions
+{
+  const ctx = document.getElementById('c-cond').getContext('2d');
+  const f = D.conditioning.first;
+  function col(px, label, rows, color) {
+    title(ctx, label, px, 16, color);
+    ctx.font = `11px ${C.mono}`;
+    const max = 1.0;
+    rows.slice(0, 5).forEach((r, i) => {
+      const y = 30 + i * 30;
+      ctx.fillStyle = C.ink2; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(r.tok.length > 11 ? r.tok.slice(0, 10) + '…' : r.tok, px, y);
+      const bw = 90, bl = Math.max(1, (r.p / max) * bw);
+      ctx.fillStyle = color; ctx.fillRect(px + 80, y - 7, bl, 14);
+      ctx.fillStyle = C.ink2; ctx.fillText(r.p.toFixed(2), px + 80 + bl + 5, y);
+    });
+  }
+  col(10, '[TREAT] prefix', f.treat, C.a);
+  col(190, '[NEG] prefix', f.neg, C.b);
+  col(370, 'no prefix (fallback)', f['(none)'], C.ink2);
+}
+document.getElementById('tvd').textContent = D.conditioning.tvd.treat_neg;
+
+// ---- Page 2: honour table + generations
+{
+  const h = D.conditioning.honour;
+  document.getElementById('t-honour').innerHTML =
+    '<tr><th>prefix</th><th>notes starting the conditioned way</th></tr>' +
+    `<tr><td>[TREAT]</td><td class="n">${h.treat} / 200</td></tr>` +
+    `<tr><td>[NEG]</td><td class="n">${h.neg} / 200</td></tr>` +
+    `<tr><td colspan="2" style="color:var(--ink-3)">wrong-prefix contamination measured at 0 / 200 for both</td></tr>`;
+  const s = D.conditioning.samples;
+  const row = (lbl, arr, col) => `<p class="gen"><span class="pre" style="color:${col}">[${lbl}]</span> ` +
+    arr.slice(0, 4).join(`<br><span class="pre" style="color:${col}">[${lbl}]</span> `) + '</p>';
+  document.getElementById('gens').innerHTML =
+    row('TREAT', s.treat, C.a) + row('NEG', s.neg, C.b) + row('none', s['(none)'], C.ink3);
+}
+</script>
+</body>
+</html>

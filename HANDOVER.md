@@ -1,5 +1,44 @@
 # Handover
 
+**SESSION 2026-10-20 (continued). 109 `generation-control` DRAFTED, committed
+locally, NOT pushed.** His calls, in order: the clinical example, not generated
+enzyme, antibody or other biological sequences; measure which example teaches;
+then 1A 2A 3A 4A 5A from `_lab/gen109-mock.html` and "build the draft". Title
+"Deep Learning - Frontiers: Controlling Generation", pages Sampling ·
+Conditioning. The record is the catalogue's § 109 MEASURED, MOCKED, PICKED AND
+DRAFTED.
+
+**109 now.** Sampling runs 84's causal model (read from 84's weights file,
+verified byte for byte); Conditioning runs a sibling trained with [TREAT] or
+[NEG] after [BOS], the condition token left out of 20% of notes and carrying
+no loss. Each token is drawn by one uniform u on the tokens' intervals, most
+probable first, and the same u's serve every rule and every prefix, so the
+table of ten notes compares the arms on the same draws. Data
+`widgets/generation-control/weights.js` (481 kB) from
+`_lab/generation-control-weights.py` (~1 min, CPU), which also writes
+`generation-control-reference.json` (committed, the verify reads it) and
+`generation-control-measure.json` (untracked).
+
+**Learned this session.**
+1. **A condition token must carry no loss.** Trained to predict it too, the
+   model wrote [TREAT] or [NEG] itself after a bare [BOS], and the "no prefix"
+   arm generated condition tokens in 82% of notes.
+2. **84's own prompt is the wrong place to show sampling**: mid-clause the
+   model is certain and every rule writes the same word. The choice is at the
+   note's opening, so every note starts at [BOS].
+3. **At ten notes, distinct notes barely separate top-k from temperature; the
+   first word does** (top-k k = 3 opens only with patient, no or ready).
+
+**NEXT: his review of the draft** at the localhost URL. Open for him: ten notes
+or twelve; whether to bring back a three-prefix first-token panel on
+Conditioning; the blank reserve under the table at narrow widths (worst-case
+two lines a row); the colours; the page control's label; the copy audit,
+subtitle and blurb options; then fingerprint states (placeholders now).
+
+**Dev server this session:** `widgets-alt4` on :8014.
+
+---
+
 **SESSION 2026-10-20. 107 `diffusion` SHIPPED AND PUSHED** (e4ee8bc) as "Deep
 Learning - Frontiers: Diffusion Models" (27 states, 27/27 MATCH at DPR 1.25
 with the session fronted). **The DL Frontiers arc (PHM5005 10) is complete:

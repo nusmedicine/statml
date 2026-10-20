@@ -26288,6 +26288,57 @@ frame, and the widget was twice cut back for covering too much), and a
 VAE/GAN/diffusion/transformer comparison widget (each of the four already makes
 its own case).
 
+### 109 MEASURED, MOCKED, PICKED AND DRAFTED 2026-10-20
+
+**The data question, his call:** the clinical example, not generated enzyme,
+antibody or other biological sequences ("go ahead with the clinical example").
+
+**Measured** (`_lab/gen109-mock.html`, then `_lab/generation-control-weights.py`
+on 84's own causal model, read from 84's weights file): mid-clause the model is
+certain (after *treated with aspirin for*, chest 0.997; 200 of 200 draws write
+*chest pain* under every rule), so a decoding rule changes nothing there. The
+choice is at the note's opening: entropy 1.94 nats, 9 of 58 tokens hold 99%.
+From [BOS], 1,000 notes an arm, one uniform a token shared across arms: greedy
+1 distinct note; top-k 7 · 24 · 57 · 77 at k = 2 · 3 · 4 · 5 (k = 10 is plain
+sampling, 97); temperature shows mostly as notes the grammar cannot produce,
+99% inside it at T = 1, 86% at 1.6, 60% at 2.
+
+**The conditioned model needed one fix, measured before it was built in:** a
+condition token after [BOS] ([TREAT] or [NEG]), left out of 20% of training
+notes. Trained with the loss on every token, it learned to WRITE the condition
+token after a bare [BOS] ([NEG] 0.41, [TREAT] 0.41; 82% of no-prefix notes
+started with one). With the loss on the note's tokens only, as a given
+condition is trained: [TREAT] 99.9% of notes start treated/managed, [NEG]
+99.9% start no, no prefix 50.5% · 49.3% (first token no 0.46, managed 0.28,
+treated 0.26), every arm 99.5% inside the grammar.
+
+**PICKED, all five the recommendation:** 1A Greedy · Temperature · Top-k, k
+small (2–5); 2A the entropy leads (drawn under each token of the note); 3A
+[TREAT] · [NEG]; 4A the dropped prefix shown (a No prefix option, and the
+no-prefix probabilities as an outline on every draw); 5A one widget, Sampling ·
+Conditioning.
+
+**DRAFTED 2026-10-20** (`widgets/generation-control/`, manifest status
+`draft`): each page draws one note a token at a time — the note as token boxes
+with the entropy of the model's probabilities under each, the probabilities the
+last token was drawn from (the rule's as bars, the model's as an outline; on
+Conditioning the prefix's as bars, no prefix's as the outline), and u on the
+tokens' intervals laid end to end, most probable first. Below, ten notes from
+the same u's under all three rules (or prefixes), each column headed by its
+count: on seed 10, greedy 1 note, temperature 10 notes and 5 first words, top-k
+k = 3 6 notes and 3 first words (patient, no, ready); [TREAT] 10 of 10, [NEG]
+10 of 10, no prefix 5 · 5. A note outside the grammar is marked †. The rules
+and prefixes are display parameters: a note is a pure function of its u's, the
+model and the arm. Draw is one token, Generate all of them; only a page change
+halts Generate. `generation-control-verify.mjs` (in `npm test`) holds both
+forwards within 1.4e-15 of torch and the Sampling model to 84's bytes. Drafted
+with, for his review: ten notes rather than twelve (the frame), no separate
+three-prefix panel on Conditioning, colours (the rule's bars --c-empirical, the
+model's outline --c-reference, the drawn token --c-highlight, [TREAT] / [NEG]
+--c-group-a / -b; 84 draws its decoder in --c-group-b), the page control's
+label "Control", the title, subtitle and blurb (drafts for the copy audit).
+Fingerprint states are placeholders.
+
 ---
 
 ## Two arcs, not one — now three

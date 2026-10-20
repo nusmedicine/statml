@@ -15407,6 +15407,25 @@
       },
       "px": "1a446c11",
       "tx": "85d41a13"
+    },
+    {
+      "$note": "generation-control · PLACEHOLDER (draft): the opening, nothing drawn",
+      "slug": "generation-control",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "generation-control · PLACEHOLDER (draft): one Draw",
+      "slug": "generation-control",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 3,
+        "dt": 32
+      },
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

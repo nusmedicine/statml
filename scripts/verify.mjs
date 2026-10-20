@@ -47,6 +47,7 @@ const SCRIPTS = [
   "widgets/_lab/signal-windows-verify.mjs",     // the cleaning's arithmetic, the label rules, and the split claims widget 72 draws
   "widgets/_lab/attention-verify.mjs",          // block 1 of the trained tiny BERT against torch, and the claims widget 83 prints
   "widgets/_lab/transformer-verify.mjs",        // the three trained transformers against torch, and the claims widget 84 prints
+  "widgets/_lab/generation-control-verify.mjs", // both decoders against torch, 84's model byte for byte, and the rules' arithmetic (widget 109)
   "widgets/_lab/adapting-verify.mjs",         // widget 85's table against 84's model, its counts and its captions' claims
   "widgets/_lab/explainability-verify.mjs",   // widget 87's table against 85's models and rows, IG's completeness, attention rows, occlusion's windows
   "widgets/_lab/target-decoy-verify.mjs",       // the search's masses, the decoy method over seeds, the defaults and 01-1's protein figure (widget 88)

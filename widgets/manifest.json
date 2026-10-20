@@ -1546,6 +1546,22 @@
       ],
       "arc": 107,
       "status": "shipped"
+    },
+    {
+      "slug": "generation-control",
+      "title": "Deep Learning - Frontiers: Controlling Generation",
+      "blurb": "Greedy, temperature and top-k decoding of one model's probabilities, and a condition token placed before the text.",
+      "course": "PHM5005",
+      "topics": [
+        "generative models",
+        "decoder",
+        "sampling",
+        "temperature",
+        "top-k",
+        "conditional generation"
+      ],
+      "arc": 109,
+      "status": "draft"
     }
   ]
 }
