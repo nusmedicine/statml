@@ -49,7 +49,7 @@ const N = 10;                      // notes a seed
 const RUN_MS = 110;                // Generate: one token every RUN_MS
 const ROWS = 6;                    // the distribution panel's rows before "others"
 
-const PAGES = [{ value: "sampling", label: "Sampling" }, { value: "conditioning", label: "Conditioning" }];
+const PAGES = [{ value: "decoding", label: "Decoding" }, { value: "conditioning", label: "Conditioning" }];
 const RULES = [{ value: "greedy", label: "Greedy" }, { value: "temperature", label: "Temperature" }, { value: "topk", label: "Top-k" }];
 const TS = ["0.5", "0.7", "1", "1.3", "1.6", "2"];
 const KS = ["2", "3", "4", "5"];
@@ -82,16 +82,16 @@ const S = {
   others: (n) => `${n} other tokens`,
   uLabel: "u",
   uVal: (u) => `u = ${f2(u)}`,
-  tableTitle: { sampling: `${N} notes under each rule: row n uses the same u's in every column`, conditioning: `${N} notes under each prefix: row n uses the same u's in every column` },
+  tableTitle: { decoding: `${N} notes under each rule: row n uses the same u's in every column`, conditioning: `${N} notes under each prefix: row n uses the same u's in every column` },
   none: "no notes yet",
   armRule: { greedy: "Greedy", temperature: (T) => `Temperature, T = ${T}`, topk: (k) => `Top-k, k = ${k}` },
   armPrefix: { treat: "[TREAT]", neg: "[NEG]", none: "No prefix" },
-  headSampling: (d, fw) => `${d} different note${d === 1 ? "" : "s"}, ${fw} different first word${fw === 1 ? "" : "s"}`,
+  headDecoding: (d, fw) => `${d} different note${d === 1 ? "" : "s"}, ${fw} different first word${fw === 1 ? "" : "s"}`,
   headTreat: (n, c) => `${n} of ${c} start treated or managed`,
   headNeg: (n, c) => `${n} of ${c} start no`,
   headNone: (t, n) => `${t} start treated or managed, ${n} start no`,
-  dagger: { sampling: "† not one of the 99 notes in the training data", conditioning: "† not one of the 30 notes in the training data" },
-  runTitle: { sampling: `Draw every remaining token of the ${N} notes under the chosen rule`, conditioning: `Draw every remaining token of the ${N} notes with the chosen prefix` },
+  dagger: { decoding: "† not one of the 99 notes in the training data", conditioning: "† not one of the 30 notes in the training data" },
+  runTitle: { decoding: `Draw every remaining token of the ${N} notes under the chosen rule`, conditioning: `Draw every remaining token of the ${N} notes with the chosen prefix` },
   legend: {
     model: "the model's probability",
     rule: "the probability under the decoding rule",
@@ -116,7 +116,7 @@ const S = {
 
 const CAP = {
   start: {
-    sampling: (rule, T) => (rule === "greedy"
+    decoding: (rule, T) => (rule === "greedy"
       ? "Before the first token. Greedy decoding puts probability 1 on the most probable token (the bar); the outlines are the model's probabilities."
       : rule === "temperature" && T === "1"
         ? "Before the first token. At temperature 1 the rule's probabilities are the model's, so bars and outlines coincide. Each press of Draw draws one token with a uniform number u in [0, 1)."
@@ -135,7 +135,7 @@ const CAP = {
   cond: (pre, tok) => (pre === "none" ? `u falls in the interval of ${tok}.` : `u falls in the interval of ${tok}. The outlines are the model's probabilities for the same tokens with the prefix removed.`),
   ended: (i) => ` [EOS] was drawn: note ${i + 1} is complete.`,
   capped: (i) => ` Note ${i + 1} reached ${M.MAX_TOKENS} tokens without [EOS] and is stopped there.`,
-  done: { sampling: ` All ${N} notes under this rule are complete.`, conditioning: ` All ${N} notes with this prefix are complete.` },
+  done: { decoding: ` All ${N} notes under this rule are complete.`, conditioning: ` All ${N} notes with this prefix are complete.` },
 };
 
 /* ------------------------------------------------------------- the arms and their notes */
@@ -161,7 +161,7 @@ function notesOf(state, arm) {
   return v;
 }
 
-const ARM_KEYS = { sampling: RULES.map((r) => r.value), conditioning: PREFIXES.map((r) => r.value) };
+const ARM_KEYS = { decoding: RULES.map((r) => r.value), conditioning: PREFIXES.map((r) => r.value) };
 /** every arm's place, at the start: note 1, nothing drawn */
 const freshPlaces = () => Object.fromEntries(Object.entries(ARM_KEYS).map(([pg, ks]) => [pg, Object.fromEntries(ks.map((k) => [k, { i: 0, j: 0 }]))]));
 /** an arm's place: note i, j tokens drawn in it (clamped to its note, which T or k can shorten); complete = its notes ended */
@@ -221,7 +221,7 @@ const LEAD = {
   none: "With no prefix, the same model:",
 };
 const NOTE = {
-  sampling: `The model is a small transformer decoder trained on 20,000 synthetic one-clause clinical notes, 99 different ones. [BOS] marks the start of a note and [EOS] its end; a note is complete when [EOS] is drawn. Each token is drawn by inverse transform sampling: u is a uniform number in [0, 1), and the token drawn is the first, from most to least probable, whose cumulative probability under the rule exceeds u. Each of the ${N} notes has its own u's, the same under every rule.`,
+  decoding: `The model is a small transformer decoder trained on 20,000 synthetic one-clause clinical notes, 99 different ones. [BOS] marks the start of a note and [EOS] its end; a note is complete when [EOS] is drawn. Each token is drawn by inverse transform sampling: u is a uniform number in [0, 1), and the token drawn is the first, from most to least probable, whose cumulative probability under the rule exceeds u. Each of the ${N} notes has its own u's, the same under every rule.`,
   conditioning: `The three columns come from one transformer decoder, trained on notes that state a treatment (treated with … for …) or a negated finding (no … reported), 30 different notes, with [TREAT] or [NEG] after [BOS] in a random 80% of them and no condition token in the rest. The loss is on the note's tokens only, since the condition token is given, not generated. Tokens are drawn at temperature 1 by inverse transform sampling, with a uniform number u in [0, 1) for each token, the same u's under each prefix.`,
 };
 /** one equation and the line that leads into it (`lead` names a LEAD other than the equation's own) */
@@ -236,11 +236,11 @@ function renderCard(params) {
     mathHost.className = "w-math";
     figure.parentNode.insertBefore(mathHost, figure);
   }
-  const key = params.page === "sampling" ? `s|${params.rule}` : "c";
+  const key = params.page === "decoding" ? `s|${params.rule}` : "c";
   if (mathKey === key) return;
   mathKey = key;
-  mathHost.innerHTML = params.page === "sampling"
-    ? `${mathOf("chain")}${mathOf(params.rule)}<div class="w-math-note">${NOTE.sampling}</div>`
+  mathHost.innerHTML = params.page === "decoding"
+    ? `${mathOf("chain")}${mathOf(params.rule)}<div class="w-math-note">${NOTE.decoding}</div>`
     : `${mathOf("cond")}${mathOf("chain", "none")}<div class="w-math-note">${NOTE.conditioning}</div>`;
 }
 
@@ -281,8 +281,8 @@ function wrapLines(ctx, s, font, maxW) {
   return out;
 }
 
-/* the colour each arm's marks take: on Sampling the rule's bars are --c-empirical; on Conditioning each prefix has its own */
-const hueOf = (colors, params) => (params.page === "sampling" ? colors.empirical : { treat: colors.groupA, neg: colors.groupB, none: colors.reference }[params.prefix]);
+/* the colour each arm's marks take: on Decoding the rule's bars are --c-empirical; on Conditioning each prefix has its own */
+const hueOf = (colors, params) => (params.page === "decoding" ? colors.empirical : { treat: colors.groupA, neg: colors.groupB, none: colors.reference }[params.prefix]);
 
 /* ------------------------------------------------------------- the note, and the entropy under each token */
 
@@ -318,7 +318,7 @@ function drawNote(ctx, colors, Lo, params, pl) {
     txt(ctx, colors, b.t, x + bw / 2, noteY + 15, { font: colors.mono, size: `${size}px`, align: "center", fill: b.next ? colors.ink3 : b.pre ? hueOf(colors, params) : colors.ink1, weight: last ? "600" : "" });
     if (b.st) {
       const H = M.entropy(b.st.p), h = Math.max(1, (Math.min(H, HMAX) / HMAX) * BAR), bwid = Math.min(24, bw - 6);
-      ctx.save(); ctx.fillStyle = params.page === "sampling" ? colors.reference : hueOf(colors, params); ctx.fillRect(x + (bw - bwid) / 2, entBase - h, bwid, h); ctx.restore();
+      ctx.save(); ctx.fillStyle = params.page === "decoding" ? colors.reference : hueOf(colors, params); ctx.fillRect(x + (bw - bwid) / 2, entBase - h, bwid, h); ctx.restore();
       txt(ctx, colors, f2(H), x + bw / 2, entBase - h - 3, { align: "center", fill: colors.ink2 });
     }
     x += bw + gap;
@@ -333,8 +333,8 @@ function drawDist(ctx, colors, Lo, params, pl) {
   const st = pl.j > 0 ? pl.note.steps[pl.j - 1] : pl.note.steps[0], drawn = pl.j > 0 ? st.tok : null;
   txt(ctx, colors, pl.j > 0 ? S.distAt(pl.j) : S.distFirst, L, Lo.distTitle, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
   const p = st.p, q = st.q, order = M.orderOf(p), hue = hueOf(colors, params);
-  /* the outline: on Sampling the model's own probabilities; on Conditioning the same tokens with no prefix */
-  const out = params.page === "sampling" ? p                       // the model's own, at every setting (audit W3)
+  /* the outline: on Decoding the model's own probabilities; on Conditioning the same tokens with no prefix */
+  const out = params.page === "decoding" ? p                       // the model's own, at every setting (audit W3)
     : params.prefix === "none" ? null : M.nextProbs("cond", [M.BOS, ...st.ctx.slice(2)]);
   const x0 = L + gut + 8, x1 = R - 92, bx = (v) => x0 + v * (x1 - x0);
   const rows = order.slice(0, ROWS).map((id) => ({ id }));
@@ -371,7 +371,7 @@ function drawDist(ctx, colors, Lo, params, pl) {
   }
   txt(ctx, colors, "0", x0, stripY + stripH + 13, { align: "center", fill: colors.ink3 });
   txt(ctx, colors, "1", x1, stripY + stripH + 13, { align: "center", fill: colors.ink3 });
-  if (drawn !== null && !(params.page === "sampling" && params.rule === "greedy")) {   // greedy uses no u (audit W2)
+  if (drawn !== null && !(params.page === "decoding" && params.rule === "greedy")) {   // greedy uses no u (audit W2)
     const ux = bx(st.u);
     ctx.save(); ctx.fillStyle = colors.ink1; ctx.beginPath(); ctx.moveTo(ux, stripY - 1); ctx.lineTo(ux - 5, stripY - 8); ctx.lineTo(ux + 5, stripY - 8); ctx.closePath(); ctx.fill(); ctx.restore();
     line(ctx, ux, stripY, ux, stripY + stripH, colors.ink1, 1.5);
@@ -383,9 +383,9 @@ function drawDist(ctx, colors, Lo, params, pl) {
 
 function captionOf(params, pl) {
   const arm = shownArm(params), V = M.VOCAB[arm.which];
-  if (pl.j === 0) return params.page === "sampling" ? CAP.start.sampling(params.rule, params.T) : CAP.start.conditioning(params.prefix);
+  if (pl.j === 0) return params.page === "decoding" ? CAP.start.decoding(params.rule, params.T) : CAP.start.conditioning(params.prefix);
   const st = pl.note.steps[pl.j - 1], tok = V[st.tok];
-  let s = params.page === "sampling"
+  let s = params.page === "decoding"
     ? params.rule === "greedy" ? CAP.rule.greedy(tok, st.p[st.tok]) : params.rule === "temperature" ? CAP.rule.temperature(params.T, tok) : CAP.rule.topk(params.k, tok)
     : CAP.cond(params.prefix, tok);
   if (pl.j >= pl.len) s += pl.note.ended ? CAP.ended(pl.i) : CAP.capped(pl.i);
@@ -402,7 +402,7 @@ function drawCaption(ctx, colors, Lo, s) {
 const kindOf = (note) => (["treated", "managed"].includes(note.words[0]) ? "treat" : note.words[0] === "no" ? "neg" : "other");
 /** what each column's head says, over the notes complete */
 function headOf(params, arm, notes) {
-  if (params.page === "sampling") return S.headSampling(new Set(notes.map((n) => n.text)).size, new Set(notes.map((n) => n.words[0])).size);
+  if (params.page === "decoding") return S.headDecoding(new Set(notes.map((n) => n.text)).size, new Set(notes.map((n) => n.words[0])).size);
   const k = notes.map(kindOf);
   if (arm.key === "treat") return S.headTreat(k.filter((v) => v === "treat").length, notes.length);
   if (arm.key === "neg") return S.headNeg(k.filter((v) => v === "neg").length, notes.length);
@@ -415,7 +415,7 @@ function drawTable(ctx, colors, Lo, params, state, anim) {
   const done = arms.map((a) => notesOf(state, a).slice(0, placeOf(anim, params, state, a).complete));
   let anyOut = false;
   arms.forEach((a, c) => {
-    const col = params.page === "sampling" ? colors.ink1 : { treat: colors.groupA, neg: colors.groupB, none: colors.reference }[a.key];
+    const col = params.page === "decoding" ? colors.ink1 : { treat: colors.groupA, neg: colors.groupB, none: colors.reference }[a.key];
     txt(ctx, colors, a.label, cx(c), head, { size: colors.fsSm, fill: col, weight: a.shown ? "700" : "" });
     if (a.shown) line(ctx, cx(c), head + 4, cx(c) + Math.min(colW, textW(ctx, a.label, `700 ${colors.fsSm} ${colors.font}`)), head + 4, colors.highlight, 2);
     wrapLines(ctx, done[c].length ? headOf(params, a, done[c]) : S.none, font, colW).slice(0, 2)
@@ -445,16 +445,16 @@ function drawTable(ctx, colors, Lo, params, state, anim) {
 defineWidget({
   slug: "generation-control",
   status: "draft",
-  title: "Deep Learning - Frontiers: Controlling Generation",
+  title: "Deep Learning - Frontiers: Transformer Decoding and Conditioning",
   subtitle: S.subtitle,
   layout: "side",
   height: (p) => layoutOf(p.w ?? 550).height,
 
   params: {
-    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "sampling", display: true },
-    rule: { type: "segmented", label: S.ruleLabel, detail: S.ruleDetail, options: RULES, default: "temperature", display: true, when: ON("sampling") },
-    T: { type: "choice", label: S.tLabel, detail: S.tDetail, options: TS.map((v) => ({ value: v, label: v })), default: "1", display: true, when: ON("sampling") },
-    k: { type: "choice", label: S.kLabel, detail: S.kDetail, options: KS.map((v) => ({ value: v, label: v })), default: "3", display: true, when: ON("sampling") },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "decoding", display: true },
+    rule: { type: "segmented", label: S.ruleLabel, detail: S.ruleDetail, options: RULES, default: "temperature", display: true, when: ON("decoding") },
+    T: { type: "choice", label: S.tLabel, detail: S.tDetail, options: TS.map((v) => ({ value: v, label: v })), default: "1", display: true, when: ON("decoding") },
+    k: { type: "choice", label: S.kLabel, detail: S.kDetail, options: KS.map((v) => ({ value: v, label: v })), default: "3", display: true, when: ON("decoding") },
     prefix: { type: "segmented", label: S.prefixLabel, detail: S.prefixDetail, options: PREFIXES, default: "treat", display: true, when: ON("conditioning") },
     seed: { type: "int", label: S.seedLabel, detail: S.seedDetail, min: 1, max: 40, default: 10 },
     /* authoring escape hatch, first render only: notes already complete on the page the link opens */
@@ -462,7 +462,7 @@ defineWidget({
   },
 
   legend: ({ params }) =>
-    params.page === "sampling"
+    params.page === "decoding"
       ? [
           { token: "reference", label: S.legend.model, mark: "hollow" },
           { token: "empirical", label: S.legend.rule, mark: "bar" },
@@ -482,7 +482,7 @@ defineWidget({
     stepLabel: "Draw",
     stepTitle: "Draw the next token of the note",
     runLabel: "Generate",
-    runTitle: { param: "page", labels: S.runTitle, default: S.runTitle.sampling },
+    runTitle: { param: "page", labels: S.runTitle, default: S.runTitle.decoding },
 
     init: ({ params, state, fromScratch }) => {
       const anim = { at: freshPlaces(), stage: stageOf(params), t: 0, live: false, halt: false };
@@ -525,7 +525,7 @@ defineWidget({
     const note = { label: T.note, value: `${pl.i + 1} of ${N}`, note: T.noteNote(pl.j) };
     /* a column with no notes yet reads "–" */
     const each = (f) => done.map((ns) => (ns.length ? f(ns) : "–")).join(" · ");
-    if (params.page === "sampling")
+    if (params.page === "decoding")
       return [note,
         { label: T.diff, value: each((ns) => new Set(ns.map((n) => n.text)).size), note: T.diffNote },
         { label: T.first, value: each((ns) => new Set(ns.map((n) => n.words[0])).size), note: T.firstNote }];

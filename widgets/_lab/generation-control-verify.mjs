@@ -4,7 +4,7 @@
       what torch computes in float64 from the same float32 weights
       (`generation-control-weights.py` writes both), the next-token
       probabilities of both models on the contexts listed there.
-   2. The Sampling page's model IS widget 84's: the same bytes as 84's file.
+   2. The Decoding page's model IS widget 84's: the same bytes as 84's file.
    3. The rules' arithmetic: each rule's distribution sums to 1; top-k with
       k = 1 is greedy; temperature 1 leaves the model's distribution as it is;
       u = 0 picks the most probable token under every rule.
@@ -37,14 +37,14 @@ for (const which of ["causal", "cond"]) {
 ok(worst < 1e-12, `the forward within 1e-12 of torch (${worst.toExponential(1)})`);
 
 /* 2 · 84's model */
-ok(W109.MODELS.causal.b64 === W84.MODELS.causal.b64, "the Sampling page's model is 84's, byte for byte");
+ok(W109.MODELS.causal.b64 === W84.MODELS.causal.b64, "the Decoding page's model is 84's, byte for byte");
 ok(JSON.stringify(W109.VOCABS.causal) === JSON.stringify(W84.VOCABS.causal), "and its vocabulary is 84's");
 
 /* the footnotes' counts: † marks a note that is not one of the model's training notes */
 const trained = (which) => W109.GRAMMAR.filter((n) => M.inTraining(which, n)).length;
-ok(W109.GRAMMAR.length === 99 && trained("causal") === 99, `the Sampling model's training notes: 99 different (${trained("causal")})`);
+ok(W109.GRAMMAR.length === 99 && trained("causal") === 99, `the Decoding model's training notes: 99 different (${trained("causal")})`);
 ok(trained("cond") === 30, `the Conditioning model's training notes: 30 different (${trained("cond")})`);
-ok(M.inTraining("causal", "patient recovered well") && !M.inTraining("cond", "patient recovered well"), "a course note is in the Sampling model's training notes, not the Conditioning model's");
+ok(M.inTraining("causal", "patient recovered well") && !M.inTraining("cond", "patient recovered well"), "a course note is in the Decoding model's training notes, not the Conditioning model's");
 
 /* 3 · the rules */
 for (const r of REF.causal) {

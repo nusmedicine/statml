@@ -1549,7 +1549,7 @@
     },
     {
       "slug": "generation-control",
-      "title": "Deep Learning - Frontiers: Controlling Generation",
+      "title": "Deep Learning - Frontiers: Transformer Decoding and Conditioning",
       "blurb": "Greedy, temperature and top-k decoding of one next-token distribution, and generation conditioned on a prefix token.",
       "course": "PHM5005",
       "topics": [

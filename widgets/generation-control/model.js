@@ -4,7 +4,7 @@
    holds every forward here to torch's own float64 numbers.
 
      causal  widget 84's decoder, read from 84's weights file, not retrained:
-             next-token prediction on one-clause notes. The Sampling page.
+             next-token prediction on one-clause notes. The Decoding page.
      cond    the same size, trained on notes of two kinds with a condition token
              after [BOS] ([TREAT] or [NEG]), left out of 20% of training notes;
              the loss is on the note's tokens only. The Conditioning page.

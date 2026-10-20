@@ -3,9 +3,10 @@
 **SESSION 2026-10-20 (continued). 109 `generation-control` DRAFTED, committed
 locally, NOT pushed.** His calls, in order: the clinical example, not generated
 enzyme, antibody or other biological sequences; measure which example teaches;
-then 1A 2A 3A 4A 5A from `_lab/gen109-mock.html` and "build the draft". Title
-"Deep Learning - Frontiers: Controlling Generation", pages Sampling ·
-Conditioning. The record is the catalogue's § 109 MEASURED, MOCKED, PICKED AND
+then 1A 2A 3A 4A 5A from `_lab/gen109-mock.html` and "build the draft"; round 1
+(A: the chosen rule or prefix fills only its column); the copy audit applied
+(S2, B1). Title "Deep Learning - Frontiers: Transformer Decoding and
+Conditioning", pages Decoding · Conditioning. The record is the catalogue's § 109 MEASURED, MOCKED, PICKED AND
 DRAFTED.
 
 **109 now.** Sampling runs 84's causal model (read from 84's weights file,
@@ -31,11 +32,11 @@ arm keeps its own place, and an arm change halts Generate. Data
 3. **At ten notes, distinct notes barely separate top-k from temperature; the
    first word does** (top-k k = 3 opens only with patient, no or ready).
 
-**NEXT: his review of the draft** at the localhost URL. Open for him: ten notes
-or twelve; whether to bring back a three-prefix first-token panel on
-Conditioning; the blank reserve under the table at narrow widths (worst-case
-two lines a row); the colours; the page control's label; the copy audit,
-subtitle and blurb options; then fingerprint states (placeholders now).
+**NEXT: his test of the audited draft**, then the ship: fingerprint states
+(placeholders now; settled, driven, interrupted on a page AND an arm switch),
+three determinism runs with the session fronted, a MATCH pass, status shipped.
+Ten notes kept (his call). Still unasked, from the draft: the blank reserve
+under the table at narrow widths, the three-prefix panel, the colours.
 
 **Dev server this session:** `widgets-alt4` on :8014.
 

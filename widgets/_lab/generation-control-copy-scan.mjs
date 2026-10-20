@@ -30,12 +30,12 @@ const walk = (v) => {
 walk(S);
 strs.push(S.armRule.temperature("1.3"), S.armRule.topk("3"));
 /* every caption at every value it keys on */
-for (const r of ["greedy", "temperature", "topk"]) for (const T of ["1", "0.7"]) strs.push(CAP.start.sampling(r, T));
+for (const r of ["greedy", "temperature", "topk"]) for (const T of ["1", "0.7"]) strs.push(CAP.start.decoding(r, T));
 for (const pre of ["treat", "neg", "none"]) { strs.push(CAP.start.conditioning(pre), CAP.cond(pre, "treated")); }
 strs.push(CAP.rule.greedy("patient", 0.37));
 for (const T of TS) strs.push(CAP.rule.temperature(T, "patient"));
 for (const k of KS) strs.push(CAP.rule.topk(k, "patient"));
-strs.push(CAP.ended(0), CAP.capped(0), CAP.done.sampling, CAP.done.conditioning);
+strs.push(CAP.ended(0), CAP.capped(0), CAP.done.decoding, CAP.done.conditioning);
 Object.values(LEAD).forEach((s) => strs.push(s));
 Object.values(NOTE).forEach((s) => strs.push(s));
 Object.values(EQ).forEach((e) => strs.push(e.plain));

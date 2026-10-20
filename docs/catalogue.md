@@ -26385,6 +26385,15 @@ is 164 px.
 | C7 | subtitle | names the two pages | options S1 · S2 · S3, each the concept |
 | C8 | blurb and meta | (114) | options B1 · B2 · B3 |
 
+**His calls (2026-10-20):** apply every W and C1–C5 (ae7ae78); subtitle S2,
+the next-token distribution in notation; blurb B1. Title: he asked for
+"transformer" in it, and picked T1 *Transformer Decoding and Conditioning*
+from three. Raised after the audit and picked: the first page renamed
+Sampling → **Decoding** (greedy decoding is not sampling; the field calls the
+three rules decoding strategies), its link value `page=decoding`. Two fixes
+the reload found: C1's longer entropy note overran the canvas (now two
+lines), and the no-prefix legend mark follows the figure.
+
 ---
 
 ## Two arcs, not one — now three
