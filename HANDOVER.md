@@ -1,27 +1,34 @@
 # Handover
 
-**SESSION 2026-10-20 (continued). 109 `generation-control` SHIPPED AND PUSHED**
+**SESSION 2026-10-20 (continued) CLOSED. 109 `generation-control` SHIPPED AND
+PUSHED** (bcaaf12, deploy green, live at `…/statml/widget/generation-control/`)
 as "Deep Learning - Frontiers: Transformer Decoding and Conditioning" (12
-states, 12/12 MATCH at DPR 1.25 with the session fronted). His calls, in order: the clinical example, not generated
-enzyme, antibody or other biological sequences; measure which example teaches;
-then 1A 2A 3A 4A 5A from `_lab/gen109-mock.html` and "build the draft"; round 1
-(A: the chosen rule or prefix fills only its column); the copy audit applied
-(S2, B1). Title "Deep Learning - Frontiers: Transformer Decoding and
-Conditioning", pages Decoding · Conditioning. The record is the catalogue's § 109 MEASURED, MOCKED, PICKED AND
-DRAFTED.
+states, 12/12 MATCH at DPR 1.25 with the session fronted; switch probe 9
+switches, 0 flagged). His calls, in order: the clinical example, not generated
+enzyme, antibody or other biological sequences; measure which example
+teaches; 1A 2A 3A 4A 5A from `_lab/gen109-mock.html` and "build the draft";
+round 1, A (the chosen rule or prefix fills only its column); ten notes kept;
+the copy audit applied with subtitle S2 and blurb B1; title T1 (his ask for
+"transformer" in it); the first page renamed Sampling → Decoding (greedy is
+not sampling). The record is the catalogue's § Slot 109 sections, in order.
 
-**109 now.** Sampling runs 84's causal model (read from 84's weights file,
-verified byte for byte); Conditioning runs a sibling trained with [TREAT] or
-[NEG] after [BOS], the condition token left out of 20% of notes and carrying
-no loss. Each token is drawn by one uniform u on the tokens' intervals, most
-probable first, and the same u's serve every rule and every prefix, so the
-table of ten notes compares the arms on the same draws. Round 1 (his pick
-A): Draw and Generate fill only the chosen rule's or prefix's column; each
-arm keeps its own place, and an arm change halts Generate. Data
-`widgets/generation-control/weights.js` (481 kB) from
+**109 now.** Pages Decoding · Conditioning. Decoding runs 84's causal model
+(read from 84's weights file, verified byte for byte); Conditioning runs a
+sibling trained with [TREAT] or [NEG] after [BOS], the condition token left
+out of a random 20% of notes and carrying no loss. Each token is drawn by
+inverse transform sampling with one uniform u, the tokens ordered most
+probable first; the same u's serve every rule and every prefix, so row n of
+the table of ten notes is one set of draws. Draw and Generate fill only the
+chosen rule's or prefix's column; each keeps its own place, and a page or
+arm change halts Generate (T and k do not). The card defines [BOS], [EOS], u
+and the training notes (99; Conditioning 30), and † marks a note outside
+them. Data `widgets/generation-control/weights.js` (481 kB) from
 `_lab/generation-control-weights.py` (~1 min, CPU), which also writes
 `generation-control-reference.json` (committed, the verify reads it) and
-`generation-control-measure.json` (untracked).
+`generation-control-measure.json` (untracked). `generation-control-verify.mjs`
+(in `npm test`, 204 checks) holds both forwards within 1.4e-15 of torch and
+asserts the captions' and footnotes' claims; `generation-control-copy-scan.mjs`
+is the audit's scan.
 
 **Learned this session.**
 1. **A condition token must carry no loss.** Trained to predict it too, the
@@ -32,13 +39,23 @@ arm keeps its own place, and an arm change halts Generate. Data
    note's opening, so every note starts at [BOS].
 3. **At ten notes, distinct notes barely separate top-k from temperature; the
    first word does** (top-k k = 3 opens only with patient, no or ready).
+4. **A control must visibly change what it names** (his "the button has no
+   influence?"): a comparison table that filled every column itself made the
+   Prefix and Decoding rule controls look inert.
+5. **Arms with their own presses need the page-switch halt too**: a rule or
+   prefix change mid-Generate would otherwise fill the newly chosen column
+   unasked; an interrupted state per kind of switch proves it.
+6. **Mistakes of mine:** an inline comment pasted into the middle of a
+   declaration commented out `rowH` and `nRows` (caught on the next read);
+   C1's longer entropy note overran the canvas (caught on reload); the page
+   name "Sampling" was raised only after the audit, not in it.
 
-**NEXT: nothing picked.** 109 is the slot his transformer question opened;
-the DL Frontiers arc and its follow-up are done. Left unasked from the draft
-(he tested and shipped without raising them): the blank reserve under the
-table at narrow widths, a three-prefix first-token panel, the colours.
+**NEXT: nothing picked.** The DL Frontiers arc and the transformer follow-up
+it raised are done. Left unasked from the draft (he tested and shipped
+without raising them): the blank reserve under the table at narrow widths, a
+three-prefix first-token panel on Conditioning, the colours.
 
-**Dev server this session:** `widgets-alt4` on :8014.
+**Dev server this session:** `widgets-alt4` on :8014, stopped at the close.
 
 ---
 
