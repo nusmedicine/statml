@@ -79,10 +79,12 @@ def run(m, n, steps, seed, y=None, every=1):
     for i, t in enumerate(s.timesteps):
         e = m(torch.cat([x, ym], 1) if ym is not None else x, t).sample
         o = s.step(e, t, x, generator=gg)
-        if i % every == 0:
+        # the last step (t = 0) is stored too: its x0-hat IS the result (ᾱ before it is 1, so the step returns x0-hat
+        # and adds no noise), which lets the page's row run to the end instead of jumping to the result (his round 3)
+        if i % every == 0 or i == len(s.timesteps) - 1:
             fr["t"].append(int(t)); fr["xt"].append(x.clone()); fr["eps_hat"].append(e.clone()); fr["x0_hat"].append(o.pred_original_sample.clone())
         x = o.prev_sample
-    fr["t"].append(-1); fr["xt"].append(x.clone()); fr["eps_hat"].append(torch.zeros_like(x)); fr["x0_hat"].append(x.clone())
+    assert torch.equal(x, fr["x0_hat"][-1]), "the last step's output is its x0-hat"
     return fr
 
 with torch.no_grad():
@@ -91,7 +93,7 @@ with torch.no_grad():
         e = m(xt.to(DEV), tt.to(DEV)).sample.cpu()
         tr["eps_hat"].append(b64(e))
         tr["mse"].append([round(v, 4) for v in ((e - eps) ** 2).mean((1, 2, 3)).tolist()])
-        tr["samples"].append(b64(run(m, 8, 500, 42, every=10 ** 9)["xt"][-1]))
+        tr["samples"].append(b64(run(m, 8, 500, 42, every=10 ** 9)["x0_hat"][-1]))
         print("ckpt", tag, flush=True)
 out["training"] = tr
 

@@ -171,7 +171,9 @@ const S = {
     onX0: "on x̂₀",
     all: "All 16 samples at this step",
     traj: "The selected sample so far: xₜ, and x̂₀ under it",
-    frameT: (t) => (t < 0 ? "result" : `t = ${t}`),
+    frameT: (t) => `t = ${t}`,
+    allDone: "All 16 results",
+    playhead: (t) => `t = ${t}`,
   },
   cond: {
     top: (c) => `The first-row sample with label c = ${c}`,
@@ -227,7 +229,7 @@ const CAP = {
   generation: (f) => {
     const t = GENERATION.t[f];
     if (f === 0) return "Generation starts from pure noise, at t = T. The network predicts the noise ε̂ in xₜ. Subtracting all of its share at once would leave a remainder too faint to see; x̂₀ is the remainder divided by √ᾱₜ, the guess of the finished image. Here √ᾱₜ is 0.006, so the guess is noise too.";
-    if (t < 0) return "After 500 steps, each removing a step's share of the predicted noise and adding a little fresh noise, the result is a new sample.";
+    if (f === MAX.generation) return "At t = 0 almost no noise is left: the weight on ε̂ is 0.01, and the last step returns the guess x̂₀ itself as the result. Each of the 500 steps subtracted a small share of the predicted noise and added a little fresh noise.";
     if (t > 600) return "Each step subtracts only a small share of the predicted noise and adds a little fresh noise; the row shows what would remain if all of it were subtracted at once. The guess x̂₀ is a blur that changes from step to step.";
     if (t > 200) return "As t falls, the weight on ε̂ falls and the remainder grows brighter: less of xₜ is noise. The guess x̂₀ takes the shape of a digit before xₜ does.";
     return "Near the end little noise is left to subtract: xₜ, the remainder and x̂₀ are nearly the same image, and the last steps sharpen it.";
@@ -235,7 +237,7 @@ const CAP = {
   conditional: (f) => {
     const t = CONDITIONAL.t[f];
     if (f === 0) return "The same loop, with the label c given to the network at every step. Along a row the starting noise and every added noise are the same; only c differs.";
-    if (t < 0) return "Along a row the noise was identical and only c differed. Most samples end as the digit their label names; on 300 samples, 91% did.";
+    if (f === MAX.conditional) return "Along a row the noise was identical and only c differed. Most samples end as the digit their label names; on 300 samples, 91% did.";
     return "The label enters at every step. Along a row the noise is identical, so where the samples differ, c made the difference.";
   },
 };
@@ -648,20 +650,17 @@ function drawWeights(ctx, colors, Wp, t) {
   }
   txt(ctx, colors, S.gen.onEps, px(150), py(sn(150)) - 8, { fill: colors.groupB, halo: true });
   txt(ctx, colors, S.gen.onX0, px(860), py(sa(860)) - 8, { fill: colors.groupA, halo: true });
-  if (t >= 0) {
+  {
+    /* the playhead: where the run is, labelled, beside the line (his round 3: "a scrub indicator on the graph") */
     line(ctx, px(t), Wp.y0 - 4, px(t), Wp.y1, colors.highlight, 1.5);
+    const right = px(t) > (Wp.L + Wp.R) / 2;
+    txt(ctx, colors, S.gen.playhead(t), px(t) + (right ? -5 : 5), Wp.y0 + 10, { align: right ? "right" : "left", fill: colors.highlight, weight: "600", halo: true });
     for (const [v, col] of [[sa(t), colors.groupA], [sn(t), colors.groupB]]) { ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px(t), py(v), 3.5, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); }
   }
 }
 /** Generation's and Conditional's top row: xₜ − √(1 − ᾱₜ) × ε̂ = √ᾱₜ × x̂₀ (review call 3), or the result alone */
-function drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, k, ke) {
+function drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, k, ke, last) {
   const { s, y, xa, xb, xr, xc } = Lo, mid = y + s / 2 + 5;
-  if (t < 0) {
-    const x = xb + (s + ROW_GAPS[1]) / 2;
-    img(ctx, xt, k, x, y, s, colors.highlight);
-    txt(ctx, colors, S.gen.result, x + s / 2, y - 9, { align: "center", fill: colors.ink1, weight: "600" });
-    return;
-  }
   const a = sa(t), b = sn(t);
   /* the remainder at its true brightness, √ᾱₜ × x̂₀, from the stored x̂₀ (clipped to [−1, 1] as the scheduler clips it) */
   const rem = new Uint8Array(784);
@@ -677,41 +676,42 @@ function drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, k, ke) {
   txt(ctx, colors, S.gen.xt(t), xa + s / 2, y - 9, { align: "center", fill: colors.ink1, weight: "600" });
   txt(ctx, colors, S.gen.epsHat, xb + s / 2, y - 9, { align: "center", fill: colors.groupB });
   txt(ctx, colors, S.gen.rem, xr + s / 2, y - 9, { align: "center", fill: colors.ink2 });
-  txt(ctx, colors, S.gen.x0Hat, xc + s / 2, y - 9, { align: "center", fill: colors.groupA });
+  txt(ctx, colors, last ? S.gen.result : S.gen.x0Hat, xc + s / 2, y - 9, { align: "center", fill: colors.groupA, weight: last ? "600" : "" });
   txt(ctx, colors, S.gen.squares(f2(b), f2(a)), xa, y + s + 18, { fill: colors.ink3 });
 }
 
 function drawGeneration(ctx, colors, w, Lo, params, anim, pointer) {
-  const G = GENERATION, f = frameOf(anim, "generation"), sel = Number(params.sample) - 1, t = G.t[f];
+  const G = GENERATION, f = frameOf(anim, "generation"), sel = Number(params.sample) - 1, t = G.t[f], last = f === MAX.generation;
   const xt = unpack(`gx${f}`, G.xt[f]), eh = unpack(`ge${f}`, G.epsHat[f]), x0 = unpack(`g0${f}`, G.x0Hat[f]);
-  drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, sel, sel);
+  drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, sel, sel, last);
   drawWeights(ctx, colors, Lo.weights, t);
-  title(ctx, colors, S.gen.all, Lo.grid[0].y - 12);
-  for (const R of Lo.grid) img(ctx, xt, R.k, R.x, R.y, R.w, R.k === sel ? colors.highlight : null);
+  /* at the last frame the grid shows the results, the x̂₀ the last step returns */
+  title(ctx, colors, last ? S.gen.allDone : S.gen.all, Lo.grid[0].y - 12);
+  for (const R of Lo.grid) img(ctx, last ? x0 : xt, R.k, R.x, R.y, R.w, R.k === sel ? colors.highlight : null);
   title(ctx, colors, S.gen.traj, Lo.traj[0].y - 12);
   for (const R of Lo.traj) {
     if (R.fr > f) break;
     img(ctx, unpack(`gx${R.fr}`, G.xt[R.fr]), sel, R.x, R.y, R.w, null);
     txt(ctx, colors, S.gen.frameT(G.t[R.fr]), R.x + R.w / 2, R.y + R.h + 13, { align: "center", fill: colors.ink2 });
-    if (G.t[R.fr] >= 0) img(ctx, unpack(`g0${R.fr}`, G.x0Hat[R.fr]), sel, R.x, R.y2, R.w, colors.groupA, 1);
+    img(ctx, unpack(`g0${R.fr}`, G.x0Hat[R.fr]), sel, R.x, R.y2, R.w, colors.groupA, 1);
   }
   const hov = Lo.grid.find((R) => inside(pointer, R));
-  if (hov) imageCard(ctx, colors, w, pointer, S.card.sample(hov.k + 1), t < 0 ? [[xt, hov.k, S.gen.result, colors.ink2]] : [[xt, hov.k, S.card.xt, colors.ink2], [x0, hov.k, S.card.x0Hat, colors.groupA]]);
+  if (hov) imageCard(ctx, colors, w, pointer, S.card.sample(hov.k + 1), last ? [[x0, hov.k, S.gen.result, colors.groupA]] : [[xt, hov.k, S.card.xt, colors.ink2], [x0, hov.k, S.card.x0Hat, colors.groupA]]);
 }
 
 function drawConditional(ctx, colors, w, Lo, params, anim, pointer) {
-  const Cd = CONDITIONAL, f = frameOf(anim, "conditional"), c = Number(params.label), t = Cd.t[f];
+  const Cd = CONDITIONAL, f = frameOf(anim, "conditional"), c = Number(params.label), t = Cd.t[f], last = f === MAX.conditional;
   const xt = unpack(`cx${f}`, Cd.xt[f]), x0 = unpack(`c0${f}`, Cd.x0Hat[f]), eh = unpack(`ce${f}`, Cd.epsHat[f]);
   title(ctx, colors, S.cond.top(c), 16);
   /* the first row's sample with this label: xₜ and x̂₀ index the 40 in row order, ε̂ the first row's ten */
-  drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, c, c);
+  drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, c, c, last);
   title(ctx, colors, S.cond.grid, Lo.gy - 30);
   for (let d = 0; d < 10; d++) txt(ctx, colors, String(d), PAD + d * (Lo.cs + Lo.gx) + Lo.cs / 2, Lo.gy - 8, { align: "center", fill: d === c ? colors.highlight : colors.ink2, size: colors.fsSm, weight: d === c ? "600" : "" });
-  for (const R of Lo.grid) img(ctx, xt, R.r * 10 + R.d, R.x, R.y, R.w, R.r === 0 && R.d === c ? colors.highlight : null, R.r === 0 && R.d === c ? 2 : 1);
+  for (const R of Lo.grid) img(ctx, last ? x0 : xt, R.r * 10 + R.d, R.x, R.y, R.w, R.r === 0 && R.d === c ? colors.highlight : null, R.r === 0 && R.d === c ? 2 : 1);
   const X = PAD + c * (Lo.cs + Lo.gx);
   ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1; ctx.strokeRect(X - 4, Lo.gy - 4, Lo.cs + 8, 4 * (Lo.cs + 6) + 2); ctx.restore();
   const hov = Lo.grid.find((R) => inside(pointer, R));
-  if (hov) imageCard(ctx, colors, w, pointer, S.card.label(hov.d, hov.r + 1), t < 0 ? [[xt, hov.r * 10 + hov.d, S.gen.result, colors.ink2]] : [[xt, hov.r * 10 + hov.d, S.card.xt, colors.ink2], [x0, hov.r * 10 + hov.d, S.card.x0Hat, colors.groupA]]);
+  if (hov) imageCard(ctx, colors, w, pointer, S.card.label(hov.d, hov.r + 1), last ? [[x0, hov.r * 10 + hov.d, S.gen.result, colors.groupA]] : [[xt, hov.r * 10 + hov.d, S.card.xt, colors.ink2], [x0, hov.r * 10 + hov.d, S.card.x0Hat, colors.groupA]]);
 }
 
 function captionOf(params, anim) {
@@ -842,10 +842,10 @@ defineWidget({
       return [{ label: T_.ck, value: CK_NAME[landed], note: T_.ckNote(page === "ctraining" ? 5 : 3) }, { label: T_.it, value: String(TRAINING.t[i]) }, { label: T_.mse, value: RUNS[page].mse[landed][i].toFixed(4), note: T_.mseNote }];
     }
     const G = page === "generation" ? GENERATION : CONDITIONAL, every = page === "generation" ? GEN_EVERY : COND_EVERY, total = page === "generation" ? 500 : 75;
-    const f = frameOf(anim, page), t = G.t[f];
+    const f = frameOf(anim, page), t = G.t[f], last = f === MAX[page];
     return [
-      { label: T_.step, value: t < 0 ? T_.done : String(f * every), note: T_.stepNote(total) },
-      { label: T_.tNow, value: t < 0 ? "0" : String(t) },
+      { label: T_.step, value: last ? T_.done : String(f * every), note: T_.stepNote(total) },
+      { label: T_.tNow, value: String(t) },
       page === "generation" ? { label: S.sampleLabel, value: String(params.sample) } : { label: T_.label, value: String(params.label) },
     ];
   },
@@ -855,6 +855,6 @@ defineWidget({
     if (page === "forward") { const t = Number(params.t); return `Forward process at t = ${t}: xₜ = ${f3(sa(t))} x₀ + ${f3(sn(t))} ε.`; }
     if (isTrain(page)) { const ck = posOf(anim, page); return `${page === "ctraining" ? "Conditional training" : "Training"}, ${CK_NAME[ck]}: the prediction's error on iteration ${params.iter} is ${RUNS[page].mse[ck][Number(params.iter) - 1].toFixed(4)}.`; }
     const G = page === "generation" ? GENERATION : CONDITIONAL, f = frameOf(anim, page);
-    return `${page === "generation" ? "Generation" : `Conditional generation, label ${params.label}`}: ${G.t[f] < 0 ? "finished" : `t = ${G.t[f]}`}.`;
+    return `${page === "generation" ? "Generation" : `Conditional generation, label ${params.label}`}: ${f === MAX[page] ? "finished" : `t = ${G.t[f]}`}.`;
   },
 });
