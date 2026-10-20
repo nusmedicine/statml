@@ -26170,6 +26170,51 @@ the reverse run while x_t is still noise. Forward is pure arithmetic, so it
 can be exact in the browser (x_t from a seeded ε for any t). Reverse and
 Conditional replay stored trajectories (the U-Net does not run in JS).
 
+### 107 MOCKED, DRAFTED AND REVIEWED 2026-10-20
+
+`_lab/diffusion-mock.html`, thirteen calls, all the recommendation (Stage
+pages, Forward a t slider with c107's frames, Training through nine
+checkpoints, Generation 50 steps a press, c129's grid with shared rows, the
+card a diagram and formula, 4 bits a pixel). Draft 6a878ed. Round 1 (his
+three questions, `_lab/diffusion-mock2.html`, asked one by one, all the
+recommendation): the pixel hover and the values histogram on Forward; a
+conditional Training page (the shapes come before the label); the
+subtraction row on Generation. Round 2: Forward process alone above the two
+models; the row shows the division by √ᾱₜ with the remainder at its true
+brightness, and the weights' squares adding to 1 (his "they don't add to
+1?"). Round 3: the stored runs end on the t = 0 step, whose x̂₀ is the result,
+so the row runs to the end; a labelled playhead.
+
+### 107 STUDENT WALK-THROUGH AND COPY AUDIT, 2026-10-20
+
+`_lab/diffusion-copy-scan.mjs <claudisms.md>` evaluates S, CAP at every
+state it keys on, the card's diagrams, formulas and notes, the page labels,
+press labels and titles, the manifest card and the meta description: 176
+strings. Banlist (292 terms): 37 hits, all "shape", "names", "leave" in their
+literal sense except "moves" in "ε̂ moves toward ε" (W6). Measured for the
+captions: the near-the-end Generation caption is false for 40 < t ≤ 200
+(noise weight 0.59 at t = 200, 0.14 at t = 38); √ᾱₜ is 0.0064 at t = 998,
+printed "0.01" in the row beside a caption saying 0.006.
+
+| # | where | now | proposed |
+|---|---|---|---|
+| W1 | Forward, Step t detail | "of the forward process, 0 to 999" — but t = 0 already shows 0.01 × ε, while the card's chain starts from x₀, the data | "of the forward process, counted from 0 as the scheduler counts them, so t = 0 already holds one step of noise; a click on a frame below sets it" |
+| W2 | Forward and Generation, the squares line | "0.63² + 0.78² = 1" — the rounded weights square to 1.005 on a calculator | "the squares of the two weights add to 1: ᾱₜ + (1 − ᾱₜ) = 0.39 + 0.61" |
+| W3 | Forward card | αₜ appears in Generation's formula and is defined nowhere | c96's form: ᾱₜ = ∏ αₛ, with αₜ = 1 − βₜ |
+| W4 | Forward, strip title | "Six steps of the forward process" (reads as six consecutive steps) | "xₜ at six values of t" |
+| W5 | Training, Iteration buttons | 1–12, the t hidden until clicked; the end caption names "t = 8 and t = 930", which no button shows | each button carries its t on a second line (core's `qual`); caption "iterations 1 (t = 8) and 4 (t = 930)" |
+| W6 | Training, while Train plays | "Training, before training: the loss falls, ε̂ moves toward ε …" on the first move | "Training: the loss falls, ε̂ comes closer to ε, and the samples come to look like digits." |
+| W7 | Generation row | √ᾱₜ = 0.0064 printed "0.01" beside a caption saying 0.006 | weights under 0.1 printed to 3 decimals |
+| W8 | Generation, 600 < t < 998 | "x̂₀ is a blur" — at t ≈ 900 it is saturated noise (67% of pixels clipped) | "x̂₀ is noise at first, then a blur that changes from step to step" |
+| W9 | Generation, t ≤ 200 | "xₜ, the remainder and x̂₀ are nearly the same image" — false at t = 200 | that caption from t ≤ 40; 40 < t ≤ 200 keeps "As t falls …" |
+| W10 | Conditional Generation, title | "The first-row sample with label c = 7", before the grid it refers to | "Label c = 7, the sample in the first row below" |
+| C1 | row, legend, captions, card | "guess" (our word for x̂₀) | "predicted x₀", the field's and diffusers' name (`pred_original_sample`) |
+| C2 | Training captions and legend | "the network is given xₜ and t and asked for ε"; "the noise the network is asked for"; "its weights do not use it yet" (personification) | "the network takes xₜ and t and is trained to output ε"; "the noise the network is trained to predict"; "c is in the network's input but does not change its output yet" |
+| C3 | captions | "bears no relation to ε"; "c made the difference" (idioms) | "is unrelated to ε"; "the difference is due to c" |
+| C4 | sample rows, grid title | "One sample a label", "Four samples a label" | "One sample for each label", "Four samples for each label" |
+| C5 | subtitle | names "small U-Nets trained on handwritten digits"; "it starts … and removes" (the model as actor) | options S1 · S2 · S3 |
+| C6 | blurb and meta | "…generation by denoising, with and without a label." (115) | options B1 · B2 · B3 |
+
 ---
 
 ## Two arcs, not one — now three
