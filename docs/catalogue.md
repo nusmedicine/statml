@@ -25191,7 +25191,7 @@ seeded rng.
 | 105 | `fusion` | 10-2 | when the modalities meet decides what is learned: early learns interactions, late weighs each modality's verdict (α per patient), joint aligns pairs for retrieval | Early · Late · Joint | **SHIPPED 2026-10-17** |
 | 106 | `vae` | 10-3 cells 1–40 | a random latent point of an autoencoder mostly decodes to garbage; the KL term fills the space so random points decode to digits | Autoencoder · VAE · Conditional, on a 2-D latent clicked to decode | **SHIPPED 2026-10-19** (22 states) |
 | 108 | `gan` | 10-3 cells 41–43 | the generator never sees the real data: it moves along the discriminator's slope; at equilibrium D(x) = ½ everywhere | one page, base GAN only (c43's conditional GAN is pseudocode and repeats the CVAE) | **SHIPPED 2026-10-19** (11 states) |
-| 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward (t slider) · Reverse (trajectory) · Conditional | **MEASURED 2026-10-20** |
+| 107 | `diffusion` | 10-3 cells 95–129 | the network predicts the noise, not the image; generation is many small denoising steps, forward fixed, reverse learned | Forward process · Diffusion [Training · Generation] · Conditional diffusion [Training · Generation] | **SHIPPED 2026-10-20** (27 states) |
 
 **Build order** is the lessons': 104 → 105 → 106 → 108 → 107.
 
@@ -26226,6 +26226,28 @@ takes both ends from the data. Re-scan: 9 banlist hits, all literal
 (72 states) found one overrun the audit introduced, the Forward hint by
 11 px, now two lines; then clean, the twelve Iteration buttons carrying their
 t unclipped.
+
+### 107 SHIPPED 2026-10-20 as "Deep Learning - Frontiers: Diffusion Models" (27 states)
+
+On his "tested ok": status flipped in `main.js` and the manifest; 27
+fingerprint states (15 settled: each stage's opening, middle and end; 6
+driven: Training's Step mid-press at 16 frames and late at 22, Generation's
+Step and Generate in flight, conditional Train in flight, conditional Step;
+1 interrupted: a Generation press, then the page switched; 3 set: Sample and
+Iteration after presses, Label on Conditional; 2 hit: a click on Forward's
+t = 800 frame, a click on Generation's fifth grid cell). Two things found
+on the way. (1) The page heights decided the canvas width: Training,
+conditional Training and Conditional stand 1,194–1,198 px, on the harness's
+1,197 px frame, and Forward and Generation grow past it once the card is
+drawn, so runs alternated 535 and 550 px and the px hashes flaked. The
+widget's stub now reserves the scrollbar's gutter (`scrollbar-gutter:
+stable`); every state then rendered at 669 device px. (2) Training's Step at
+12 frames hashed as the opening: the loss line had moved one batch, which
+draws nothing, and the moving dot is in the card, outside the px hash; 16
+frames. Three runs agreed on all 27 (the 16-frame state on two plus the
+MATCH pass), and the MATCH pass after the flip read 27/27 at DPR 1.25 with
+the session fronted. Also found: the stub's viewport meta had carried the
+blurb since the draft (a `sed` meant for the description); restored.
 
 ---
 

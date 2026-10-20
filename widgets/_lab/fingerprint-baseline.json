@@ -15128,11 +15128,285 @@
       "tx": "7e74aed9"
     },
     {
-      "$note": "diffusion · placeholder while the draft is under review; real states are recorded at the ship",
+      "$note": "diffusion · Forward process, opening: the 5 at t = 0, the squares line, the histogram's two spikes",
       "slug": "diffusion",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "e496a0ec",
+      "tx": "1235a2eb"
+    },
+    {
+      "$note": "diffusion · Forward process, t = 400: the noise weight the larger, the values spreading toward N(0, 1)",
+      "slug": "diffusion",
+      "state": "?theme=light&t=400&shown=0",
+      "px": "784cd095",
+      "tx": "4f2c594a"
+    },
+    {
+      "$note": "diffusion · Forward process, the 9 at t = 999: x₀'s weight 0.006, the frames at 800 and 999 alike",
+      "slug": "diffusion",
+      "state": "?theme=light&digit=4&t=999&shown=0",
+      "px": "80495d6b",
+      "tx": "79c6bee1"
+    },
+    {
+      "$note": "diffusion · Training, opening: before training, ε̂ unrelated to ε, the samples noise",
+      "slug": "diffusion",
+      "state": "?theme=light&page=training&shown=0",
+      "px": "eb7571f3",
+      "tx": "b3e46c54"
+    },
+    {
+      "$note": "diffusion · Training, after 20 batches: the loss curve to batch 20",
+      "slug": "diffusion",
+      "state": "?theme=light&page=training&shown=2",
+      "px": "e4dbff54",
+      "tx": "14fe63e7"
+    },
+    {
+      "$note": "diffusion · Training, after 3 epochs, iteration 7 (t = 983): ε̂ close to ε, the samples digits",
+      "slug": "diffusion",
+      "state": "?theme=light&page=training&iter=7&shown=8",
+      "px": "4dbf8608",
+      "tx": "e6d570d2"
+    },
+    {
+      "$note": "diffusion · Conditional Training, opening",
+      "slug": "diffusion",
+      "state": "?theme=light&page=ctraining&shown=0",
+      "px": "e552b1f2",
+      "tx": "a9c8c21e"
+    },
+    {
+      "$note": "diffusion · Conditional Training, after epoch 3, iteration 3: digit-like shapes, often not the label's",
+      "slug": "diffusion",
+      "state": "?theme=light&page=ctraining&iter=3&shown=8",
+      "px": "48606c0a",
+      "tx": "b6cdcdb1"
+    },
+    {
+      "$note": "diffusion · Conditional Training, after epoch 5: most samples follow their label",
+      "slug": "diffusion",
+      "state": "?theme=light&page=ctraining&shown=10",
+      "px": "0c39e26b",
+      "tx": "a1bd8fc0"
+    },
+    {
+      "$note": "diffusion · Generation, opening at t = 998: the row's weights 1.00 and 0.006, the predicted x₀ noise",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation&shown=0",
+      "px": "32c86046",
+      "tx": "22b87dc8"
+    },
+    {
+      "$note": "diffusion · Generation, step 250 (t = 498), sample 3: the remainder faint, the predicted x₀ a digit",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation&sample=3&shown=5",
+      "px": "977354e3",
+      "tx": "949ad8ee"
+    },
+    {
+      "$note": "diffusion · Generation, finished: the row at t = 0, x̂₀ the result, the 16 results, the playhead at 0",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation&shown=10",
+      "px": "02d640d1",
+      "tx": "18c7a9fc"
+    },
+    {
+      "$note": "diffusion · Conditional Generation, opening",
+      "slug": "diffusion",
+      "state": "?theme=light&page=conditional&shown=0",
+      "px": "d4f27adb",
+      "tx": "0f81ca15"
+    },
+    {
+      "$note": "diffusion · Conditional Generation, step 45 (t = 377), label 7",
+      "slug": "diffusion",
+      "state": "?theme=light&page=conditional&label=7&shown=3",
+      "px": "ed0a2b39",
+      "tx": "1f6462ca"
+    },
+    {
+      "$note": "diffusion · Conditional Generation, finished, label 5: the 40 results",
+      "slug": "diffusion",
+      "state": "?theme=light&page=conditional&label=5&shown=5",
+      "px": "b90b23bb",
+      "tx": "55e09a94"
+    },
+    {
+      "$note": "diffusion · DRIVEN: Training, Step mid-press (16 frames): the loss line growing toward batch 5 (at 12 frames it had drawn nothing yet, so the state hashed as the opening)",
+      "slug": "diffusion",
+      "state": "?theme=light&page=training",
+      "drive": {
+        "click": "step",
+        "frames": 16,
+        "dt": 32
+      },
+      "px": "a87ae443",
+      "tx": "b3e46c54"
+    },
+    {
+      "$note": "diffusion · DRIVEN: Training, Step late in the press (22 frames): the gradient dot on its lane",
+      "slug": "diffusion",
+      "state": "?theme=light&page=training",
+      "drive": {
+        "click": "step",
+        "frames": 22,
+        "dt": 32
+      },
+      "px": "0cc1cd55",
+      "tx": "b3e46c54"
+    },
+    {
+      "$note": "diffusion · DRIVEN: Generation, Step mid-press (15 frames): stored frames revealed, the dot round the loop",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation",
+      "drive": {
+        "click": "step",
+        "frames": 15,
+        "dt": 32
+      },
+      "px": "8a4757f0",
+      "tx": "1e8ad18b"
+    },
+    {
+      "$note": "diffusion · DRIVEN: Generation, Generate in flight (60 frames): the playhead moving",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "2b63be41",
+      "tx": "ada4a195"
+    },
+    {
+      "$note": "diffusion · DRIVEN: Conditional Training, Train in flight (40 frames): the running caption",
+      "slug": "diffusion",
+      "state": "?theme=light&page=ctraining",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "e7b0b7af",
+      "tx": "c85891e0"
+    },
+    {
+      "$note": "diffusion · DRIVEN: Conditional Generation, Step mid-press (20 frames)",
+      "slug": "diffusion",
+      "state": "?theme=light&page=conditional",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "ea604f68",
+      "tx": "b6d66230"
+    },
+    {
+      "$note": "diffusion · INTERRUPTED: Generation Step in flight, then the page switched to Training: Training's opening",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 15
+          }
+        ],
+        "set": {
+          "page": "training"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "eb7571f3",
+      "tx": "b3e46c54"
+    },
+    {
+      "$note": "diffusion · SET: Generation after one press, then Sample 9 from the rail: the press kept",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 60
+          }
+        ],
+        "set": {
+          "sample": "9"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "56de4f7c",
+      "tx": "e492561c"
+    },
+    {
+      "$note": "diffusion · SET: Training after Train, then Iteration 4 from the rail: the checkpoint kept",
+      "slug": "diffusion",
+      "state": "?theme=light&page=training",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 400
+          }
+        ],
+        "set": {
+          "iter": "4"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "3f4c83c2",
+      "tx": "62bcea5e"
+    },
+    {
+      "$note": "diffusion · HIT: Forward process, a click on the t = 800 frame sets t",
+      "slug": "diffusion",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          408,
+          551
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "7956af6e",
+      "tx": "3c1857ce"
+    },
+    {
+      "$note": "diffusion · HIT: Generation, a click on the fifth sample of the grid picks Sample 5",
+      "slug": "diffusion",
+      "state": "?theme=light&page=generation",
+      "drive": {
+        "hit": [
+          303,
+          320
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "bfa34f1b",
+      "tx": "26b88414"
+    },
+    {
+      "$note": "diffusion · SET: Conditional Generation, Label 8 from the rail (the column regions are hit-tested by the Generation grid's state)",
+      "slug": "diffusion",
+      "state": "?theme=light&page=conditional",
+      "drive": {
+        "set": {
+          "label": "8"
+        },
+        "frames": 5,
+        "dt": 32
+      },
+      "px": "1a446c11",
+      "tx": "85d41a13"
     }
   ]
 }

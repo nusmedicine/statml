@@ -748,7 +748,7 @@ const LABELS = Array.from({ length: 10 }, (_, d) => ({ value: String(d), label: 
 
 defineWidget({
   slug: "diffusion",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Frontiers: Diffusion Models",
   subtitle: S.subtitle,
   layout: "side",
