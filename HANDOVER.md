@@ -1,7 +1,8 @@
 # Handover
 
-**SESSION 2026-10-20 (continued). 109 `generation-control` DRAFTED, committed
-locally, NOT pushed.** His calls, in order: the clinical example, not generated
+**SESSION 2026-10-20 (continued). 109 `generation-control` SHIPPED AND PUSHED**
+as "Deep Learning - Frontiers: Transformer Decoding and Conditioning" (12
+states, 12/12 MATCH at DPR 1.25 with the session fronted). His calls, in order: the clinical example, not generated
 enzyme, antibody or other biological sequences; measure which example teaches;
 then 1A 2A 3A 4A 5A from `_lab/gen109-mock.html` and "build the draft"; round 1
 (A: the chosen rule or prefix fills only its column); the copy audit applied
@@ -32,11 +33,10 @@ arm keeps its own place, and an arm change halts Generate. Data
 3. **At ten notes, distinct notes barely separate top-k from temperature; the
    first word does** (top-k k = 3 opens only with patient, no or ready).
 
-**NEXT: his test of the audited draft**, then the ship: fingerprint states
-(placeholders now; settled, driven, interrupted on a page AND an arm switch),
-three determinism runs with the session fronted, a MATCH pass, status shipped.
-Ten notes kept (his call). Still unasked, from the draft: the blank reserve
-under the table at narrow widths, the three-prefix panel, the colours.
+**NEXT: nothing picked.** 109 is the slot his transformer question opened;
+the DL Frontiers arc and its follow-up are done. Left unasked from the draft
+(he tested and shipped without raising them): the blank reserve under the
+table at narrow widths, a three-prefix first-token panel, the colours.
 
 **Dev server this session:** `widgets-alt4` on :8014.
 

@@ -26249,7 +26249,11 @@ MATCH pass), and the MATCH pass after the flip read 27/27 at DPR 1.25 with
 the session fronted. Also found: the stub's viewport meta had carried the
 blurb since the draft (a `sed` meant for the description); restored.
 
-### Slot 109 `generation-control` PROPOSED 2026-10-20 — not picked
+### Slot 109 `generation-control` — Transformer Decoding and Conditioning — SHIPPED 2026-10-20
+
+(Proposed, measured, mocked, picked, drafted, reviewed, audited and shipped the same day; the sections below in that order.)
+
+#### PROPOSED 2026-10-20
 
 His question at the arc's close: whether the transformer is still owed a
 generative-models widget, since 10-3b conditions protein generation on a host
@@ -26393,6 +26397,16 @@ Sampling → **Decoding** (greedy decoding is not sampling; the field calls the
 three rules decoding strategies), its link value `page=decoding`. Two fixes
 the reload found: C1's longer entropy note overran the canvas (now two
 lines), and the no-prefix legend mark follows the figure.
+
+**SHIPPED 2026-10-20 on his "tested ok, ship it".** Switch probe: 9 switches,
+0 flagged. Twelve fingerprint states: seven settled (Decoding's opening, its
+finished table under temperature, greedy, and top-k k = 2 with T = 2 and the
+†; Conditioning's opening, finished table, and no prefix), three driven (one
+Draw; Generate under greedy; Generate with [NEG]) and two interrupted
+(Generate, then Conditioning: hashes as Conditioning's opening, the halt
+proved; Generate, then Top-k: the top-k column stays empty). Identical across
+three runs at DPR 1.25 with the session in the main window, then 12 of 12
+MATCH.
 
 ---
 

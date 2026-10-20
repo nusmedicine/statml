@@ -444,7 +444,7 @@ function drawTable(ctx, colors, Lo, params, state, anim) {
 
 defineWidget({
   slug: "generation-control",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Frontiers: Transformer Decoding and Conditioning",
   subtitle: S.subtitle,
   layout: "side",

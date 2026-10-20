@@ -15409,14 +15409,56 @@
       "tx": "85d41a13"
     },
     {
-      "$note": "generation-control · PLACEHOLDER (draft): the opening, nothing drawn",
+      "$note": "generation-control · settled: Decoding opening, temperature 1, nothing drawn; bars and outlines coincide",
       "slug": "generation-control",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "339a9aeb",
+      "tx": "00d84870"
     },
     {
-      "$note": "generation-control · PLACEHOLDER (draft): one Draw",
+      "$note": "generation-control · settled: Decoding, all three columns of 10 notes, temperature lane on note 10",
+      "slug": "generation-control",
+      "state": "?theme=light&shown=10",
+      "px": "d9a4e171",
+      "tx": "26041f38"
+    },
+    {
+      "$note": "generation-control · settled: Decoding, greedy lane: no u drawn, 1 different note",
+      "slug": "generation-control",
+      "state": "?theme=light&rule=greedy&shown=10",
+      "px": "04f40655",
+      "tx": "8b3bc440"
+    },
+    {
+      "$note": "generation-control · settled: Decoding, top-k k = 2 lane, temperature column at T = 2 with the † footnote",
+      "slug": "generation-control",
+      "state": "?theme=light&rule=topk&k=2&T=2&shown=10",
+      "px": "9db80da7",
+      "tx": "46ecac9e"
+    },
+    {
+      "$note": "generation-control · settled: Conditioning opening, [TREAT] bars over the no-prefix outlines",
+      "slug": "generation-control",
+      "state": "?theme=light&page=conditioning&shown=0",
+      "px": "934a2a4e",
+      "tx": "e96b2ddf"
+    },
+    {
+      "$note": "generation-control · settled: Conditioning, three columns of 10 notes, [TREAT] lane",
+      "slug": "generation-control",
+      "state": "?theme=light&page=conditioning&shown=10",
+      "px": "86f0f6d9",
+      "tx": "3a682be3"
+    },
+    {
+      "$note": "generation-control · settled: Conditioning, no prefix chosen: filled reference bars, the legend mark a bar",
+      "slug": "generation-control",
+      "state": "?theme=light&page=conditioning&prefix=none&shown=10",
+      "px": "16d89505",
+      "tx": "877fdbfd"
+    },
+    {
+      "$note": "generation-control · DRIVEN: one Draw at temperature 1, u on the intervals",
       "slug": "generation-control",
       "state": "?theme=light",
       "drive": {
@@ -15424,8 +15466,72 @@
         "frames": 3,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "0abc8bc2",
+      "tx": "507ef306"
+    },
+    {
+      "$note": "generation-control · DRIVEN: Generate under greedy, mid-run (40 frames): only the greedy column fills",
+      "slug": "generation-control",
+      "state": "?theme=light&rule=greedy",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "23abbea1",
+      "tx": "42ba7fc8"
+    },
+    {
+      "$note": "generation-control · DRIVEN: Generate with [NEG], mid-run (30 frames)",
+      "slug": "generation-control",
+      "state": "?theme=light&page=conditioning&prefix=neg",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "50a9f182",
+      "tx": "6cb312c0"
+    },
+    {
+      "$note": "generation-control · INTERRUPTED: Generate on Decoding, then Conditioning mid-run: halts; must hash as the Conditioning opening",
+      "slug": "generation-control",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 30
+          }
+        ],
+        "set": {
+          "page": "conditioning"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "934a2a4e",
+      "tx": "e96b2ddf"
+    },
+    {
+      "$note": "generation-control · INTERRUPTED: Generate at temperature, then Top-k mid-run: halts; the top-k column stays empty",
+      "slug": "generation-control",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 30
+          }
+        ],
+        "set": {
+          "rule": "topk"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "9c2077dd",
+      "tx": "a6a41a05"
     }
   ]
 }
