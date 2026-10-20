@@ -26349,6 +26349,42 @@ uses the same u's in every column, and a link's `shown=` fills every column.
 Since each arm now has its own presses, a change of arm halts Generate as a
 page change does; T and k do not (they redraw a column).
 
+### 109 STUDENT WALK-THROUGH AND COPY AUDIT, 2026-10-20
+
+His call: keep ten notes, run the audit. `_lab/generation-control-copy-scan.mjs
+<claudisms.md>` evaluates S, CAP at every value it keys on, the card's leads,
+notes and plain formulas, the page, option and press labels and titles, the
+title, the manifest card and the meta description: 115 strings. Banlist (292
+terms): 0 hits. Measured for the copy: all 99 of the grammar's one-clause notes
+are in the Sampling model's 20,000 training notes (the rarest 25 times); the
+Conditioning model's training notes are 30 of them (the two kinds). At the
+harness width a table column is 163 px and "10 of 10 start treated or managed"
+is 164 px.
+
+| # | where | now | proposed |
+|---|---|---|---|
+| W1 | Sampling, caption before the first token | "Draw picks one with a uniform number u" under every rule, false under greedy | one caption a rule: greedy "puts probability 1 on the most probable token"; T = 1 the model's probabilities; other rules "the bars are the rule's probabilities, the outlines the model's" |
+| W2 | Sampling, greedy draws | the u marker and "u = 0.50" are drawn beside "does not use u" | no u marker under greedy |
+| W3 | Sampling legend | "the model's probability" (outline), but at T = 1 no outline is drawn | the outline at every setting; at T = 1 it coincides with the bar and the numbers read 0.37 → 0.37 |
+| W4 | Conditioning legend | "with no prefix" as an outline, but with No prefix chosen the bars are filled in that colour | a bar mark when No prefix is chosen |
+| W5 | Sampling card | [BOS] and [EOS] are defined nowhere on the page | "[BOS] marks the start of a note and [EOS] its end; a note is complete when [EOS] is drawn." |
+| W6 | Sampling card, the † footnote | the training data is described nowhere; "† not a note the training data's grammar can produce" | card: "a small decoder trained on 20,000 synthetic one-clause clinical notes, 99 different ones"; footnote "† not one of the 99 notes in the training data" (Conditioning: "the 30 notes", the † computed against those 30) |
+| W7 | Conditioning card | "the same u's" with u defined only on the Sampling card | u defined on this card too |
+| W8 | Sampling, temperature captions | "the larger probabilities grow and the smaller shrink" (not every larger one does at T < 1); "move toward each other" (figurative) | "each ratio between two probabilities is raised to the power 1/T = 1.43: the most probable token's probability rises and the least probable's falls" (the reverse above 1); true at every press |
+| W9 | table heads | "10 of 10 start treated or managed" overruns its column at the harness width; "10 different, 5 first words" (different what) | heads wrapped to the column, two lines: "10 different notes, 5 different first words"; "5 start treated or managed, 5 start no" |
+| W10 | Generate's title | "Draw every token of all 10 notes" (round 1 made it one column) | "Draw every remaining token of the 10 notes under the chosen rule" / "with the chosen prefix" |
+| W11 | captions | "The model drew [EOS]" (the model does not draw) | "[EOS] was drawn: note 1 is complete." |
+| W12 | Conditioning captions | "The outlines are the same tokens with no prefix" | "The outlines are the model's probabilities for the same tokens with the prefix removed." |
+| W13 | Sampling card | "intervals laid end to end … the one whose interval holds u" | the field's name: inverse transform sampling, "the token drawn is the first, from most to least probable, whose cumulative probability under the rule exceeds u" |
+| C1 | entropy note | "(0 when one token has them all)"; "for it" | "under each token: the entropy, in nats, of the model's probabilities at that position (0 when one token has probability 1)" |
+| C2 | rail | "Temperature T", "k, for top-k" against the heads "Temperature, T = 1", "Top-k, k = 3" | "Temperature, T" and "Top-k, k" |
+| C3 | top-k caption | "every other token gets 0" | "every other token has probability 0" |
+| C4 | Conditioning card | "One model gives all three"; "treatment notes and negated-finding notes" | "The three columns come from one model, trained on notes that state a treatment (treated with … for …) or a negated finding (no … reported)" |
+| C5 | page control | "Control" | kept: the two pages are two ways to control generation |
+| C6 | title | "Controlling Generation" | options T1 · T2 · T3 |
+| C7 | subtitle | names the two pages | options S1 · S2 · S3, each the concept |
+| C8 | blurb and meta | (114) | options B1 · B2 · B3 |
+
 ---
 
 ## Two arcs, not one — now three
