@@ -30,7 +30,7 @@ const walk = (v) => {
 walk(S);
 strs.push(S.armRule.temperature("1.3"), S.armRule.topk("3"));
 /* every caption at every value it keys on */
-strs.push(CAP.start.sampling);
+for (const r of ["greedy", "temperature", "topk"]) for (const T of ["1", "0.7"]) strs.push(CAP.start.sampling(r, T));
 for (const pre of ["treat", "neg", "none"]) { strs.push(CAP.start.conditioning(pre), CAP.cond(pre, "treated")); }
 strs.push(CAP.rule.greedy("patient", 0.37));
 for (const T of TS) strs.push(CAP.rule.temperature(T, "patient"));

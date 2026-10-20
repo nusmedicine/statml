@@ -29,9 +29,14 @@ export const BOS = 1, EOS = 2;
 export const MAX_TOKENS = 11;
 export const VOCAB = { causal: VOCABS.causal, cond: VOCABS.cond };
 export const ID = Object.fromEntries(VOCABS.cond.map((w, i) => [w, i]));
-const IN_GRAMMAR = new Set(GRAMMAR);
-/** a note (its words joined by spaces) the training grammar can produce */
-export const inGrammar = (text) => IN_GRAMMAR.has(text);
+/* the notes each model was trained on: causal every one-clause note of the grammar (all 99 occur in its
+   20,000 training notes, the rarest 25 times); cond the treatment and negated-finding notes only */
+const TRAINED = {
+  causal: new Set(GRAMMAR),
+  cond: new Set(GRAMMAR.filter((n) => /^(treated|managed|no) /.test(n))),
+};
+/** a note (its words joined by spaces) that is one of the model's training notes */
+export const inTraining = (which, text) => TRAINED[which].has(text);
 
 /* ------------------------------------------------------------ the weights */
 

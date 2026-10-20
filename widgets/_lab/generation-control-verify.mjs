@@ -40,6 +40,12 @@ ok(worst < 1e-12, `the forward within 1e-12 of torch (${worst.toExponential(1)})
 ok(W109.MODELS.causal.b64 === W84.MODELS.causal.b64, "the Sampling page's model is 84's, byte for byte");
 ok(JSON.stringify(W109.VOCABS.causal) === JSON.stringify(W84.VOCABS.causal), "and its vocabulary is 84's");
 
+/* the footnotes' counts: † marks a note that is not one of the model's training notes */
+const trained = (which) => W109.GRAMMAR.filter((n) => M.inTraining(which, n)).length;
+ok(W109.GRAMMAR.length === 99 && trained("causal") === 99, `the Sampling model's training notes: 99 different (${trained("causal")})`);
+ok(trained("cond") === 30, `the Conditioning model's training notes: 30 different (${trained("cond")})`);
+ok(M.inTraining("causal", "patient recovered well") && !M.inTraining("cond", "patient recovered well"), "a course note is in the Sampling model's training notes, not the Conditioning model's");
+
 /* 3 · the rules */
 for (const r of REF.causal) {
   const p = M.nextProbs("causal", r.ids), top = M.orderOf(p)[0];
@@ -49,6 +55,11 @@ for (const r of REF.causal) {
     ok(M.drawOf(p, q, 0) === top, `${rule} ${JSON.stringify(o)}: u = 0 picks the most probable token`);
   }
   ok(M.ruleDist(p, "topk", { k: 1 }).every((v, i) => v === M.ruleDist(p, "greedy")[i]), "top-k with k = 1 is greedy");
+  /* the temperature caption (audit W8): below 1 the most probable token's probability rises and the least probable's falls; above 1 the reverse */
+  for (const T of [0.5, 0.7, 1.3, 1.6, 2]) {
+    const q = M.ruleDist(p, "temperature", { T }), hi = Math.max(...p), lo = Math.min(...p), qhi = Math.max(...q), qlo = Math.min(...q);
+    ok(T < 1 ? qhi >= hi && qlo <= lo : qhi <= hi && qlo >= lo, `T = ${T}: the most and least probable move as the caption says (${hi.toFixed(3)} → ${qhi.toFixed(3)}, ${lo.toExponential(1)} → ${qlo.toExponential(1)})`);
+  }
   ok(M.ruleDist(p, "temperature", { T: 1 }).every((v, i) => Math.abs(v - p[i]) < 1e-12), "temperature 1 is the model's distribution");
 }
 
