@@ -39,7 +39,14 @@
    each with Training · Generation; the row shows the division it was hiding,
    xₜ − √(1 − ᾱₜ) × ε̂ = remainder ÷ √ᾱₜ = x̂₀, the remainder at its true
    brightness, and says the weights' squares add to 1 (his "they don't add
-   to 1?") and that x̂₀ is the guess of the finished image, not one step.
+   to 1?") and that x̂₀ is the predicted x₀, not what one step does.
+
+   STUDENT WALK-THROUGH AND COPY AUDIT (2026-10-20, catalogue § 107, all rows
+   as proposed): t counted from 0 as the scheduler counts it; the weights'
+   squares as ᾱₜ + (1 − ᾱₜ); αₜ defined on the card; weights under 0.1 to
+   3 decimals; each iteration's t on its button; captions true at every
+   frame they cover; "predicted x₀" for x̂₀ (the field's name); no network
+   "asked"; subtitle S1, blurb B1.
 
    The U-Net does not run here: Forward is computed from a seeded ε, and
    every other picture replays a stored run (`_lab/diffusion-export.py`).
@@ -94,24 +101,29 @@ const PRESS_MS = { training: 900, ctraining: 900, generation: 1100, conditional:
 const RUN_MS = { training: 650, ctraining: 650, generation: 90, conditional: 130 };   // per checkpoint · per stored frame
 const GEN_EVERY = 10, COND_EVERY = 3;                         // stored frames: every 10th of 500 steps, every 3rd of 75
 const CK_NAME = ["before training", "after 5 batches", "after 20 batches", "after 50 batches", "after 100 batches", "after 200 batches", "after epoch 1", "after epoch 2", "after epoch 3", "after epoch 4", "after epoch 5"];
-const TRAJ = [0, 7, 14, 21, 28, 35, 42, 50];                  // the trajectory's eight frames (c115 shows 8)
+const TRAJ = [0, 7, 14, 21, 28, 35, 42, 50];
+/* the stored iterations with the smallest and largest t, which the end-of-training caption names (audit W5) */
+const IT_LO = TRAINING.t.indexOf(Math.min(...TRAINING.t)), IT_HI = TRAINING.t.indexOf(Math.max(...TRAINING.t));                  // the trajectory's eight frames (c115 shows 8)
 
 /* ------------------------------------------------------------- strings */
 
 const f2 = (v) => v.toFixed(2);
+/** a weight as printed beside an image: under 0.1 to 3 decimals, so √ᾱₜ = 0.0064 is not shown as 0.01 (audit W7) */
+const fw = (v) => (v < 0.095 ? v.toFixed(3) : v.toFixed(2));
+/** the squares of the two weights, ᾱₜ + (1 − ᾱₜ), rounded so the printed pair adds to 1 (audit W2) */
+const squaresOf = (t) => { const ab = Math.round(ABAR[t] * 100) / 100; return `ᾱₜ + (1 − ᾱₜ) = ${ab.toFixed(2)} + ${(1 - ab).toFixed(2)}`; };
 const f3 = (v) => v.toFixed(3);
 const sgn2 = (v) => (v < 0 ? `(−${f2(-v)})` : f2(v));
 
 const S = {
   subtitle:
-    "A diffusion model is trained to predict the noise that was added to an image, at every level of noise. " +
-    "To generate, it starts from pure noise and removes the predicted noise a little at a time. " +
-    "The two models here are small U-Nets trained on handwritten digits.",
+    "A diffusion model is trained to predict the noise that was added to its data, at every level of noise. " +
+    "Generation starts from pure noise and subtracts a small share of the predicted noise at each of many steps.",
   pageLabel: "Stage",
   digitLabel: "Digit",
   digitDetail: "x₀, an image from the training set",
   tLabel: "Step t",
-  tDetail: "of the forward process, 0 to 999; a click on a frame below sets it",
+  tDetail: "of the forward process, counted from 0 as the scheduler counts them, so t = 0 already holds one step of noise; a click on a frame below sets it",
   iterLabel: "Iteration",
   iterDetail: "one pass of the training loop: an image x₀, a step t and a noise ε, each drawn at random",
   sampleLabel: "Sample",
@@ -134,8 +146,9 @@ const S = {
     x0: "x₀",
     eps: "ε ~ N(0, I)",
     xt: (t) => `xₜ, t = ${t}`,
-    hint: (a, b) => `${f2(a)}² + ${f2(b)}² = 1: the squares of the two weights add to 1. A pointer on any pixel shows its three values.`,
-    sum: (r, c, a, v0, b, e, v) => `pixel (${r}, ${c}):  ${f2(a)} × ${sgn2(v0)} + ${f2(b)} × ${sgn2(e)} = ${v < 0 ? "−" + f2(-v) : f2(v)}`,
+    /* two lines: on one, the hint overran the canvas by 11 px */
+    hint: (t) => [`The squares of the two weights add to 1: ${squaresOf(t)}.`, "A pointer on any pixel shows its three values."],
+    sum: (r, c, a, v0, b, e, v) => `pixel (${r}, ${c}):  ${fw(a)} × ${sgn2(v0)} + ${fw(b)} × ${sgn2(e)} = ${v < 0 ? "−" + f2(-v) : f2(v)}`,
     curves: "The weights on x₀ and ε at each step t",
     wa: "√ᾱₜ, the weight on x₀",
     wb: "√(1 − ᾱₜ), the weight on ε",
@@ -144,7 +157,7 @@ const S = {
     histXt: "xₜ at this t",
     histN: "N(0, 1), dashed",
     clamp: "below −1 drawn black · above 1 drawn white",
-    frames: "Six steps of the forward process",
+    frames: "xₜ at six values of t",
     frameT: (t) => `t = ${t}`,
     card: { t: (t) => `t = ${t}`, a: (v) => `√ᾱₜ = ${v}`, b: (v) => `√(1 − ᾱₜ) = ${v}` },
   },
@@ -156,7 +169,7 @@ const S = {
     mse: (v) => `‖ε − ε̂‖² per pixel = ${v}`,
     loss: "Training loss per batch (log axes)",
     batch: "batch",
-    samples: (name, cond) => (cond ? `One sample a label from the model ${name}, all from one starting noise` : `Eight samples from the model ${name}, 500 denoising steps each`),
+    samples: (name, cond) => (cond ? `One sample for each label from the model ${name}, all from one starting noise` : `Eight samples from the model ${name}, 500 denoising steps each`),
     c: (d) => `c = ${d}`,
   },
   gen: {
@@ -164,8 +177,8 @@ const S = {
     result: "x₀, the result",
     epsHat: "ε̂, the predicted noise",
     rem: "what remains",
-    x0Hat: "x̂₀, the guess of x₀",
-    squares: (b, a) => `${b}² + ${a}² = 1: the squares of the two weights add to 1`,
+    x0Hat: "x̂₀, the predicted x₀",
+    squares: (t) => `The squares of the two weights add to 1: ${squaresOf(t)}`,
     weights: "The two weights as generation runs, t from 999 down to 0",
     onEps: "on ε̂",
     onX0: "on x̂₀",
@@ -176,17 +189,17 @@ const S = {
     playhead: (t) => `t = ${t}`,
   },
   cond: {
-    top: (c) => `The first-row sample with label c = ${c}`,
-    grid: "Four samples a label; each row starts from the same noise",
+    top: (c) => `Label c = ${c}, the sample in the first row below`,
+    grid: "Four samples for each label; each row starts from the same noise",
   },
   card: { xt: "xₜ", x0Hat: "x̂₀", sample: (k) => `sample ${k}`, label: (c, r) => `c = ${c}, row ${r}` },
   legend: {
     x0: "x₀ and its weight √ᾱₜ",
     eps: "ε and its weight √(1 − ᾱₜ)",
     now: "the step t shown",
-    target: "ε, the noise the network is asked for",
+    target: "ε, the noise the network is trained to predict",
     pred: "ε̂, the network's prediction, and the loss",
-    genX0: "x̂₀, the guess of the finished image, and its weight √ᾱₜ",
+    genX0: "x̂₀, the predicted x₀, and its weight √ᾱₜ",
     genEps: "ε̂, the predicted noise, and its weight √(1 − ᾱₜ)",
     chosen: "the selected sample",
     chosenLabel: (c) => `label c = ${c}`,
@@ -209,36 +222,37 @@ const CAP = {
         : `From t = ${T_TENTH} the weight on x₀ is under 0.1: the pixel values are close to N(0, 1) and xₜ is close to pure noise for every digit. The frames at t = 800 and 999 look alike for this reason.`,
   training: (ck, playing) =>
     playing
-      ? `Training, ${CK_NAME[ck]}: the loss falls, ε̂ moves toward ε, and the samples move toward digits.`
+      ? "Training: the loss falls, ε̂ comes closer to ε, and the samples come to look like digits."
       : ck === 0
-        ? "One iteration of the loop: noise ε is added to x₀ at step t, and the network is given xₜ and t and asked for ε. Before training ε̂ bears no relation to ε, and the model generates noise."
+        ? "One iteration of the loop: noise ε is added to x₀ at step t, and the network takes xₜ and t and is trained to output ε. Before training ε̂ is unrelated to ε, and the model generates noise."
         : ck < MAX.training
           ? "The model at a saved checkpoint of the training run: ε̂ for the same iteration, the loss up to this batch, and samples generated with the model as it stands."
-          : "After 3 epochs. Where t is large, xₜ is mostly ε, and ε̂ matches it closely; near t = 0 the noise is a faint layer over the digit, and ε̂ is further off. The iterations with t = 8 and t = 930 show the two ends.",
+          : `After 3 epochs. Where t is large, xₜ is mostly ε, and ε̂ matches it closely; near t = 0 the noise is a faint layer over the digit, and ε̂ is further off. Iterations ${IT_LO + 1} (t = ${TRAINING.t[IT_LO]}) and ${IT_HI + 1} (t = ${TRAINING.t[IT_HI]}) show the two ends.`,
   /* measured on these samples (`_lab/diffusion-mock2data.py`): one shape for every label to 50 batches, mixed through epoch 3, most labels followed from epoch 4 */
   ctraining: (ck, playing) =>
     playing
-      ? `Training, ${CK_NAME[ck]}: the loss falls, and the samples move from one shape for every label toward the digit each label names.`
+      ? "Training: the loss falls, and the samples go from one shape for every label to the digit each label names."
       : ck === 0
-        ? "The same loop with the label: c is given to the network beside xₜ and t, and the network is asked for ε. Before training the model generates noise, whatever the label."
+        ? "The same loop with the label: the network takes c beside xₜ and t and is trained to output ε. Before training the model generates noise, whatever the label."
         : ck <= 3
-          ? "The samples are nearly the same shape whatever the label: c is in the network's input, but its weights do not use it yet."
+          ? "The samples are nearly the same shape whatever the label: c is in the network's input but does not change its output yet."
           : ck <= 8
-            ? "The samples take digit-like shapes before they follow the label: different labels give different shapes, often not the digit asked for."
+            ? "The samples take digit-like shapes before they follow the label: different labels give different shapes, often not the digit the label names."
             : "From epoch 4 most samples follow their label. The conditional model was trained for 5 epochs, the unconditional one for 3.",
   generation: (f) => {
     const t = GENERATION.t[f];
-    if (f === 0) return "Generation starts from pure noise, at t = T. The network predicts the noise ε̂ in xₜ. Subtracting all of its share at once would leave a remainder too faint to see; x̂₀ is the remainder divided by √ᾱₜ, the guess of the finished image. Here √ᾱₜ is 0.006, so the guess is noise too.";
-    if (f === MAX.generation) return "At t = 0 almost no noise is left: the weight on ε̂ is 0.01, and the last step returns the guess x̂₀ itself as the result. Each of the 500 steps subtracted a small share of the predicted noise and added a little fresh noise.";
-    if (t > 600) return "Each step subtracts only a small share of the predicted noise and adds a little fresh noise; the row shows what would remain if all of it were subtracted at once. The guess x̂₀ is a blur that changes from step to step.";
-    if (t > 200) return "As t falls, the weight on ε̂ falls and the remainder grows brighter: less of xₜ is noise. The guess x̂₀ takes the shape of a digit before xₜ does.";
+    if (f === 0) return "Generation starts from pure noise, at t = T. The network predicts the noise ε̂ in xₜ. Subtracting all of its share at once would leave a remainder too faint to see; x̂₀ is the remainder divided by √ᾱₜ, the predicted x₀. Here √ᾱₜ is 0.006, so the prediction is noise too.";
+    if (f === MAX.generation) return "At t = 0 almost no noise is left: the weight on ε̂ is 0.01, and the last step returns x̂₀, the predicted x₀, as the result. Each of the 500 steps subtracted a small share of the predicted noise and added a little fresh noise.";
+    if (t > 600) return "Each step subtracts only a small share of the predicted noise and adds a little fresh noise; the row shows what would remain if all of it were subtracted at once. The predicted x₀ is noise at first, then a blur that changes from step to step.";
+    /* from t = 40 the noise's weight is at most 0.14, and xₜ, the remainder and x̂₀ look alike (at t = 200 it is still 0.59: audit W9) */
+    if (t > 40) return "As t falls, the weight on ε̂ falls and the remainder grows brighter: less of xₜ is noise. The predicted x₀ takes the shape of a digit before xₜ does.";
     return "Near the end little noise is left to subtract: xₜ, the remainder and x̂₀ are nearly the same image, and the last steps sharpen it.";
   },
   conditional: (f) => {
     const t = CONDITIONAL.t[f];
     if (f === 0) return "The same loop, with the label c given to the network at every step. Along a row the starting noise and every added noise are the same; only c differs.";
     if (f === MAX.conditional) return "Along a row the noise was identical and only c differed. Most samples end as the digit their label names; on 300 samples, 91% did.";
-    return "The label enters at every step. Along a row the noise is identical, so where the samples differ, c made the difference.";
+    return "The label enters at every step. Along a row the noise is identical, so where the samples differ, the difference is due to c.";
   },
 };
 
@@ -326,8 +340,8 @@ const norm2 = (b) => `<msup><mrow>${mo("‖")}${b}${mo("‖")}</mrow>${mn(2)}</m
 const EQ = {
   forward: {
     lead: "",
-    math: `${xt}${mo("=")}${sq(abar)}${x0}${mo("+")}${sq(oneMinus(abar))}${eps}${mo(",")}<mspace width="1em"/>${eps}${mo("∼")}${mi("N")}${mo("(")}${mn(0)}${mo(",")}${mi("I")}${mo(")")}${mo(",")}<mspace width="1em"/>${abar}${mo("=")}<munderover>${mo("∏")}<mrow>${mi("s")}${mo("=")}${mn(1)}</mrow>${mi("t")}</munderover>${mo("(")}${oneMinus(sub(mi("β"), mi("s")))}${mo(")")}`,
-    plain: "xₜ = √ᾱₜ x₀ + √(1 − ᾱₜ) ε,  ε ~ N(0, I),  ᾱₜ = ∏ₛ₌₁ᵗ (1 − βₛ)",
+    math: `${xt}${mo("=")}${sq(abar)}${x0}${mo("+")}${sq(oneMinus(abar))}${eps}${mo(",")}<mspace width="1em"/>${eps}${mo("∼")}${mi("N")}${mo("(")}${mn(0)}${mo(",")}${mi("I")}${mo(")")}${mo(",")}<mspace width="1em"/>${abar}${mo("=")}<munderover>${mo("∏")}<mrow>${mi("s")}${mo("=")}${mn(1)}</mrow>${mi("t")}</munderover>${sub(mi("α"), mi("s"))}${mo(",")}<mspace width="1em"/>${alpha}${mo("=")}${oneMinus(sub(mi("β"), mi("t")))}`,
+    plain: "xₜ = √ᾱₜ x₀ + √(1 − ᾱₜ) ε,  ε ~ N(0, I),  ᾱₜ = ∏ₛ₌₁ᵗ αₛ,  αₜ = 1 − βₜ",
     note: "βₜ rises from 0.0001 to 0.02 over T = 1000 steps (the linear schedule). The formula reaches step t in one move; the chain above reaches it one step at a time. N(0, I) is one draw from N(0, 1) for each of the 784 pixels.",
   },
   training: {
@@ -346,7 +360,7 @@ const EQ = {
     lead: "",
     math: `${xtm1}${mo("=")}${frac(`<mrow>${xt}${mo("−")}${frac(oneMinus(alpha), sq(oneMinus(abar)))}${epsH}</mrow>`, sq(alpha))}${mo("+")}${sub(mi("σ"), mi("t"))}${mi("z")}${mo(",")}<mspace width="1.2em"/>${sub(hat(mi("x")), mn(0))}${mo("=")}${frac(`<mrow>${xt}${mo("−")}${sq(oneMinus(abar))}${epsH}</mrow>`, sq(abar))}`,
     plain: "xₜ₋₁ = (xₜ − (1 − αₜ)/√(1 − ᾱₜ) · ε̂)/√αₜ + σₜ z,   x̂₀ = (xₜ − √(1 − ᾱₜ) ε̂)/√ᾱₜ",
-    note: "500 steps; each press runs 50 of them. One step subtracts only a small share of ε̂, (1 − αₜ)/√(1 − ᾱₜ) of it, between 0.01 and 0.04 here, and adds fresh noise σₜ z. The row below subtracts all of ε̂'s share at once and divides what remains by √ᾱₜ: that is x̂₀, the guess of the finished image. The scheduler computes the step from x̂₀, clipped to [−1, 1].",
+    note: "500 steps; each press runs 50 of them. One step subtracts only a small share of ε̂, (1 − αₜ)/√(1 − ᾱₜ) of it, between 0.01 and 0.04 here, and adds fresh noise σₜ z. The row below subtracts all of ε̂'s share at once and divides what remains by √ᾱₜ: that is x̂₀, the predicted x₀. The scheduler computes the step from x̂₀, clipped to [−1, 1].",
   },
   conditional: {
     lead: "",
@@ -474,7 +488,7 @@ function layoutOf(w, page) {
     const s = Math.min(112, Math.floor((w - 2 * PAD - 140) / 3)), y = 30;
     const xa = PAD + 46, xb = xa + s + 68, xc = xb + s + 26;
     const sumY = y + s + 24;
-    const curves = { L: PAD + 30, R: w - PAD - 8, y0: sumY + 44, y1: sumY + 124 };
+    const curves = { L: PAD + 30, R: w - PAD - 8, y0: sumY + 54, y1: sumY + 134 };   // room for the two-line hint
     const hist = { L: PAD + 30, R: w - PAD - 8, y0: curves.y1 + 58, y1: curves.y1 + 150 };
     const fs = Math.min(66, Math.floor((w - 2 * PAD - 5 * 14) / 6)), gap = (w - 2 * PAD - 6 * fs) / 5;
     const fy = hist.y1 + 68;
@@ -518,11 +532,11 @@ function drawForward(ctx, colors, w, Lo, params, state, pointer) {
   const mix = (tt) => { const u = new Uint8Array(784), A = sa(tt), B = sn(tt); for (let i = 0; i < 784; i++) u[i] = disp(A * x0v(i) + B * state.eps[i]); return u; };
   const eu = new Uint8Array(784); for (let i = 0; i < 784; i++) eu[i] = disp(state.eps[i]);
   const { s, y, xa, xb, xc } = Lo, mid = y + s / 2 + 5;
-  txt(ctx, colors, f2(a), PAD, mid, { size: colors.fsSm, fill: colors.groupA, weight: "600" });
+  txt(ctx, colors, fw(a), PAD, mid, { size: colors.fsSm, fill: colors.groupA, weight: "600" });
   txt(ctx, colors, "×", PAD + 34, mid, { size: colors.fsSm, fill: colors.ink2 });
   img(ctx, X0F, k, xa, y, s, colors.groupA);
   txt(ctx, colors, "+", xa + s + 8, mid, { size: colors.fsSm, fill: colors.ink1 });
-  txt(ctx, colors, f2(b), xa + s + 22, mid, { size: colors.fsSm, fill: colors.groupB, weight: "600" });
+  txt(ctx, colors, fw(b), xa + s + 22, mid, { size: colors.fsSm, fill: colors.groupB, weight: "600" });
   txt(ctx, colors, "×", xa + s + 54, mid, { size: colors.fsSm, fill: colors.ink2 });
   img(ctx, eu, 0, xb, y, s, colors.groupB);
   txt(ctx, colors, "=", xb + s + 9, mid, { size: colors.fsSm, fill: colors.ink1 });
@@ -537,7 +551,7 @@ function drawForward(ctx, colors, w, Lo, params, state, pointer) {
     const r = Math.floor(px_ / 28), c = px_ % 28, p = s / 28;
     for (const X of [xa, xb, xc]) { ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(X + c * p - 1.5, y + r * p - 1.5, p + 3, p + 3); ctx.restore(); }
     txt(ctx, colors, S.fwd.sum(r, c, a, x0v(px_), b, state.eps[px_], a * x0v(px_) + b * state.eps[px_]), PAD, Lo.sumY, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
-  } else txt(ctx, colors, S.fwd.hint(a, b), PAD, Lo.sumY, { fill: colors.ink3 });
+  } else S.fwd.hint(t).forEach((l, j) => txt(ctx, colors, l, PAD, Lo.sumY + j * 15, { fill: colors.ink3 }));
   /* the two weights */
   const C = Lo.curves, px = (tt) => C.L + (tt / (T - 1)) * (C.R - C.L), py = (v) => C.y1 - v * (C.y1 - C.y0);
   title(ctx, colors, S.fwd.curves, C.y0 - 14);
@@ -625,7 +639,7 @@ function drawTraining(ctx, colors, w, Lo, params, anim, pointer, page) {
     const on = j === landed;
     ctx.save(); ctx.fillStyle = on ? colors.highlight : colors.grid; ctx.beginPath(); ctx.arc(lx(bt), Lc.y1, on ? 4 : 2.5, 0, 2 * Math.PI); ctx.fill(); ctx.restore();
   });
-  /* the model's samples: eight (unconditional), or one a label from one starting noise (conditional) */
+  /* the model's samples: eight (unconditional), or one for each label from one starting noise (conditional) */
   const sm = unpack(`${page}s${landed}`, run.samples[landed]);
   title(ctx, colors, S.tr.samples(CK_NAME[landed], cond), Lo.samples[0].y - (cond ? 26 : 12));
   Lo.samples.forEach((R, j) => {
@@ -667,17 +681,17 @@ function drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, k, ke, last) {
   for (let i = 0; i < 784; i++) rem[i] = disp(a * ((x0[k * 784 + i] / 255) * 2 - 1));
   const op = (str, x, fill = colors.ink1, weight = "") => txt(ctx, colors, str, x, mid, { size: colors.fsSm, fill, weight });
   img(ctx, xt, k, xa, y, s, colors.highlight);
-  op("−", xa + s + 7); op(f2(b), xa + s + 19, colors.groupB, "600"); op("×", xa + s + 55, colors.ink2);
+  op("−", xa + s + 7); op(fw(b), xa + s + 19, colors.groupB, "600"); op("×", xa + s + 55, colors.ink2);
   img(ctx, eh, ke, xb, y, s, colors.groupB);
   op("=", xb + s + 8);
   img(ctx, rem, 0, xr, y, s, colors.ink3, 1);
-  op("÷", xr + s + 7); op(f2(a), xr + s + 21, colors.groupA, "600"); op("=", xr + s + 56);
+  op("÷", xr + s + 7); op(fw(a), xr + s + 21, colors.groupA, "600"); op("=", xr + s + 56);
   img(ctx, x0, k, xc, y, s, colors.groupA);
   txt(ctx, colors, S.gen.xt(t), xa + s / 2, y - 9, { align: "center", fill: colors.ink1, weight: "600" });
   txt(ctx, colors, S.gen.epsHat, xb + s / 2, y - 9, { align: "center", fill: colors.groupB });
   txt(ctx, colors, S.gen.rem, xr + s / 2, y - 9, { align: "center", fill: colors.ink2 });
   txt(ctx, colors, last ? S.gen.result : S.gen.x0Hat, xc + s / 2, y - 9, { align: "center", fill: colors.groupA, weight: last ? "600" : "" });
-  txt(ctx, colors, S.gen.squares(f2(b), f2(a)), xa, y + s + 18, { fill: colors.ink3 });
+  txt(ctx, colors, S.gen.squares(t), xa, y + s + 18, { fill: colors.ink3 });
 }
 
 function drawGeneration(ctx, colors, w, Lo, params, anim, pointer) {
@@ -728,7 +742,7 @@ const DIGITS = FORWARD.labels.map((d, i) => ({ value: String(i), label: String(d
 /* twelve and sixteen buttons truncate in one row of the rail, so each control takes two: core starts a
    row where an option's `group` changes and captions only a truthy one, so undefined then null is two
    uncaptioned rows of one control */
-const ITERS = TRAINING.t.map((t, i) => ({ value: String(i + 1), label: String(i + 1), group: i < 6 ? undefined : null }));
+const ITERS = TRAINING.t.map((t, i) => ({ value: String(i + 1), label: String(i + 1), qual: `t = ${t}`, group: i < 6 ? undefined : null }));
 const SAMPLES = Array.from({ length: 16 }, (_, i) => ({ value: String(i + 1), label: String(i + 1), group: i < 8 ? undefined : null }));
 const LABELS = Array.from({ length: 10 }, (_, d) => ({ value: String(d), label: String(d) }));
 

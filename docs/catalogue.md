@@ -26215,6 +26215,18 @@ printed "0.01" in the row beside a caption saying 0.006.
 | C5 | subtitle | names "small U-Nets trained on handwritten digits"; "it starts … and removes" (the model as actor) | options S1 · S2 · S3 |
 | C6 | blurb and meta | "…generation by denoising, with and without a label." (115) | options B1 · B2 · B3 |
 
+**His calls:** every row as proposed; subtitle **S1** ("A diffusion model is
+trained to predict the noise that was added to its data, at every level of
+noise. Generation starts from pure noise and subtracts a small share of the
+predicted noise at each of many steps."); blurb **B1**, unchanged (115). In
+applying W5 the end-of-training caption's "t = 930" turned out not to be the
+largest t among the twelve iterations (983, iteration 7): the caption now
+takes both ends from the data. Re-scan: 9 banlist hits, all literal
+("shape", "names", "leave", "moves to the next checkpoint"). The text sweep
+(72 states) found one overrun the audit introduced, the Forward hint by
+11 px, now two lines; then clean, the twelve Iteration buttons carrying their
+t unclipped.
+
 ---
 
 ## Two arcs, not one — now three
