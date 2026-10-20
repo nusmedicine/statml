@@ -26249,6 +26249,45 @@ MATCH pass), and the MATCH pass after the flip read 27/27 at DPR 1.25 with
 the session fronted. Also found: the stub's viewport meta had carried the
 blurb since the draft (a `sed` meant for the description); restored.
 
+### Slot 109 `generation-control` PROPOSED 2026-10-20 — not picked
+
+His question at the arc's close: whether the transformer is still owed a
+generative-models widget, since 10-3b conditions protein generation on a host
+prefix. An overlap table (the device that cut slot 86) says the architecture is
+covered three times over — 84 has the decoder, the causal mask, training in one
+pass against generation a token at a time, [BOS]/[EOS] and cross-attention; 74
+has the character tokenizer and its specials; 85 and 87 have the HA model.
+
+Two ideas in 10-3b are in no widget: **prefix conditioning**, where the
+condition is a token in the same stream and only its position makes it a
+condition (c71–72, c77–78), and **how the next token is drawn** — greedy,
+temperature, top-k (c68, c92), where 84 is greedy throughout.
+
+Proposed as one widget, pages **Sampling · Conditioning**, on 84/85's shipped
+clinical-notes model rather than on protein generation: a student can read a
+note and judge whether the prefix steered it, which is the entire claim, and
+cannot read a sampled amino acid string (85 already draws HA rows as first
+residues plus length because a sequence does not display). A deployed public
+page that generates novel influenza surface-protein variants is also a
+different object from a Colab cell whose output is the student's own, and the
+mechanism is identical whatever the alphabet, so nothing is lost by the change.
+If he wants the protein example named, the version to offer is conditioning
+*shown without generating*: the first-position distribution under each host
+prefix on the existing model, beside the per-position composition of the two
+groups in the real data — a checkable fact about his dataset.
+
+Measure before any mock: whether a prefix token moves the first-position
+distribution on the clinical grammar and how often the generated note carries
+the conditioned property, and whether greedy / temperature / top-k differ
+enough on a 30-token vocabulary to be worth three arms (cut top-k if the
+lesson's k = 20 is indistinguishable from plain sampling). The model is 46,716
+parameters; `_lab/transformer-weights.py` trains it.
+
+Rejected before proposing: a fifth page on 84 (page 3 is at 1,180 of the 1,200
+frame, and the widget was twice cut back for covering too much), and a
+VAE/GAN/diffusion/transformer comparison widget (each of the four already makes
+its own case).
+
 ---
 
 ## Two arcs, not one — now three

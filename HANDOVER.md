@@ -1,5 +1,144 @@
 # Handover
 
+**SESSION 2026-10-20. 107 `diffusion` SHIPPED AND PUSHED** (e4ee8bc) as "Deep
+Learning - Frontiers: Diffusion Models" (27 states, 27/27 MATCH at DPR 1.25
+with the session fronted). **The DL Frontiers arc (PHM5005 10) is complete:
+104 · 105 · 106 · 108 · 107.** Measured, mocked (13 calls), drafted, three
+review rounds, walk-through and copy audit, shipped, in one session. The
+record is the catalogue's § 107 sections.
+
+**107 now.** Stage: **Forward process** (alone, no heading) · **Diffusion**
+[Training · Generation] · **Conditional diffusion** [Training · Generation],
+on 10-3b's own two U-Nets (`UNet2DModel` (64, 64), DDPMScheduler(1000,
+"linear")). Forward is exact in the page (x_t from a seeded ε): the image
+equation, a pixel hover that prints its sum, the weights' squares as
+ᾱₜ + (1 − ᾱₜ), the two weight curves, a histogram of the 784 values moving
+from x₀'s two spikes to N(0, 1), and c107's six frames. Training steps nine
+checkpoints (conditional: eleven) showing x₀, ε, x_t, ε̂ and their error,
+the loss, and samples from each checkpoint (conditional: one per label from
+one noise: the shapes come before the label). Generation's row is
+x_t − √(1 − ᾱₜ)·ε̂ = remainder ÷ √ᾱₜ = x̂₀ ("the predicted x₀"), the weights
+panel with a labelled playhead, all 16 samples, the trajectory; it runs to
+the t = 0 step, whose x̂₀ IS the result. Conditional: c129's grid, each row
+from one x_T and one stream of z. `data.js` (2.76 MB, 4 bits a pixel) from
+`_lab/diffusion-export.py`, which reads `diffusion-mock-data.json` and
+`diffusion-mock2-data.json` (untracked; `diffusion-mockdata.py` and
+`diffusion-mock2data.py` need the models in
+`_scratch/frontiers-data/models-107` from `diffusion-measure.py train`).
+
+**Learned this session.**
+1. **The PC has a GPU** (RTX 5070 Ti). torch was the CPU build; it is now
+   cu130 and diffusers is installed (his yes). The conditional U-Net's 5
+   epochs took 110 s against ~30 min on the CPU.
+2. **A picture that hides a division reads as wrong** (his "they don't add
+   to 1? why multiply 0.28?"): show the remainder at its true brightness,
+   then ÷ √ᾱₜ.
+3. **A stored run should end on its last step, not jump to the result** (his
+   "the steps suddenly disappear"): the last DDPM step returns x̂₀ itself.
+4. **"guess" was our word; the field says "predicted x₀".**
+5. **Fingerprint:** three pages stood on the 1,197 px frame and two grew
+   past it once the card was drawn, so the canvas width flaked 535/550; the
+   stub now has `scrollbar-gutter: stable`. A driven state at 12 frames
+   hashed as its opening (nothing drawn yet on the canvas): compare every
+   driven hash with the settled ones.
+6. **Mistakes of mine:** a `sed` on the stub's `content=` also overwrote the
+   viewport meta (caught at the ship); `npm test` chained into a commit let
+   one through on a failing test (54's `qual` guard, now with 107 opted in).
+   Read each verdict on its own.
+
+**NEXT: HIS CALL ON THE TRANSFORMER SLOT BELOW.** The five picked widgets are
+done; one question is open, his, raised at this session's close.
+
+---
+
+## The transformer in 10-3b: what is covered, what is not (planned 2026-10-20)
+
+His question at the close: *"do we need the transformer for generative models?
+I know we covered it previously, but the notebook included conditioning for
+protein sequences."* He is right that something is uncovered, and it is not the
+architecture.
+
+**Covered already, so no slot should repeat it** (an overlap table is what cut
+slot 86 on 2026-10-02 — draw one before planning):
+
+| 10-3b's transformer section | where it already is |
+|---|---|
+| decoder-only stack, masked self-attention, the causal mask | **84** `transformer`, Decoder page |
+| training in one pass against generation a token at a time | **84**, the Pretraining / Generation phases (built for his "in practice everything is in parallel?") |
+| next-token distribution, the output layer | **84**, the six largest logits |
+| [BOS] … [EOS], stopping on the model's own [EOS] | **84** (its causal model was retrained for this on 2026-09-30, keyed to 10-3's rule) |
+| conditioning one sequence on another | **84**, Encoder–decoder, cross-attention |
+| a character tokenizer over amino acids, a vocabulary with specials | **74** `sequence-encoding` |
+| HA proteins, a model trained on them, what it attends to | **85** `adapting` (Influenza host task) and **87** `explainability` |
+
+**NOT covered anywhere, and both are in 10-3b:**
+
+1. **Prefix conditioning** (c71–72, c77–78, c92). A condition token sits at the
+   front of the sequence, and every later token's distribution is conditioned
+   on it: p(x_t | x_<t, c). This is a different mechanism from 84's
+   cross-attention and from 106/107's concatenated channels — the condition is
+   *a token in the same stream*, and the only thing that makes it a condition
+   is where it sits and that training always put it there. Nothing in the
+   gallery shows that.
+2. **How a token is drawn from the distribution** (c68, c92): `do_sample`,
+   `temperature`, `top_k`. 84 generates greedily. The same distribution under
+   greedy, temperature and top-k is one figure and a real idea — it is also
+   where 10-3's own `generate` differs from everything the arc has shown.
+
+**The recommendation: one widget, slot 109, two pages — Sampling · Conditioning
+— on the clinical-notes model that 84 and 85 already ship, NOT on generated
+protein sequences.** Three reasons, in order of weight:
+
+- **A student can check a note and cannot check a protein.** The whole point of
+  a prefix is that the output changes with it; that claim is only teachable if
+  the reader can see the difference. A sampled amino acid string is unreadable
+  to the class — 85 already draws HA rows as "first residues + length" because
+  a sequence does not display.
+- **A widget that emits novel viral surface-protein sequences is not something
+  to publish**, and the gallery is public and unlicensed. The lesson may train
+  and generate in Colab, where the output is the student's own and transient;
+  a deployed page that hands out generated HA variants on a button is a
+  different object. The teaching idea survives the change of data completely —
+  prefix conditioning is the same mechanism whatever the alphabet.
+- 84's and 85's clinical models, weights and tokenizer are already in the
+  repo and already verified against torch, so the slot needs no new offline
+  model and no new data question.
+
+**What it would show.** Sampling: one prompt, the next-token distribution drawn
+once, then the same distribution under Greedy · Temperature (a slider) · Top-k
+(a k slider) — the bars that survive, the one drawn, and the sequence each
+choice produces from the same seed. Conditioning: the same model trained with a
+condition token at the front (two conditions from 85's own labels), the
+distribution at the first position with each prefix side by side, and the
+generated note under each; a toggle that removes the prefix shows the
+distribution it falls back to. The card holds c71's product formula and c44's,
+so the conditional and unconditional objectives sit together.
+
+**If he wants the protein example specifically**, the honest version is to show
+the *conditioning* on the lesson's existing HA model without generating: the
+first-position distribution under each host prefix, and the per-position residue
+composition of the two groups in the real data, which is a fact about his
+dataset and checkable. Offer that as the alternative; do not build generation
+over it without asking him directly.
+
+**Measure first, before any mock** (the arc's rule): does a prefix token
+measurably change the distribution on the clinical grammar — train 84's causal
+model with a condition token and read the first-position distribution under
+each prefix, and the share of generated notes carrying the conditioned
+property; and do greedy / temperature / top-k differ enough to be worth three
+arms (if top-k at the lesson's k = 20 is indistinguishable from plain sampling
+on a 30-token vocabulary, say so and cut it). Both are cheap: the model is
+46,716 parameters and `_lab/transformer-weights.py` trains it.
+
+**Not recommended:** a fifth page on 84 (it already sits at 1,180 of the 1,200
+frame on page 3 and was twice cut back for doing too much), and a
+VAE/GAN/diffusion/transformer comparison widget (four shipped widgets already
+each make their own case; a fifth that summarises them teaches nothing new).
+
+**Dev server this session:** `widgets-alt4` on :8014.
+
+---
+
 **SESSION 2026-10-19 CLOSED. 108 `gan` SHIPPED AND PUSHED** (49cc0cd) as "Deep
 Learning - Frontiers: Generative Adversarial Networks" (11 states, 11/11 MATCH
 at DPR 1.25 with the session fronted). Measured, mocked, nine calls (all the
@@ -1426,7 +1565,7 @@ Consolidated on 2026-09-16 from the session notes it replaces; *Working on Windo
 - **Recording states: `fingerprint.html?only=<slug>[,<slug>]` since 2026-09-20 (27ea756).** A widget's forty states run in about two minutes, three runs prove determinism, and "Copy new baseline" under the filter splices the run into the baseline in place; read `latest` off the page by overriding `navigator.clipboard.writeText` before clicking Copy. **The shooter's copy proof no longer reproduces the harness** (75's ship: seven of seven proof states DIFFER px-only, deterministic, at DPR 1.25 and visible, in a pane where the harness MATCHes the same states — and its `want` hashes are not the baseline's either), so until someone re-derives a shooter from the harness and proves it, do not record from one. What follows is how the shooters worked until then: copy the newest `_lab/*-shoot.html` (now `mutational-signatures-shoot.html`, copied 2026-09-19 from `driver-genes-shoot.html`, which was built from the current harness functions, and counting every moment the document was hidden; an older copy can predate a branch of `setParam` and hash a state the drive never reached). It proves the copy against known states first, shoots each state three times, and checks every driven state against its settled sibling. **Re-recording a shipped widget,** give each state the change cannot reach its recorded hashes instead of `"0"`: the newest copy reports whether each one reproduced. Two traps: it reads `$note` unguarded and some states have none, so guard it (`$note ?? ""`); and its output is written only at the end, so an empty page mid-run is normal.
 - **The scrollbar flake:** a `px`-only DIFFER on a tall page, `tx` matching and the row hashed at 688 where the baseline holds 669, is the scrollbar until that widget's shooter run alone says otherwise. Do not rebaseline it. A DIFFER on BOTH hashes with identical hashes across runs is something else (t-sne, 2026-09-10: proven environmental by running the harness on the last all-green commit from a detached worktree). And a ship claim that reads "all N of the new widget's states MATCH" is not a full-suite claim; read the DIFFER count.
 - **Screenshots come back black once the page is scrolled:** shift `document.body.style.marginTop` instead of scrolling. The pane's screenshot is 800 px wide. Trust DOM reads over screenshots; under `resize_window`, clicks by `ref` can land off target, while DOM `.click()` and dispatched PointerEvents are reliable.
-- **Python:** `python` is 3.12 at `%LOCALAPPDATA%\Programs\Python\Python312`, with numpy 2.5.2, scikit-learn 1.9.0, Pillow 12.3.0, torch 2.14.0+cpu and MONAI 1.6.0. Two of three torch error strings quoted from memory were wrong (2026-09-11). **A blocked network call is a question for Kenneth** (SimpleWall prompts), not a constraint to build around.
+- **Python:** `python` is 3.12 at `%LOCALAPPDATA%\Programs\Python\Python312`, with numpy 2.5.2, scikit-learn 1.9.0, Pillow 12.3.0, torch 2.14.0+cu130 (the CUDA build since 2026-10-20; **the PC has an RTX 5070 Ti, 16 GB — train on it**, `torch.cuda.is_available()` first), diffusers 0.41 and MONAI 1.6.0. Two of three torch error strings quoted from memory were wrong (2026-09-11). **A blocked network call is a question for Kenneth** (SimpleWall prompts), not a constraint to build around.
 - **Subagents** (the block from 49 below has the cost): name geometry in a brief, not topology, and say so when a pick needs core. Commit before every subagent round; one ran `git checkout` on the baseline file and lost uncommitted states.
 
 ## Things learned, not yet in the principles
@@ -1945,7 +2084,7 @@ A Docker container in WSL (`mcq-app-web-1`, from the `app-mcq` project) publishe
 
 ### Python and the measurement scripts outside the repo
 
-Python 3.12 is at `%LOCALAPPDATA%\Programs\Python\Python312\python.exe` (`winget install Python.Python.3.12`), and since 2026-09-16 `python` from the Bash tool resolves to it, with numpy, scipy, scikit-learn, Pillow 12.3.0, torch 2.14.0+cpu and MONAI 1.6.0. **numpy 2.x removed `ndarray.ptp`**, so `Y.ptp(0)` raises in anything copied from an older script; use `np.ptp(Y, axis=0)`.
+Python 3.12 is at `%LOCALAPPDATA%\Programs\Python\Python312\python.exe` (`winget install Python.Python.3.12`), and since 2026-09-16 `python` from the Bash tool resolves to it, with numpy, scipy, scikit-learn, Pillow 12.3.0, torch 2.14.0+cu130 (CUDA build, 2026-10-20) and MONAI 1.6.0. **numpy 2.x removed `ndarray.ptp`**, so `Y.ptp(0)` raises in anything copied from an older script; use `np.ptp(Y, axis=0)`.
 
 **The older measurement scripts are deliberately not in this repo** (prd §6 records why a Python helper was deleted from it). They sit beside a venv at `C:\Users\Admin\Downloads\PHM5005 AY2025-26 - Notebooks\_scratch\venv`, which holds scikit-learn, pandas, imbalanced-learn, umap-learn and pillow:
 
