@@ -34,6 +34,13 @@
    top row is the subtraction xₜ − √(1 − ᾱₜ)·ε̂ = √ᾱₜ·x̂₀, the Forward row
    read backwards in its colours, with the two weights over the run.
 
+   REVIEW ROUND 2 (his questions on round 1, both changes on his "go ahead"):
+   Forward process stands alone above Diffusion and Conditional diffusion,
+   each with Training · Generation; the row shows the division it was hiding,
+   xₜ − √(1 − ᾱₜ) × ε̂ = remainder ÷ √ᾱₜ = x̂₀, the remainder at its true
+   brightness, and says the weights' squares add to 1 (his "they don't add
+   to 1?") and that x̂₀ is the guess of the finished image, not one step.
+
    The U-Net does not run here: Forward is computed from a seeded ε, and
    every other picture replays a stored run (`_lab/diffusion-export.py`).
    ========================================================================= */
@@ -68,7 +75,9 @@ const X0F = Uint8Array.from(atob(FORWARD.x0), (c) => c.charCodeAt(0));       // 
 const disp = (v) => Math.round((Math.max(-1, Math.min(1, v)) * 0.5 + 0.5) * 255);
 
 const PAGES = [
-  { value: "forward", label: "Forward", group: "Diffusion" },
+  /* review round 2 (his "forward is same for diffusion and conditional"): the fixed process both models share
+     sits alone above them, with no heading (core heads only a truthy group) */
+  { value: "forward", label: "Forward process" },
   { value: "training", label: "Training", group: "Diffusion" },
   { value: "generation", label: "Generation", group: "Diffusion" },
   { value: "ctraining", label: "Training", group: "Conditional diffusion" },
@@ -125,7 +134,7 @@ const S = {
     x0: "x₀",
     eps: "ε ~ N(0, I)",
     xt: (t) => `xₜ, t = ${t}`,
-    hint: "A pointer on any pixel shows its three values.",
+    hint: (a, b) => `${f2(a)}² + ${f2(b)}² = 1: the squares of the two weights add to 1. A pointer on any pixel shows its three values.`,
     sum: (r, c, a, v0, b, e, v) => `pixel (${r}, ${c}):  ${f2(a)} × ${sgn2(v0)} + ${f2(b)} × ${sgn2(e)} = ${v < 0 ? "−" + f2(-v) : f2(v)}`,
     curves: "The weights on x₀ and ε at each step t",
     wa: "√ᾱₜ, the weight on x₀",
@@ -154,7 +163,9 @@ const S = {
     xt: (t) => `xₜ, t = ${t}`,
     result: "x₀, the result",
     epsHat: "ε̂, the predicted noise",
-    x0Hat: "x̂₀, what remains",
+    rem: "what remains",
+    x0Hat: "x̂₀, the guess of x₀",
+    squares: (b, a) => `${b}² + ${a}² = 1: the squares of the two weights add to 1`,
     weights: "The two weights as generation runs, t from 999 down to 0",
     onEps: "on ε̂",
     onX0: "on x̂₀",
@@ -173,7 +184,7 @@ const S = {
     now: "the step t shown",
     target: "ε, the noise the network is asked for",
     pred: "ε̂, the network's prediction, and the loss",
-    genX0: "x̂₀ and its weight √ᾱₜ",
+    genX0: "x̂₀, the guess of the finished image, and its weight √ᾱₜ",
     genEps: "ε̂, the predicted noise, and its weight √(1 − ᾱₜ)",
     chosen: "the selected sample",
     chosenLabel: (c) => `label c = ${c}`,
@@ -215,11 +226,11 @@ const CAP = {
             : "From epoch 4 most samples follow their label. The conditional model was trained for 5 epochs, the unconditional one for 3.",
   generation: (f) => {
     const t = GENERATION.t[f];
-    if (f === 0) return "Generation starts from pure noise, at t = T. The network predicts the noise ε̂ in xₜ; subtracting its share, √(1 − ᾱₜ) × ε̂, leaves √ᾱₜ × x̂₀. Here √ᾱₜ is 0.006, so x̂₀ is noise too: dividing by it magnifies every error in ε̂.";
+    if (f === 0) return "Generation starts from pure noise, at t = T. The network predicts the noise ε̂ in xₜ. Subtracting all of its share at once would leave a remainder too faint to see; x̂₀ is the remainder divided by √ᾱₜ, the guess of the finished image. Here √ᾱₜ is 0.006, so the guess is noise too.";
     if (t < 0) return "After 500 steps, each removing a step's share of the predicted noise and adding a little fresh noise, the result is a new sample.";
-    if (t > 600) return "Each step removes a small share of the predicted noise and adds a little fresh noise. x̂₀, what would remain if all of the noise were subtracted at once, is a blur that changes from step to step.";
-    if (t > 200) return "As t falls, the weight on ε̂ falls and the weight on x̂₀ rises: less of xₜ is noise. x̂₀ takes the shape of a digit before xₜ does.";
-    return "Near the end little noise is left to subtract: xₜ is close to x̂₀, and the last steps sharpen it.";
+    if (t > 600) return "Each step subtracts only a small share of the predicted noise and adds a little fresh noise; the row shows what would remain if all of it were subtracted at once. The guess x̂₀ is a blur that changes from step to step.";
+    if (t > 200) return "As t falls, the weight on ε̂ falls and the remainder grows brighter: less of xₜ is noise. The guess x̂₀ takes the shape of a digit before xₜ does.";
+    return "Near the end little noise is left to subtract: xₜ, the remainder and x̂₀ are nearly the same image, and the last steps sharpen it.";
   },
   conditional: (f) => {
     const t = CONDITIONAL.t[f];
@@ -333,7 +344,7 @@ const EQ = {
     lead: "",
     math: `${xtm1}${mo("=")}${frac(`<mrow>${xt}${mo("−")}${frac(oneMinus(alpha), sq(oneMinus(abar)))}${epsH}</mrow>`, sq(alpha))}${mo("+")}${sub(mi("σ"), mi("t"))}${mi("z")}${mo(",")}<mspace width="1.2em"/>${sub(hat(mi("x")), mn(0))}${mo("=")}${frac(`<mrow>${xt}${mo("−")}${sq(oneMinus(abar))}${epsH}</mrow>`, sq(abar))}`,
     plain: "xₜ₋₁ = (xₜ − (1 − αₜ)/√(1 − ᾱₜ) · ε̂)/√αₜ + σₜ z,   x̂₀ = (xₜ − √(1 − ᾱₜ) ε̂)/√ᾱₜ",
-    note: "500 steps; each press runs 50 of them. One step subtracts a small share of ε̂, (1 − αₜ)/√(1 − ᾱₜ) of it, between 0.01 and 0.04 here, and adds fresh noise σₜ z. x̂₀ is what remains if all of ε̂'s share is subtracted; the scheduler computes the same step from x̂₀, clipped to [−1, 1].",
+    note: "500 steps; each press runs 50 of them. One step subtracts only a small share of ε̂, (1 − αₜ)/√(1 − ᾱₜ) of it, between 0.01 and 0.04 here, and adds fresh noise σₜ z. The row below subtracts all of ε̂'s share at once and divides what remains by √ᾱₜ: that is x̂₀, the guess of the finished image. The scheduler computes the step from x̂₀, clipped to [−1, 1].",
   },
   conditional: {
     lead: "",
@@ -444,29 +455,16 @@ function imageCard(ctx, colors, w, pointer, head, items) {
   });
 }
 const inside = (p, r) => p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
-/** the image-equation row a op1 b op2 c, its two weights printed before b and c (Forward's and Generation's) */
-function equationRow(ctx, colors, R, [A, B, Cc], [op1, op2], [wB, wC]) {
-  const { s, y, xa, xb, xc } = R, mid = y + s / 2 + 5;
-  img(ctx, A[0], A[1], xa, y, s, A[2]);
-  txt(ctx, colors, op1, xa + s + 8, mid, { size: colors.fsSm, fill: colors.ink1 });
-  txt(ctx, colors, wB[0], xa + s + 22, mid, { size: colors.fsSm, fill: wB[1], weight: "600" });
-  txt(ctx, colors, "×", xa + s + 54, mid, { size: colors.fsSm, fill: colors.ink2 });
-  img(ctx, B[0], B[1], xb, y, s, B[2]);
-  txt(ctx, colors, op2, xb + s + 8, mid, { size: colors.fsSm, fill: colors.ink1 });
-  if (wC) {
-    txt(ctx, colors, wC[0], xb + s + 22, mid, { size: colors.fsSm, fill: wC[1], weight: "600" });
-    txt(ctx, colors, "×", xb + s + 54, mid, { size: colors.fsSm, fill: colors.ink2 });
-  }
-  img(ctx, Cc[0], Cc[1], xc, y, s, Cc[2]);
-}
 
 /* ------------------------------------------------------------- layouts */
 
-/** the equation row: three images of side s, room for an operator and a weight in each gap */
+/** Generation's row, xₜ − w × ε̂ = remainder ÷ w = x̂₀ (review round 2): four images of side s, gaps sized for "− 0.96 ×", "=" and "÷ 0.28 =" */
+const ROW_GAPS = [70, 26, 70];
 function eqRow(w, y) {
-  const s = Math.min(112, Math.floor((w - 2 * PAD - 136) / 3)), gap = 68;
-  const xa = PAD + Math.max(0, Math.floor((w - 2 * PAD - 3 * s - 2 * gap) / 2));
-  return { s, y, xa, xb: xa + s + gap, xc: xa + 2 * (s + gap) };
+  const room = ROW_GAPS.reduce((a, b) => a + b, 0), s = Math.min(100, Math.floor((w - 2 * PAD - room) / 4));
+  const xa = PAD + Math.max(0, Math.floor((w - 2 * PAD - 4 * s - room) / 2));
+  const xb = xa + s + ROW_GAPS[0], xr = xb + s + ROW_GAPS[1], xc = xr + s + ROW_GAPS[2];
+  return { s, y, xa, xb, xr, xc };
 }
 function layoutOf(w, page) {
   if (page === "forward") {
@@ -537,7 +535,7 @@ function drawForward(ctx, colors, w, Lo, params, state, pointer) {
     const r = Math.floor(px_ / 28), c = px_ % 28, p = s / 28;
     for (const X of [xa, xb, xc]) { ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(X + c * p - 1.5, y + r * p - 1.5, p + 3, p + 3); ctx.restore(); }
     txt(ctx, colors, S.fwd.sum(r, c, a, x0v(px_), b, state.eps[px_], a * x0v(px_) + b * state.eps[px_]), PAD, Lo.sumY, { size: colors.fsSm, fill: colors.ink1, weight: "600" });
-  } else txt(ctx, colors, S.fwd.hint, PAD, Lo.sumY, { fill: colors.ink3 });
+  } else txt(ctx, colors, S.fwd.hint(a, b), PAD, Lo.sumY, { fill: colors.ink3 });
   /* the two weights */
   const C = Lo.curves, px = (tt) => C.L + (tt / (T - 1)) * (C.R - C.L), py = (v) => C.y1 - v * (C.y1 - C.y0);
   title(ctx, colors, S.fwd.curves, C.y0 - 14);
@@ -657,15 +655,30 @@ function drawWeights(ctx, colors, Wp, t) {
 }
 /** Generation's and Conditional's top row: xₜ − √(1 − ᾱₜ) × ε̂ = √ᾱₜ × x̂₀ (review call 3), or the result alone */
 function drawSubtraction(ctx, colors, Lo, t, xt, eh, x0, k, ke) {
+  const { s, y, xa, xb, xr, xc } = Lo, mid = y + s / 2 + 5;
   if (t < 0) {
-    img(ctx, xt, k, Lo.xb, Lo.y, Lo.s, colors.highlight);
-    txt(ctx, colors, S.gen.result, Lo.xb + Lo.s / 2, Lo.y - 9, { align: "center", fill: colors.ink1, weight: "600" });
+    const x = xb + (s + ROW_GAPS[1]) / 2;
+    img(ctx, xt, k, x, y, s, colors.highlight);
+    txt(ctx, colors, S.gen.result, x + s / 2, y - 9, { align: "center", fill: colors.ink1, weight: "600" });
     return;
   }
-  equationRow(ctx, colors, Lo, [[xt, k, colors.highlight], [eh, ke, colors.groupB], [x0, k, colors.groupA]], ["−", "="], [[f2(sn(t)), colors.groupB], [f2(sa(t)), colors.groupA]]);
-  txt(ctx, colors, S.gen.xt(t), Lo.xa + Lo.s / 2, Lo.y - 9, { align: "center", fill: colors.ink1, weight: "600" });
-  txt(ctx, colors, S.gen.epsHat, Lo.xb + Lo.s / 2, Lo.y - 9, { align: "center", fill: colors.groupB });
-  txt(ctx, colors, S.gen.x0Hat, Lo.xc + Lo.s / 2, Lo.y - 9, { align: "center", fill: colors.groupA });
+  const a = sa(t), b = sn(t);
+  /* the remainder at its true brightness, √ᾱₜ × x̂₀, from the stored x̂₀ (clipped to [−1, 1] as the scheduler clips it) */
+  const rem = new Uint8Array(784);
+  for (let i = 0; i < 784; i++) rem[i] = disp(a * ((x0[k * 784 + i] / 255) * 2 - 1));
+  const op = (str, x, fill = colors.ink1, weight = "") => txt(ctx, colors, str, x, mid, { size: colors.fsSm, fill, weight });
+  img(ctx, xt, k, xa, y, s, colors.highlight);
+  op("−", xa + s + 7); op(f2(b), xa + s + 19, colors.groupB, "600"); op("×", xa + s + 55, colors.ink2);
+  img(ctx, eh, ke, xb, y, s, colors.groupB);
+  op("=", xb + s + 8);
+  img(ctx, rem, 0, xr, y, s, colors.ink3, 1);
+  op("÷", xr + s + 7); op(f2(a), xr + s + 21, colors.groupA, "600"); op("=", xr + s + 56);
+  img(ctx, x0, k, xc, y, s, colors.groupA);
+  txt(ctx, colors, S.gen.xt(t), xa + s / 2, y - 9, { align: "center", fill: colors.ink1, weight: "600" });
+  txt(ctx, colors, S.gen.epsHat, xb + s / 2, y - 9, { align: "center", fill: colors.groupB });
+  txt(ctx, colors, S.gen.rem, xr + s / 2, y - 9, { align: "center", fill: colors.ink2 });
+  txt(ctx, colors, S.gen.x0Hat, xc + s / 2, y - 9, { align: "center", fill: colors.groupA });
+  txt(ctx, colors, S.gen.squares(f2(b), f2(a)), xa, y + s + 18, { fill: colors.ink3 });
 }
 
 function drawGeneration(ctx, colors, w, Lo, params, anim, pointer) {
