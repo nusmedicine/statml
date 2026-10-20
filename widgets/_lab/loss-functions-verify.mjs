@@ -798,8 +798,9 @@ const BCE = M.computeFor({
   check("nor `cellsFrom`",
     !others.some(([, s]) => /cellsFrom/.test(s)));
   /* widget 87 opts in on purpose (2026-10-04): "Integrated gradients" is wider than a third of the rail, so its
-     Method row takes two lines. Any OTHER opt-in is still a rail that moved. */
-  const QUAL_OK = new Set(["explainability/main.js"]);
+     Method row takes two lines. Widget 107 opts in on purpose too (2026-10-20, his audit call W5): each training
+     iteration's button carries its t on a second line. Any OTHER opt-in is still a rail that moved. */
+  const QUAL_OK = new Set(["explainability/main.js", "diffusion/main.js"]);
   check("and no other option declares a `qual` (87's Method row excepted), so no other segmented row takes two lines",
     others.filter(([n, s]) => /\bqual:/.test(s) && !QUAL_OK.has(n)).map(([n]) => n).join() === "",
     others.filter(([n, s]) => /\bqual:/.test(s) && !QUAL_OK.has(n)).map(([n]) => n).join());
